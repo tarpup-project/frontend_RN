@@ -1,0 +1,508 @@
+import Header from "@/components/Header";
+import { Ionicons } from "@expo/vector-icons";
+import { useState } from "react";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  useColorScheme,
+  View,
+} from "react-native";
+
+const EditProfile = () => {
+  const theme = useColorScheme() || "light";
+  const isDark = theme === "dark";
+
+  const [fullName, setFullName] = useState("John Doe");
+  const [bio, setBio] = useState("");
+  const [major, setMajor] = useState("");
+  const [year, setYear] = useState("Select year");
+  const [interests, setInterests] = useState([
+    "Computer Science",
+    "Gaming",
+    "Movies",
+    "Study Groups",
+    "Downtown",
+  ]);
+  const [newInterest, setNewInterest] = useState("");
+  const [selectedLookingFor, setSelectedLookingFor] = useState<string[]>([]);
+
+  const dynamicStyles = {
+    container: {
+      backgroundColor: isDark ? "#000000" : "#FFFFFF",
+    },
+    text: {
+      color: isDark ? "#FFFFFF" : "#000000",
+    },
+    subtitle: {
+      color: isDark ? "#CCCCCC" : "#666666",
+    },
+    card: {
+      backgroundColor: isDark ? "#0A0A0A" : "#F5F5F5",
+      borderColor: isDark ? "#333333" : "#E0E0E0",
+    },
+    input: {
+      backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF",
+      borderColor: isDark ? "#333333" : "#E0E0E0",
+      color: isDark ? "#FFFFFF" : "#000000",
+    },
+  };
+
+  const suggestedInterests = [
+    "Music",
+    "Sports",
+    "Reading",
+    "Cooking",
+    "Travel",
+    "Photography",
+    "Art",
+    "Fitness",
+  ];
+
+  const lookingForOptions = [
+    "Study Partners",
+    "Roommates",
+    "Ride Shares",
+    "Sports Partners",
+    "Event Buddies",
+    "Dating",
+    "Marketplace Deals",
+    "Gaming Friends",
+  ];
+
+  const removeInterest = (interestToRemove: string) => {
+    setInterests(interests.filter((interest) => interest !== interestToRemove));
+  };
+
+  const addInterest = (interest: string) => {
+    if (!interests.includes(interest)) {
+      setInterests([...interests, interest]);
+    }
+  };
+
+  const toggleLookingFor = (option: string) => {
+    if (selectedLookingFor.includes(option)) {
+      setSelectedLookingFor(
+        selectedLookingFor.filter((item) => item !== option)
+      );
+    } else {
+      setSelectedLookingFor([...selectedLookingFor, option]);
+    }
+  };
+
+  return (
+    <View style={[styles.container, dynamicStyles.container]}>
+      <Header />
+
+      <ScrollView style={styles.content}>
+        {/* Back Button */}
+        <Pressable style={styles.backButton}>
+          <Ionicons
+            name="arrow-back"
+            size={20}
+            color={dynamicStyles.text.color}
+          />
+          <Text style={[styles.backText, dynamicStyles.text]}>
+            Back to Profile
+          </Text>
+        </Pressable>
+
+        {/* Profile Photo Section */}
+        <View style={[styles.photoSection, dynamicStyles.card]}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>J</Text>
+          </View>
+          <Pressable style={styles.changePhotoButton}>
+            <Ionicons name="camera-outline" size={16} color="#000000" />
+            <Text style={styles.changePhotoText}>Change Photo</Text>
+          </Pressable>
+          <Text style={[styles.photoHint, dynamicStyles.subtitle]}>
+            JPG, PNG or GIF. Max size: 5MB.
+          </Text>
+        </View>
+
+        {/* Basic Information */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, dynamicStyles.text]}>
+            Basic Information
+          </Text>
+
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, dynamicStyles.text]}>Full Name</Text>
+            <TextInput
+              style={[styles.input, dynamicStyles.input]}
+              value={fullName}
+              onChangeText={setFullName}
+              placeholder="John Doe"
+              placeholderTextColor={dynamicStyles.subtitle.color}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, dynamicStyles.text]}>Bio</Text>
+            <TextInput
+              style={[styles.input, styles.textArea, dynamicStyles.input]}
+              value={bio}
+              onChangeText={setBio}
+              placeholder="Tell others about yourself..."
+              placeholderTextColor={dynamicStyles.subtitle.color}
+              multiline
+              numberOfLines={4}
+            />
+          </View>
+
+          <View style={styles.row}>
+            <View style={[styles.inputGroup, { flex: 1 }]}>
+              <Text style={[styles.label, dynamicStyles.text]}>Major</Text>
+              <TextInput
+                style={[styles.input, dynamicStyles.input]}
+                value={major}
+                onChangeText={setMajor}
+                placeholder="e.g. Computer Science"
+                placeholderTextColor={dynamicStyles.subtitle.color}
+              />
+            </View>
+
+            <View style={[styles.inputGroup, { flex: 1 }]}>
+              <Text style={[styles.label, dynamicStyles.text]}>Year</Text>
+              <Pressable style={[styles.input, styles.selectInput, dynamicStyles.input]}>
+                <Text
+                  style={[
+                    styles.selectText,
+                    year === "Select year" && dynamicStyles.subtitle,
+                    year !== "Select year" && dynamicStyles.text,
+                  ]}
+                >
+                  {year}
+                </Text>
+                <Ionicons
+                  name="chevron-down"
+                  size={16}
+                  color={dynamicStyles.subtitle.color}
+                />
+              </Pressable>
+            </View>
+          </View>
+        </View>
+
+        {/* Interests & Hobbies */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, dynamicStyles.text]}>
+            Interests & Hobbies
+          </Text>
+
+          {/* Current Interests */}
+          <View style={styles.interestsContainer}>
+            {interests.map((interest, index) => (
+              <View key={index} style={[styles.interestChip, dynamicStyles.card]}>
+                <Text style={[styles.interestText, dynamicStyles.text]}>
+                  {interest}
+                </Text>
+                <Pressable onPress={() => removeInterest(interest)}>
+                  <Ionicons
+                    name="close-circle"
+                    size={18}
+                    color={dynamicStyles.subtitle.color}
+                  />
+                </Pressable>
+              </View>
+            ))}
+          </View>
+
+          {/* Add Interest Input */}
+          <View style={styles.addInterestRow}>
+            <TextInput
+              style={[styles.input, styles.addInterestInput, dynamicStyles.input]}
+              value={newInterest}
+              onChangeText={setNewInterest}
+              placeholder="Add an interest..."
+              placeholderTextColor={dynamicStyles.subtitle.color}
+            />
+            <Pressable
+              style={styles.addButton}
+              onPress={() => {
+                if (newInterest.trim()) {
+                  addInterest(newInterest.trim());
+                  setNewInterest("");
+                }
+              }}
+            >
+              <Ionicons name="add" size={24} color="#000000" />
+            </Pressable>
+          </View>
+
+          {/* Suggested Interests */}
+          <Text style={[styles.suggestedLabel, dynamicStyles.subtitle]}>
+            Suggested:
+          </Text>
+          <View style={styles.suggestedContainer}>
+            {suggestedInterests.map((interest, index) => (
+              <Pressable
+                key={index}
+                style={styles.suggestedChip}
+                onPress={() => addInterest(interest)}
+              >
+                <Text style={styles.suggestedText}>+ {interest}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        {/* What are you looking for? */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, dynamicStyles.text]}>
+            What are you looking for?
+          </Text>
+
+          <View style={styles.checkboxGrid}>
+            {lookingForOptions.map((option, index) => (
+              <Pressable
+                key={index}
+                style={styles.checkboxItem}
+                onPress={() => toggleLookingFor(option)}
+              >
+                <View
+                  style={[
+                    styles.checkbox,
+                    selectedLookingFor.includes(option) &&
+                      styles.checkboxSelected,
+                  ]}
+                >
+                  {selectedLookingFor.includes(option) && (
+                    <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+                  )}
+                </View>
+                <Text style={[styles.checkboxLabel, dynamicStyles.text]}>
+                  {option}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        {/* Action Buttons */}
+        <View style={styles.actionButtons}>
+          <Pressable style={[styles.cancelButton, dynamicStyles.card]}>
+            <Text style={[styles.cancelText, dynamicStyles.text]}>Cancel</Text>
+          </Pressable>
+          <Pressable style={styles.saveButton}>
+            <Text style={styles.saveText}>Save Changes</Text>
+          </Pressable>
+        </View>
+      </ScrollView>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 16,
+    marginBottom: 24,
+  },
+  backText: {
+    fontSize: 16,
+  },
+  photoSection: {
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#00D084",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  avatarText: {
+    fontSize: 32,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+  },
+  changePhotoButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+    marginBottom: 8,
+  },
+  changePhotoText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#000000",
+  },
+  photoHint: {
+    fontSize: 12,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 16,
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  input: {
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    fontSize: 14,
+  },
+  textArea: {
+    height: 100,
+    textAlignVertical: "top",
+  },
+  row: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  selectInput: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  selectText: {
+    fontSize: 14,
+  },
+  interestsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 16,
+  },
+  interestChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  interestText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  addInterestRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 16,
+  },
+  addInterestInput: {
+    flex: 1,
+  },
+  addButton: {
+    width: 48,
+    height: 48,
+    backgroundColor: "#666666",
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  suggestedLabel: {
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  suggestedContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  suggestedChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#333333",
+  },
+  suggestedText: {
+    fontSize: 13,
+    color: "#CCCCCC",
+  },
+  checkboxGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
+  },
+  checkboxItem: {
+    width: "47%",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: "#333333",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  checkboxSelected: {
+    backgroundColor: "#00D084",
+    borderColor: "#00D084",
+  },
+  checkboxLabel: {
+    fontSize: 14,
+    flex: 1,
+  },
+  actionButtons: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 80,
+    marginTop: 16,
+  },
+  cancelButton: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  cancelText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  saveButton: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 8,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+  },
+  saveText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#000000",
+  },
+});
+
+export default EditProfile;
