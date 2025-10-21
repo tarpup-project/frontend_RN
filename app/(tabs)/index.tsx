@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import { Ionicons } from "@expo/vector-icons";
+import PreviewModeBanner from '@/components/PreviewModeBanner';
 import { useState } from "react";
 import {
   Pressable,
@@ -114,6 +115,7 @@ const Index = () => {
   return (
     <View style={[styles.container, dynamicStyles.container]}>
       <Header />
+      <PreviewModeBanner />
 
       <ScrollView style={styles.content}>
         {/* Filter Campus Section */}

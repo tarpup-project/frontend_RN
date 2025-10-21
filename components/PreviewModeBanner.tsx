@@ -37,8 +37,7 @@ const PreviewModeBanner = () => {
                         <Text style={styles.emoji}>👀</Text>
                         <Text style={[styles.title, dynamicStyles.text]}>
                             Preview Mode
-                        </Text>
-                        <Text style={styles.emoji}>👀</Text>
+                        </Text>                    
                     </View>
                     <Text style={[styles.subtitle, dynamicStyles.subtitle]}>
                         Sign up to unlock all features
