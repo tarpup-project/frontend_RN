@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import { Ionicons } from "@expo/vector-icons";
+import { useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -10,6 +11,16 @@ import {
 } from "react-native";
 
 const Index = () => {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [selectedUni, setSelectedUni] = useState("University of South Florida");
+
+  const universities = [
+    "University of South Florida",
+    "Harvard University",
+    "Stanford University",
+    "MIT",
+    "Yale University",
+  ];
   const theme = useColorScheme() || "light";
   const isDark = theme === "dark";
 
@@ -24,7 +35,7 @@ const Index = () => {
       color: isDark ? "#CCCCCC" : "#666666",
     },
     filterContainer: {
-      backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
+      backgroundColor: isDark ? "#000000" : "#F5F5F5",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     card: {
@@ -75,7 +86,7 @@ const Index = () => {
       icon: "heart",
     },
     {
-      id: 5,
+      id: 6,
       name: "Study Groups",
       subtitle: "Events and Social gatherings",
       matches: 856,
@@ -106,7 +117,13 @@ const Index = () => {
 
       <ScrollView style={styles.content}>
         {/* Filter Campus Section */}
-        <View style={styles.filterSection}>
+        <View
+          style={[
+            styles.filterSection,
+            styles.dashed,
+            dynamicStyles.filterContainer,
+          ]}
+        >
           <View style={styles.filterHeader}>
             <Ionicons
               name="filter-outline"
@@ -118,9 +135,11 @@ const Index = () => {
             </Text>
             <Text style={[styles.liveText, dynamicStyles.subtitle]}>Live</Text>
           </View>
-
+          
+          <View style={{ position: 'relative' }}>
           <Pressable
             style={[styles.campusSelector, dynamicStyles.filterContainer]}
+            onPress={() => setIsDropdownOpen(!isDropdownOpen)}
           >
             <View style={styles.campusRow}>
               <Ionicons
@@ -130,15 +149,42 @@ const Index = () => {
               />
               <View style={styles.dotIndicator} />
               <Text style={[styles.campusText, dynamicStyles.text]}>
-                University of South Florida
+                {selectedUni}
               </Text>
               <Ionicons
-                name="chevron-down"
+                name={isDropdownOpen ? "chevron-up" : "chevron-down"}
                 size={16}
                 color={dynamicStyles.text.color}
               />
             </View>
           </Pressable>
+          </View>
+
+          {isDropdownOpen && (
+            <View style={[styles.dropdown, dynamicStyles.filterContainer]}>
+              {universities.map((uni, index) => (
+                <Pressable
+                  key={index}
+                  style={[
+                    styles.dropdownItem,
+                    index !== universities.length - 1 && {
+                      borderBottomWidth: 1,
+                      borderBottomColor:
+                        dynamicStyles.filterContainer.borderColor,
+                    },
+                  ]}
+                  onPress={() => {
+                    setSelectedUni(uni);
+                    setIsDropdownOpen(false);
+                  }}
+                >
+                  <Text style={[styles.dropdownText, dynamicStyles.text]}>
+                    {uni}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
 
           <Pressable style={styles.resetButton}>
             <Ionicons
@@ -369,7 +415,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#333333",
     borderRadius: 8,
+  },
+  dashed: {
+    borderWidth: 1,
     borderStyle: "dashed",
+    borderRadius: 8,
+    padding: 12,
   },
   resetText: {
     fontSize: 14,
@@ -503,6 +554,22 @@ const styles = StyleSheet.create({
   },
   compatibilitySubtitle: {
     fontSize: 12,
+  },
+  dropdown: {
+    position: 'absolute',
+    top: 95,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginTop: 4,
+  },
+  dropdownItem: {
+    padding: 10,
+  },
+  dropdownText: {
+    fontSize: 14,
   },
 });
 
