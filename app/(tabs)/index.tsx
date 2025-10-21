@@ -1,11 +1,9 @@
 import Header from '@/components/Header';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, useColorScheme, View } from 'react-native';
 
 const Index = () => {
     const theme = useColorScheme() || 'light';
-    const router = useRouter();
     const isDark = theme === 'dark';
 
     const dynamicStyles = {

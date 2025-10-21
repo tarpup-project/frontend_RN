@@ -1,3 +1,4 @@
+
 import { Tabs } from 'expo-router';
 import { useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -5,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 export default function TabLayout() {
     const theme = useColorScheme() || 'light';
     const isDark = theme === 'dark';
-
+    
     return (
         <Tabs
             screenOptions={{
@@ -16,7 +17,7 @@ export default function TabLayout() {
                     backgroundColor: isDark ? '#000000' : '#FFFFFF',
                     borderTopColor: isDark ? '#333333' : '#E0E0E0',
                     borderTopWidth: 1,
-                    height: 60,
+                    height: 80,
                     paddingBottom: 8,
                     paddingTop: 8,
                 },
@@ -24,23 +25,29 @@ export default function TabLayout() {
                     fontSize: 12,
                     fontWeight: '500',
                 },
+                tabBarItemStyle: {
+                    borderRadius: 12,
+                    marginHorizontal: 4,
+                    overflow: 'hidden',
+                },
+                tabBarActiveBackgroundColor: '#1A1A1A',
             }}
         >
             <Tabs.Screen
                 name="index"
                 options={{
-                    title: 'Spot',
-                    tabBarIcon: ({ color, size }) => (
-                        <Ionicons name="home-outline" size={size} color={color} />
+                    title: 'Spots',
+                    tabBarIcon: ({ color, focused }) => (
+                        <Ionicons name={focused ? 'home' : 'home-outline'} size={24} color={color} />
                     ),
                 }}
             />
             <Tabs.Screen
-                name="projects"
+                name="prompts"
                 options={{
-                    title: 'Projects',
-                    tabBarIcon: ({ color, size }) => (
-                        <Ionicons name="folder-outline" size={size} color={color} />
+                    title: 'Prompts',
+                    tabBarIcon: ({ color, focused }) => (
+                        <Ionicons name={focused ? 'stats-chart' : 'stats-chart-outline'} size={24} color={color} />
                     ),
                 }}
             />
@@ -48,8 +55,8 @@ export default function TabLayout() {
                 name="groups"
                 options={{
                     title: 'Groups',
-                    tabBarIcon: ({ color, size }) => (
-                        <Ionicons name="people-outline" size={size} color={color} />
+                    tabBarIcon: ({ color, focused }) => (
+                        <Ionicons name={focused ? 'people' : 'people-outline'} size={24} color={color} />
                     ),
                 }}
             />
@@ -57,8 +64,8 @@ export default function TabLayout() {
                 name="profile"
                 options={{
                     title: 'Profile',
-                    tabBarIcon: ({ color, size }) => (
-                        <Ionicons name="person-outline" size={size} color={color} />
+                    tabBarIcon: ({ color, focused }) => (
+                        <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} />
                     ),
                 }}
             />
