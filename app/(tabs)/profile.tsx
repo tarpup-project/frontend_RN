@@ -24,12 +24,15 @@ const Profile = () => {
       color: isDark ? "#CCCCCC" : "#666666",
     },
     card: {
-      backgroundColor: isDark ? "#0A0A0A" : "#F5F5F5",
+      backgroundColor: isDark ? "#000000" : "#F5F5F5",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     button: {
       backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
       borderColor: isDark ? "#333333" : "#E0E0E0",
+    },
+    statDivider: {
+      backgroundColor: isDark ? "#333333" : "#E0E0E0",
     },
   };
 
@@ -107,7 +110,11 @@ const Profile = () => {
               </View>
             </View>
             <Pressable style={styles.editButton}>
-              <Ionicons name="create-outline" size={18} color={dynamicStyles.text.color} />
+              <Ionicons
+                name="create-outline"
+                size={18}
+                color={dynamicStyles.text.color}
+              />
               <Text style={[styles.editText, dynamicStyles.text]}>Edit</Text>
             </Pressable>
           </View>
@@ -125,107 +132,125 @@ const Profile = () => {
 
         {/* Activity Stats */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, dynamicStyles.text]}>
-            Activity Stats
-          </Text>
+          <View style={[styles.statsCard, dynamicStyles.card]}>
+            <Text style={[styles.sectionTitle, dynamicStyles.text]}>
+              Activity Stats
+            </Text>
 
-          <View style={styles.statsGrid}>
-            <View style={[styles.statCard, dynamicStyles.card]}>
-              <Ionicons name="star-outline" size={32} color={dynamicStyles.subtitle.color} />
-              <Text style={[styles.statNumber, dynamicStyles.text]}>12</Text>
-              <Text style={[styles.statLabel, dynamicStyles.subtitle]}>
-                Total Matches
-              </Text>
-            </View>
+            <View style={styles.statsContainer}>
+              <View style={styles.statItem}>
+                <View style={styles.iconBackground}>
+                  <Ionicons
+                    name="star-outline"
+                    size={18}
+                    color={dynamicStyles.subtitle.color}
+                  />
+                </View>
+                <Text style={[styles.statNumber, dynamicStyles.text]}>12</Text>
+                <Text style={[styles.statLabel, dynamicStyles.subtitle]}>
+                  Total Matches
+                </Text>
+              </View>
 
-            <View style={[styles.statCard, dynamicStyles.card]}>
-              <Ionicons name="people-outline" size={32} color={dynamicStyles.subtitle.color} />
-              <Text style={[styles.statNumber, dynamicStyles.text]}>4</Text>
-              <Text style={[styles.statLabel, dynamicStyles.subtitle]}>
-                Active Groups
-              </Text>
-            </View>
+              <View style={styles.statItem}>
+                <View style={styles.iconBackground}>
+                  <Ionicons
+                    name="people-outline"
+                    size={18}
+                    color={dynamicStyles.subtitle.color}
+                  />
+                </View>
+                <Text style={[styles.statNumber, dynamicStyles.text]}>4</Text>
+                <Text style={[styles.statLabel, dynamicStyles.subtitle]}>
+                  Active Groups
+                </Text>
+              </View>
 
-            <View style={[styles.statCard, dynamicStyles.card]}>
-              <Ionicons name="trending-up-outline" size={32} color={dynamicStyles.subtitle.color} />
-              <Text style={[styles.statNumber, dynamicStyles.text]}>87%</Text>
-              <Text style={[styles.statLabel, dynamicStyles.subtitle]}>
-                Avg Compatibility
-              </Text>
+              <View style={styles.statItem}>
+                <View style={styles.iconBackground}>
+                  <Ionicons
+                    name="trending-up-outline"
+                    size={18}
+                    color={dynamicStyles.subtitle.color}
+                  />
+                </View>
+                <Text style={[styles.statNumber, dynamicStyles.text]}>87%</Text>
+                <Text style={[styles.statLabel, dynamicStyles.subtitle]}>
+                  Avg Compatibility
+                </Text>
+              </View>
             </View>
           </View>
         </View>
-
         {/* Your Interests */}
         <View style={styles.section}>
-          <View style={styles.interestsHeader}>
-            <Text style={[styles.sectionTitle, dynamicStyles.text]}>
-              Your Interests
-            </Text>
-            <Pressable>
-              <Text style={[styles.addMoreText, dynamicStyles.text]}>
-                ADD MORE
+          <View style={[styles.interestsCard, dynamicStyles.card]}>
+            <View style={styles.interestsHeader}>
+              <Text style={[styles.sectionTitle, dynamicStyles.text]}>
+                Your Interests
               </Text>
-            </Pressable>
-          </View>
-
-          <View style={styles.interestsGrid}>
-            {interests.map((interest, index) => (
-              <View key={index} style={[styles.interestChip, dynamicStyles.button]}>
-                <Text style={[styles.interestText, dynamicStyles.text]}>
-                  {interest}
+              <Pressable>
+                <Text style={[styles.addMoreText, dynamicStyles.text]}>
+                  Add More
                 </Text>
-              </View>
-            ))}
+              </Pressable>
+            </View>
+
+            <View style={styles.interestsGrid}>
+              {interests.map((interest, index) => (
+                <View
+                  key={index}
+                  style={[styles.interestChip, dynamicStyles.button]}
+                >
+                  <Text style={[styles.interestText, dynamicStyles.text]}>
+                    {interest}
+                  </Text>
+                </View>
+              ))}
+            </View>
           </View>
         </View>
 
         {/* Settings */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, dynamicStyles.text]}>Settings</Text>
+        <View style={[styles.settingsCard, dynamicStyles.card]}>
+          <Text style={[styles.sectionTitleInCard, dynamicStyles.text]}>
+            Settings
+          </Text>
+          {settingsOptions.map((option) => (
+            <Pressable key={option.id} style={styles.settingItem}>
+              <View style={styles.settingLeft}>
+                <Ionicons
+                  name={option.icon as any}
+                  size={20}
+                  color={dynamicStyles.text.color}
+                />
+                <Text style={[styles.settingText, dynamicStyles.text]}>
+                  {option.title}
+                </Text>
+              </View>
+              {option.hasChevron && (
+                <Ionicons
+                  name="chevron-forward"
+                  size={20}
+                  color={dynamicStyles.subtitle.color}
+                />
+              )}
+            </Pressable>
+          ))}
 
-          <View style={[styles.settingsCard, dynamicStyles.card]}>
-            {settingsOptions.map((option, index) => (
-              <Pressable
-                key={option.id}
-                style={[
-                  styles.settingItem,
-                  index !== settingsOptions.length - 1 && styles.settingItemBorder,
-                  { borderBottomColor: dynamicStyles.card.borderColor },
-                ]}
-              >
-                <View style={styles.settingLeft}>
-                  <Ionicons
-                    name={option.icon as any}
-                    size={20}
-                    color={dynamicStyles.text.color}
-                  />
-                  <Text style={[styles.settingText, dynamicStyles.text]}>
-                    {option.title}
-                  </Text>
-                </View>
-                {option.hasChevron && (
-                  <Ionicons
-                    name="chevron-forward"
-                    size={20}
-                    color={dynamicStyles.subtitle.color}
-                  />
-                )}
-              </Pressable>
-            ))}
-          </View>
-
-          {/* Sign Out Button */}
-          <Pressable style={styles.signOutButton}>
-            <Ionicons name="log-out-outline" size={20} color="#FF4444" />
-            <Text style={styles.signOutText}>Sign Out</Text>
+          {/* Sign Out - now inside settings card */}
+          <Pressable style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="log-out-outline" size={20} color="#FF4444" />
+              <Text style={styles.signOutText}>Sign Out</Text>
+            </View>
           </Pressable>
         </View>
 
         {/* Footer */}
-        <View style={styles.footer}>
+        <View style={[styles.footerCard, dynamicStyles.card]}>
           <Text style={[styles.footerTitle, dynamicStyles.text]}>
-            Targit Connect
+            TarpAI Connect
           </Text>
           <Text style={[styles.footerSubtitle, dynamicStyles.subtitle]}>
             Smart campus connections powered by AI
@@ -321,29 +346,37 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
     marginBottom: 16,
   },
-  statsGrid: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
+  statsCard: {
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
+  },
+  statsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  statItem: {
+    flex: 1,
     alignItems: "center",
     gap: 8,
   },
   statNumber: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "bold",
   },
   statLabel: {
     fontSize: 11,
     textAlign: "center",
+  },
+  interestsCard: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
   },
   interestsHeader: {
     flexDirection: "row",
@@ -352,7 +385,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   addMoreText: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: "bold",
   },
   interestsGrid: {
@@ -367,23 +400,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   interestText: {
-    fontSize: 14,
+    fontSize: 9,
     fontWeight: "500",
   },
   settingsCard: {
+    padding: 16,
     borderRadius: 12,
     borderWidth: 1,
     overflow: "hidden",
     marginBottom: 16,
+  },
+  sectionTitleInCard: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 16,
+    marginTop: 0,
   },
   settingItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     padding: 16,
-  },
-  settingItemBorder: {
-    borderBottomWidth: 1,
   },
   settingLeft: {
     flexDirection: "row",
@@ -394,30 +431,30 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "500",
   },
-  signOutButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    padding: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#FF4444",
-  },
   signOutText: {
     fontSize: 15,
     fontWeight: "600",
     color: "#FF4444",
   },
-  footer: {
+  footerCard: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
     alignItems: "center",
-    paddingVertical: 32,
     marginBottom: 80,
   },
   footerTitle: {
     fontSize: 16,
     fontWeight: "bold",
     marginBottom: 4,
+  },
+  iconBackground: {
+    width: 35,
+    height: 35,
+    borderRadius: 24,
+    backgroundColor: "#333333",
+    justifyContent: "center",
+    alignItems: "center",
   },
   footerSubtitle: {
     fontSize: 12,
