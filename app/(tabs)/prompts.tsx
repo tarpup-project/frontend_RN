@@ -265,7 +265,6 @@ const Prompts = () => {
         </View>
 
         {/* Prompts List */}
-        {/* Prompts List */}
         <View style={styles.promptsList}>
           {prompts
             .filter(
@@ -432,7 +431,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   promptCard: {
-    padding: 16,
+    padding: 10,
     borderRadius: 12,
     borderWidth: 2,
   },

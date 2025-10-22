@@ -38,6 +38,7 @@ const Groups = () => {
       categoryColor: "#E6D5FF",
       members: 4,
       unreadCount: 3,
+      rating: "92%",
       activeTime: "Active 2 hours ago",
       avatarColors: ["#FF6B9D", "#4A90E2", "#9C27B0"],
     },
@@ -49,6 +50,7 @@ const Groups = () => {
       categoryColor: "#D5E6FF",
       members: 2,
       unreadCount: 7,
+      rating: "88%",
       activeTime: "Active 30 minutes ago",
       avatarColors: ["#FF6B9D", "#4A90E2"],
     },
@@ -61,6 +63,7 @@ const Groups = () => {
       categoryColor2: "#FFE6D5",
       members: 4,
       unreadCount: null,
+      rating: "95%",
       activeTime: "Active 1 day ago",
       avatarColors: ["#FF6B9D", "#4A90E2", "#9C27B0"],
       badges: ["Roommate", "Completed"],
@@ -73,6 +76,7 @@ const Groups = () => {
       categoryColor: "#FFE6D5",
       members: 8,
       unreadCount: 2,
+      rating: "95%",
       activeTime: "Active 3 hours ago",
       avatarColors: ["#FF6B9D", "#4A90E2", "#9C27B0", "#00D084"],
     },
@@ -84,6 +88,7 @@ const Groups = () => {
       categoryColor: "#FFD5E6",
       members: 6,
       unreadCount: 5,
+      rating: "91%",
       activeTime: "Active 1 hour ago",
       avatarColors: ["#FF6B9D", "#4A90E2", "#9C27B0"],
     },
@@ -105,7 +110,7 @@ const Groups = () => {
         {/* Groups List */}
         <View style={styles.groupsList}>
           {groups.map((group) => (
-            <View key={group.id} style={[styles.groupCard, dynamicStyles.card]}>
+            <View key={group.id} style={[styles.groupCard, dynamicStyles.card]}>  
               {/* Category Badges */}
               <View style={styles.badgesRow}>
                 <View
@@ -127,11 +132,11 @@ const Groups = () => {
                     <Text style={styles.categoryText}>{group.badges[1]}</Text>
                   </View>
                 )}
-                {group.unreadCount && (
-                  <View style={styles.unreadBadge}>
-                    <Text style={styles.unreadText}>{group.unreadCount}</Text>
-                  </View>
-                )}
+                {/* Star Rating - moved to top right */}
+                <View style={styles.ratingBadge}>
+                  <Ionicons name="star-outline" size={12} color="#A8C5FF" />
+                  <Text style={styles.ratingText}>{group.rating}</Text>
+                </View>
               </View>
 
               {/* Group Info */}
@@ -142,6 +147,7 @@ const Groups = () => {
                 {group.description}
               </Text>
 
+              {/* Members Row */}
               {/* Members Row */}
               <View style={styles.membersRow}>
                 <View style={styles.avatarsContainer}>
@@ -159,6 +165,12 @@ const Groups = () => {
                     {group.members} members
                   </Text>
                 </View>
+                {/* Unread Count - moved here */}
+                {group.unreadCount && (
+                  <View style={styles.unreadBadge}>
+                    <Text style={styles.unreadText}>{group.unreadCount}</Text>
+                  </View>
+                )}
               </View>
 
               {/* Footer Row */}
@@ -175,7 +187,11 @@ const Groups = () => {
                 </View>
 
                 <Pressable style={styles.openButton}>
-                  <Ionicons name="chatbubble-outline" size={16} color="#000000" />
+                  <Ionicons
+                    name="chatbubble-outline"
+                    size={16}
+                    color="#000000"
+                  />
                   <Text style={styles.openButtonText}>Open</Text>
                 </Pressable>
               </View>
@@ -258,7 +274,25 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   membersRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 12,
+  },
+  ratingBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4, 
+    backgroundColor: "#EBF3FF",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 20,
+    marginLeft: "auto",
+  },
+  ratingText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#000000", 
   },
   avatarsContainer: {
     flexDirection: "row",
