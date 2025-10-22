@@ -1,4 +1,3 @@
-
 import { Tabs } from 'expo-router';
 import { useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 export default function TabLayout() {
     const theme = useColorScheme() || 'light';
     const isDark = theme === 'dark';
-    
+        
     return (
         <Tabs
             screenOptions={{
@@ -67,6 +66,37 @@ export default function TabLayout() {
                     tabBarIcon: ({ color, focused }) => (
                         <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} />
                     ),
+                }}
+            />
+            
+            <Tabs.Screen
+                name="edit-profile"
+                options={{
+                    href: null, 
+                }}
+            />
+            <Tabs.Screen
+                name="account-settings"
+                options={{
+                    href: null, 
+                }}
+            />
+            <Tabs.Screen
+                name="notifications"
+                options={{
+                    href: null, 
+                }}
+            />
+            <Tabs.Screen
+                name="privacy"
+                options={{
+                    href: null, 
+                }}
+            />
+            <Tabs.Screen
+                name="how-it-works"
+                options={{
+                    href: null, 
                 }}
             />
         </Tabs>

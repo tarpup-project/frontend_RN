@@ -20,7 +20,6 @@ const EditProfile = () => {
   const [major, setMajor] = useState("");
   const [year, setYear] = useState("Select year");
   const [showYearDropdown, setShowYearDropdown] = useState(false);
-  const yearOptions = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
   const [interests, setInterests] = useState([
     "Computer Science",
     "Gaming",
@@ -42,7 +41,7 @@ const EditProfile = () => {
       color: isDark ? "#CCCCCC" : "#666666",
     },
     card: {
-      backgroundColor: isDark ? "#0A0A0A" : "#F5F5F5",
+      backgroundColor: isDark ? "#000000" : "#F5F5F5",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     input: {
@@ -51,6 +50,8 @@ const EditProfile = () => {
       color: isDark ? "#FFFFFF" : "#000000",
     },
   };
+
+  const yearOptions = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
 
   const suggestedInterests = [
     "Music",
@@ -172,56 +173,58 @@ const EditProfile = () => {
             </View>
 
             <View style={[styles.inputGroup, { flex: 1, marginBottom: 0 }]}>
-  <Text style={[styles.label, dynamicStyles.text]}>Year</Text>
-  <View style={{ flex: 1 }}>  {/* ADD flex: 1 HERE */}
-    <Pressable 
-      style={[styles.input, styles.selectInput, dynamicStyles.input]}
-      onPress={() => setShowYearDropdown(!showYearDropdown)}
-    >
-      <Text
-        style={[
-          styles.selectText,
-          year === "Select year" && dynamicStyles.subtitle,
-          year !== "Select year" && dynamicStyles.text,
-        ]}
-      >
-        {year}
-      </Text>
-      <Ionicons
-        name={showYearDropdown ? "chevron-up" : "chevron-down"}
-        size={16}
-        color={dynamicStyles.subtitle.color}
-      />
-    </Pressable>
-    
-    {/* Dropdown Menu */}
-    {showYearDropdown && (
-      <View style={[styles.dropdown, dynamicStyles.card]}>
-        {yearOptions.map((option, index) => (
-          <Pressable
-            key={index}
-            style={[
-              styles.dropdownItem,
-              index !== yearOptions.length - 1 && styles.dropdownItemBorder,
-              { borderBottomColor: dynamicStyles.card.borderColor },
-            ]}
-            onPress={() => {
-              setYear(option);
-              setShowYearDropdown(false);
-            }}
-          >
-            <Text style={[styles.dropdownText, dynamicStyles.text]}>
-              {option}
-            </Text>
-            {year === option && (
-              <Ionicons name="checkmark" size={16} color="#00D084" />
-            )}
-          </Pressable>
-        ))}
-      </View>
-    )}
-  </View>
-</View>
+              <Text style={[styles.label, dynamicStyles.text]}>Year</Text>
+              <View style={{ flex: 1 }}>
+                <Pressable
+                  style={[styles.input, styles.selectInput, dynamicStyles.input]}
+                  onPress={() => setShowYearDropdown(!showYearDropdown)}
+                >
+                  <Text
+                    style={[
+                      styles.selectText,
+                      year === "Select year" && dynamicStyles.subtitle,
+                      year !== "Select year" && dynamicStyles.text,
+                    ]}
+                  >
+                    {year}
+                  </Text>
+                  <Ionicons
+                    name={showYearDropdown ? "chevron-up" : "chevron-down"}
+                    size={16}
+                    color={dynamicStyles.subtitle.color}
+                  />
+                </Pressable>
+
+                {/* Dropdown Menu */}
+                {showYearDropdown && (
+                  <View style={[styles.dropdown, dynamicStyles.card]}>
+                    {yearOptions.map((option, index) => (
+                      <Pressable
+                        key={index}
+                        style={[
+                          styles.dropdownItem,
+                          index !== yearOptions.length - 1 &&
+                            styles.dropdownItemBorder,
+                          { borderBottomColor: dynamicStyles.card.borderColor },
+                        ]}
+                        onPress={() => {
+                          setYear(option);
+                          setShowYearDropdown(false);
+                        }}
+                      >
+                        <Text style={[styles.dropdownText, dynamicStyles.text]}>
+                          {option}
+                        </Text>
+                        {year === option && (
+                          <Ionicons name="checkmark" size={16} color="#00D084" />
+                        )}
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+              </View>
+            </View>
+          </View>
         </View>
 
         {/* Interests & Hobbies - GROUPED */}
@@ -549,6 +552,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
   },
+  saveButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+  },
+  saveText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#000000",
+  },
   dropdown: {
     position: "absolute",
     top: 52,
@@ -574,18 +589,6 @@ const styles = StyleSheet.create({
   },
   dropdownText: {
     fontSize: 14,
-  },
-  saveButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-  },
-  saveText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#000000",
   },
 });
 

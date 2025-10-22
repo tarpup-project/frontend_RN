@@ -197,7 +197,7 @@ const Profile = () => {
               <Text style={[styles.sectionTitle, dynamicStyles.text]}>
                 Your Interests
               </Text>
-              <Pressable>
+              <Pressable onPress={() => router.push("/edit-profile")}>
                 <Text style={[styles.addMoreText, dynamicStyles.text]}>
                   Add More
                 </Text>
@@ -225,7 +225,16 @@ const Profile = () => {
             Settings
           </Text>
           {settingsOptions.map((option) => (
-            <Pressable key={option.id} style={styles.settingItem}>
+            <Pressable
+              key={option.id}
+              style={styles.settingItem}
+              onPress={() => {
+                if (option.id === 1) router.push("/account-settings");
+                if (option.id === 2) router.push("/notifications");
+                if (option.id === 3) router.push("/privacy");
+                if (option.id === 4) router.push("/how-it-works");
+              }}
+            >
               <View style={styles.settingLeft}>
                 <Ionicons
                   name={option.icon as any}
@@ -247,7 +256,10 @@ const Profile = () => {
           ))}
 
           {/* Sign Out - now inside settings card */}
-          <Pressable style={styles.settingItem}>
+          <Pressable
+            style={styles.settingItem}
+            onPress={() => router.push("/onboarding/Welcome-screen-one")}
+          >
             <View style={styles.settingLeft}>
               <Ionicons name="log-out-outline" size={20} color="#FF4444" />
               <Text style={styles.signOutText}>Sign Out</Text>
