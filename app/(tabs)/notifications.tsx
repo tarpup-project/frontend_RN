@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   Pressable,
@@ -8,26 +9,21 @@ import {
   Text,
   useColorScheme,
   View,
-  Switch,
 } from "react-native";
 
 const Notifications = () => {
   const theme = useColorScheme() || "light";
   const isDark = theme === "dark";
+  const router = useRouter();
 
-  // Push Notifications
-  const [enablePush, setEnablePush] = useState(true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [newMatches, setNewMatches] = useState(true);
   const [groupMessages, setGroupMessages] = useState(true);
   const [emergencyAlerts, setEmergencyAlerts] = useState(true);
-
-  // Email Notifications
-  const [enableEmail, setEnableEmail] = useState(true);
+  const [emailEnabled, setEmailEnabled] = useState(true);
   const [weeklyDigest, setWeeklyDigest] = useState(true);
   const [importantUpdates, setImportantUpdates] = useState(true);
   const [newFeatures, setNewFeatures] = useState(false);
-
-  // Category Preferences
   const [rides, setRides] = useState(true);
   const [roommates, setRoommates] = useState(true);
   const [marketplace, setMarketplace] = useState(false);
@@ -46,17 +42,20 @@ const Notifications = () => {
       color: isDark ? "#CCCCCC" : "#666666",
     },
     card: {
-      backgroundColor: isDark ? "#0A0A0A" : "#F5F5F5",
+      backgroundColor: isDark ? "#000000" : "#F5F5F5",
       borderColor: isDark ? "#333333" : "#E0E0E0",
+    },
+    divider: {
+      backgroundColor: isDark ? "#333333" : "#E0E0E0",
     },
   };
 
   const enableAll = () => {
-    setEnablePush(true);
+    setNotificationsEnabled(true);
     setNewMatches(true);
     setGroupMessages(true);
     setEmergencyAlerts(true);
-    setEnableEmail(true);
+    setEmailEnabled(true);
     setWeeklyDigest(true);
     setImportantUpdates(true);
     setNewFeatures(true);
@@ -69,11 +68,11 @@ const Notifications = () => {
   };
 
   const disableAll = () => {
-    setEnablePush(false);
+    setNotificationsEnabled(false);
     setNewMatches(false);
     setGroupMessages(false);
     setEmergencyAlerts(false);
-    setEnableEmail(false);
+    setEmailEnabled(false);
     setWeeklyDigest(false);
     setImportantUpdates(false);
     setNewFeatures(false);
@@ -90,211 +89,313 @@ const Notifications = () => {
       <Header />
 
       <ScrollView style={styles.content}>
-        {/* Header Section */}
-        <View style={styles.headerSection}>
-          <View style={styles.titleRow}>
-            <Ionicons name="notifications" size={20} color={dynamicStyles.text.color} />
-            <Text style={[styles.title, dynamicStyles.text]}>
-              Notification Settings
-            </Text>
-            <View style={styles.onBadge}>
-              <Text style={styles.onText}>ON</Text>
-            </View>
-          </View>
-        </View>
-
         {/* Back Button */}
-        <Pressable style={styles.backButton}>
-          <Ionicons name="arrow-back" size={20} color={dynamicStyles.text.color} />
+        <Pressable style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons
+            name="arrow-back"
+            size={20}
+            color={dynamicStyles.text.color}
+          />
           <Text style={[styles.backText, dynamicStyles.text]}>
             Back to Profile
           </Text>
         </Pressable>
 
-        {/* Quick Actions */}
-        <View style={styles.quickActions}>
-          <Pressable style={styles.quickButton} onPress={enableAll}>
-            <Text style={styles.quickButtonText}>Enable All</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.quickButton, styles.disableButton]}
-            onPress={disableAll}
-          >
-            <Text style={styles.quickButtonText}>Disable All</Text>
-          </Pressable>
+        {/* Header Section - ALL IN ONE CARD */}
+        <View style={[styles.headerCard, dynamicStyles.card]}>
+          {/* Notification Settings with ON badge */}
+          <View style={styles.headerRow}>
+            <View style={styles.headerTitleRow}>
+              <Ionicons
+                name="notifications-outline"
+                size={22}
+                color={dynamicStyles.text.color}
+              />
+              <Text style={[styles.headerTitle, dynamicStyles.text]}>
+                Notification Settings
+              </Text>
+            </View>
+            <View style={styles.onBadge}>
+              <Text style={styles.onBadgeText}>ON</Text>
+            </View>
+          </View>
+
+          {/* Enable All / Disable All buttons */}
+          <View style={styles.quickActions}>
+            <Pressable
+              style={[styles.quickActionButton, dynamicStyles.card]}
+              onPress={enableAll}
+            >
+              <Text style={[styles.quickActionText, dynamicStyles.text]}>
+                Enable All
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[styles.quickActionButton, dynamicStyles.card]}
+              onPress={disableAll}
+            >
+              <Text style={[styles.quickActionText, dynamicStyles.text]}>
+                Disable All
+              </Text>
+            </Pressable>
+          </View>
         </View>
 
-        {/* Push Notifications Section */}
+        {/* Push Notifications */}
         <View style={[styles.section, dynamicStyles.card]}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="phone-portrait" size={20} color={dynamicStyles.text.color} />
+          {/* Section Title with Icon */}
+          <View style={styles.sectionTitleRow}>
+            <Ionicons
+              name="phone-portrait-outline"
+              size={20}
+              color={dynamicStyles.text.color}
+            />
             <Text style={[styles.sectionTitle, dynamicStyles.text]}>
               Push Notifications
             </Text>
           </View>
 
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Text style={[styles.settingTitle, dynamicStyles.text]}>
+          <Pressable
+            style={styles.toggleRow}
+            onPress={() => setNotificationsEnabled(!notificationsEnabled)}
+          >
+            <View style={styles.toggleInfo}>
+              <Text style={[styles.toggleLabel, dynamicStyles.text]}>
                 Enable Push Notifications
               </Text>
-              <Text style={[styles.settingDescription, dynamicStyles.subtitle]}>
+              <Text style={[styles.toggleDescription, dynamicStyles.subtitle]}>
                 Master toggle for all push notifications
               </Text>
             </View>
-            <Switch
-              value={enablePush}
-              onValueChange={setEnablePush}
-              trackColor={{ false: "#333333", true: "#00D084" }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
-
-          <View style={styles.settingRow}>
-            <View style={styles.settingIconRow}>
-              <Ionicons name="star" size={18} color={dynamicStyles.subtitle.color} />
-              <View style={styles.settingInfo}>
-                <Text style={[styles.settingTitle, dynamicStyles.text]}>
-                  New Matches
-                </Text>
-                <Text style={[styles.settingDescription, dynamicStyles.subtitle]}>
-                  When Targit finds compatible users
-                </Text>
-              </View>
+            <View
+              style={[
+                styles.customToggle,
+                notificationsEnabled && styles.customToggleActive,
+              ]}
+            >
+              <View
+                style={[
+                  styles.customToggleDot,
+                  notificationsEnabled && styles.customToggleDotActive,
+                ]}
+              />
             </View>
-            <Switch
-              value={newMatches}
-              onValueChange={setNewMatches}
-              trackColor={{ false: "#333333", true: "#00D084" }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
+          </Pressable>
 
-          <View style={styles.settingRow}>
-            <View style={styles.settingIconRow}>
-              <Ionicons name="chatbubbles" size={18} color={dynamicStyles.subtitle.color} />
-              <View style={styles.settingInfo}>
-                <Text style={[styles.settingTitle, dynamicStyles.text]}>
-                  Group Messages
-                </Text>
-                <Text style={[styles.settingDescription, dynamicStyles.subtitle]}>
-                  New messages in your groups
-                </Text>
-              </View>
-            </View>
-            <Switch
-              value={groupMessages}
-              onValueChange={setGroupMessages}
-              trackColor={{ false: "#333333", true: "#00D084" }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
+          {/* Divider Line */}
+          <View style={[styles.divider, dynamicStyles.divider]} />
 
-          <View style={styles.settingRow}>
-            <View style={styles.settingIconRow}>
-              <Ionicons name="alert-circle" size={18} color={dynamicStyles.subtitle.color} />
-              <View style={styles.settingInfo}>
-                <Text style={[styles.settingTitle, dynamicStyles.text]}>
-                  Emergency Alerts
-                </Text>
-                <Text style={[styles.settingDescription, dynamicStyles.subtitle]}>
-                  Important safety notifications
-                </Text>
-              </View>
+          <Pressable
+            style={styles.toggleRow}
+            onPress={() => setNewMatches(!newMatches)}
+          >
+            <View style={styles.toggleInfo}>
+              <Text style={[styles.toggleLabel, dynamicStyles.text]}>
+                New Matches
+              </Text>
+              <Text style={[styles.toggleDescription, dynamicStyles.subtitle]}>
+                Get notified when you have new matches
+              </Text>
             </View>
-            <Switch
-              value={emergencyAlerts}
-              onValueChange={setEmergencyAlerts}
-              trackColor={{ false: "#333333", true: "#00D084" }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
+            <View
+              style={[
+                styles.customToggle,
+                newMatches && styles.customToggleActive,
+              ]}
+            >
+              <View
+                style={[
+                  styles.customToggleDot,
+                  newMatches && styles.customToggleDotActive,
+                ]}
+              />
+            </View>
+          </Pressable>
+
+          <Pressable
+            style={styles.toggleRow}
+            onPress={() => setGroupMessages(!groupMessages)}
+          >
+            <View style={styles.toggleInfo}>
+              <Text style={[styles.toggleLabel, dynamicStyles.text]}>
+                Group Messages
+              </Text>
+              <Text style={[styles.toggleDescription, dynamicStyles.subtitle]}>
+                New messages in your groups
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.customToggle,
+                groupMessages && styles.customToggleActive,
+              ]}
+            >
+              <View
+                style={[
+                  styles.customToggleDot,
+                  groupMessages && styles.customToggleDotActive,
+                ]}
+              />
+            </View>
+          </Pressable>
+
+          <Pressable
+            style={styles.toggleRow}
+            onPress={() => setEmergencyAlerts(!emergencyAlerts)}
+          >
+            <View style={styles.toggleInfo}>
+              <Text style={[styles.toggleLabel, dynamicStyles.text]}>
+                Emergency Alerts
+              </Text>
+              <Text style={[styles.toggleDescription, dynamicStyles.subtitle]}>
+                Critical campus safety notifications
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.customToggle,
+                emergencyAlerts && styles.customToggleActive,
+              ]}
+            >
+              <View
+                style={[
+                  styles.customToggleDot,
+                  emergencyAlerts && styles.customToggleDotActive,
+                ]}
+              />
+            </View>
+          </Pressable>
         </View>
 
-        {/* Email Notifications Section */}
+        {/* Email Notifications */}
         <View style={[styles.section, dynamicStyles.card]}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="mail" size={20} color={dynamicStyles.text.color} />
+          {/* Section Title with Icon */}
+          <View style={styles.sectionTitleRow}>
+            <Ionicons
+              name="mail-outline"
+              size={20}
+              color={dynamicStyles.text.color}
+            />
             <Text style={[styles.sectionTitle, dynamicStyles.text]}>
               Email Notifications
             </Text>
           </View>
 
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Text style={[styles.settingTitle, dynamicStyles.text]}>
+          <Pressable
+            style={styles.toggleRow}
+            onPress={() => setEmailEnabled(!emailEnabled)}
+          >
+            <View style={styles.toggleInfo}>
+              <Text style={[styles.toggleLabel, dynamicStyles.text]}>
                 Enable Email Notifications
               </Text>
-              <Text style={[styles.settingDescription, dynamicStyles.subtitle]}>
+              <Text style={[styles.toggleDescription, dynamicStyles.subtitle]}>
                 Receive notifications via email
               </Text>
             </View>
-            <Switch
-              value={enableEmail}
-              onValueChange={setEnableEmail}
-              trackColor={{ false: "#333333", true: "#00D084" }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
+            <View
+              style={[
+                styles.customToggle,
+                emailEnabled && styles.customToggleActive,
+              ]}
+            >
+              <View
+                style={[
+                  styles.customToggleDot,
+                  emailEnabled && styles.customToggleDotActive,
+                ]}
+              />
+            </View>
+          </Pressable>
 
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Text style={[styles.settingTitle, dynamicStyles.text]}>
+          <Pressable
+            style={styles.toggleRow}
+            onPress={() => setWeeklyDigest(!weeklyDigest)}
+          >
+            <View style={styles.toggleInfo}>
+              <Text style={[styles.toggleLabel, dynamicStyles.text]}>
                 Weekly Digest
               </Text>
-              <Text style={[styles.settingDescription, dynamicStyles.subtitle]}>
-                Summary of your matches and activity
+              <Text style={[styles.toggleDescription, dynamicStyles.subtitle]}>
+                Summary of your weekly activity
               </Text>
             </View>
-            <Switch
-              value={weeklyDigest}
-              onValueChange={setWeeklyDigest}
-              trackColor={{ false: "#333333", true: "#00D084" }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
+            <View
+              style={[
+                styles.customToggle,
+                weeklyDigest && styles.customToggleActive,
+              ]}
+            >
+              <View
+                style={[
+                  styles.customToggleDot,
+                  weeklyDigest && styles.customToggleDotActive,
+                ]}
+              />
+            </View>
+          </Pressable>
 
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Text style={[styles.settingTitle, dynamicStyles.text]}>
+          <Pressable
+            style={styles.toggleRow}
+            onPress={() => setImportantUpdates(!importantUpdates)}
+          >
+            <View style={styles.toggleInfo}>
+              <Text style={[styles.toggleLabel, dynamicStyles.text]}>
                 Important Updates
               </Text>
-              <Text style={[styles.settingDescription, dynamicStyles.subtitle]}>
-                Security and account notifications
+              <Text style={[styles.toggleDescription, dynamicStyles.subtitle]}>
+                Account and security notifications
               </Text>
             </View>
-            <Switch
-              value={importantUpdates}
-              onValueChange={setImportantUpdates}
-              trackColor={{ false: "#333333", true: "#00D084" }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
+            <View
+              style={[
+                styles.customToggle,
+                importantUpdates && styles.customToggleActive,
+              ]}
+            >
+              <View
+                style={[
+                  styles.customToggleDot,
+                  importantUpdates && styles.customToggleDotActive,
+                ]}
+              />
+            </View>
+          </Pressable>
 
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Text style={[styles.settingTitle, dynamicStyles.text]}>
+          <Pressable
+            style={styles.toggleRow}
+            onPress={() => setNewFeatures(!newFeatures)}
+          >
+            <View style={styles.toggleInfo}>
+              <Text style={[styles.toggleLabel, dynamicStyles.text]}>
                 New Features
               </Text>
-              <Text style={[styles.settingDescription, dynamicStyles.subtitle]}>
+              <Text style={[styles.toggleDescription, dynamicStyles.subtitle]}>
                 Updates about new app features
               </Text>
             </View>
-            <Switch
-              value={newFeatures}
-              onValueChange={setNewFeatures}
-              trackColor={{ false: "#333333", true: "#00D084" }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
+            <View
+              style={[
+                styles.customToggle,
+                newFeatures && styles.customToggleActive,
+              ]}
+            >
+              <View
+                style={[
+                  styles.customToggleDot,
+                  newFeatures && styles.customToggleDotActive,
+                ]}
+              />
+            </View>
+          </Pressable>
         </View>
 
-        {/* Category Preferences Section */}
+        {/* Category Preferences */}
         <View style={[styles.section, dynamicStyles.card]}>
           <Text style={[styles.sectionTitle, dynamicStyles.text]}>
             Category Preferences
           </Text>
-          <Text style={[styles.categoryDescription, dynamicStyles.subtitle]}>
+          <Text style={[styles.sectionSubtitle, dynamicStyles.subtitle]}>
             Choose which categories you want to receive notifications for
           </Text>
 
@@ -303,10 +404,21 @@ const Notifications = () => {
               style={[styles.categoryCard, dynamicStyles.card]}
               onPress={() => setRides(!rides)}
             >
-              <Ionicons name="car" size={20} color={dynamicStyles.text.color} />
-              <Text style={[styles.categoryText, dynamicStyles.text]}>Rides</Text>
-              <View style={[styles.categoryToggle, rides && styles.categoryToggleActive]}>
-                {rides && <View style={styles.categoryToggleInner} />}
+              <Text style={[styles.categoryLabel, dynamicStyles.text]}>
+                Rides
+              </Text>
+              <View
+                style={[
+                  styles.categoryToggle,
+                  rides && styles.categoryToggleActive,
+                ]}
+              >
+                <View
+                  style={[
+                    styles.categoryToggleDot,
+                    rides && styles.categoryToggleDotActive,
+                  ]}
+                />
               </View>
             </Pressable>
 
@@ -314,10 +426,21 @@ const Notifications = () => {
               style={[styles.categoryCard, dynamicStyles.card]}
               onPress={() => setRoommates(!roommates)}
             >
-              <Ionicons name="people" size={20} color={dynamicStyles.text.color} />
-              <Text style={[styles.categoryText, dynamicStyles.text]}>Roommates</Text>
-              <View style={[styles.categoryToggle, roommates && styles.categoryToggleActive]}>
-                {roommates && <View style={styles.categoryToggleInner} />}
+              <Text style={[styles.categoryLabel, dynamicStyles.text]}>
+                Roommates
+              </Text>
+              <View
+                style={[
+                  styles.categoryToggle,
+                  roommates && styles.categoryToggleActive,
+                ]}
+              >
+                <View
+                  style={[
+                    styles.categoryToggleDot,
+                    roommates && styles.categoryToggleDotActive,
+                  ]}
+                />
               </View>
             </Pressable>
 
@@ -325,10 +448,21 @@ const Notifications = () => {
               style={[styles.categoryCard, dynamicStyles.card]}
               onPress={() => setMarketplace(!marketplace)}
             >
-              <Ionicons name="bag" size={20} color={dynamicStyles.text.color} />
-              <Text style={[styles.categoryText, dynamicStyles.text]}>Marketplace</Text>
-              <View style={[styles.categoryToggle, marketplace && styles.categoryToggleActive]}>
-                {marketplace && <View style={styles.categoryToggleInner} />}
+              <Text style={[styles.categoryLabel, dynamicStyles.text]}>
+                Marketplace
+              </Text>
+              <View
+                style={[
+                  styles.categoryToggle,
+                  marketplace && styles.categoryToggleActive,
+                ]}
+              >
+                <View
+                  style={[
+                    styles.categoryToggleDot,
+                    marketplace && styles.categoryToggleDotActive,
+                  ]}
+                />
               </View>
             </Pressable>
 
@@ -336,10 +470,21 @@ const Notifications = () => {
               style={[styles.categoryCard, dynamicStyles.card]}
               onPress={() => setSports(!sports)}
             >
-              <Ionicons name="basketball" size={20} color={dynamicStyles.text.color} />
-              <Text style={[styles.categoryText, dynamicStyles.text]}>Sports</Text>
-              <View style={[styles.categoryToggle, sports && styles.categoryToggleActive]}>
-                {sports && <View style={styles.categoryToggleInner} />}
+              <Text style={[styles.categoryLabel, dynamicStyles.text]}>
+                Sports
+              </Text>
+              <View
+                style={[
+                  styles.categoryToggle,
+                  sports && styles.categoryToggleActive,
+                ]}
+              >
+                <View
+                  style={[
+                    styles.categoryToggleDot,
+                    sports && styles.categoryToggleDotActive,
+                  ]}
+                />
               </View>
             </Pressable>
 
@@ -347,10 +492,21 @@ const Notifications = () => {
               style={[styles.categoryCard, dynamicStyles.card]}
               onPress={() => setDating(!dating)}
             >
-              <Ionicons name="heart" size={20} color={dynamicStyles.text.color} />
-              <Text style={[styles.categoryText, dynamicStyles.text]}>Dating</Text>
-              <View style={[styles.categoryToggle, dating && styles.categoryToggleActive]}>
-                {dating && <View style={styles.categoryToggleInner} />}
+              <Text style={[styles.categoryLabel, dynamicStyles.text]}>
+                Dating
+              </Text>
+              <View
+                style={[
+                  styles.categoryToggle,
+                  dating && styles.categoryToggleActive,
+                ]}
+              >
+                <View
+                  style={[
+                    styles.categoryToggleDot,
+                    dating && styles.categoryToggleDotActive,
+                  ]}
+                />
               </View>
             </Pressable>
 
@@ -358,19 +514,34 @@ const Notifications = () => {
               style={[styles.categoryCard, dynamicStyles.card]}
               onPress={() => setStudy(!study)}
             >
-              <Ionicons name="book" size={20} color={dynamicStyles.text.color} />
-              <Text style={[styles.categoryText, dynamicStyles.text]}>Study</Text>
-              <View style={[styles.categoryToggle, study && styles.categoryToggleActive]}>
-                {study && <View style={styles.categoryToggleInner} />}
+              <Text style={[styles.categoryLabel, dynamicStyles.text]}>
+                Study
+              </Text>
+              <View
+                style={[
+                  styles.categoryToggle,
+                  study && styles.categoryToggleActive,
+                ]}
+              >
+                <View
+                  style={[
+                    styles.categoryToggleDot,
+                    study && styles.categoryToggleDotActive,
+                  ]}
+                />
               </View>
             </Pressable>
           </View>
         </View>
 
         {/* Save Button */}
-        <Pressable style={styles.saveButton}>
-          <Text style={styles.saveButtonText}>Save Notification Settings</Text>
-        </Pressable>
+        <View style={styles.saveButtonContainer}>
+          <Pressable style={styles.saveButton}>
+            <Text style={styles.saveButtonText}>
+              Save Notification Settings
+            </Text>
+          </Pressable>
+        </View>
       </ScrollView>
     </View>
   );
@@ -384,107 +555,128 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
   },
-  headerSection: {
-    marginTop: 16,
-    marginBottom: 12,
-  },
-  titleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "bold",
-    flex: 1,
-  },
-  onBadge: {
-    backgroundColor: "#00D084",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  onText: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "bold",
-  },
   backButton: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginBottom: 16,
+    marginTop: 16,
+    marginBottom: 24,
   },
   backText: {
     fontSize: 16,
   },
+  headerCard: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 24,
+    paddingVertical: 24,
+  },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  headerTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  onBadge: {
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 13,
+  },
+  onBadgeText: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "#000000",
+  },
   quickActions: {
     flexDirection: "row",
-    gap: 12,
-    marginBottom: 24,
+    gap: 8,
+    justifyContent: "flex-start",
   },
-  quickButton: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-    padding: 12,
-    borderRadius: 8,
+  quickActionButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 6,
+    borderWidth: 1,
     alignItems: "center",
   },
-  disableButton: {
-    backgroundColor: "#1A1A1A",
-  },
-  quickButtonText: {
-    fontSize: 14,
+  quickActionText: {
+    fontSize: 10,
     fontWeight: "600",
-    color: "#000000",
   },
   section: {
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    marginBottom: 16,
+    marginBottom: 24,
   },
-  sectionHeader: {
+  sectionTitleRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
   },
-  settingRow: {
+  sectionSubtitle: {
+    fontSize: 13,
+    marginBottom: 16,
+  },
+  divider: {
+    height: 1,
+    marginVertical: 12,
+  },
+  toggleRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#1A1A1A",
   },
-  settingIconRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    flex: 1,
-  },
-  settingInfo: {
+  toggleInfo: {
     flex: 1,
     marginRight: 16,
   },
-  settingTitle: {
+  toggleLabel: {
     fontSize: 15,
     fontWeight: "600",
     marginBottom: 4,
   },
-  settingDescription: {
+  toggleDescription: {
     fontSize: 12,
-    lineHeight: 16,
   },
-  categoryDescription: {
-    fontSize: 13,
-    marginBottom: 16,
-    lineHeight: 18,
+  customToggle: {
+    width: 40,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#333333",
+    justifyContent: "center",
+    paddingHorizontal: 2,
+    alignItems: "flex-start",
+  },
+  customToggleActive: {
+    backgroundColor: "#FFFFFF",
+    alignItems: "flex-end",
+  },
+  customToggleDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "#FFFFFF",
+  },
+  customToggleDotActive: {
+    backgroundColor: "#000000",
   },
   categoryGrid: {
     flexDirection: "row",
@@ -492,48 +684,57 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   categoryCard: {
-    width: "47%",
+    width: "48%",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    alignItems: "center",
-    gap: 8,
   },
-  categoryText: {
+  categoryLabel: {
     fontSize: 14,
     fontWeight: "600",
   },
   categoryToggle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "#333333",
+    width: 40,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#333333",
     justifyContent: "center",
-    alignItems: "center",
+    paddingHorizontal: 2,
+    alignItems: "flex-start",
   },
   categoryToggleActive: {
-    backgroundColor: "#00D084",
-    borderColor: "#00D084",
-  },
-  categoryToggleInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
     backgroundColor: "#FFFFFF",
+    alignItems: "flex-end",
+  },
+  categoryToggleDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "#FFFFFF",
+  },
+  categoryToggleDotActive: {
+    backgroundColor: "#000000",
+  },
+  saveButtonContainer: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginBottom: 100,
+    marginTop: 16,
   },
   saveButton: {
-    backgroundColor: "#FFFFFF",
-    padding: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
     borderRadius: 8,
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
-    marginBottom: 80,
-    marginTop: 8,
   },
   saveButtonText: {
-    color: "#000000",
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
+    color: "#000000",
   },
 });
 
