@@ -97,204 +97,210 @@ const EditProfile = () => {
       <Header />
 
       <ScrollView style={styles.content}>
-        {/* Back Button */}
-        <Pressable style={styles.backButton}>
+  {/* Back Button */}
+  <Pressable style={styles.backButton}>
+    <Ionicons
+      name="arrow-back"
+      size={20}
+      color={dynamicStyles.text.color}
+    />
+    <Text style={[styles.backText, dynamicStyles.text]}>
+      Back to Profile
+    </Text>
+  </Pressable>
+
+  {/* Profile Photo Section */}
+  <View style={[styles.photoSection, dynamicStyles.card]}>
+    <View style={styles.photoRow}>
+      <View style={styles.avatar}>
+        <Text style={styles.avatarText}>J</Text>
+      </View>
+      <View style={styles.photoInfo}>
+        <Pressable style={styles.changePhotoButton}>
+          <Ionicons name="camera-outline" size={16} color="#000000" />
+          <Text style={styles.changePhotoText}>Change Photo</Text>
+        </Pressable>
+        <Text style={[styles.photoHint, dynamicStyles.subtitle]}>
+          JPG, PNG or GIF. Max size: 5MB.
+        </Text>
+      </View>
+    </View>
+  </View>
+
+  {/* Basic Information - GROUPED */}
+  <View style={[styles.groupedSection, dynamicStyles.card]}>
+    <Text style={[styles.sectionTitle, dynamicStyles.text]}>
+      Basic Information
+    </Text>
+
+    <View style={styles.inputGroup}>
+      <Text style={[styles.label, dynamicStyles.text]}>Full Name</Text>
+      <TextInput
+        style={[styles.input, dynamicStyles.input]}
+        value={fullName}
+        onChangeText={setFullName}
+        placeholder="John Doe"
+        placeholderTextColor={dynamicStyles.subtitle.color}
+      />
+    </View>
+
+    <View style={styles.inputGroup}>
+      <Text style={[styles.label, dynamicStyles.text]}>Bio</Text>
+      <TextInput
+        style={[styles.input, styles.textArea, dynamicStyles.input]}
+        value={bio}
+        onChangeText={setBio}
+        placeholder="Tell others about yourself..."
+        placeholderTextColor={dynamicStyles.subtitle.color}
+        multiline
+        numberOfLines={4}
+      />
+    </View>
+
+    <View style={styles.row}>
+      <View style={[styles.inputGroup, { flex: 1, marginBottom: 0 }]}>
+        <Text style={[styles.label, dynamicStyles.text]}>Major</Text>
+        <TextInput
+          style={[styles.input, dynamicStyles.input]}
+          value={major}
+          onChangeText={setMajor}
+          placeholder="e.g. Computer Science"
+          placeholderTextColor={dynamicStyles.subtitle.color}
+        />
+      </View>
+
+      <View style={[styles.inputGroup, { flex: 1, marginBottom: 0 }]}>
+        <Text style={[styles.label, dynamicStyles.text]}>Year</Text>
+        <Pressable style={[styles.input, styles.selectInput, dynamicStyles.input]}>
+          <Text
+            style={[
+              styles.selectText,
+              year === "Select year" && dynamicStyles.subtitle,
+              year !== "Select year" && dynamicStyles.text,
+            ]}
+          >
+            {year}
+          </Text>
           <Ionicons
-            name="arrow-back"
-            size={20}
-            color={dynamicStyles.text.color}
+            name="chevron-down"
+            size={16}
+            color={dynamicStyles.subtitle.color}
           />
-          <Text style={[styles.backText, dynamicStyles.text]}>
-            Back to Profile
+        </Pressable>
+      </View>
+    </View>
+  </View>
+
+  {/* Interests & Hobbies - GROUPED */}
+  <View style={[styles.groupedSection, dynamicStyles.card]}>
+    <Text style={[styles.sectionTitle, dynamicStyles.text]}>
+      Interests & Hobbies
+    </Text>
+
+    {/* Current Interests */}
+    <View style={styles.interestsContainer}>
+      {interests.map((interest, index) => (
+        <View key={index} style={[styles.interestChip, dynamicStyles.input]}>
+          <Text style={[styles.interestText, dynamicStyles.text]}>
+            {interest}
+          </Text>
+          <Pressable onPress={() => removeInterest(interest)}>
+            <Ionicons
+              name="close-circle"
+              size={18}
+              color={dynamicStyles.subtitle.color}
+            />
+          </Pressable>
+        </View>
+      ))}
+    </View>
+
+    {/* Add Interest Input */}
+    <View style={styles.addInterestRow}>
+      <TextInput
+        style={[styles.input, styles.addInterestInput, dynamicStyles.input]}
+        value={newInterest}
+        onChangeText={setNewInterest}
+        placeholder="Add an interest..."
+        placeholderTextColor={dynamicStyles.subtitle.color}
+      />
+      <Pressable
+        style={styles.addButton}
+        onPress={() => {
+          if (newInterest.trim()) {
+            addInterest(newInterest.trim());
+            setNewInterest("");
+          }
+        }}
+      >
+        <Ionicons name="add" size={24} color="#000000" />
+      </Pressable>
+    </View>
+
+    {/* Suggested Interests */}
+    <Text style={[styles.suggestedLabel, dynamicStyles.subtitle]}>
+      Suggested:
+    </Text>
+    <View style={styles.suggestedContainer}>
+      {suggestedInterests.map((interest, index) => (
+        <Pressable
+          key={index}
+          style={styles.suggestedChip}
+          onPress={() => addInterest(interest)}
+        >
+          <Text style={styles.suggestedText}>+ {interest}</Text>
+        </Pressable>
+      ))}
+    </View>
+  </View>
+
+  {/* What are you looking for? - GROUPED */}
+  <View style={[styles.groupedSection, dynamicStyles.card]}>
+    <Text style={[styles.sectionTitle, dynamicStyles.text]}>
+      What are you looking for?
+    </Text>
+
+    <View style={styles.checkboxGrid}>
+      {lookingForOptions.map((option, index) => (
+        <Pressable
+          key={index}
+          style={styles.checkboxItem}
+          onPress={() => toggleLookingFor(option)}
+        >
+          <View
+            style={[
+              styles.checkbox,
+              selectedLookingFor.includes(option) &&
+                styles.checkboxSelected,
+            ]}
+          >
+            {selectedLookingFor.includes(option) && (
+              <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+            )}
+          </View>
+          <Text style={[styles.checkboxLabel, dynamicStyles.text]}>
+            {option}
           </Text>
         </Pressable>
-
-        {/* Profile Photo Section */}
-        <View style={[styles.photoSection, dynamicStyles.card]}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>J</Text>
-          </View>
-          <Pressable style={styles.changePhotoButton}>
-            <Ionicons name="camera-outline" size={16} color="#000000" />
-            <Text style={styles.changePhotoText}>Change Photo</Text>
-          </Pressable>
-          <Text style={[styles.photoHint, dynamicStyles.subtitle]}>
-            JPG, PNG or GIF. Max size: 5MB.
-          </Text>
-        </View>
-
-        {/* Basic Information */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, dynamicStyles.text]}>
-            Basic Information
-          </Text>
-
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, dynamicStyles.text]}>Full Name</Text>
-            <TextInput
-              style={[styles.input, dynamicStyles.input]}
-              value={fullName}
-              onChangeText={setFullName}
-              placeholder="John Doe"
-              placeholderTextColor={dynamicStyles.subtitle.color}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, dynamicStyles.text]}>Bio</Text>
-            <TextInput
-              style={[styles.input, styles.textArea, dynamicStyles.input]}
-              value={bio}
-              onChangeText={setBio}
-              placeholder="Tell others about yourself..."
-              placeholderTextColor={dynamicStyles.subtitle.color}
-              multiline
-              numberOfLines={4}
-            />
-          </View>
-
-          <View style={styles.row}>
-            <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={[styles.label, dynamicStyles.text]}>Major</Text>
-              <TextInput
-                style={[styles.input, dynamicStyles.input]}
-                value={major}
-                onChangeText={setMajor}
-                placeholder="e.g. Computer Science"
-                placeholderTextColor={dynamicStyles.subtitle.color}
-              />
-            </View>
-
-            <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={[styles.label, dynamicStyles.text]}>Year</Text>
-              <Pressable style={[styles.input, styles.selectInput, dynamicStyles.input]}>
-                <Text
-                  style={[
-                    styles.selectText,
-                    year === "Select year" && dynamicStyles.subtitle,
-                    year !== "Select year" && dynamicStyles.text,
-                  ]}
-                >
-                  {year}
-                </Text>
-                <Ionicons
-                  name="chevron-down"
-                  size={16}
-                  color={dynamicStyles.subtitle.color}
-                />
-              </Pressable>
-            </View>
-          </View>
-        </View>
-
-        {/* Interests & Hobbies */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, dynamicStyles.text]}>
-            Interests & Hobbies
-          </Text>
-
-          {/* Current Interests */}
-          <View style={styles.interestsContainer}>
-            {interests.map((interest, index) => (
-              <View key={index} style={[styles.interestChip, dynamicStyles.card]}>
-                <Text style={[styles.interestText, dynamicStyles.text]}>
-                  {interest}
-                </Text>
-                <Pressable onPress={() => removeInterest(interest)}>
-                  <Ionicons
-                    name="close-circle"
-                    size={18}
-                    color={dynamicStyles.subtitle.color}
-                  />
-                </Pressable>
-              </View>
-            ))}
-          </View>
-
-          {/* Add Interest Input */}
-          <View style={styles.addInterestRow}>
-            <TextInput
-              style={[styles.input, styles.addInterestInput, dynamicStyles.input]}
-              value={newInterest}
-              onChangeText={setNewInterest}
-              placeholder="Add an interest..."
-              placeholderTextColor={dynamicStyles.subtitle.color}
-            />
-            <Pressable
-              style={styles.addButton}
-              onPress={() => {
-                if (newInterest.trim()) {
-                  addInterest(newInterest.trim());
-                  setNewInterest("");
-                }
-              }}
-            >
-              <Ionicons name="add" size={24} color="#000000" />
-            </Pressable>
-          </View>
-
-          {/* Suggested Interests */}
-          <Text style={[styles.suggestedLabel, dynamicStyles.subtitle]}>
-            Suggested:
-          </Text>
-          <View style={styles.suggestedContainer}>
-            {suggestedInterests.map((interest, index) => (
-              <Pressable
-                key={index}
-                style={styles.suggestedChip}
-                onPress={() => addInterest(interest)}
-              >
-                <Text style={styles.suggestedText}>+ {interest}</Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-
-        {/* What are you looking for? */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, dynamicStyles.text]}>
-            What are you looking for?
-          </Text>
-
-          <View style={styles.checkboxGrid}>
-            {lookingForOptions.map((option, index) => (
-              <Pressable
-                key={index}
-                style={styles.checkboxItem}
-                onPress={() => toggleLookingFor(option)}
-              >
-                <View
-                  style={[
-                    styles.checkbox,
-                    selectedLookingFor.includes(option) &&
-                      styles.checkboxSelected,
-                  ]}
-                >
-                  {selectedLookingFor.includes(option) && (
-                    <Ionicons name="checkmark" size={16} color="#FFFFFF" />
-                  )}
-                </View>
-                <Text style={[styles.checkboxLabel, dynamicStyles.text]}>
-                  {option}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-
-        {/* Action Buttons */}
-        <View style={styles.actionButtons}>
-          <Pressable style={[styles.cancelButton, dynamicStyles.card]}>
-            <Text style={[styles.cancelText, dynamicStyles.text]}>Cancel</Text>
-          </Pressable>
-          <Pressable style={styles.saveButton}>
-            <Text style={styles.saveText}>Save Changes</Text>
-          </Pressable>
-        </View>
-      </ScrollView>
+      ))}
     </View>
+  </View>
+  
+
+  {/* Action Buttons */}
+  <View style={styles.actionButtons}>
+    <Pressable style={[styles.cancelButton, dynamicStyles.card]}>
+      <Text style={[styles.cancelText, dynamicStyles.text]}>Cancel</Text>
+    </Pressable>
+    <Pressable style={styles.saveButton}>
+      <Text style={styles.saveText}>Save Changes</Text>
+    </Pressable>
+  </View>
+</ScrollView>
+</View>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
@@ -318,8 +324,12 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 12,
     borderWidth: 1,
-    alignItems: "center",
     marginBottom: 24,
+  },
+  photoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
   },
   avatar: {
     width: 80,
@@ -328,12 +338,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#00D084",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 12,
   },
   avatarText: {
     fontSize: 32,
     fontWeight: "bold",
     color: "#FFFFFF",
+  },
+  photoInfo: {
+    flex: 1,
+    gap: 8,
   },
   changePhotoButton: {
     flexDirection: "row",
@@ -343,7 +356,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
-    marginBottom: 8,
+    alignSelf: "flex-start",
   },
   changePhotoText: {
     fontSize: 14,
@@ -352,6 +365,12 @@ const styles = StyleSheet.create({
   },
   photoHint: {
     fontSize: 12,
+  },
+  groupedSection: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 24,
   },
   section: {
     marginBottom: 24,
@@ -476,30 +495,31 @@ const styles = StyleSheet.create({
   },
   actionButtons: {
     flexDirection: "row",
-    gap: 12,
+    gap: 8,
     marginBottom: 80,
     marginTop: 16,
+    justifyContent: "flex-end",
   },
   cancelButton: {
-    flex: 1,
-    padding: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
     alignItems: "center",
   },
   cancelText: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: "600",
   },
   saveButton: {
-    flex: 1,
-    padding: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
     borderRadius: 8,
     backgroundColor: "#FFFFFF",
     alignItems: "center",
   },
   saveText: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: "600",
     color: "#000000",
   },
