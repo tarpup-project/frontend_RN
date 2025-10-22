@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import {
   Pressable,
   ScrollView,
@@ -12,6 +13,7 @@ import {
 const Profile = () => {
   const theme = useColorScheme() || "light";
   const isDark = theme === "dark";
+  const router = useRouter();
 
   const dynamicStyles = {
     container: {
@@ -28,7 +30,7 @@ const Profile = () => {
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     button: {
-      backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
+      backgroundColor: isDark ? "#000000" : "#F5F5F5",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     statDivider: {
@@ -109,7 +111,10 @@ const Profile = () => {
                 </View>
               </View>
             </View>
-            <Pressable style={styles.editButton}>
+            <Pressable
+              style={styles.editButton}
+              onPress={() => router.push("/edit-profile")}
+            >
               <Ionicons
                 name="create-outline"
                 size={18}
@@ -123,7 +128,10 @@ const Profile = () => {
             Member Since September 2024
           </Text>
 
-          <Pressable style={[styles.completeButton, dynamicStyles.button]}>
+          <Pressable
+            style={[styles.completeButton, dynamicStyles.button]}
+            onPress={() => router.push("/edit-profile")}
+          >
             <Text style={[styles.completeButtonText, dynamicStyles.text]}>
               Complete Profile Setup
             </Text>
