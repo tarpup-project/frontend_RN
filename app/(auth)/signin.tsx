@@ -30,7 +30,7 @@ const SignIn = () => {
       color: isDark ? "#CCCCCC" : "#666666",
     },
     input: {
-      backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF",
+      backgroundColor: isDark ? "#000000" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
       color: isDark ? "#FFFFFF" : "#000000",
     },
@@ -56,17 +56,20 @@ const SignIn = () => {
       <View style={styles.content}>
         {/* Header */}
         <View style={styles.header}>
-          <Ionicons name="fitness" size={32} color="#FFFFFF" />
-          <Text style={[styles.appTitle, dynamicStyles.text]}>
-            TarpAI Connect
-          </Text>
+          <View style={styles.titleRow}>
+            {/* TODO: Add your logo image here */}
+            {/* <Image source={require('./path-to-logo.png')} style={styles.logo} /> */}
+            <Text style={[styles.appTitle, dynamicStyles.text]}>
+              TarpAI Connect
+            </Text>
+          </View>
           <Text style={[styles.tagline, dynamicStyles.subtitle]}>
             Smart campus connections powered by AI
           </Text>
         </View>
 
         {/* Sign In Section */}
-        <View style={styles.signInSection}>
+        <View style={[styles.signInSection, styles.signInBox, dynamicStyles.input]}>
           <Text style={[styles.title, dynamicStyles.text]}>Welcome back</Text>
           <Text style={[styles.subtitle, dynamicStyles.subtitle]}>
             Enter your email to sign in securely
@@ -155,15 +158,24 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     paddingTop: 60,
+    justifyContent: "center",
   },
   header: {
     alignItems: "center",
-    marginBottom: 48,
+    marginBottom: 20,
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  logo: {
+    width: 32,
+    height: 32,
   },
   appTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    marginTop: 16,
   },
   tagline: {
     fontSize: 14,
@@ -172,17 +184,24 @@ const styles = StyleSheet.create({
   signInSection: {
     width: "100%",
   },
+  signInBox: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 20,
+  },
   title: {
     fontSize: 22,
     fontWeight: "bold",
     marginBottom: 8,
+    textAlign: "center",
   },
   subtitle: {
     fontSize: 14,
-    marginBottom: 32,
+    marginBottom: 24,
+    textAlign: "center",
   },
   inputGroup: {
-    marginBottom: 24,
+    marginBottom: 12,
   },
   label: {
     fontSize: 14,
@@ -242,7 +261,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    marginTop: 20,
+    marginTop: 10,
   },
   securityText: {
     fontSize: 12,
@@ -251,7 +270,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 32,
+    marginTop: 16,
   },
   signUpText: {
     fontSize: 14,

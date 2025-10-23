@@ -29,7 +29,8 @@ export default function TabLayout() {
                     marginHorizontal: 4,
                     overflow: 'hidden',
                 },
-                tabBarActiveBackgroundColor: '#1A1A1A',
+                tabBarActiveBackgroundColor: isDark ? '#1A1A1A' : '#F5F5F5',
+                tabBarInactiveBackgroundColor: isDark ? '#000000' : '#FFFFFF',
             }}
         >
             <Tabs.Screen

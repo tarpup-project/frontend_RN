@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { useRouter } from 'expo-router';
 
 const PreviewModeBanner = () => {
     const theme = useColorScheme() || 'light';
     const isDark = theme === 'dark';
+    const router = useRouter();
 
     const dynamicStyles = {
         container: {
@@ -22,6 +24,10 @@ const PreviewModeBanner = () => {
         buttonText: {
             color: isDark ? '#000000' : '#FFFFFF',
         },
+    };
+
+    const handleSignUpPress = () => {
+        router.push('/(auth)/Signup');
     };
 
     return (
@@ -45,7 +51,10 @@ const PreviewModeBanner = () => {
                 </View>
             </View>
 
-            <Pressable style={[styles.button, dynamicStyles.button]}>
+            <Pressable 
+                style={[styles.button, dynamicStyles.button]}
+                onPress={handleSignUpPress}
+            >
                 <Text style={[styles.buttonText, dynamicStyles.buttonText]}>
                     Sign Up
                 </Text>

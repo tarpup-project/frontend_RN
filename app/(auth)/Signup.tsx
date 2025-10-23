@@ -1,15 +1,15 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  View,
+  Pressable,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
-  Pressable,
-  StyleSheet,
-  ScrollView,
   useColorScheme,
+  View,
 } from "react-native";
-import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 
 const Signup = () => {
   const theme = useColorScheme() || "light";
@@ -41,14 +41,14 @@ const Signup = () => {
       color: isDark ? "#CCCCCC" : "#666666",
     },
     input: {
-      backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF",
-      borderColor: isDark ? "#333333" : "#E0E0E0",
-      color: isDark ? "#FFFFFF" : "#000000",
-    },
-    dropdown: {
-      backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF",
-      borderColor: isDark ? "#333333" : "#E0E0E0",
-    },
+        backgroundColor: isDark ? "#000000" : "#FFFFFF",
+        borderColor: isDark ? "#333333" : "#E0E0E0",
+        color: isDark ? "#FFFFFF" : "#000000",
+      },
+      dropdown: {
+        backgroundColor: isDark ? "#000000" : "#FFFFFF",
+        borderColor: isDark ? "#333333" : "#E0E0E0",
+      },
   };
 
   const handleSendVerification = () => {
@@ -68,7 +68,7 @@ const Signup = () => {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Ionicons name="fitness" size={32} color="#FFFFFF" />
+          {/* <Image source={require('./path-to-logo.png')} style={styles.logo} /> */}
           <Text style={[styles.appTitle, dynamicStyles.text]}>
             TarpAI Connect
           </Text>
@@ -78,7 +78,7 @@ const Signup = () => {
         </View>
 
         {/* Form Section */}
-        <View style={styles.formSection}>
+        <View style={[styles.formSection, dynamicStyles.dropdown]}>
           <Text style={[styles.sectionTitle, dynamicStyles.text]}>
             Create Account
           </Text>
@@ -91,7 +91,7 @@ const Signup = () => {
             <Text style={[styles.label, dynamicStyles.text]}>Full Name</Text>
             <TextInput
               style={[styles.input, dynamicStyles.input]}
-              placeholder="Chukwuduzie Blaise Akalonu"
+              placeholder="John Doe"
               placeholderTextColor={isDark ? "#666666" : "#999999"}
               value={fullName}
               onChangeText={setFullName}
@@ -105,7 +105,7 @@ const Signup = () => {
             </Text>
             <TextInput
               style={[styles.input, dynamicStyles.input]}
-              placeholder="duzieblaise1q@gmail.com"
+              placeholder="johndoe@gmail.com"
               placeholderTextColor={isDark ? "#666666" : "#999999"}
               value={email}
               onChangeText={setEmail}
@@ -138,7 +138,7 @@ const Signup = () => {
 
             {/* Dropdown Options */}
             {showUniversityDropdown && (
-              <View style={[styles.dropdownList, dynamicStyles.dropdown]}>
+  <View style={[styles.dropdownList, dynamicStyles.dropdown, styles.dropdownAbsolute]}>
                 {universities.map((uni, index) => (
                   <Pressable
                     key={index}
@@ -152,11 +152,7 @@ const Signup = () => {
                       {uni}
                     </Text>
                     {university === uni && (
-                      <Ionicons
-                        name="checkmark"
-                        size={20}
-                        color="#00D084"
-                      />
+                      <Ionicons name="checkmark" size={20} color="#00D084" />
                     )}
                   </Pressable>
                 ))}
@@ -207,6 +203,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 48,
   },
+  logo: {
+    width: 40,
+    height: 40,
+    marginBottom: 12,
+  },
   appTitle: {
     fontSize: 24,
     fontWeight: "bold",
@@ -218,18 +219,23 @@ const styles = StyleSheet.create({
   },
   formSection: {
     width: "100%",
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 20,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: "bold",
     marginBottom: 8,
+    textAlign: "center",
   },
   sectionSubtitle: {
     fontSize: 14,
     marginBottom: 32,
+    textAlign: "center",
   },
   inputGroup: {
-    marginBottom: 24,
+    marginBottom: 12,
   },
   label: {
     fontSize: 14,
@@ -251,6 +257,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+  },
+  dropdownAbsolute: {
+    position: "absolute",
+    top: 58,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
   },
   dropdownText: {
     fontSize: 15,

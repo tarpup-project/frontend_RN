@@ -7,14 +7,11 @@ const Header = () => {
     const router = useRouter();
     const isDark = theme === 'dark';
     
+    // Keep static for now - will be dynamic with auth integration
     const isAuthenticated = false;
 
     const handleChatPress = () => {
-        if (!isAuthenticated) {
-            router.push('/(auth)/Signup');
-        } else {
-            console.log('Navigate to chat');
-        }
+        router.push('/chat');
     };
 
     const handleThemeToggle = () => {
@@ -31,6 +28,12 @@ const Header = () => {
         },
         icon: {
             color: isDark ? '#FFFFFF' : '#000000',
+        },
+        chatButton: {
+            backgroundColor: isDark ? '#FFFFFF' : '#000000',
+        },
+        chatIcon: {
+            color: isDark ? '#000000' : '#FFFFFF',
         },
     };
 
@@ -51,23 +54,21 @@ const Header = () => {
                 </Pressable>
 
                 <Pressable 
-                    style={styles.chatButton}
+                    style={[styles.chatButton, dynamicStyles.chatButton]}
                     onPress={handleChatPress}
                 >
-                    <View style={styles.chatIconContainer}>
+                    <View style={styles.chatIconsWrapper}>
                         <Ionicons 
                             name="chatbubble-outline" 
                             size={20} 
-                            color="#000000" 
+                            color={dynamicStyles.chatIcon.color} 
                         />
                         {!isAuthenticated && (
-                            <View style={styles.lockBadge}>
-                                <Ionicons 
-                                    name="lock-closed" 
-                                    size={10} 
-                                    color="#000000" 
-                                />
-                            </View>
+                            <Ionicons 
+                                name="lock-closed" 
+                                size={20} 
+                                color={dynamicStyles.chatIcon.color} 
+                            />
                         )}
                     </View>
                 </Pressable>
@@ -93,27 +94,20 @@ const styles = StyleSheet.create({
     iconsContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
+        gap: 8,
     },
     iconButton: {
         padding: 8,
     },
     chatButton: {
-        backgroundColor: '#FFFFFF',
         borderRadius: 20,
-        padding: 10,
-        position: 'relative',
+        paddingVertical: 10,
+        paddingHorizontal: 12,
     },
-    chatIconContainer: {
-        position: 'relative',
-    },
-    lockBadge: {
-        position: 'absolute',
-        top: -4,
-        right: -4,
-        backgroundColor: '#FFFFFF',
-        borderRadius: 8,
-        padding: 2,
+    chatIconsWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
     },
 });
 
