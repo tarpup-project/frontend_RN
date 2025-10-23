@@ -34,12 +34,12 @@ const VerifyEmail = () => {
       color: isDark ? "#CCCCCC" : "#666666",
     },
     input: {
-      backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF",
+      backgroundColor: isDark ? "#000000" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
       color: isDark ? "#FFFFFF" : "#000000",
     },
     codeDisplay: {
-      backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
+      backgroundColor: isDark ? "#000000" : "#F5F5F5",
     },
   };
 
@@ -63,24 +63,25 @@ const VerifyEmail = () => {
       <View style={styles.content}>
         {/* Header */}
         <View style={styles.header}>
-          <Ionicons name="fitness" size={32} color="#FFFFFF" />
-          <Text style={[styles.appTitle, dynamicStyles.text]}>
-            TarpAI Connect
-          </Text>
-          <Text style={[styles.tagline, dynamicStyles.subtitle]}>
-            Smart campus connections powered by AI
-          </Text>
-        </View>
-
-        {/* Email Icon */}
-        <View style={styles.iconContainer}>
-          <View style={styles.emailIconCircle}>
-            <Ionicons name="mail" size={48} color="#FFFFFF" />
+          <View style={styles.titleRow}>
+            {/* TODO: Add your logo image here */}
+            {/* <Image source={require('./path-to-logo.png')} style={styles.logo} /> */}
+            <Text style={[styles.appTitle, dynamicStyles.text]}>
+              TarpAI Connect
+            </Text>
           </View>
+          <Text style={[styles.tagline, dynamicStyles.subtitle]}>
+            Join Your Campus Community
+          </Text>
         </View>
 
         {/* Verify Email Section */}
-        <View style={styles.verifySection}>
+        <View style={[styles.verifySection, styles.verifyBox, dynamicStyles.input]}>
+          {/* Email Icon - Now Inside Box */}
+          <View style={styles.iconContainer}>
+            <Ionicons name="mail-outline" size={48} color={dynamicStyles.text.color} />
+          </View>
+
           <Text style={[styles.title, dynamicStyles.text]}>
             Verify Your Email
           </Text>
@@ -153,16 +154,24 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 60,
+    paddingTop: 120,
   },
   header: {
     alignItems: "center",
-    marginBottom: 40,
+    marginBottom: 20,
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  logo: {
+    width: 32,
+    height: 32,
   },
   appTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    marginTop: 16,
   },
   tagline: {
     fontSize: 14,
@@ -170,55 +179,52 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     alignItems: "center",
-    marginBottom: 32,
-  },
-  emailIconCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: "#1A1A1A",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#333333",
+    marginBottom: 16,
   },
   verifySection: {
     width: "100%",
   },
+  verifyBox: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 20,
+  },
   title: {
-    fontSize: 22,
+    fontSize: 15,
     fontWeight: "bold",
     textAlign: "center",
-    marginBottom: 12,
+    marginBottom: 6,
   },
   subtitle: {
     fontSize: 14,
     textAlign: "center",
-    marginBottom: 8,
+    marginBottom: 4,
   },
   email: {
     fontSize: 15,
     fontWeight: "600",
     textAlign: "center",
-    marginBottom: 24,
+    marginBottom: 12,
   },
   codeDisplay: {
     padding: 16,
     borderRadius: 8,
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#333333",
   },
   codeLabel: {
     fontSize: 12,
     marginBottom: 8,
   },
   demoCode: {
-    fontSize: 24,
+    fontSize: 17,
     fontWeight: "bold",
     letterSpacing: 4,
   },
   inputGroup: {
-    marginBottom: 24,
+    marginBottom: 12,
   },
   label: {
     fontSize: 14,
@@ -226,12 +232,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    height: 50,
+    height: 45,
     borderRadius: 8,
     borderWidth: 1,
     paddingHorizontal: 16,
-    fontSize: 18,
-    letterSpacing: 8,
+    fontSize: 15,
+    letterSpacing: 2,
     textAlign: "center",
   },
   verifyButton: {
@@ -251,7 +257,7 @@ const styles = StyleSheet.create({
   },
   resendContainer: {
     alignItems: "center",
-    marginTop: 20,
+    marginTop: 10,
   },
   resendText: {
     fontSize: 15,
@@ -259,7 +265,7 @@ const styles = StyleSheet.create({
   },
   changeEmailContainer: {
     alignItems: "center",
-    marginTop: 16,
+    marginTop: 8,
   },
   changeEmailText: {
     fontSize: 14,

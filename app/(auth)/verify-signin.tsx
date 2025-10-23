@@ -19,7 +19,6 @@ const VerifySignIn = () => {
   const email = params.email as string;
 
   const [verificationCode, setVerificationCode] = useState("");
-  const demoCode = "574322"; // Demo code shown to user
 
   const dynamicStyles = {
     container: {
@@ -32,12 +31,9 @@ const VerifySignIn = () => {
       color: isDark ? "#CCCCCC" : "#666666",
     },
     input: {
-      backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF",
+      backgroundColor: isDark ? "#000000" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
       color: isDark ? "#FFFFFF" : "#000000",
-    },
-    codeDisplay: {
-      backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
     },
   };
 
@@ -62,24 +58,25 @@ const VerifySignIn = () => {
       <View style={styles.content}>
         {/* Header */}
         <View style={styles.header}>
-          <Ionicons name="fitness" size={32} color="#FFFFFF" />
-          <Text style={[styles.appTitle, dynamicStyles.text]}>
-            TarpAI Connect
-          </Text>
+          <View style={styles.titleRow}>
+            {/* TODO: Add your logo image here */}
+            {/* <Image source={require('./path-to-logo.png')} style={styles.logo} /> */}
+            <Text style={[styles.appTitle, dynamicStyles.text]}>
+              TarpAI Connect
+            </Text>
+          </View>
           <Text style={[styles.tagline, dynamicStyles.subtitle]}>
             Smart campus connections powered by AI
           </Text>
         </View>
 
-        {/* Check Icon */}
-        <View style={styles.iconContainer}>
-          <View style={styles.checkIconCircle}>
-            <Ionicons name="checkmark-circle" size={64} color="#00D084" />
-          </View>
-        </View>
-
         {/* Verify Section */}
-        <View style={styles.verifySection}>
+        <View style={[styles.verifySection, styles.verifyBox, dynamicStyles.input]}>
+          {/* Check Icon - Inside Box */}
+          <View style={styles.iconContainer}>
+            <Ionicons name="checkmark-circle-outline" size={64} color="#00D084" />
+          </View>
+
           <Text style={[styles.title, dynamicStyles.text]}>
             Check your email
           </Text>
@@ -87,16 +84,6 @@ const VerifySignIn = () => {
             We sent a 6-digit code to
           </Text>
           <Text style={[styles.email, dynamicStyles.text]}>{email}</Text>
-
-          {/* Demo Code Display */}
-          <View style={[styles.codeDisplay, dynamicStyles.codeDisplay]}>
-            <Text style={[styles.codeLabel, dynamicStyles.subtitle]}>
-              Demo code for testing:
-            </Text>
-            <Text style={[styles.demoCode, dynamicStyles.text]}>
-              {demoCode}
-            </Text>
-          </View>
 
           {/* Verification Code Input */}
           <View style={styles.inputGroup}>
@@ -156,15 +143,24 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     paddingTop: 60,
+    justifyContent: "center",
   },
   header: {
     alignItems: "center",
-    marginBottom: 40,
+    marginBottom: 20,
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  logo: {
+    width: 32,
+    height: 32,
   },
   appTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    marginTop: 16,
   },
   tagline: {
     fontSize: 14,
@@ -172,55 +168,35 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     alignItems: "center",
-    marginBottom: 32,
-  },
-  checkIconCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: "#1A1A1A",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#333333",
+    marginBottom: 16,
   },
   verifySection: {
     width: "100%",
   },
+  verifyBox: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 20,
+  },
   title: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: "bold",
     textAlign: "center",
-    marginBottom: 12,
+    marginBottom: 6,
   },
   subtitle: {
     fontSize: 14,
     textAlign: "center",
-    marginBottom: 8,
+    marginBottom: 4,
   },
   email: {
     fontSize: 15,
     fontWeight: "600",
     textAlign: "center",
-    marginBottom: 24,
-  },
-  codeDisplay: {
-    padding: 16,
-    borderRadius: 8,
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  codeLabel: {
-    fontSize: 12,
-    marginBottom: 8,
-  },
-  demoCode: {
-    fontSize: 24,
-    fontWeight: "bold",
-    letterSpacing: 4,
+    marginBottom: 12,
   },
   inputGroup: {
-    marginBottom: 24,
+    marginBottom: 12,
   },
   label: {
     fontSize: 14,
@@ -233,7 +209,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 16,
     fontSize: 18,
-    letterSpacing: 8,
+    letterSpacing: 2,
     textAlign: "center",
   },
   verifyButton: {
@@ -253,7 +229,7 @@ const styles = StyleSheet.create({
   },
   backContainer: {
     alignItems: "center",
-    marginTop: 20,
+    marginTop: 10,
   },
   backText: {
     fontSize: 15,
@@ -263,7 +239,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 16,
+    marginTop: 8,
   },
   resendLabel: {
     fontSize: 14,
