@@ -11,10 +11,9 @@ const Header = () => {
 
     const handleChatPress = () => {
         if (!isAuthenticated) {
-            console.log('Show sign up modal');
+            router.push('/(auth)/Signup');
         } else {
-            // TODO: Navigate to chat screen
-            // router.push('/chat');
+            console.log('Navigate to chat');
         }
     };
 
