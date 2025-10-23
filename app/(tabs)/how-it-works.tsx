@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import {
   Pressable,
   ScrollView,
@@ -12,6 +13,7 @@ import {
 const HowItWorks = () => {
   const theme = useColorScheme() || "light";
   const isDark = theme === "dark";
+  const router = useRouter();
 
   const dynamicStyles = {
     container: {
@@ -24,7 +26,11 @@ const HowItWorks = () => {
       color: isDark ? "#CCCCCC" : "#666666",
     },
     card: {
-      backgroundColor: isDark ? "#0A0A0A" : "#F5F5F5",
+      backgroundColor: isDark ? "#000000" : "#F5F5F5",
+      borderColor: isDark ? "#333333" : "#E0E0E0",
+    },
+    grayCard: {
+      backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
   };
@@ -123,10 +129,10 @@ const HowItWorks = () => {
       <ScrollView style={styles.content}>
         {/* Header */}
         <View style={styles.header}>
-          <Pressable style={styles.backButton}>
+          <Pressable style={styles.backButton} onPress={() => router.push("/profile")}>
             <Ionicons name="arrow-back" size={20} color={dynamicStyles.text.color} />
             <Text style={[styles.backText, dynamicStyles.text]}>
-              How It Works
+              BAck to Profile
             </Text>
           </Pressable>
         </View>
@@ -211,44 +217,54 @@ const HowItWorks = () => {
           ))}
         </View>
 
-        {/* AI Matching System */}
+        {/* AI Matching System - BLACK CARD */}
         <View style={styles.mainSection}>
           <Text style={[styles.mainSectionTitle, dynamicStyles.text]}>
             AI Matching System
           </Text>
 
-          {matchingSystem.map((item) => (
-            <View key={item.id} style={styles.matchingItem}>
-              <Text style={[styles.matchingTitle, dynamicStyles.text]}>
-                {item.title}
-              </Text>
-              <Text style={[styles.matchingDescription, dynamicStyles.subtitle]}>
-                {item.description}
-              </Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Tips for Success */}
-        <View style={styles.mainSection}>
-          <Text style={[styles.mainSectionTitle, dynamicStyles.text]}>
-            Tips for Success
-          </Text>
-
-          <View style={styles.tipsList}>
-            {tips.map((tip, index) => (
-              <View key={index} style={styles.tipItem}>
-                <Text style={styles.bullet}>•</Text>
-                <Text style={[styles.tipText, dynamicStyles.subtitle]}>
-                  {tip}
+          <View style={[styles.matchingCard, dynamicStyles.card]}>
+            {matchingSystem.map((item, index) => (
+              <View 
+                key={item.id} 
+                style={[
+                  styles.matchingItem,
+                  index !== matchingSystem.length - 1 && styles.matchingItemMargin
+                ]}
+              >
+                <Text style={[styles.matchingTitle, dynamicStyles.text]}>
+                  {item.title}
+                </Text>
+                <Text style={[styles.matchingDescription, dynamicStyles.subtitle]}>
+                  {item.description}
                 </Text>
               </View>
             ))}
           </View>
         </View>
 
-        {/* Need More Help */}
-        <View style={[styles.helpSection, dynamicStyles.card]}>
+        {/* Tips for Success - BLACK CARD */}
+        <View style={styles.mainSection}>
+          <Text style={[styles.mainSectionTitle, dynamicStyles.text]}>
+            Tips for Success
+          </Text>
+
+          <View style={[styles.tipsCard, dynamicStyles.card]}>
+            <View style={styles.tipsList}>
+              {tips.map((tip, index) => (
+                <View key={index} style={styles.tipItem}>
+                  <Text style={styles.bullet}>•</Text>
+                  <Text style={[styles.tipText, dynamicStyles.subtitle]}>
+                    {tip}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        </View>
+
+        {/* Need More Help - GRAY CARD */}
+        <View style={[styles.helpSection, dynamicStyles.grayCard]}>
           <Text style={[styles.helpTitle, dynamicStyles.text]}>
             Need More Help?
           </Text>
@@ -359,7 +375,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
+  matchingCard: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
   matchingItem: {
+  },
+  matchingItemMargin: {
     marginBottom: 20,
   },
   matchingTitle: {
@@ -370,6 +393,11 @@ const styles = StyleSheet.create({
   matchingDescription: {
     fontSize: 14,
     lineHeight: 20,
+  },
+  tipsCard: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
   },
   tipsList: {
     gap: 12,
@@ -393,28 +421,31 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     marginBottom: 80,
-    alignItems: "center",
   },
   helpTitle: {
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 12,
-    textAlign: "center",
+    textAlign: "left",
   },
   helpDescription: {
     fontSize: 14,
     lineHeight: 20,
-    textAlign: "center",
+    textAlign: "left",
     marginBottom: 20,
   },
   supportButton: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#1A1A1A",
     paddingVertical: 12,
     paddingHorizontal: 32,
     borderRadius: 8,
+    borderWidth: 1,     
+  borderColor: "#333333",
+    width: "100%",
+    alignItems: "center",
   },
   supportButtonText: {
-    color: "#000000",
+    color: "#FFFFFF",
     fontSize: 15,
     fontWeight: "600",
   },

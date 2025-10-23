@@ -90,7 +90,7 @@ const Notifications = () => {
 
       <ScrollView style={styles.content}>
         {/* Back Button */}
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
+        <Pressable style={styles.backButton} onPress={() => router.push("/profile")}>
           <Ionicons
             name="arrow-back"
             size={20}
