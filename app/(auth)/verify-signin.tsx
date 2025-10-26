@@ -6,6 +6,8 @@ import {
   Pressable,
   StyleSheet,
   useColorScheme,
+  Platform,
+  KeyboardAvoidingView
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -54,7 +56,10 @@ const VerifySignIn = () => {
   };
 
   return (
-    <View style={[styles.container, dynamicStyles.container]}>
+    <KeyboardAvoidingView 
+  style={[styles.container, dynamicStyles.container]}
+  behavior={Platform.OS === "ios" ? "padding" : "height"}
+>
       <View style={styles.content}>
         {/* Header */}
         <View style={styles.header}>
@@ -131,7 +136,7 @@ const VerifySignIn = () => {
           </View>
         </View>
       </View>
-    </View>
+      </KeyboardAvoidingView>
   );
 };
 
