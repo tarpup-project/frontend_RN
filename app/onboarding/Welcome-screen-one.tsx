@@ -35,7 +35,7 @@ const WelcomeScreenOne = () => {
     <View style={[styles.container, dynamicStyles.container]}>
       <Pressable
         style={styles.skipButton}
-        onPress={() => router.push("/onboarding/Welcome-screen-two")}
+        onPress={() => router.push("/onboarding/carousel")}
       >
         <Text style={[styles.skipText, dynamicStyles.skipText]}>Skip</Text>
       </Pressable>
@@ -63,7 +63,7 @@ const WelcomeScreenOne = () => {
       <View style={styles.buttonContainer}>
         <Pressable
           style={styles.button}
-          onPress={() => router.push("/onboarding/Welcome-screen-two")}
+          onPress={() => router.push("/onboarding/carousel")}
         >
           <Text style={styles.buttonText}>Let's go </Text>
         </Pressable>
