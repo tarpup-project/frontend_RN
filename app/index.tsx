@@ -2,7 +2,7 @@ import { Redirect } from "expo-router";
 
 export default function Index() {
 
-  return <Redirect href="/onboarding" />;
+  return <Redirect href="/onboarding/Welcome-screen-one" />;
   // const hasSeenOnboarding = false;
 
   // if (!hasSeenOnboarding) {

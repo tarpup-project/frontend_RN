@@ -132,7 +132,7 @@ const HowItWorks = () => {
           <Pressable style={styles.backButton} onPress={() => router.push("/profile")}>
             <Ionicons name="arrow-back" size={20} color={dynamicStyles.text.color} />
             <Text style={[styles.backText, dynamicStyles.text]}>
-              BAck to Profile
+              Back to Profile
             </Text>
           </Pressable>
         </View>
