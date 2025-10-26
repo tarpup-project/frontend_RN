@@ -140,7 +140,7 @@ const HowItWorks = () => {
         {/* Welcome Section */}
         <View style={[styles.section, dynamicStyles.card]}>
           <Text style={[styles.welcomeTitle, dynamicStyles.text]}>
-            Welcome to Targit AI
+            Welcome to Tarpup AI
           </Text>
           <Text style={[styles.welcomeDescription, dynamicStyles.subtitle]}>
             Targit AI is an AI-powered platform that automatically matches

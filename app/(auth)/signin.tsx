@@ -1,15 +1,17 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  View,
-  Text,
-  TextInput,
+  ActivityIndicator,
   Pressable,
   StyleSheet,
-  ActivityIndicator,
+  Text,
+  TextInput,
   useColorScheme,
+  KeyboardAvoidingView, 
+  Platform,
+  View,
 } from "react-native";
-import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 
 const SignIn = () => {
   const theme = useColorScheme() || "light";
@@ -39,7 +41,7 @@ const SignIn = () => {
   const handleContinue = () => {
     if (email) {
       setIsLoading(true);
-      
+
       // Simulate sending verification code
       setTimeout(() => {
         setIsLoading(false);
@@ -52,7 +54,10 @@ const SignIn = () => {
   };
 
   return (
-    <View style={[styles.container, dynamicStyles.container]}>
+    <KeyboardAvoidingView 
+  style={[styles.container, dynamicStyles.container]}
+  behavior={Platform.OS === "ios" ? "padding" : "height"}
+>
       <View style={styles.content}>
         {/* Header */}
         <View style={styles.header}>
@@ -69,7 +74,9 @@ const SignIn = () => {
         </View>
 
         {/* Sign In Section */}
-        <View style={[styles.signInSection, styles.signInBox, dynamicStyles.input]}>
+        <View
+          style={[styles.signInSection, styles.signInBox, dynamicStyles.input]}
+        >
           <Text style={[styles.title, dynamicStyles.text]}>Welcome back</Text>
           <Text style={[styles.subtitle, dynamicStyles.subtitle]}>
             Enter your email to sign in securely
@@ -129,7 +136,11 @@ const SignIn = () => {
 
           {/* Security Note */}
           <View style={styles.securityNote}>
-            <Ionicons name="shield-checkmark-outline" size={16} color="#666666" />
+            <Ionicons
+              name="shield-checkmark-outline"
+              size={16}
+              color="#666666"
+            />
             <Text style={[styles.securityText, dynamicStyles.subtitle]}>
               Your email is kept secure and never shared
             </Text>
@@ -146,7 +157,7 @@ const SignIn = () => {
           </View>
         </View>
       </View>
-    </View>
+      </KeyboardAvoidingView>
   );
 };
 
