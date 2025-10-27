@@ -65,7 +65,11 @@ const WelcomeScreenOne = () => {
           style={styles.button}
           onPress={() => router.push("/onboarding/carousel")}
         >
-          <Text style={styles.buttonText}>Let's go </Text>
+          <View style={styles.buttonContent}>
+            <Text style={styles.buttonText}>Let's go </Text>
+            <Text style={styles.arrowIcon}>›</Text>
+          </View>
+
         </Pressable>
       </View>
     </View>
@@ -121,7 +125,7 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: "#FFFFFF",
-    paddingVertical: 14,
+    paddingVertical: 13,
     borderRadius: 12,
     alignItems: "center",
   },
@@ -130,6 +134,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
+  arrowIcon: {
+    fontSize: 16,
+  },
+  buttonContent: {
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  }
 });
 
 export default WelcomeScreenOne;
