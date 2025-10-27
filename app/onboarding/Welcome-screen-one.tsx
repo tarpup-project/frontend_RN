@@ -45,8 +45,8 @@ const WelcomeScreenOne = () => {
           <Image
             source={
               isDark
-                ? require("@/assets/images/tarpup-light.png")
-                : require("@/assets/images/tarpup-dark.png")
+                ? require("@/assets/images/tarpup-dark.png")
+                : require("@/assets/images/tarpup-light.png")
             }
             style={styles.logo}
             resizeMode="contain"
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   logoContainer: {
-    backgroundColor: "#333333",
+    backgroundColor: "#1A1A1A1A",
     alignItems: "center",
     marginBottom: 50,
   },

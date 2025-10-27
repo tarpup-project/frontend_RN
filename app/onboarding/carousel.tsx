@@ -16,29 +16,31 @@ interface CarouselItem {
   id: number;
   icon: any;
   iconDark: any;
-  iconBgColor: string;
+  iconBgColor: string | string[]; 
   title: string;
   subtitle: string;
   buttonText: string;
   hasChips: boolean;
+  isLucideIcon?: boolean; 
 }
 
 const carouselData: CarouselItem[] = [
   {
     id: 1,
-    icon: require("@/assets/images/logo-white.png"),
-    iconDark: require("@/assets/images/logo-dark.png"),
-    iconBgColor: "#87CEEB",
+    icon: "MessageSquare",
+    iconDark: "MessageSquare",
+    iconBgColor:["#87CEEB", "#4A90E2"],
     title: "Just state your need",
     subtitle: "Simply type what you're looking for in natural\nlanguage.",
     buttonText: "Continue",
     hasChips: true,
+    isLucideIcon: true
   },
   {
     id: 2,
-    icon: require("@/assets/images/logo-white.png"),
+    icon: require("@/assets/images/logo-dark.png"),
     iconDark: require("@/assets/images/logo-dark.png"),
-    iconBgColor: "#FF00FF",
+    iconBgColor: ["#FF00FF", "#CC00CC"],
     title: "Get Matched Instantly",
     subtitle:
       "Let our AI find and connect you with students\nwho share your interests and needs in real time\nacross your campus.",
@@ -48,8 +50,8 @@ const carouselData: CarouselItem[] = [
 
   {
     id: 3,
-    icon: require("@/assets/images/people-light.png"),
-    iconDark: require("@/assets/images/people-dark.png"),
+    icon: "UsersRound",
+    iconDark: "UsersRound",
     iconBgColor: "#FF4500",
     title: "Connect and Coordinate",
     subtitle:
@@ -95,6 +97,7 @@ const OnboardingCarousel = () => {
         onContinue={handleContinue}
         onSkip={handleSkip}
         hasChips={item.hasChips}
+        isLucideIcon={item.isLucideIcon}
       />
     </View>
   );
