@@ -1,19 +1,14 @@
+import { useTheme } from "@/app/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from "react-native";
+import { StatusBar } from "expo-status-bar";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const Header = () => {
-  const theme = useColorScheme() || "light";
-  const [manualTheme, setManualTheme] = useState<"light" | "dark" | null>(null);
+  const insets = useSafeAreaInsets();
   const router = useRouter();
-  const isDark = theme === "dark";
+  const { isDark, toggleTheme } = useTheme();
 
   const isAuthenticated = false;
 
@@ -22,7 +17,7 @@ const Header = () => {
   };
 
   const handleThemeToggle = () => {
-    setManualTheme(isDark ? "light" : "dark");
+    toggleTheme();
   };
 
   const dynamicStyles = {
@@ -45,46 +40,54 @@ const Header = () => {
   };
 
   return (
-    <View style={[styles.container, dynamicStyles.container]}>
-      <Text style={[styles.title, dynamicStyles.title]}>TarpAI Connect</Text>
+    <>
+      <StatusBar style={isDark ? "light" : "dark"} />
+      <View
+        style={[
+          styles.container,
+          dynamicStyles.container,
+          { paddingTop: insets.top + 12 },
+        ]}
+      >
+        <Text style={[styles.title, dynamicStyles.title]}>TarpAI Connect</Text>
 
-      <View style={styles.iconsContainer}>
-        <Pressable style={styles.iconButton} onPress={handleThemeToggle}>
-          <Ionicons
-            name={isDark ? "moon" : "sunny"}
-            size={20}
-            color={dynamicStyles.icon.color}
-          />
-        </Pressable>
-
-        <Pressable
-          style={[styles.chatButton, dynamicStyles.chatButton]}
-          onPress={handleChatPress}
-        >
-          <View style={styles.chatIconsWrapper}>
+        <View style={styles.iconsContainer}>
+          <Pressable style={styles.iconButton} onPress={handleThemeToggle}>
             <Ionicons
-              name="chatbubble-outline"
+              name={isDark ? "moon" : "sunny"}
               size={20}
-              color={dynamicStyles.chatIcon.color}
+              color={dynamicStyles.icon.color}
             />
-            {!isAuthenticated && (
+          </Pressable>
+
+          <Pressable
+            style={[styles.chatButton, dynamicStyles.chatButton]}
+            onPress={handleChatPress}
+          >
+            <View style={styles.chatIconsWrapper}>
               <Ionicons
-                name="lock-closed"
+                name="chatbubble-outline"
                 size={20}
                 color={dynamicStyles.chatIcon.color}
               />
-            )}
-          </View>
-        </Pressable>
+              {!isAuthenticated && (
+                <Ionicons
+                  name="lock-closed"
+                  size={20}
+                  color={dynamicStyles.chatIcon.color}
+                />
+              )}
+            </View>
+          </Pressable>
+        </View>
       </View>
-    </View>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
-    paddingTop: 50,
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 16,
