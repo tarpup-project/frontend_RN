@@ -1,13 +1,13 @@
 import Header from "@/components/Header";
+import PreviewModeBanner from "@/components/PreviewModeBanner";
 import { Ionicons } from "@expo/vector-icons";
-import PreviewModeBanner from '@/components/PreviewModeBanner';
+import { useTheme } from "@/app/contexts/ThemeContext"
 import { useState } from "react";
 import {
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  useColorScheme,
   View,
 } from "react-native";
 
@@ -22,8 +22,7 @@ const Index = () => {
     "MIT",
     "Yale University",
   ];
-  const theme = useColorScheme() || "light";
-  const isDark = theme === "dark";
+  const { isDark } = useTheme();
 
   const dynamicStyles = {
     container: {
@@ -114,8 +113,10 @@ const Index = () => {
 
   return (
     <View style={[styles.container, dynamicStyles.container]}>
-      <Header />
-      <PreviewModeBanner />
+      <View style={{ gap: 12 }}>
+        <Header />
+        <PreviewModeBanner />
+      </View>
 
       <ScrollView style={styles.content}>
         {/* Filter Campus Section */}
@@ -128,7 +129,7 @@ const Index = () => {
         >
           <View style={styles.filterHeader}>
             <Ionicons
-              name="filter-outline"
+              name="funnel-outline"
               size={16}
               color={dynamicStyles.text.color}
             />
@@ -137,29 +138,29 @@ const Index = () => {
             </Text>
             <Text style={[styles.liveText, dynamicStyles.subtitle]}>Live</Text>
           </View>
-          
-          <View style={{ position: 'relative' }}>
-          <Pressable
-            style={[styles.campusSelector, dynamicStyles.filterContainer]}
-            onPress={() => setIsDropdownOpen(!isDropdownOpen)}
-          >
-            <View style={styles.campusRow}>
-              <Ionicons
-                name="location-outline"
-                size={16}
-                color={dynamicStyles.text.color}
-              />
-              <View style={styles.dotIndicator} />
-              <Text style={[styles.campusText, dynamicStyles.text]}>
-                {selectedUni}
-              </Text>
-              <Ionicons
-                name={isDropdownOpen ? "chevron-up" : "chevron-down"}
-                size={16}
-                color={dynamicStyles.text.color}
-              />
-            </View>
-          </Pressable>
+
+          <View style={{ position: "relative" }}>
+            <Pressable
+              style={[styles.campusSelector, dynamicStyles.filterContainer]}
+              onPress={() => setIsDropdownOpen(!isDropdownOpen)}
+            >
+              <View style={styles.campusRow}>
+                <Ionicons
+                  name="location-outline"
+                  size={16}
+                  color={dynamicStyles.text.color}
+                />
+                <View style={styles.dotIndicator} />
+                <Text style={[styles.campusText, dynamicStyles.text]}>
+                  {selectedUni}
+                </Text>
+                <Ionicons
+                  name={isDropdownOpen ? "chevron-up" : "chevron-down"}
+                  size={16}
+                  color={dynamicStyles.text.color}
+                />
+              </View>
+            </Pressable>
           </View>
 
           {isDropdownOpen && (
@@ -401,8 +402,8 @@ const styles = StyleSheet.create({
   dotIndicator: {
     width: 6,
     height: 6,
-    borderRadius: 3,
-    backgroundColor: "#4CAF50",
+    borderRadius: 6,
+    backgroundColor: "#FFFFFF",
   },
   campusText: {
     flex: 1,
@@ -558,7 +559,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   dropdown: {
-    position: 'absolute',
+    position: "absolute",
     top: 95,
     left: 0,
     right: 0,
