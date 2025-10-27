@@ -54,7 +54,7 @@ const Header = () => {
         <View style={styles.iconsContainer}>
           <Pressable style={styles.iconButton} onPress={handleThemeToggle}>
             <Ionicons
-              name={isDark ? "moon" : "sunny"}
+              name={isDark ? "moon-outline" : "sunny-outline"}
               size={20}
               color={dynamicStyles.icon.color}
             />
@@ -72,7 +72,7 @@ const Header = () => {
               />
               {!isAuthenticated && (
                 <Ionicons
-                  name="lock-closed"
+                  name="lock-closed-outline"
                   size={20}
                   color={dynamicStyles.chatIcon.color}
                 />
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   title: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: "600",
   },
   iconsContainer: {
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   chatButton: {
-    borderRadius: 20,
+    borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 12,
   },
