@@ -28,6 +28,16 @@ const carouselData: CarouselItem[] = [
     id: 1,
     icon: require("@/assets/images/logo-white.png"),
     iconDark: require("@/assets/images/logo-dark.png"),
+    iconBgColor: "#87CEEB",
+    title: "Just state your need",
+    subtitle: "Simply type what you're looking for in natural\nlanguage.",
+    buttonText: "Continue",
+    hasChips: true,
+  },
+  {
+    id: 2,
+    icon: require("@/assets/images/logo-white.png"),
+    iconDark: require("@/assets/images/logo-dark.png"),
     iconBgColor: "#FF00FF",
     title: "Get Matched Instantly",
     subtitle:
@@ -35,16 +45,7 @@ const carouselData: CarouselItem[] = [
     buttonText: "Continue",
     hasChips: false,
   },
-  {
-    id: 2,
-    icon: require("@/assets/images/logo-white.png"),
-    iconDark: require("@/assets/images/logo-dark.png"),
-    iconBgColor: "#87CEEB",
-    title: "Just state your need",
-    subtitle: "Simply type what you're looking for in natural\nlanguage.",
-    buttonText: "Continue",
-    hasChips: true,
-  },
+
   {
     id: 3,
     icon: require("@/assets/images/people-light.png"),
@@ -74,7 +75,6 @@ const OnboardingCarousel = () => {
         animated: true,
       });
     } else {
-      // Last screen - navigate to main app
       router.push("/(tabs)");
     }
   };

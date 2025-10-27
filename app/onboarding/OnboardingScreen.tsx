@@ -48,7 +48,7 @@ import {
         color: isDark ? "#CCCCCC" : "#666666",
       },
       chip: {
-        backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
+        backgroundColor: isDark ? "#0D0D0D" : "#F5F5F5",
         borderColor: isDark ? "#333333" : "#E0E0E0",
       },
       chipText: {
