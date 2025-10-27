@@ -1,15 +1,20 @@
+import { useTheme } from "@/app/contexts/ThemeContext";
 import Header from "@/components/Header";
 import PreviewModeBanner from "@/components/PreviewModeBanner";
+import { Text } from "@/components/Themedtext";
 import { Ionicons } from "@expo/vector-icons";
-import { useTheme } from "@/app/contexts/ThemeContext"
-import { useState } from "react";
-import { Text } from '@/components/Themedtext';
 import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
+  BookOpen,
+  Car,
+  Dumbbell,
+  Gift,
+  Heart,
+  Home,
+  PartyPopper,
+  ShoppingBag,
+} from "lucide-react-native";
+import { useState } from "react";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 const Index = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -33,6 +38,7 @@ const Index = () => {
     },
     subtitle: {
       color: isDark ? "#CCCCCC" : "#666666",
+      backgroundColor: isDark ? "#000000" : "#FFFFFF",
     },
     filterContainer: {
       backgroundColor: isDark ? "#000000" : "#F5F5F5",
@@ -41,6 +47,9 @@ const Index = () => {
     card: {
       backgroundColor: isDark ? "#000000" : "#F5F5F5",
       borderColor: isDark ? "#333333" : "#E0E0E0",
+    },
+    matchesBadge: {
+      backgroundColor: isDark ? "#0A0A0A" : "#E0E0E0",
     },
   };
 
@@ -51,7 +60,7 @@ const Index = () => {
       subtitle: "Share rides & carpools",
       matches: 91,
       bgColor: "#E6D5FF",
-      icon: "car",
+      icon: Car,
     },
     {
       id: 2,
@@ -59,7 +68,7 @@ const Index = () => {
       subtitle: "Find housing & roommates",
       matches: 72,
       bgColor: "#D5F5E3",
-      icon: "home",
+      icon: Home,
     },
     {
       id: 3,
@@ -67,7 +76,7 @@ const Index = () => {
       subtitle: "Buy & sell items",
       matches: 86,
       bgColor: "#FFE6F0",
-      icon: "bag",
+      icon: ShoppingBag,
     },
     {
       id: 4,
@@ -75,7 +84,7 @@ const Index = () => {
       subtitle: "Find game partners",
       matches: 52,
       bgColor: "#FFE6D5",
-      icon: "basketball",
+      icon: Dumbbell,
     },
     {
       id: 5,
@@ -83,7 +92,7 @@ const Index = () => {
       subtitle: "Meet new people",
       matches: 40,
       bgColor: "#FFD5E6",
-      icon: "heart",
+      icon: Heart,
     },
     {
       id: 6,
@@ -91,7 +100,7 @@ const Index = () => {
       subtitle: "Events and Social gatherings",
       matches: 856,
       bgColor: "#D5E6FF",
-      icon: "book",
+      icon: BookOpen,
     },
     {
       id: 7,
@@ -99,7 +108,7 @@ const Index = () => {
       subtitle: "Free items and donations",
       matches: 763,
       bgColor: "#5CE1E6",
-      icon: "gift",
+      icon: Gift,
     },
     {
       id: 8,
@@ -107,7 +116,7 @@ const Index = () => {
       subtitle: "Events and Social gatherings",
       matches: 856,
       bgColor: "#00D084",
-      icon: "balloon",
+      icon: PartyPopper,
     },
   ];
 
@@ -136,7 +145,7 @@ const Index = () => {
             <Text style={[styles.filterTitle, dynamicStyles.text]}>
               Filter Campus
             </Text>
-            
+
             <Text style={[styles.liveText, dynamicStyles.subtitle]}>Live</Text>
           </View>
 
@@ -192,7 +201,7 @@ const Index = () => {
 
           <Pressable style={styles.resetButton}>
             <Ionicons
-              name="filter-outline"
+              name="funnel-outline"
               size={16}
               color={dynamicStyles.text.color}
             />
@@ -226,11 +235,7 @@ const Index = () => {
                     { backgroundColor: category.bgColor },
                   ]}
                 >
-                  <Ionicons
-                    name={category.icon as any}
-                    size={24}
-                    color="#000000"
-                  />
+                  <category.icon size={24} color="#000000" strokeWidth={2} />
                 </View>
                 <Text style={[styles.cardTitle, dynamicStyles.text]}>
                   {category.name}
@@ -238,9 +243,11 @@ const Index = () => {
                 <Text style={[styles.cardSubtitle, dynamicStyles.subtitle]}>
                   {category.subtitle}
                 </Text>
-                <Text style={[styles.matchesText, dynamicStyles.subtitle]}>
-                  {category.matches} matches
-                </Text>
+                <View style={[styles.matchesBadge, dynamicStyles.matchesBadge]}>
+                  <Text style={[styles.matchesText, dynamicStyles.subtitle]}>
+                    {category.matches} matches
+                  </Text>
+                </View>
               </Pressable>
             ))}
           </View>
@@ -366,7 +373,7 @@ const Index = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    fontFamily: 'Geist-Regular',
+    fontFamily: "Geist-Regular",
   },
   content: {
     flex: 1,
@@ -383,12 +390,17 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   filterTitle: {
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: "600",
     flex: 1,
   },
   liveText: {
-    fontSize: 12,
+    fontSize: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#333333",
+    paddingHorizontal: 6,
+    paddingVertical: 1,
   },
   campusSelector: {
     padding: 12,
@@ -428,18 +440,18 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   resetText: {
-    fontSize: 14,
+    fontSize: 10,
   },
   matchesSection: {
     marginBottom: 80,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 14,
     fontWeight: "bold",
     marginBottom: 4,
   },
   sectionSubtitle: {
-    fontSize: 14,
+    fontSize: 12,
     marginBottom: 16,
   },
   cardsGrid: {
@@ -449,7 +461,7 @@ const styles = StyleSheet.create({
   },
   card: {
     width: "48%",
-    padding: 10,
+    padding: 14,
     borderRadius: 12,
     borderWidth: 1,
     alignItems: "center",
@@ -463,18 +475,18 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   cardTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
     marginBottom: 4,
     textAlign: "center",
   },
   cardSubtitle: {
-    fontSize: 11,
+    fontSize: 12,
     textAlign: "center",
     marginBottom: 8,
   },
   matchesText: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: "500",
   },
   recentSection: {
@@ -562,9 +574,9 @@ const styles = StyleSheet.create({
   },
   dropdown: {
     position: "absolute",
-    top: 95,
-    left: 0,
-    right: 0,
+    top: 86,
+    left: 11,
+    right: 11,
     zIndex: 1000,
     borderRadius: 8,
     borderWidth: 1,
@@ -572,6 +584,12 @@ const styles = StyleSheet.create({
   },
   dropdownItem: {
     padding: 10,
+  },
+  matchesBadge: {
+    paddingHorizontal: 45,
+    paddingVertical: 3,
+    borderRadius: 8,
+    alignSelf: "center",
   },
   dropdownText: {
     fontSize: 14,
