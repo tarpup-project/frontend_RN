@@ -3,10 +3,10 @@ import {
     ImageSourcePropType,
     Pressable,
     StyleSheet,
-    Text,
     useColorScheme,
     View,
   } from "react-native";
+  import { Text } from '@/components/Themedtext';
   
   interface OnboardingScreenProps {
     icon: ImageSourcePropType;
@@ -153,13 +153,13 @@ import {
       height: 50,
     },
     title: {
-      fontSize: 28,
-      fontWeight: "bold",
+      fontSize: 24,
+      fontFamily: 'Geist-Bold',
       marginBottom: 16,
       textAlign: "center",
     },
     subtitle: {
-      fontSize: 16,
+      fontSize: 14,
       textAlign: "center",
       lineHeight: 24,
       marginBottom: 30,

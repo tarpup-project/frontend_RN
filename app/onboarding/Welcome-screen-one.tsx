@@ -1,9 +1,9 @@
 import { useRouter } from "expo-router";
+import { Text } from '@/components/Themedtext';
 import {
   Image,
   Pressable,
   StyleSheet,
-  Text,
   useColorScheme,
   View,
 } from "react-native";
@@ -45,8 +45,8 @@ const WelcomeScreenOne = () => {
           <Image
             source={
               isDark
-                ? require("@/assets/images/logo-dark.png")
-                : require("@/assets/images/logo-white.png")
+                ? require("@/assets/images/tarpup-light.png")
+                : require("@/assets/images/tarpup-dark.png")
             }
             style={styles.logo}
             resizeMode="contain"
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: "bold",
+    fontFamily: 'Geist-Bold',
     marginBottom: 16,
     textAlign: "center",
   },
