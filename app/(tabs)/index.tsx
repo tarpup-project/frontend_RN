@@ -3,11 +3,11 @@ import PreviewModeBanner from "@/components/PreviewModeBanner";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/app/contexts/ThemeContext"
 import { useState } from "react";
+import { Text } from '@/components/Themedtext';
 import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
 
@@ -136,6 +136,7 @@ const Index = () => {
             <Text style={[styles.filterTitle, dynamicStyles.text]}>
               Filter Campus
             </Text>
+            
             <Text style={[styles.liveText, dynamicStyles.subtitle]}>Live</Text>
           </View>
 
@@ -365,6 +366,7 @@ const Index = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    fontFamily: 'Geist-Regular',
   },
   content: {
     flex: 1,

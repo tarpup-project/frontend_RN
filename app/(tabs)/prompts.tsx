@@ -277,13 +277,13 @@ const Prompts = () => {
                 key={prompt.id}
                 style={[
                   styles.promptCard,
-                  {
-                    backgroundColor: prompt.bgColor,
-                    borderColor: prompt.borderColor,
-                  },
-                ]}
-              >
-                {/* Rest of card content stays the same */}
+                    {
+                      backgroundColor: prompt.bgColor,
+                      borderColor: prompt.borderColor,
+                    },
+                  ]}
+                >
+                  {/* Rest of card content stays the same */}
                 <View style={styles.cardHeader}>
                   <View style={styles.badges}>
                     <View
