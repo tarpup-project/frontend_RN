@@ -59,7 +59,7 @@ const Index = () => {
       name: "Rides",
       subtitle: "Share rides & carpools",
       matches: 91,
-      bgColor: "#E6D5FF",
+      bgColor: "#eff6ff",
       icon: Car,
     },
     {
@@ -587,7 +587,7 @@ const styles = StyleSheet.create({
   },
   matchesBadge: {
     paddingHorizontal: 45,
-    paddingVertical: 3,
+    paddingVertical: 4,
     borderRadius: 8,
     alignSelf: "center",
   },
