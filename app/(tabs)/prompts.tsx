@@ -142,7 +142,9 @@ const Prompts = () => {
       title: "Flight leaves in 3 hours! pay $25 for ride to TPA",
       author: "by Sarah M.",
       bgColor: "#1F0707",
+      lightBgColor: "#F0F4FF", 
       borderColor: "#FF4444",
+      lightBorderColor: "#E0E0E0",
     },
     {
       id: 2,
@@ -155,7 +157,9 @@ const Prompts = () => {
         "Starting Avengers marathon in 30 mins! Bring snacks and join us in dorm common room",
       author: "by Mike R.",
       bgColor: "#1F0707",
+      lightBgColor: "#F8F0FF", 
       borderColor: "#FF4444",
+      lightBorderColor: "#E0E0E0",
     },
     {
       id: 3,
@@ -168,7 +172,9 @@ const Prompts = () => {
         "Moving out! Grey sectional couch + matching coffee table. Great for dorms/apartments",
       author: "by Dan P.",
       bgColor: "#0A1A2A",
+      lightBgColor: "#FFFBF0", 
       borderColor: "#4A90E2",
+      lightBorderColor: "#E0E0E0",
     },
     {
       id: 4,
@@ -180,7 +186,9 @@ const Prompts = () => {
       title: "House party tonight at 9pm! BYOB. DJ spinning all night",
       author: "by Alex K.",
       bgColor: "#1A0A2A",
+      lightBgColor: "#F0FFFA", 
       borderColor: "#9C27B0",
+      lightBorderColor: "#E0E0E0",
     },
     {
       id: 5,
@@ -192,7 +200,9 @@ const Prompts = () => {
       title: "Selling textbooks for Biology 101 - great condition, half price",
       author: "by Emma L.",
       bgColor: "#0A2A0A",
+      lightBgColor: "#FFF0F8", 
       borderColor: "#00D084",
+      lightBorderColor: "#E0E0E0",
     },
     {
       id: 6,
@@ -204,7 +214,9 @@ const Prompts = () => {
       title: "Study group for Calculus exam next week. Meet at library 3pm",
       author: "by James T.",
       bgColor: "#0A1A2A",
+      lightBgColor: "#FFF8F0", 
       borderColor: "#4A90E2",
+      lightBorderColor: "#E0E0E0",
     },
     {
       id: 7,
@@ -216,7 +228,9 @@ const Prompts = () => {
       title: "Need one more player for basketball game starting in 30 mins!",
       author: "by Chris P.",
       bgColor: "#1F0707",
+      lightBgColor: "#FFF4F0",
       borderColor: "#FF4444",
+      lightBorderColor: "#E0E0E0",
     },
     {
       id: 8,
@@ -228,7 +242,9 @@ const Prompts = () => {
       title: "Coffee date? Looking for someone to explore campus cafes with",
       author: "by Taylor S.",
       bgColor: "#2A0A1A",
+      lightBgColor: "#FFF0F4", 
       borderColor: "#FF69B4",
+      lightBorderColor: "#E0E0E0",
     },
     {
       id: 9,
@@ -240,7 +256,9 @@ const Prompts = () => {
       title: "Daily carpool to downtown campus. Split gas $5/day",
       author: "by Jordan M.",
       bgColor: "#0A1A2A",
+      lightBgColor: "#F0F4FF", 
       borderColor: "#4A90E2",
+      lightBorderColor: "#E0E0E0",
     },
     {
       id: 10,
@@ -252,7 +270,9 @@ const Prompts = () => {
       title: "Free pizza at student center! Come join the club fair",
       author: "by Student Council",
       bgColor: "#0A1A2A",
+      lightBgColor: "#F8F0FF", 
       borderColor: "#4A90E2",
+      lightBorderColor: "#E0E0E0",
     },
   ];
 
@@ -475,15 +495,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     marginBottom: 4,
-  },
-  categoryChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
   },
   categoryText: {
     fontSize: 12,
