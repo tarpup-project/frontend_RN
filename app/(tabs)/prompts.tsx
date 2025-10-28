@@ -1,6 +1,6 @@
+import { useTheme } from "@/app/contexts/ThemeContext";
 import Header from "@/components/Header";
 import PreviewModeBanner from "@/components/PreviewModeBanner";
-import { useTheme } from "@/app/contexts/ThemeContext";
 import { Text } from "@/components/Themedtext";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -16,12 +16,7 @@ import {
   ShoppingBag,
 } from "lucide-react-native";
 import React, { useState } from "react";
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 const Prompts = () => {
   const { isDark } = useTheme();
@@ -38,7 +33,34 @@ const Prompts = () => {
       color: isDark ? "#CCCCCC" : "#666666",
     },
     sectionBg: {
-      backgroundColor: isDark ? "#0A0A0A" : "#F9F9F9",
+      backgroundColor: isDark ? "#0A0A0A" : "#FFFFFF",
+    },
+    categoryChip: {
+      backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF",
+      borderColor: isDark ? "#333333" : "#E0E0E0",
+    },
+    categoryChipActive: {
+      backgroundColor: isDark ? "#FFFFFF" : "#000000",
+      borderColor: isDark ? "#FFFFFF" : "#000000",
+    },
+    categoryChipText: {
+      color: isDark ? "#FFFFFF" : "#000000",
+    },
+    categoryChipTextActive: {
+      color: isDark ? "#000000" : "#FFFFFF",
+    },
+    promptCard: {
+      backgroundColor: isDark ? "#0A0A0A" : "#FFFFFF",
+      borderColor: isDark ? "#333333" : "#E0E0E0",
+    },
+    promptTitle: {
+      color: isDark ? "#FFFFFF" : "#000000",
+    },
+    requestButton: {
+      backgroundColor: isDark ? "#FFFFFF" : "#000000",
+    },
+    requestButtonText: {
+      color: isDark ? "#000000" : "#FFFFFF",
     },
   };
 
@@ -306,23 +328,31 @@ const Prompts = () => {
                 key={category.name}
                 style={[
                   styles.categoryChip,
-                  selectedCategory === category.name &&
+                  dynamicStyles.categoryChip,
+                  selectedCategory === category.name && [
                     styles.categoryChipActive,
+                    dynamicStyles.categoryChipActive,
+                  ],
                 ]}
                 onPress={() => setSelectedCategory(category.name)}
               >
                 <category.icon
                   size={16}
                   color={
-                    selectedCategory === category.name ? "#000000" : "#FFFFFF"
+                    selectedCategory === category.name
+                      ? dynamicStyles.categoryChipTextActive.color
+                      : dynamicStyles.categoryChipText.color
                   }
                   strokeWidth={2}
                 />
                 <Text
                   style={[
                     styles.categoryText,
-                    selectedCategory === category.name &&
+                    dynamicStyles.categoryChipText,
+                    selectedCategory === category.name && [
                       styles.categoryTextActive,
+                      dynamicStyles.categoryChipTextActive,
+                    ],
                   ]}
                 >
                   {category.name}
@@ -345,7 +375,8 @@ const Prompts = () => {
                 key={prompt.id}
                 style={[
                   styles.promptCard,
-                  {
+                  dynamicStyles.promptCard,
+                  isDark && {
                     backgroundColor: prompt.bgColor,
                     borderColor: prompt.borderColor,
                   },
@@ -396,15 +427,31 @@ const Prompts = () => {
                       <Ionicons name="time-outline" size={14} color="#999999" />
                       <Text style={styles.timeText}>{prompt.time}</Text>
                     </View>
-                    <Pressable style={styles.requestButton}>
-                      <Text style={styles.requestButtonText}>Request</Text>
+                    <Pressable
+                      style={[
+                        styles.requestButton,
+                        dynamicStyles.requestButton,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.requestButtonText,
+                          dynamicStyles.requestButtonText,
+                        ]}
+                      >
+                        Request
+                      </Text>
                     </Pressable>
                   </View>
                 </View>
 
-                <Text style={styles.promptTitle}>{prompt.title}</Text>
-                <Text style={styles.authorText}>{prompt.author}</Text>
-              </View>
+                <Text style={[styles.promptTitle, dynamicStyles.promptTitle]}>
+                  {prompt.title}
+                </Text>
+                <Text style={[styles.authorText, dynamicStyles.subtitle]}>
+                  {prompt.author}
+                </Text>
+              </View> 
             ))}
         </View>
       </ScrollView>
@@ -428,6 +475,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     marginBottom: 4,
+  },
+  categoryChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  categoryText: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  requestButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+  },
+  requestButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
   },
   feedTitle: {
     fontSize: 14,
@@ -496,29 +565,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 8,
   },
-  categoryChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: "#1A1A1A",
-    borderWidth: 1,
-    borderColor: "#333333",
-  },
-  categoryChipActive: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#FFFFFF",
-  },
-  categoryText: {
-    fontSize: 12,
-    color: "#FFFFFF",
-    fontWeight: "500",
-  },
-  categoryTextActive: {
-    color: "#000000",
-  },
   promptsList: {
     padding: 16,
     gap: 16,
@@ -552,6 +598,15 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 4,
   },
+  categoryChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
   newBadge: {
     backgroundColor: "#00D084",
     paddingHorizontal: 8,
@@ -574,25 +629,12 @@ const styles = StyleSheet.create({
   },
   promptTitle: {
     fontSize: 13,
-    color: "#FFFFFF",
     marginBottom: 8,
     lineHeight: 20,
   },
   authorText: {
     fontSize: 12,
-    color: "#999999",
     marginBottom: 12,
-  },
-  requestButton: {
-    backgroundColor: "#FFFFFF",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 6,
-  },
-  requestButtonText: {
-    color: "#000000",
-    fontSize: 13,
-    fontWeight: "600",
   },
 });
 
