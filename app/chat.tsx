@@ -1,19 +1,18 @@
 import { useState } from 'react';
 import { Text } from "@/components/Themedtext";
+import { useTheme } from "@/app/contexts/ThemeContext";
 import {
     View,
     TextInput,
     Pressable,
     StyleSheet,
     ScrollView,
-    useColorScheme,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 const Chat = () => {
-    const theme = useColorScheme() || 'light';
-    const isDark = theme === 'dark';
+      const { isDark } = useTheme();
     const router = useRouter();
     const [message, setMessage] = useState('');
 

@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "@/app/contexts/ThemeContext";
 import { router } from "expo-router";
 import { Text } from "@/components/Themedtext";
 import { useState } from "react";
@@ -8,13 +9,11 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
-  useColorScheme,
   View,
 } from "react-native";
 
 const EditProfile = () => {
-  const theme = useColorScheme() || "light";
-  const isDark = theme === "dark";
+  const { isDark } = useTheme();
 
   const [fullName, setFullName] = useState("John Doe");
   const [bio, setBio] = useState("");

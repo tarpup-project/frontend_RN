@@ -1,10 +1,10 @@
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
+import { useTheme } from "@/app/contexts/ThemeContext";
 import {
   Dimensions,
   FlatList,
   StyleSheet,
-  useColorScheme,
   View,
 } from "react-native";
 import CustomPagination from "./CustomPagination";
@@ -65,8 +65,8 @@ const OnboardingCarousel = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
-  const theme = useColorScheme() || "light";
-  const isDark = theme === "dark";
+    const { isDark } = useTheme();
+
 
   const handleContinue = () => {
     if (currentIndex < carouselData.length - 1) {

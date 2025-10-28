@@ -1,12 +1,12 @@
 import { Text } from "@/components/Themedtext";
 import { LinearGradient } from "expo-linear-gradient";
+import { useTheme } from "@/app/contexts/ThemeContext";
 import { MessageSquare, UsersRound } from "lucide-react-native";
 import {
   Image,
   ImageSourcePropType,
   Pressable,
   StyleSheet,
-  useColorScheme,
   View,
 } from "react-native";
 
@@ -35,8 +35,7 @@ const OnboardingScreen = ({
   hasChips = false,
   isLucideIcon = false,
 }: OnboardingScreenProps) => {
-  const theme = useColorScheme() || "light";
-  const isDark = theme === "dark";
+    const { isDark } = useTheme();
 
   const dynamicStyles = {
     container: {
