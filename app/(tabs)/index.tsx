@@ -6,7 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import {
   BookOpen,
   Car,
-  Dumbbell,
+  Gamepad2,
   Gift,
   Heart,
   Home,
@@ -60,6 +60,7 @@ const Index = () => {
       subtitle: "Share rides & carpools",
       matches: 91,
       bgColor: "#eff6ff",
+      iconColor: "#3b82f6",
       icon: Car,
     },
     {
@@ -68,6 +69,7 @@ const Index = () => {
       subtitle: "Find housing & roommates",
       matches: 72,
       bgColor: "#D5F5E3",
+      iconColor: "#10b981",
       icon: Home,
     },
     {
@@ -75,23 +77,26 @@ const Index = () => {
       name: "Marketplace",
       subtitle: "Buy & sell items",
       matches: 86,
-      bgColor: "#FFE6F0",
+      bgColor: "#faf5ff",
+      iconColor: "#a275fa",
       icon: ShoppingBag,
     },
     {
       id: 4,
-      name: "Sports & Games",
+      name: "Sports and Games",
       subtitle: "Find game partners",
       matches: 52,
-      bgColor: "#FFE6D5",
-      icon: Dumbbell,
+      bgColor: "#fff7ed",
+      iconColor: "#f3917c",
+      icon: Gamepad2,
     },
     {
       id: 5,
       name: "Dating",
       subtitle: "Meet new people",
       matches: 40,
-      bgColor: "#FFD5E6",
+      bgColor: "#fcf2f8",
+      iconColor: "#f3917c",
       icon: Heart,
     },
     {
@@ -99,7 +104,8 @@ const Index = () => {
       name: "Study Groups",
       subtitle: "Events and Social gatherings",
       matches: 856,
-      bgColor: "#D5E6FF",
+      bgColor: "#eef2fe",
+      iconColor: "#f3917c",
       icon: BookOpen,
     },
     {
@@ -107,7 +113,8 @@ const Index = () => {
       name: "Giveaways",
       subtitle: "Free items and donations",
       matches: 763,
-      bgColor: "#5CE1E6",
+      bgColor: "#f0fdfa",
+      iconColor: "#55ab9f",
       icon: Gift,
     },
     {
@@ -115,7 +122,8 @@ const Index = () => {
       name: "Party",
       subtitle: "Events and Social gatherings",
       matches: 856,
-      bgColor: "#00D084",
+      bgColor: "#ebfcf5",
+      iconColor: "#55ab9f",
       icon: PartyPopper,
     },
   ];
@@ -235,7 +243,7 @@ const Index = () => {
                     { backgroundColor: category.bgColor },
                   ]}
                 >
-                  <category.icon size={24} color="#000000" strokeWidth={2} />
+                  <category.icon size={24} color={category.iconColor} strokeWidth={2} />
                 </View>
                 <Text style={[styles.cardTitle, dynamicStyles.text]}>
                   {category.name}
@@ -469,7 +477,7 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 50,
     height: 50,
-    borderRadius: 30,
+    borderRadius: 25,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 12,
@@ -593,7 +601,7 @@ const styles = StyleSheet.create({
   },
   dropdownText: {
     fontSize: 14,
-  },
+  }
 });
 
 export default Index;
