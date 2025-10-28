@@ -1,8 +1,8 @@
-import Header from "@/components/Header";
-import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/app/contexts/ThemeContext";
-import { router } from "expo-router";
+import Header from "@/components/Header";
 import { Text } from "@/components/Themedtext";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import { useState } from "react";
 import {
   Pressable,
@@ -41,13 +41,19 @@ const EditProfile = () => {
       color: isDark ? "#CCCCCC" : "#666666",
     },
     card: {
-      backgroundColor: isDark ? "#000000" : "#F5F5F5",
+      backgroundColor: isDark ? "#000000" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     input: {
-      backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF",
+      backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
       borderColor: isDark ? "#333333" : "#E0E0E0",
       color: isDark ? "#FFFFFF" : "#000000",
+    },
+    changePhotoButton: {
+      backgroundColor: isDark ? "#FFFFFF" : "#000000",
+    },
+    changePhotoText: {
+      color: isDark ? "#000000" : "#FFFFFF",
     },
   };
 
@@ -101,7 +107,10 @@ const EditProfile = () => {
 
       <ScrollView style={styles.content}>
         {/* Back Button */}
-        <Pressable style={styles.backButton}  onPress={() => router.push("/profile")}>
+        <Pressable
+          style={styles.backButton}
+          onPress={() => router.push("/profile")}
+        >
           <Ionicons
             name="arrow-back"
             size={20}
@@ -119,9 +128,25 @@ const EditProfile = () => {
               <Text style={styles.avatarText}>J</Text>
             </View>
             <View style={styles.photoInfo}>
-              <Pressable style={styles.changePhotoButton}>
-                <Ionicons name="camera-outline" size={16} color="#000000" />
-                <Text style={styles.changePhotoText}>Change Photo</Text>
+              <Pressable
+                style={[
+                  styles.changePhotoButton,
+                  dynamicStyles.changePhotoButton,
+                ]}
+              >
+                <Ionicons
+                  name="camera-outline"
+                  size={16}
+                  color={dynamicStyles.changePhotoText.color}
+                />
+                <Text
+                  style={[
+                    styles.changePhotoText,
+                    dynamicStyles.changePhotoText,
+                  ]}
+                >
+                  Change Photo
+                </Text>
               </Pressable>
               <Text style={[styles.photoHint, dynamicStyles.subtitle]}>
                 JPG, PNG or GIF. Max size: 5MB.
@@ -176,7 +201,11 @@ const EditProfile = () => {
               <Text style={[styles.label, dynamicStyles.text]}>Year</Text>
               <View style={{ flex: 1 }}>
                 <Pressable
-                  style={[styles.input, styles.selectInput, dynamicStyles.input]}
+                  style={[
+                    styles.input,
+                    styles.selectInput,
+                    dynamicStyles.input,
+                  ]}
                   onPress={() => setShowYearDropdown(!showYearDropdown)}
                 >
                   <Text
@@ -216,7 +245,11 @@ const EditProfile = () => {
                           {option}
                         </Text>
                         {year === option && (
-                          <Ionicons name="checkmark" size={16} color="#00D084" />
+                          <Ionicons
+                            name="checkmark"
+                            size={16}
+                            color="#00D084"
+                          />
                         )}
                       </Pressable>
                     ))}
@@ -332,7 +365,12 @@ const EditProfile = () => {
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
           <Pressable style={[styles.cancelButton, dynamicStyles.card]}>
-            <Text style={[styles.cancelText, dynamicStyles.text]}  onPress={() => router.push("/profile")}>Cancel</Text>
+            <Text
+              style={[styles.cancelText, dynamicStyles.text]}
+              onPress={() => router.push("/profile")}
+            >
+              Cancel
+            </Text>
           </Pressable>
           <Pressable style={styles.saveButton}>
             <Text style={styles.saveText}>Save Changes</Text>
@@ -388,21 +426,6 @@ const styles = StyleSheet.create({
   photoInfo: {
     flex: 1,
     gap: 8,
-  },
-  changePhotoButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
-    alignSelf: "flex-start",
-  },
-  changePhotoText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#000000",
   },
   photoHint: {
     fontSize: 10,
@@ -485,6 +508,19 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
+  },
+  changePhotoButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+    alignSelf: "flex-start",
+  },
+  changePhotoText: {
+    fontSize: 14,
+    fontWeight: "600",
   },
   suggestedLabel: {
     fontSize: 14,
