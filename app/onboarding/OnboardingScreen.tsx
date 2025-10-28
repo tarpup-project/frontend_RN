@@ -58,23 +58,29 @@ const OnboardingScreen = ({
     chipText: {
       color: isDark ? "#FFFFFF" : "#000000",
     },
+    button: {
+      backgroundColor: isDark ? "#FFFFFF" : "#000000",
+    },
+    buttonText: {
+      color: isDark ? "#000000" : "#FFFFFF",
+    },
   };
 
   const renderIcon = () => {
     const iconToRender = isDark ? iconDark : icon;
-    
+
     // Handle Lucide icons
-    if (typeof iconToRender === 'string') {
-      const iconColor = isDark ? "#FFFFFF" : "#000000";
-      
-      if (iconToRender === 'MessageSquare') {
+    if (typeof iconToRender === "string") {
+      const iconColor = isDark ? "#000000" : "#FFFFFF" ;
+
+      if (iconToRender === "MessageSquare") {
         return <MessageSquare size={50} color={iconColor} strokeWidth={2} />;
       }
-      if (iconToRender === 'UsersRound') {
+      if (iconToRender === "UsersRound") {
         return <UsersRound size={50} color={iconColor} strokeWidth={2} />;
       }
     }
-    
+
     // Otherwise render image
     return (
       <Image
@@ -150,10 +156,15 @@ const OnboardingScreen = ({
 
       {/* Bottom Button */}
       <View style={styles.buttonContainer}>
-        <Pressable style={styles.button} onPress={onContinue}>
+        <Pressable
+          style={[styles.button, dynamicStyles.button]}
+          onPress={onContinue}
+        >
           <View style={styles.buttonContent}>
-            <Text style={styles.buttonText}>{buttonText}</Text>
-            <Text style={styles.arrowIcon}>›</Text>
+            <Text style={[styles.buttonText, dynamicStyles.buttonText]}>
+              {buttonText}
+            </Text>
+            <Text style={[styles.arrowIcon, dynamicStyles.buttonText]}>›</Text>
           </View>
         </Pressable>
       </View>
@@ -230,14 +241,16 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   button: {
-    backgroundColor: "#FFFFFF",
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: "center",
   },
   buttonText: {
-    color: "#000000",
     fontSize: 16,
+    fontWeight: "600",
+  },
+  arrowIcon: {
+    fontSize: 20,
     fontWeight: "600",
   },
   buttonContent: {
@@ -245,12 +258,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-  },
-  arrowIcon: {
-    color: "#000000",
-    fontSize: 20,
-    fontWeight: "600",
-  },
+  }
 });
 
 export default OnboardingScreen;

@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import PreviewModeBanner from "@/components/PreviewModeBanner";
+import { useTheme } from "@/app/contexts/ThemeContext";
 import { Text } from "@/components/Themedtext";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -19,13 +20,11 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  useColorScheme,
   View,
 } from "react-native";
 
 const Prompts = () => {
-  const theme = useColorScheme() || "light";
-  const isDark = theme === "dark";
+  const { isDark } = useTheme();
   const [selectedCategory, setSelectedCategory] = useState("All");
 
   const dynamicStyles = {
