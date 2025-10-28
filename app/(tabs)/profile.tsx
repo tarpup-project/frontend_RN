@@ -2,6 +2,13 @@ import Header from "@/components/Header";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/Themedtext";
 import { useRouter } from "expo-router";
+import { 
+  Settings,      
+  Bell,          
+  ShieldCheck,   
+  HelpCircle,    
+  LogOut,       
+} from "lucide-react-native";
 import {
   Pressable,
   ScrollView,
@@ -49,25 +56,25 @@ const Profile = () => {
   const settingsOptions = [
     {
       id: 1,
-      icon: "person-circle-outline",
+      icon: Settings,  // ← Gear icon
       title: "Account Settings",
       hasChevron: true,
     },
     {
       id: 2,
-      icon: "notifications-outline",
+      icon: Bell,
       title: "Notifications",
       hasChevron: true,
     },
     {
       id: 3,
-      icon: "shield-checkmark-outline",
+      icon: ShieldCheck,
       title: "Privacy & Safety",
       hasChevron: true,
     },
     {
       id: 4,
-      icon: "help-circle-outline",
+      icon: HelpCircle,
       title: "How It Works",
       hasChevron: true,
     },

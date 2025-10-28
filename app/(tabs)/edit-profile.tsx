@@ -333,7 +333,7 @@ const EditProfile = () => {
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
           <Pressable style={[styles.cancelButton, dynamicStyles.card]}>
-            <Text style={[styles.cancelText, dynamicStyles.text]}>Cancel</Text>
+            <Text style={[styles.cancelText, dynamicStyles.text]}  onPress={() => router.push("/profile")}>Cancel</Text>
           </Pressable>
           <Pressable style={styles.saveButton}>
             <Text style={styles.saveText}>Save Changes</Text>
@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
     color: "#000000",
   },
   photoHint: {
-    fontSize: 12,
+    fontSize: 10,
   },
   groupedSection: {
     padding: 16,
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: "bold",
     marginBottom: 16,
   },
