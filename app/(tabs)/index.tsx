@@ -42,11 +42,11 @@ const Index = () => {
       color: isDark ? "#CCCCCC" : "#666666",
     },
     filterContainer: {
-      backgroundColor: isDark ? "#000000" : "#F5F5F5",
+      backgroundColor: isDark ? "#000000" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     card: {
-      backgroundColor: isDark ? "#000000" : "#F5F5F5",
+      backgroundColor: isDark ? "#000000" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     matchesBadge: {

@@ -6,13 +6,12 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  useColorScheme,
+  
   View,
 } from "react-native";
 
 const Groups = () => {
-  const theme = useColorScheme() || "light";
-  const isDark = theme === "dark";
+
 
   const dynamicStyles = {
     container: {

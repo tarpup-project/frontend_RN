@@ -1,5 +1,5 @@
+import { Text } from "@/components/Themedtext";
 import { useRouter } from "expo-router";
-import { Text } from '@/components/Themedtext';
 import {
   Image,
   Pressable,
@@ -27,7 +27,10 @@ const WelcomeScreenOne = () => {
       color: isDark ? "#CCCCCC" : "#666666",
     },
     button: {
-      backgroundColor: isDark ? "#000000" : "#FFFFFF",
+      backgroundColor: isDark ? "#FFFFFF" : "#000000",
+    },
+    buttonText: {
+      color: isDark ? "#000000" : "#FFFFFF",
     },
   };
 
@@ -62,14 +65,15 @@ const WelcomeScreenOne = () => {
 
       <View style={styles.buttonContainer}>
         <Pressable
-          style={styles.button}
+          style={[styles.button, dynamicStyles.button]}
           onPress={() => router.push("/onboarding/carousel")}
         >
           <View style={styles.buttonContent}>
-            <Text style={styles.buttonText}>Let's go </Text>
-            <Text style={styles.arrowIcon}>›</Text>
+            <Text style={[styles.buttonText, dynamicStyles.buttonText]}>
+              Let's go{" "}
+            </Text>
+            <Text style={[styles.arrowIcon, dynamicStyles.buttonText]}>›</Text>
           </View>
-
         </Pressable>
       </View>
     </View>
@@ -97,7 +101,6 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   logoContainer: {
-    backgroundColor: "#1A1A1A1A",
     alignItems: "center",
     marginBottom: 50,
   },
@@ -107,7 +110,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontFamily: 'Geist-Bold',
+    fontFamily: "Geist-Bold",
     marginBottom: 16,
     textAlign: "center",
   },
@@ -124,13 +127,11 @@ const styles = StyleSheet.create({
     right: 60,
   },
   button: {
-    backgroundColor: "#FFFFFF",
     paddingVertical: 13,
     borderRadius: 12,
     alignItems: "center",
   },
   buttonText: {
-    color: "#000000",
     fontSize: 16,
     fontWeight: "600",
   },
@@ -142,7 +143,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-  }
+  },
 });
 
 export default WelcomeScreenOne;
