@@ -53,7 +53,13 @@ const Index = () => {
       backgroundColor: isDark ? "#0A0A0A" : "#E0E0E0",
     },
     percentageBadge: {
-      backgroundColor: "#0A0A0A",
+      backgroundColor: isDark ? "#0A0A0A" : "#E5E5E5",
+    },
+    percentageText: {
+      color: isDark ? "#FFFFFF" : "#000000",
+    },
+    avatarBorder: {
+      borderColor: isDark ? "#000000" : "#FFFFFF",
     },
   };
 
@@ -239,7 +245,6 @@ const Index = () => {
                 style={[styles.card, dynamicStyles.card]}
                 onPress={() => {
                   router.push(`/matches/${category.id}`);
-                  
                 }}
               >
                 <View
@@ -287,7 +292,7 @@ const Index = () => {
                 title: "63 new in Rides",
                 users: 3,
                 match: "96%",
-                icon: "car",
+                icon: Car,
                 color: "#E6D5FF",
                 time: "Just now",
               },
@@ -296,7 +301,7 @@ const Index = () => {
                 title: "51 new in Giveaways",
                 users: 3,
                 match: "89%",
-                icon: "gift",
+                icon: Gift,
                 color: "#D5F5E3",
                 time: "Just now",
               },
@@ -305,7 +310,7 @@ const Index = () => {
                 title: "71 new in Party",
                 users: 3,
                 match: "93%",
-                icon: "musical-notes",
+                icon: PartyPopper,
                 color: "#FFD5E6",
                 time: "Just now",
               },
@@ -314,39 +319,12 @@ const Index = () => {
                 title: "67 new in Study Groups",
                 users: 3,
                 match: "95%",
-                icon: "book",
-                color: "#D5E6FF",
+                icon: BookOpen,
+                color: "#FFF9D5",
                 time: "Just now",
               },
-              {
-                id: 5,
-                title: "17 new in Giveaway",
-                users: 3,
-                match: "0%",
-                icon: "gift",
-                color: "#f0fdfa",
-                time: "a day ago",
-              },
-              {
-                id: 6,
-                title: "6 new in Friends",
-                users: 4,
-                match: "0%",
-                icon: "people",
-                color: "#D5F5E3",
-                time: "6 days ago",
-              },
-              {
-                id: 7,
-                title: "4 new in Games",
-                users: 3,
-                match: "0%",
-                icon: "game-controller",
-                color: "#eff6ff",
-                time: "10 days ago",
-              },
             ]
-              .slice(0, showAllRecent ? 7 : 4)
+              .slice(0, showAllRecent ? 4 : 3)
               .map((match) => (
                 <Pressable
                   key={match.id}
@@ -359,11 +337,7 @@ const Index = () => {
                       { backgroundColor: match.color },
                     ]}
                   >
-                    <Ionicons
-                      name={match.icon as any}
-                      size={20}
-                      color="#000000"
-                    />
+                    <match.icon size={20} color="#000000" strokeWidth={2} />
                   </View>
                   <View style={styles.recentContent}>
                     <Text style={[styles.recentTitle, dynamicStyles.text]}>
@@ -375,9 +349,14 @@ const Index = () => {
                           key={i}
                           style={[
                             styles.userAvatar,
+                            dynamicStyles.avatarBorder,
                             i > 0 && { marginLeft: -8 },
                           ]}
-                        />
+                        >
+                          <Text style={styles.avatarText}>
+                            {String.fromCharCode(65 + i)}
+                          </Text>
+                        </View>
                       ))}
                       <Text style={[styles.usersText, dynamicStyles.subtitle]}>
                         +{match.users}
@@ -394,7 +373,12 @@ const Index = () => {
                         dynamicStyles.percentageBadge,
                       ]}
                     >
-                      <Text style={[styles.matchPercent, dynamicStyles.text]}>
+                      <Text
+                        style={[
+                          styles.matchPercent,
+                          dynamicStyles.percentageText,
+                        ]}
+                      >
                         {match.match}
                       </Text>
                     </View>
@@ -411,7 +395,7 @@ const Index = () => {
                 size={24}
                 color={dynamicStyles.text.color}
               />
-              <View style={styles.compatibilityContent}>
+              <View style={styles.compatibilityContent, dynamicStyles.compatible}>
                 <Text style={[styles.compatibilityTitle, dynamicStyles.text]}>
                   🎉 87% avg compatibility!
                 </Text>
@@ -596,7 +580,13 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: "#9C27B0",
     borderWidth: 2,
-    borderColor: "#000000",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarText: {
+    color: "#FFFFFF",
+    fontSize: 8,
+    fontWeight: "600",
   },
   usersText: {
     fontSize: 12,
