@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "@/app/contexts/ThemeContext";
 import { useRouter } from "expo-router";
 import { Text } from "@/components/Themedtext";
 import { useState } from "react";
@@ -7,15 +8,13 @@ import {
   Pressable,
   StyleSheet,
   TextInput,
-  useColorScheme,
   KeyboardAvoidingView, 
   Platform,
   View,
 } from "react-native";
 
 const SignIn = () => {
-  const theme = useColorScheme() || "light";
-  const isDark = theme === "dark";
+  const { isDark } = useTheme();
   const router = useRouter();
 
   const [email, setEmail] = useState("");

@@ -60,9 +60,6 @@ const Index = () => {
     },
     avatarBorder: {
       borderColor: isDark ? "#000000" : "#FFFFFF",
-    },
-    compatible: {
-      
     }
   };
 
@@ -398,7 +395,7 @@ const Index = () => {
                 size={24}
                 color={dynamicStyles.text.color}
               />
-              <View style={styles.compatibilityContent, dynamicStyles.compatible}>
+              <View style={styles.compatibilityContent}>
                 <Text style={[styles.compatibilityTitle, dynamicStyles.text]}>
                   🎉 87% avg compatibility!
                 </Text>
