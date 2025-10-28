@@ -3,6 +3,7 @@ import Header from "@/components/Header";
 import PreviewModeBanner from "@/components/PreviewModeBanner";
 import { Text } from "@/components/Themedtext";
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import {
   BookOpen,
   Car,
@@ -237,7 +238,8 @@ const Index = () => {
                 key={category.id}
                 style={[styles.card, dynamicStyles.card]}
                 onPress={() => {
-                  console.log(`Navigate to ${category.name}`);
+                  router.push(`/matches/${category.id}`);
+                  
                 }}
               >
                 <View

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import {
   View,
-  Text,
   TextInput,
   Pressable,
   StyleSheet,
@@ -9,6 +8,7 @@ import {
   Platform,
   KeyboardAvoidingView
 } from "react-native";
+import { Text } from "@/components/Themedtext";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 

@@ -1,10 +1,10 @@
 import { useEffect } from "react";
 import {
   View,
-  Text,
   StyleSheet,
   useColorScheme,
 } from "react-native";
+import { Text } from "@/components/Themedtext";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 

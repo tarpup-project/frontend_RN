@@ -1,12 +1,12 @@
 import { useState } from "react";
 import {
   View,
-  Text,
   TextInput,
   Pressable,
   StyleSheet,
   useColorScheme,
 } from "react-native";
+import { Text } from "@/components/Themedtext";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 

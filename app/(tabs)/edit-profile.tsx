@@ -1,11 +1,12 @@
 import Header from "@/components/Header";
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import { Text } from "@/components/Themedtext";
 import { useState } from "react";
 import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   useColorScheme,
   View,
@@ -101,7 +102,7 @@ const EditProfile = () => {
 
       <ScrollView style={styles.content}>
         {/* Back Button */}
-        <Pressable style={styles.backButton}>
+        <Pressable style={styles.backButton}  onPress={() => router.push("/profile")}>
           <Ionicons
             name="arrow-back"
             size={20}

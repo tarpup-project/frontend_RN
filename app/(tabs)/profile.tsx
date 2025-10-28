@@ -1,11 +1,11 @@
 import Header from "@/components/Header";
 import { Ionicons } from "@expo/vector-icons";
+import { Text } from "@/components/Themedtext";
 import { useRouter } from "expo-router";
 import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   useColorScheme,
   View,
 } from "react-native";
@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   profileName: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: "bold",
   },
   infoRow: {
@@ -349,8 +349,8 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   memberSince: {
-    fontSize: 12,
-    marginBottom: 12,
+    fontSize: 14,
+    marginBottom: 16,
   },
   completeButton: {
     padding: 14,

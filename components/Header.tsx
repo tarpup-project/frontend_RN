@@ -1,8 +1,9 @@
 import { useTheme } from "@/app/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { Text } from "@/components/Themedtext";
 import { StatusBar } from "expo-status-bar";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet,  View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const Header = () => {
