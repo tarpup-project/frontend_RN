@@ -1,19 +1,18 @@
 import Header from "@/components/Header";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useTheme } from "@/app/contexts/ThemeContext";
 import { Text } from "@/components/Themedtext";
 import { useState } from "react";
 import {
   Pressable,
   ScrollView,
   StyleSheet,
-  useColorScheme,
   View,
 } from "react-native";
 
 const Notifications = () => {
-  const theme = useColorScheme() || "light";
-  const isDark = theme === "dark";
+  const { isDark } = useTheme();
   const router = useRouter();
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);

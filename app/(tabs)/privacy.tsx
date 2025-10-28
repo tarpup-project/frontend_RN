@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "@/app/contexts/ThemeContext";
 import { useRouter } from "expo-router";
 import { Text } from "@/components/Themedtext";
 import { useState } from "react";
@@ -9,14 +10,12 @@ import {
   StyleSheet,
   Switch,
   TextInput,
-  useColorScheme,
   View,
 } from "react-native";
 
 const AccountSettings = () => {
-  const theme = useColorScheme() || "light";
-  const isDark = theme === "dark";
   const router = useRouter();
+    const { isDark } = useTheme();
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");

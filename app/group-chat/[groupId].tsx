@@ -1,4 +1,5 @@
 import { Text } from "@/components/Themedtext";
+import { useTheme } from "@/app/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
@@ -9,13 +10,11 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
-  useColorScheme,
   View,
 } from "react-native";
 
 const GroupChat = () => {
-  const theme = useColorScheme() || "light";
-  const isDark = theme === "dark";
+  const { isDark } = useTheme();
   const router = useRouter();
   const { groupId } = useLocalSearchParams();
   const [message, setMessage] = useState("");

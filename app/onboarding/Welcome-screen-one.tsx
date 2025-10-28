@@ -1,17 +1,16 @@
 import { Text } from "@/components/Themedtext";
+import { useTheme } from "@/app/contexts/ThemeContext";
 import { useRouter } from "expo-router";
 import {
   Image,
   Pressable,
   StyleSheet,
-  useColorScheme,
   View,
 } from "react-native";
 
 const WelcomeScreenOne = () => {
-  const theme = useColorScheme() || "light";
+  const { isDark } = useTheme();
   const router = useRouter();
-  const isDark = theme === "dark";
 
   const dynamicStyles = {
     container: {
