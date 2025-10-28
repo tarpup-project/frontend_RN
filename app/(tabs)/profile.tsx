@@ -1,21 +1,10 @@
-import Header from "@/components/Header";
-import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/app/contexts/ThemeContext";
+import Header from "@/components/Header";
 import { Text } from "@/components/Themedtext";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { 
-  Settings,      
-  Bell,          
-  ShieldCheck,   
-  HelpCircle,    
-  LogOut,       
-} from "lucide-react-native";
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
+import { Bell, HelpCircle, Settings, ShieldCheck } from "lucide-react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 const Profile = () => {
   const { isDark } = useTheme();
@@ -32,15 +21,18 @@ const Profile = () => {
       color: isDark ? "#CCCCCC" : "#666666",
     },
     card: {
-      backgroundColor: isDark ? "#000000" : "#F5F5F5",
+      backgroundColor: isDark ? "#0A0A0A" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     button: {
-      backgroundColor: isDark ? "#000000" : "#F5F5F5",
+      backgroundColor: isDark ? "#000000" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     statDivider: {
       backgroundColor: isDark ? "#333333" : "#E0E0E0",
+    },
+    iconBackground: {
+      backgroundColor: isDark ? "#333333" : "#F0F0F0",
     },
   };
 
@@ -55,7 +47,7 @@ const Profile = () => {
   const settingsOptions = [
     {
       id: 1,
-      icon: Settings,  // ← Gear icon
+      icon: Settings, // ← Gear icon
       title: "Account Settings",
       hasChevron: true,
     },
@@ -153,7 +145,9 @@ const Profile = () => {
 
             <View style={styles.statsContainer}>
               <View style={styles.statItem}>
-                <View style={styles.iconBackground}>
+                <View
+                  style={[styles.iconBackground, dynamicStyles.iconBackground]}
+                >
                   <Ionicons
                     name="star-outline"
                     size={18}
@@ -167,7 +161,9 @@ const Profile = () => {
               </View>
 
               <View style={styles.statItem}>
-                <View style={styles.iconBackground}>
+                <View
+                  style={[styles.iconBackground, dynamicStyles.iconBackground]}
+                >
                   <Ionicons
                     name="people-outline"
                     size={18}
@@ -181,7 +177,9 @@ const Profile = () => {
               </View>
 
               <View style={styles.statItem}>
-                <View style={styles.iconBackground}>
+                <View
+                  style={[styles.iconBackground, dynamicStyles.iconBackground]}
+                >
                   <Ionicons
                     name="trending-up-outline"
                     size={18}
@@ -242,10 +240,10 @@ const Profile = () => {
               }}
             >
               <View style={styles.settingLeft}>
-                <Ionicons
-                  name={option.icon as any}
+                <option.icon
                   size={20}
                   color={dynamicStyles.text.color}
+                  strokeWidth={2}
                 />
                 <Text style={[styles.settingText, dynamicStyles.text]}>
                   {option.title}
@@ -478,7 +476,6 @@ const styles = StyleSheet.create({
     width: 35,
     height: 35,
     borderRadius: 24,
-    backgroundColor: "#333333",
     justifyContent: "center",
     alignItems: "center",
   },

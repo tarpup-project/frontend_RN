@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   },
   groupsList: {
     gap: 16,
-    marginBottom: 80,
+    marginBottom: 50,
   },
   avatar: {
     width: 28,
