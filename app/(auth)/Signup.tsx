@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useTheme } from "@/app/contexts/ThemeContext";
 import { useState } from "react";
 import { Text } from "@/components/Themedtext";
 import {
@@ -7,13 +8,11 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
-  useColorScheme,
   View,
 } from "react-native";
 
 const Signup = () => {
-  const theme = useColorScheme() || "light";
-  const isDark = theme === "dark";
+  const { isDark } = useTheme();
   const router = useRouter();
 
   const [fullName, setFullName] = useState("");

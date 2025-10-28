@@ -1,23 +1,22 @@
+import { useTheme } from "@/app/contexts/ThemeContext";
+import { Text } from "@/components/Themedtext";
+import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  View,
-  TextInput,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   StyleSheet,
-  useColorScheme,
-  Platform,
-  KeyboardAvoidingView
+  TextInput,
+  View,
 } from "react-native";
-import { Text } from "@/components/Themedtext";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 
 const VerifySignIn = () => {
-  const theme = useColorScheme() || "light";
-  const isDark = theme === "dark";
+  const { isDark } = useTheme();
   const router = useRouter();
   const params = useLocalSearchParams();
-  
+
   const email = params.email as string;
 
   const [verificationCode, setVerificationCode] = useState("");
@@ -56,10 +55,10 @@ const VerifySignIn = () => {
   };
 
   return (
-    <KeyboardAvoidingView 
-  style={[styles.container, dynamicStyles.container]}
-  behavior={Platform.OS === "ios" ? "padding" : "height"}
->
+    <KeyboardAvoidingView
+      style={[styles.container, dynamicStyles.container]}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
       <View style={styles.content}>
         {/* Header */}
         <View style={styles.header}>
@@ -76,10 +75,16 @@ const VerifySignIn = () => {
         </View>
 
         {/* Verify Section */}
-        <View style={[styles.verifySection, styles.verifyBox, dynamicStyles.input]}>
+        <View
+          style={[styles.verifySection, styles.verifyBox, dynamicStyles.input]}
+        >
           {/* Check Icon - Inside Box */}
           <View style={styles.iconContainer}>
-            <Ionicons name="checkmark-circle-outline" size={64} color="#00D084" />
+            <Ionicons
+              name="checkmark-circle-outline"
+              size={64}
+              color="#00D084"
+            />
           </View>
 
           <Text style={[styles.title, dynamicStyles.text]}>
@@ -136,7 +141,7 @@ const VerifySignIn = () => {
           </View>
         </View>
       </View>
-      </KeyboardAvoidingView>
+    </KeyboardAvoidingView>
   );
 };
 

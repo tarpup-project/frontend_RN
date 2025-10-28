@@ -1,16 +1,15 @@
 import { useEffect } from "react";
+import { useTheme } from "@/app/contexts/ThemeContext";
 import {
   View,
   StyleSheet,
-  useColorScheme,
 } from "react-native";
 import { Text } from "@/components/Themedtext";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 const SignupSuccess = () => {
-  const theme = useColorScheme() || "light";
-  const isDark = theme === "dark";
+    const { isDark } = useTheme();
   const router = useRouter();
 
   const dynamicStyles = {

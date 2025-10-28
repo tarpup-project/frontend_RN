@@ -1,21 +1,15 @@
-import { useState } from "react";
-import {
-  View,
-  TextInput,
-  Pressable,
-  StyleSheet,
-  useColorScheme,
-} from "react-native";
+import { useTheme } from "@/app/contexts/ThemeContext";
 import { Text } from "@/components/Themedtext";
-import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
 
 const VerifyEmail = () => {
-  const theme = useColorScheme() || "light";
-  const isDark = theme === "dark";
+  const { isDark } = useTheme();
   const router = useRouter();
   const params = useLocalSearchParams();
-  
+
   const email = params.email as string;
   const fullName = params.fullName as string;
   const university = params.university as string;
@@ -76,10 +70,16 @@ const VerifyEmail = () => {
         </View>
 
         {/* Verify Email Section */}
-        <View style={[styles.verifySection, styles.verifyBox, dynamicStyles.input]}>
+        <View
+          style={[styles.verifySection, styles.verifyBox, dynamicStyles.input]}
+        >
           {/* Email Icon - Now Inside Box */}
           <View style={styles.iconContainer}>
-            <Ionicons name="mail-outline" size={48} color={dynamicStyles.text.color} />
+            <Ionicons
+              name="mail-outline"
+              size={48}
+              color={dynamicStyles.text.color}
+            />
           </View>
 
           <Text style={[styles.title, dynamicStyles.text]}>
@@ -136,7 +136,10 @@ const VerifyEmail = () => {
           </Pressable>
 
           {/* Change Email Address */}
-          <Pressable style={styles.changeEmailContainer} onPress={handleChangeEmail}>
+          <Pressable
+            style={styles.changeEmailContainer}
+            onPress={handleChangeEmail}
+          >
             <Text style={[styles.changeEmailText, dynamicStyles.subtitle]}>
               Change email address
             </Text>
