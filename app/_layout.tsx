@@ -1,12 +1,37 @@
-import { ThemeProvider } from "@/app/contexts/ThemeContext";
+import { ThemeProvider, useTheme } from "@/app/contexts/ThemeContext";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { Text, TextInput } from "react-native";
+import { Text } from "react-native";
 
 SplashScreen.preventAutoHideAsync();
+
+// Inner component that has access to theme context
+function RootLayoutContent() {
+  const { isDark } = useTheme();
+  
+  return (
+    <>
+      <StatusBar 
+        style={isDark ? 'light' : 'dark'} 
+        backgroundColor={isDark ? '#000000' : '#FFFFFF'}
+        translucent={false}
+      />
+      <Stack 
+        screenOptions={{ 
+          headerShown: false,
+          animation: 'slide_from_right',
+          contentStyle: {
+            backgroundColor: isDark ? '#000000' : '#FFFFFF',
+          },
+        }} 
+      />
+    </>
+  );
+}
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -29,17 +54,15 @@ export default function RootLayout() {
   Text.defaultProps = Text.defaultProps || {};
   // @ts-ignore
   Text.defaultProps.style = { fontFamily: 'Geist-Regular' };
-// @ts-ignore
+  // @ts-ignore
   // TextInput.defaultProps = TextInput.defaultProps || {};
   // // @ts-ignore
   // TextInput.defaultProps.style = { fontFamily: 'Geist-Regular' };
 
-
-
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <Stack screenOptions={{ headerShown: false }} />
+        <RootLayoutContent />
       </ThemeProvider>
     </SafeAreaProvider>
   );
