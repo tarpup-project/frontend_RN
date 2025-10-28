@@ -1,18 +1,12 @@
+import { useTheme } from "@/app/contexts/ThemeContext";
 import Header from "@/components/Header";
 import { Text } from "@/components/Themedtext";
-import { useTheme } from "@/app/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  
-  View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 const Groups = () => {
-    const { isDark } = useTheme();
+  const { isDark } = useTheme();
 
   const dynamicStyles = {
     container: {
@@ -25,8 +19,20 @@ const Groups = () => {
       color: isDark ? "#CCCCCC" : "#666666",
     },
     card: {
-      backgroundColor: isDark ? "#0A0A0A" : "#F5F5F5",
+      backgroundColor: isDark ? "#0A0A0A" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
+    },
+    avatarBorder: {
+      borderColor: isDark ? "#000000" : "#FFFFFF",
+    },
+    openButton: {
+      backgroundColor: isDark ? "#FFFFFF" : "#000000",
+    },
+    openButtonText: {
+      color: isDark ? "#000000" : "#FFFFFF",
+    },
+    ratingText: {
+      color: isDark ? "#000000" : "#4A7BC8",
     },
   };
 
@@ -135,8 +141,10 @@ const Groups = () => {
                 )}
                 {/* Star Rating - moved to top right */}
                 <View style={styles.ratingBadge}>
-                  <Ionicons name="star-outline" size={12} color="#A8C5FF" />
-                  <Text style={styles.ratingText}>{group.rating}</Text>
+                  <Ionicons name="star-outline" size={12} color="#4A7BC8" />
+                  <Text style={[styles.ratingText, dynamicStyles.ratingText]}>
+                    {group.rating}
+                  </Text>
                 </View>
               </View>
 
@@ -157,9 +165,14 @@ const Groups = () => {
                       style={[
                         styles.avatar,
                         { backgroundColor: color },
+                        dynamicStyles.avatarBorder,
                         index > 0 && { marginLeft: -8 },
                       ]}
-                    />
+                    >
+                      <Text style={styles.avatarText}>
+                        {String.fromCharCode(65 + index)}
+                      </Text>
+                    </View>
                   ))}
                   <Text style={[styles.membersText, dynamicStyles.subtitle]}>
                     {group.members} members
@@ -187,15 +200,22 @@ const Groups = () => {
                 </View>
 
                 <Pressable
-                  style={styles.openButton}
+                  style={[styles.openButton, dynamicStyles.openButton]}
                   onPress={() => router.push(`/group-chat/${group.id}`)}
                 >
                   <Ionicons
                     name="chatbubble-outline"
                     size={16}
-                    color="#000000"
+                    color={dynamicStyles.openButtonText.color}
                   />
-                  <Text style={styles.openButtonText}>Open</Text>
+                  <Text
+                    style={[
+                      styles.openButtonText,
+                      dynamicStyles.openButtonText,
+                    ]}
+                  >
+                    Open
+                  </Text>
                 </Pressable>
               </View>
             </View>
@@ -229,6 +249,35 @@ const styles = StyleSheet.create({
   groupsList: {
     gap: 16,
     marginBottom: 80,
+  },
+  avatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "600",
+  },
+  openButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+  },
+  openButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  ratingText: {
+    fontSize: 12,
+    fontWeight: "600",
   },
   groupCard: {
     padding: 16,
@@ -292,21 +341,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginLeft: "auto",
   },
-  ratingText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#000000",
-  },
   avatarsContainer: {
     flexDirection: "row",
     alignItems: "center",
-  },
-  avatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: "#000000",
   },
   membersText: {
     fontSize: 12,
@@ -324,21 +361,7 @@ const styles = StyleSheet.create({
   },
   activeText: {
     fontSize: 12,
-  },
-  openButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "#FFFFFF",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 6,
-  },
-  openButtonText: {
-    color: "#000000",
-    fontSize: 14,
-    fontWeight: "600",
-  },
+  }
 });
 
 export default Groups;
