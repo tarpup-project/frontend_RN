@@ -60,7 +60,11 @@ const Index = () => {
     },
     avatarBorder: {
       borderColor: isDark ? "#000000" : "#FFFFFF",
-    }
+    },
+    compatibilityCard: {
+      backgroundColor: isDark ? "#0A0A0A" : "#F5F5F5",
+      borderColor: isDark ? "#333333" : "#E0E0E0",
+    },
   };
 
   const matchCategories = [
@@ -388,7 +392,10 @@ const Index = () => {
 
             {/* Compatibility Card */}
             <Pressable
-              style={[styles.compatibilityCard, dynamicStyles.filterContainer]}
+              style={[
+                styles.compatibilityCard,
+                dynamicStyles.compatibilityCard,
+              ]}
             >
               <Ionicons
                 name="heart-outline"

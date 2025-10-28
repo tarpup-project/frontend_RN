@@ -1,7 +1,9 @@
-import { useLocalSearchParams, router } from "expo-router";
 import { useTheme } from "@/app/contexts/ThemeContext";
+import Header from "@/components/Header";
+import PreviewModeBanner from "@/components/PreviewModeBanner";
 import { Text } from "@/components/Themedtext";
 import { Ionicons } from "@expo/vector-icons";
+import { router, useLocalSearchParams } from "expo-router";
 import {
   BookOpen,
   Car,
@@ -12,7 +14,7 @@ import {
   PartyPopper,
   ShoppingBag,
 } from "lucide-react-native";
-import { View, StyleSheet, Pressable, ScrollView } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 const CategoryMatches = () => {
   const { categoryId } = useLocalSearchParams();
@@ -29,7 +31,7 @@ const CategoryMatches = () => {
       color: isDark ? "#CCCCCC" : "#666666",
     },
     card: {
-      backgroundColor: isDark ? "#000000" : "#F5F5F5",
+      backgroundColor: isDark ? "#000000" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     badge: {
@@ -37,7 +39,6 @@ const CategoryMatches = () => {
     },
   };
 
-  // Category mapping
   const categoryMap: any = {
     "1": {
       name: "Rides",
@@ -145,10 +146,18 @@ const CategoryMatches = () => {
 
   return (
     <View style={[styles.container, dynamicStyles.container]}>
+      <View style={{ gap: 12 }}>
+        <Header />
+        <PreviewModeBanner />
+      </View>
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={dynamicStyles.text.color} />
+          <Ionicons
+            name="arrow-back"
+            size={24}
+            color={dynamicStyles.text.color}
+          />
           <Text style={[styles.backText, dynamicStyles.text]}>Back</Text>
         </Pressable>
       </View>
@@ -159,7 +168,11 @@ const CategoryMatches = () => {
           style={[styles.categoryIcon, { backgroundColor: category?.color }]}
         >
           {IconComponent && (
-            <IconComponent size={28} color={category?.iconColor} strokeWidth={2} />
+            <IconComponent
+              size={28}
+              color={category?.iconColor}
+              strokeWidth={2}
+            />
           )}
         </View>
         <View style={styles.titleContent}>
@@ -230,7 +243,6 @@ const CategoryMatches = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 50,
   },
   header: {
     paddingHorizontal: 16,
