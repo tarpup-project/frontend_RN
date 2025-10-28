@@ -21,7 +21,7 @@ const Profile = () => {
       color: isDark ? "#CCCCCC" : "#666666",
     },
     card: {
-      backgroundColor: isDark ? "#0A0A0A" : "#FFFFFF",
+      backgroundColor: isDark ? "#000000" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     button: {
@@ -465,7 +465,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     alignItems: "center",
-    marginBottom: 80,
+    marginBottom: 30,
   },
   footerTitle: {
     fontSize: 16,

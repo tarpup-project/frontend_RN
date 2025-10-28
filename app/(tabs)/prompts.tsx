@@ -34,7 +34,7 @@ const Prompts = () => {
       color: isDark ? "#CCCCCC" : "#666666",
     },
     sectionBg: {
-      backgroundColor: isDark ? "#0A0A0A" : "#F9F9F9",
+      backgroundColor: isDark ? "#000000" : "#F9F9F9",
     },
     categoryChip: {
       backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF",
