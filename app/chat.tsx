@@ -1,7 +1,7 @@
 import { useState } from 'react';
+import { Text } from "@/components/Themedtext";
 import {
     View,
-    Text,
     TextInput,
     Pressable,
     StyleSheet,

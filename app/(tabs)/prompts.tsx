@@ -1,12 +1,24 @@
 import Header from "@/components/Header";
 import PreviewModeBanner from "@/components/PreviewModeBanner";
+import { Text } from "@/components/Themedtext";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import {
+  BookOpen,
+  Calendar,
+  Car,
+  Dumbbell,
+  Filter,
+  Gift,
+  Heart,
+  Home,
+  Music,
+  ShoppingBag,
+} from "lucide-react-native";
+import React, { useState } from "react";
 import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   useColorScheme,
   View,
 } from "react-native";
@@ -32,16 +44,71 @@ const Prompts = () => {
   };
 
   const categories = [
-    { name: "All", icon: "funnel-outline" },
-    { name: "Rides", icon: "car" },
-    { name: "Events", icon: "calendar" },
-    { name: "Party", icon: "musical-notes" },
-    { name: "Marketplace", icon: "bag" },
-    { name: "Study", icon: "book" },
-    { name: "Sports", icon: "basketball" },
-    { name: "Roommate", icon: "home" },
-    { name: "Dating", icon: "heart" },
+    { name: "All", icon: Filter },
+    { name: "Rides", icon: Car },
+    { name: "Events", icon: Calendar },
+    { name: "Party", icon: Music },
+    { name: "Marketplace", icon: ShoppingBag },
+    { name: "Study", icon: BookOpen },
+    { name: "Sports", icon: Dumbbell },
+    { name: "Roommate", icon: Home },
+    { name: "Dating", icon: Heart },
   ];
+
+  const categoryConfig: Record<
+    string,
+    {
+      icon: any;
+      bgColor: string;
+      iconColor: string;
+    }
+  > = {
+    Rides: {
+      icon: Car,
+      bgColor: "#eff6ff",
+      iconColor: "#3b82f6",
+    },
+    Events: {
+      icon: Calendar,
+      bgColor: "#eef2fe",
+      iconColor: "#f3917c",
+    },
+    Roommate: {
+      icon: Home,
+      bgColor: "#D5F5E3",
+      iconColor: "#10b981",
+    },
+    Party: {
+      icon: Music,
+      bgColor: "#ebfcf5",
+      iconColor: "#55ab9f",
+    },
+    Marketplace: {
+      icon: ShoppingBag,
+      bgColor: "#faf5ff",
+      iconColor: "#a275fa",
+    },
+    Study: {
+      icon: BookOpen,
+      bgColor: "#eef2fe",
+      iconColor: "#f3917c",
+    },
+    Sports: {
+      icon: Dumbbell,
+      bgColor: "#fff7ed",
+      iconColor: "#f3917c",
+    },
+    Dating: {
+      icon: Heart,
+      bgColor: "#fcf2f8",
+      iconColor: "#f3917c",
+    },
+    Giveaways: {
+      icon: Gift,
+      bgColor: "#f0fdfa",
+      iconColor: "#55ab9f",
+    },
+  };
 
   const prompts = [
     {
@@ -170,8 +237,10 @@ const Prompts = () => {
 
   return (
     <View style={[styles.container, dynamicStyles.container]}>
-      <Header />
-      <PreviewModeBanner />
+      <View style={{ gap: 12 }}>
+        <Header />
+        <PreviewModeBanner />
+      </View>
 
       <ScrollView style={styles.content}>
         {/* Live Prompts Feed Section */}
@@ -243,12 +312,12 @@ const Prompts = () => {
                 ]}
                 onPress={() => setSelectedCategory(category.name)}
               >
-                <Ionicons
-                  name={category.icon as any}
+                <category.icon
                   size={16}
                   color={
                     selectedCategory === category.name ? "#000000" : "#FFFFFF"
                   }
+                  strokeWidth={2}
                 />
                 <Text
                   style={[
@@ -277,23 +346,42 @@ const Prompts = () => {
                 key={prompt.id}
                 style={[
                   styles.promptCard,
-                    {
-                      backgroundColor: prompt.bgColor,
-                      borderColor: prompt.borderColor,
-                    },
-                  ]}
-                >
-                  {/* Rest of card content stays the same */}
+                  {
+                    backgroundColor: prompt.bgColor,
+                    borderColor: prompt.borderColor,
+                  },
+                ]}
+              >
                 <View style={styles.cardHeader}>
                   <View style={styles.badges}>
                     <View
                       style={[
                         styles.categoryBadge,
-                        { backgroundColor: prompt.borderColor },
+                        {
+                          backgroundColor:
+                            categoryConfig[prompt.badge]?.bgColor ||
+                            prompt.borderColor,
+                        },
                       ]}
                     >
-                      <Ionicons name="pricetag" size={12} color="#FFFFFF" />
-                      <Text style={styles.badgeText}>{prompt.badge}</Text>
+                      {categoryConfig[prompt.badge]?.icon &&
+                        React.createElement(categoryConfig[prompt.badge].icon, {
+                          size: 12,
+                          color: categoryConfig[prompt.badge].iconColor,
+                          strokeWidth: 2,
+                        })}
+                      <Text
+                        style={[
+                          styles.badgeText,
+                          {
+                            color:
+                              categoryConfig[prompt.badge]?.iconColor ||
+                              "#FFFFFF",
+                          },
+                        ]}
+                      >
+                        {prompt.badge}
+                      </Text>
                     </View>
                     <View
                       style={[
@@ -303,24 +391,20 @@ const Prompts = () => {
                     >
                       <Text style={styles.badgeText}>{prompt.status}</Text>
                     </View>
-                    {prompt.status === "New" && (
-                      <View style={styles.newBadge}>
-                        <Text style={styles.newBadgeText}>New</Text>
-                      </View>
-                    )}
                   </View>
-                  <View style={styles.timeRow}>
-                    <Ionicons name="time-outline" size={14} color="#999999" />
-                    <Text style={styles.timeText}>{prompt.time}</Text>
+                  <View style={styles.headerRight}>
+                    <View style={styles.timeRow}>
+                      <Ionicons name="time-outline" size={14} color="#999999" />
+                      <Text style={styles.timeText}>{prompt.time}</Text>
+                    </View>
+                    <Pressable style={styles.requestButton}>
+                      <Text style={styles.requestButtonText}>Request</Text>
+                    </Pressable>
                   </View>
                 </View>
 
                 <Text style={styles.promptTitle}>{prompt.title}</Text>
                 <Text style={styles.authorText}>{prompt.author}</Text>
-
-                <Pressable style={styles.requestButton}>
-                  <Text style={styles.requestButtonText}>Request</Text>
-                </Pressable>
               </View>
             ))}
         </View>
@@ -347,7 +431,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   feedTitle: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: "bold",
   },
   liveBadge: {
@@ -388,6 +472,16 @@ const styles = StyleSheet.create({
   filterSection: {
     paddingVertical: 16,
   },
+  headerRight: {
+    display: "flex",
+    flexDirection: "row",
+    gap: 8,
+  },
+  timeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
   filterHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -419,7 +513,7 @@ const styles = StyleSheet.create({
     borderColor: "#FFFFFF",
   },
   categoryText: {
-    fontSize: 14,
+    fontSize: 12,
     color: "#FFFFFF",
     fontWeight: "500",
   },
@@ -438,7 +532,7 @@ const styles = StyleSheet.create({
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
     marginBottom: 12,
   },
   badges: {
@@ -475,17 +569,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "600",
   },
-  timeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
   timeText: {
-    fontSize: 12,
+    fontSize: 10,
     color: "#999999",
   },
   promptTitle: {
-    fontSize: 15,
+    fontSize: 13,
     color: "#FFFFFF",
     marginBottom: 8,
     lineHeight: 20,
@@ -497,14 +586,13 @@ const styles = StyleSheet.create({
   },
   requestButton: {
     backgroundColor: "#FFFFFF",
-    paddingVertical: 10,
+    paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 6,
-    alignSelf: "flex-end",
   },
   requestButtonText: {
     color: "#000000",
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
   },
 });

@@ -1,10 +1,11 @@
 import Header from "@/components/Header";
+import { Text } from "@/components/Themedtext";
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   useColorScheme,
   View,
 } from "react-native";
@@ -110,7 +111,7 @@ const Groups = () => {
         {/* Groups List */}
         <View style={styles.groupsList}>
           {groups.map((group) => (
-            <View key={group.id} style={[styles.groupCard, dynamicStyles.card]}>  
+            <View key={group.id} style={[styles.groupCard, dynamicStyles.card]}>
               {/* Category Badges */}
               <View style={styles.badgesRow}>
                 <View
@@ -147,7 +148,6 @@ const Groups = () => {
                 {group.description}
               </Text>
 
-              {/* Members Row */}
               {/* Members Row */}
               <View style={styles.membersRow}>
                 <View style={styles.avatarsContainer}>
@@ -186,7 +186,10 @@ const Groups = () => {
                   </Text>
                 </View>
 
-                <Pressable style={styles.openButton}>
+                <Pressable
+                  style={styles.openButton}
+                  onPress={() => router.push(`/group-chat/${group.id}`)}
+                >
                   <Ionicons
                     name="chatbubble-outline"
                     size={16}
@@ -216,7 +219,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   title: {
-    fontSize: 24,
+    fontSize: 15,
     fontWeight: "bold",
     marginBottom: 4,
   },
@@ -264,7 +267,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   groupName: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: "bold",
     marginBottom: 6,
   },
@@ -282,7 +285,7 @@ const styles = StyleSheet.create({
   ratingBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4, 
+    gap: 4,
     backgroundColor: "#EBF3FF",
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -292,7 +295,7 @@ const styles = StyleSheet.create({
   ratingText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#000000", 
+    color: "#000000",
   },
   avatarsContainer: {
     flexDirection: "row",
