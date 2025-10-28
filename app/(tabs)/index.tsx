@@ -61,6 +61,9 @@ const Index = () => {
     avatarBorder: {
       borderColor: isDark ? "#000000" : "#FFFFFF",
     },
+    compatible: {
+      
+    }
   };
 
   const matchCategories = [
