@@ -1,13 +1,13 @@
 import { Tabs } from 'expo-router';
 import { useTheme } from "@/app/contexts/ThemeContext";
-import { Ionicons } from '@expo/vector-icons';
+import { Home, Zap, Users, User } from 'lucide-react-native';
 
 export default function TabLayout() {
     const { isDark } = useTheme();
         
     return (
         <Tabs
-            screenOptions={{
+            screenOptions={({ route }) => ({
                 headerShown: false,
                 tabBarActiveTintColor: isDark ? '#FFFFFF' : '#000000',
                 tabBarInactiveTintColor: isDark ? '#666666' : '#999999',
@@ -30,14 +30,18 @@ export default function TabLayout() {
                 },
                 tabBarActiveBackgroundColor: isDark ? '#1A1A1A' : '#F5F5F5',
                 tabBarInactiveBackgroundColor: isDark ? '#000000' : '#FFFFFF',
-            }}
+            })}
         >
             <Tabs.Screen
                 name="index"
                 options={{
                     title: 'Spots',
                     tabBarIcon: ({ color, focused }) => (
-                        <Ionicons name={focused ? 'home' : 'home-outline'} size={24} color={color} />
+                        <Home 
+                            size={24} 
+                            color={color} 
+                            strokeWidth={focused ? 2.5 : 2}
+                        />
                     ),
                 }}
             />
@@ -46,7 +50,11 @@ export default function TabLayout() {
                 options={{
                     title: 'Prompts',
                     tabBarIcon: ({ color, focused }) => (
-                        <Ionicons name={focused ? 'stats-chart' : 'stats-chart-outline'} size={24} color={color} />
+                        <Zap 
+                            size={24} 
+                            color={color} 
+                            strokeWidth={focused ? 2.5 : 2}
+                        />
                     ),
                 }}
             />
@@ -55,7 +63,11 @@ export default function TabLayout() {
                 options={{
                     title: 'Groups',
                     tabBarIcon: ({ color, focused }) => (
-                        <Ionicons name={focused ? 'people' : 'people-outline'} size={24} color={color} />
+                        <Users 
+                            size={24} 
+                            color={color} 
+                            strokeWidth={focused ? 2.5 : 2}
+                        />
                     ),
                 }}
             />
@@ -64,7 +76,11 @@ export default function TabLayout() {
                 options={{
                     title: 'Profile',
                     tabBarIcon: ({ color, focused }) => (
-                        <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} />
+                        <User 
+                            size={24} 
+                            color={color} 
+                            strokeWidth={focused ? 2.5 : 2}
+                        />
                     ),
                 }}
             />
