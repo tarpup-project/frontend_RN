@@ -18,6 +18,7 @@ import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 const Index = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [showAllRecent, setShowAllRecent] = useState(false);
   const [selectedUni, setSelectedUni] = useState("University of South Florida");
 
   const universities = [
@@ -38,7 +39,6 @@ const Index = () => {
     },
     subtitle: {
       color: isDark ? "#CCCCCC" : "#666666",
-      backgroundColor: isDark ? "#000000" : "#FFFFFF",
     },
     filterContainer: {
       backgroundColor: isDark ? "#000000" : "#F5F5F5",
@@ -50,6 +50,9 @@ const Index = () => {
     },
     matchesBadge: {
       backgroundColor: isDark ? "#0A0A0A" : "#E0E0E0",
+    },
+    percentageBadge: {
+      backgroundColor: "#0A0A0A",
     },
   };
 
@@ -243,7 +246,11 @@ const Index = () => {
                     { backgroundColor: category.bgColor },
                   ]}
                 >
-                  <category.icon size={24} color={category.iconColor} strokeWidth={2} />
+                  <category.icon
+                    size={24}
+                    color={category.iconColor}
+                    strokeWidth={2}
+                  />
                 </View>
                 <Text style={[styles.cardTitle, dynamicStyles.text]}>
                   {category.name}
@@ -265,9 +272,9 @@ const Index = () => {
               <Text style={[styles.sectionTitle, dynamicStyles.text]}>
                 Recent Matches
               </Text>
-              <Pressable onPress={() => console.log("View All")}>
+              <Pressable onPress={() => setShowAllRecent(!showAllRecent)}>
                 <Text style={[styles.viewAllText, dynamicStyles.subtitle]}>
-                  View All
+                  {showAllRecent ? "Show Less" : "View All"}
                 </Text>
               </Pressable>
             </View>
@@ -309,47 +316,89 @@ const Index = () => {
                 color: "#D5E6FF",
                 time: "Just now",
               },
-            ].map((match) => (
-              <Pressable
-                key={match.id}
-                style={[styles.recentCard, dynamicStyles.card]}
-                onPress={() => console.log(`Navigate to ${match.title}`)}
-              >
-                <View
-                  style={[
-                    styles.recentIconCircle,
-                    { backgroundColor: match.color },
-                  ]}
+              {
+                id: 5,
+                title: "17 new in Giveaway",
+                users: 3,
+                match: "0%",
+                icon: "gift",
+                color: "#f0fdfa",
+                time: "a day ago",
+              },
+              {
+                id: 6,
+                title: "6 new in Friends",
+                users: 4,
+                match: "0%",
+                icon: "people",
+                color: "#D5F5E3",
+                time: "6 days ago",
+              },
+              {
+                id: 7,
+                title: "4 new in Games",
+                users: 3,
+                match: "0%",
+                icon: "game-controller",
+                color: "#eff6ff",
+                time: "10 days ago",
+              },
+            ]
+              .slice(0, showAllRecent ? 7 : 4)
+              .map((match) => (
+                <Pressable
+                  key={match.id}
+                  style={[styles.recentCard, dynamicStyles.card]}
+                  onPress={() => console.log(`Navigate to ${match.title}`)}
                 >
-                  <Ionicons
-                    name={match.icon as any}
-                    size={20}
-                    color="#000000"
-                  />
-                </View>
-                <View style={styles.recentContent}>
-                  <Text style={[styles.recentTitle, dynamicStyles.text]}>
-                    {match.title}
-                  </Text>
-                  <View style={styles.recentUsers}>
-                    {[...Array(match.users)].map((_, i) => (
-                      <View key={i} style={styles.userAvatar} />
-                    ))}
-                    <Text style={[styles.usersText, dynamicStyles.subtitle]}>
-                      +{match.users}
-                    </Text>
+                  <View
+                    style={[
+                      styles.recentIconCircle,
+                      { backgroundColor: match.color },
+                    ]}
+                  >
+                    <Ionicons
+                      name={match.icon as any}
+                      size={20}
+                      color="#000000"
+                    />
                   </View>
-                </View>
-                <View style={styles.recentRight}>
-                  <Text style={[styles.timeText, dynamicStyles.subtitle]}>
-                    {match.time}
-                  </Text>
-                  <Text style={[styles.matchPercent, dynamicStyles.text]}>
-                    {match.match}
-                  </Text>
-                </View>
-              </Pressable>
-            ))}
+                  <View style={styles.recentContent}>
+                    <Text style={[styles.recentTitle, dynamicStyles.text]}>
+                      {match.title}
+                    </Text>
+                    <View style={styles.recentUsers}>
+                      {[...Array(match.users)].map((_, i) => (
+                        <View
+                          key={i}
+                          style={[
+                            styles.userAvatar,
+                            i > 0 && { marginLeft: -8 },
+                          ]}
+                        />
+                      ))}
+                      <Text style={[styles.usersText, dynamicStyles.subtitle]}>
+                        +{match.users}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.recentRight}>
+                    <Text style={[styles.timeText, dynamicStyles.subtitle]}>
+                      {match.time}
+                    </Text>
+                    <View
+                      style={[
+                        styles.percentageBadge,
+                        dynamicStyles.percentageBadge,
+                      ]}
+                    >
+                      <Text style={[styles.matchPercent, dynamicStyles.text]}>
+                        {match.match}
+                      </Text>
+                    </View>
+                  </View>
+                </Pressable>
+              ))}
 
             {/* Compatibility Card */}
             <Pressable
@@ -451,7 +500,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
   },
   matchesSection: {
-    marginBottom: 80,
+    marginBottom: 30,
   },
   sectionTitle: {
     fontSize: 14,
@@ -499,7 +548,7 @@ const styles = StyleSheet.create({
   },
   recentSection: {
     marginTop: 24,
-    marginBottom: 24,
+    marginBottom: 0,
   },
   recentHeader: {
     flexDirection: "row",
@@ -544,6 +593,8 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     backgroundColor: "#9C27B0",
+    borderWidth: 2,
+    borderColor: "#000000",
   },
   usersText: {
     fontSize: 12,
@@ -580,6 +631,11 @@ const styles = StyleSheet.create({
   compatibilitySubtitle: {
     fontSize: 12,
   },
+  percentageBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
   dropdown: {
     position: "absolute",
     top: 86,
@@ -594,14 +650,14 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   matchesBadge: {
-    paddingHorizontal: 45,
+    paddingHorizontal: 40,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: 12,
     alignSelf: "center",
   },
   dropdownText: {
     fontSize: 14,
-  }
+  },
 });
 
 export default Index;
