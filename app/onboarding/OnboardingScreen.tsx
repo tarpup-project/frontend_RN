@@ -2,7 +2,9 @@ import { Text } from "@/components/Themedtext";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "@/app/contexts/ThemeContext";
 import { MessageSquare, UsersRound } from "lucide-react-native";
+import { useEffect, useRef } from "react";
 import {
+  Animated,
   Image,
   ImageSourcePropType,
   Pressable,
@@ -35,7 +37,29 @@ const OnboardingScreen = ({
   hasChips = false,
   isLucideIcon = false,
 }: OnboardingScreenProps) => {
-    const { isDark } = useTheme();
+  const { isDark } = useTheme();
+
+  // Animation values
+  const slideAnim = useRef(new Animated.Value(100)).current; // Start 100px below
+  const fadeAnim = useRef(new Animated.Value(0)).current; // Start invisible
+
+  // Run animation on mount
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: 0, // End at original position
+        duration: 800, // 800ms animation
+        delay: 300, // Wait 300ms before starting
+        useNativeDriver: true, // Use native driver for better performance
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 1, // Fade in to full opacity
+        duration: 800,
+        delay: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const dynamicStyles = {
     container: {
@@ -68,9 +92,9 @@ const OnboardingScreen = ({
   const renderIcon = () => {
     const iconToRender = isDark ? iconDark : icon;
 
-    // Handle Lucide icons
+    // Handle Lucide icons - ALWAYS white color
     if (typeof iconToRender === "string") {
-      const iconColor = isDark ? "#000000" : "#FFFFFF" ;
+      const iconColor = "#FFFFFF"; // Force white for all modes
 
       if (iconToRender === "MessageSquare") {
         return <MessageSquare size={50} color={iconColor} strokeWidth={2} />;
@@ -153,8 +177,16 @@ const OnboardingScreen = ({
         )}
       </View>
 
-      {/* Bottom Button */}
-      <View style={styles.buttonContainer}>
+      {/* Bottom Button - Animated */}
+      <Animated.View
+        style={[
+          styles.buttonContainer,
+          {
+            transform: [{ translateY: slideAnim }],
+            opacity: fadeAnim,
+          },
+        ]}
+      >
         <Pressable
           style={[styles.button, dynamicStyles.button]}
           onPress={onContinue}
@@ -166,7 +198,7 @@ const OnboardingScreen = ({
             <Text style={[styles.arrowIcon, dynamicStyles.buttonText]}>›</Text>
           </View>
         </Pressable>
-      </View>
+      </Animated.View>
     </View>
   );
 };
@@ -257,7 +289,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-  }
+  },
 });
 
 export default OnboardingScreen;

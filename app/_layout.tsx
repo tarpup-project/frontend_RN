@@ -9,7 +9,6 @@ import { Text } from "react-native";
 
 SplashScreen.preventAutoHideAsync();
 
-// Inner component that has access to theme context
 function RootLayoutContent() {
   const { isDark } = useTheme();
   
