@@ -1,8 +1,9 @@
-import Header from "@/components/Header";
-import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/app/contexts/ThemeContext";
-import { useRouter } from "expo-router";
+import Header from "@/components/Header";
 import { Text } from "@/components/Themedtext";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { AlertTriangle, Lock, Shield, User } from "lucide-react-native";
 import { useState } from "react";
 import {
   Pressable,
@@ -43,10 +44,35 @@ const AccountSettings = () => {
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     input: {
-      backgroundColor: isDark ? "#000000" : "#FFFFFF",
+      backgroundColor: isDark ? "#000000" : "#F5F5F5",
       borderColor: isDark ? "#333333" : "#E0E0E0",
       color: isDark ? "#FFFFFF" : "#000000",
     },
+    updateButton: {
+      backgroundColor: isDark ? "#FFFFFF" : "#000000",
+    },
+    updateButtonText: {
+      color: isDark ? "#000000" : "#FFFFFF",
+    },
+    // Toggle styles for light mode
+    customToggle: {
+      backgroundColor: isDark ? "#333333" : "#E0E0E0",
+    },
+    customToggleActive: {
+      backgroundColor: isDark ? "#FFFFFF" : "#000000",
+    },
+    customToggleDot: {
+      backgroundColor: isDark ? "#FFFFFF" : "#999999",
+    },
+    customToggleDotActive: {
+      backgroundColor: isDark ? "#000000" : "#FFFFFF",
+    },
+    saveButton: {
+      backgroundColor: isDark ? "#FFFFFF" : "#000000",
+    },
+    saveButtonText: {
+      color: isDark ? "#000000" : "#FFFFFF",
+    }
   };
 
   return (
@@ -55,7 +81,10 @@ const AccountSettings = () => {
 
       <ScrollView style={styles.content}>
         {/* Back Button */}
-        <Pressable style={styles.backButton} onPress={() => router.push("/profile")}>
+        <Pressable
+          style={styles.backButton}
+          onPress={() => router.push("/profile")}
+        >
           <Ionicons
             name="arrow-back"
             size={20}
@@ -66,13 +95,22 @@ const AccountSettings = () => {
           </Text>
         </Pressable>
 
+        {/* Account Information Section */}
         <View style={[styles.section, dynamicStyles.card]}>
+          {/* Section Title with Icon */}
+          <View style={styles.sectionTitleRow}>
+            <User size={20} color={dynamicStyles.text.color} strokeWidth={2} />
+            <Text style={[styles.sectionTitle, dynamicStyles.text]}>
+              Account Information
+            </Text>
+          </View>
+
           <View style={styles.inputGroup}>
             <Text style={[styles.label, dynamicStyles.text]}>
               Email Address
             </Text>
             <View
-              style={[styles.input, styles.disabledInput, dynamicStyles.card]}
+              style={[styles.input, styles.disabledInput, dynamicStyles.input]}
             >
               <Text style={[styles.disabledText, dynamicStyles.subtitle]}>
                 john.doe@usf.edu
@@ -86,7 +124,7 @@ const AccountSettings = () => {
           <View style={styles.inputGroup}>
             <Text style={[styles.label, dynamicStyles.text]}>University</Text>
             <View
-              style={[styles.input, styles.disabledInput, dynamicStyles.card]}
+              style={[styles.input, styles.disabledInput, dynamicStyles.input]}
             >
               <Text style={[styles.disabledText, dynamicStyles.subtitle]}>
                 University of South Florida
@@ -100,9 +138,12 @@ const AccountSettings = () => {
 
         {/* Password & Security */}
         <View style={[styles.section, dynamicStyles.card]}>
-          <Text style={[styles.sectionTitle, dynamicStyles.text]}>
-            Password & Security
-          </Text>
+          <View style={styles.sectionTitleRow}>
+            <Lock size={20} color={dynamicStyles.text.color} strokeWidth={2} />
+            <Text style={[styles.sectionTitle, dynamicStyles.text]}>
+              Password & Security
+            </Text>
+          </View>
 
           <View style={styles.inputGroup}>
             <Text style={[styles.label, dynamicStyles.text]}>
@@ -192,8 +233,12 @@ const AccountSettings = () => {
             </View>
           </View>
 
-          <Pressable style={styles.updateButton}>
-            <Text style={styles.updateButtonText}>Update Password</Text>
+          <Pressable style={[styles.updateButton, dynamicStyles.updateButton]}>
+            <Text
+              style={[styles.updateButtonText, dynamicStyles.updateButtonText]}
+            >
+              Update Password
+            </Text>
           </Pressable>
 
           {/* Two-Factor Authentication */}
@@ -210,13 +255,27 @@ const AccountSettings = () => {
               <View
                 style={[
                   styles.customToggle,
+                  {
+                    backgroundColor: dynamicStyles.customToggle.backgroundColor,
+                  },
+                  twoFactorEnabled && {
+                    backgroundColor:
+                      dynamicStyles.customToggleActive.backgroundColor,
+                  },
                   twoFactorEnabled && styles.customToggleActive,
                 ]}
               >
                 <View
                   style={[
                     styles.customToggleDot,
-                    twoFactorEnabled && styles.customToggleDotActive,
+                    {
+                      backgroundColor:
+                        dynamicStyles.customToggleDot.backgroundColor,
+                    },
+                    twoFactorEnabled && {
+                      backgroundColor:
+                        dynamicStyles.customToggleDotActive.backgroundColor,
+                    },
                   ]}
                 />
               </View>
@@ -226,9 +285,16 @@ const AccountSettings = () => {
 
         {/* Privacy Settings */}
         <View style={[styles.section, dynamicStyles.card]}>
-          <Text style={[styles.sectionTitle, dynamicStyles.text]}>
-            Privacy Settings
-          </Text>
+          <View style={styles.sectionTitleRow}>
+            <Shield
+              size={20}
+              color={dynamicStyles.text.color}
+              strokeWidth={2}
+            />
+            <Text style={[styles.sectionTitle, dynamicStyles.text]}>
+              Privacy Settings
+            </Text>
+          </View>
 
           <View style={styles.toggleRow}>
             <View style={styles.toggleInfo}>
@@ -243,13 +309,27 @@ const AccountSettings = () => {
               <View
                 style={[
                   styles.customToggle,
+                  {
+                    backgroundColor: dynamicStyles.customToggle.backgroundColor,
+                  },
+                  emailVisible && {
+                    backgroundColor:
+                      dynamicStyles.customToggleActive.backgroundColor,
+                  },
                   emailVisible && styles.customToggleActive,
                 ]}
               >
                 <View
                   style={[
                     styles.customToggleDot,
-                    emailVisible && styles.customToggleDotActive,
+                    {
+                      backgroundColor:
+                        dynamicStyles.customToggleDot.backgroundColor,
+                    },
+                    emailVisible && {
+                      backgroundColor:
+                        dynamicStyles.customToggleDotActive.backgroundColor,
+                    },
                   ]}
                 />
               </View>
@@ -269,13 +349,27 @@ const AccountSettings = () => {
               <View
                 style={[
                   styles.customToggle,
+                  {
+                    backgroundColor: dynamicStyles.customToggle.backgroundColor,
+                  },
+                  profileVisible && {
+                    backgroundColor:
+                      dynamicStyles.customToggleActive.backgroundColor,
+                  },
                   profileVisible && styles.customToggleActive,
                 ]}
               >
                 <View
                   style={[
                     styles.customToggleDot,
-                    profileVisible && styles.customToggleDotActive,
+                    {
+                      backgroundColor:
+                        dynamicStyles.customToggleDot.backgroundColor,
+                    },
+                    profileVisible && {
+                      backgroundColor:
+                        dynamicStyles.customToggleDotActive.backgroundColor,
+                    },
                   ]}
                 />
               </View>
@@ -295,13 +389,27 @@ const AccountSettings = () => {
               <View
                 style={[
                   styles.customToggle,
+                  {
+                    backgroundColor: dynamicStyles.customToggle.backgroundColor,
+                  },
+                  autoJoinGroups && {
+                    backgroundColor:
+                      dynamicStyles.customToggleActive.backgroundColor,
+                  },
                   autoJoinGroups && styles.customToggleActive,
                 ]}
               >
                 <View
                   style={[
                     styles.customToggleDot,
-                    autoJoinGroups && styles.customToggleDotActive,
+                    {
+                      backgroundColor:
+                        dynamicStyles.customToggleDot.backgroundColor,
+                    },
+                    autoJoinGroups && {
+                      backgroundColor:
+                        dynamicStyles.customToggleDotActive.backgroundColor,
+                    },
                   ]}
                 />
               </View>
@@ -321,13 +429,27 @@ const AccountSettings = () => {
               <View
                 style={[
                   styles.customToggle,
+                  {
+                    backgroundColor: dynamicStyles.customToggle.backgroundColor,
+                  },
+                  dataSharing && {
+                    backgroundColor:
+                      dynamicStyles.customToggleActive.backgroundColor,
+                  },
                   dataSharing && styles.customToggleActive,
                 ]}
               >
                 <View
                   style={[
                     styles.customToggleDot,
-                    dataSharing && styles.customToggleDotActive,
+                    {
+                      backgroundColor:
+                        dynamicStyles.customToggleDot.backgroundColor,
+                    },
+                    dataSharing && {
+                      backgroundColor:
+                        dynamicStyles.customToggleDotActive.backgroundColor,
+                    },
                   ]}
                 />
               </View>
@@ -337,9 +459,16 @@ const AccountSettings = () => {
 
         {/* Data & Account Management */}
         <View style={[styles.section, dynamicStyles.card]}>
-          <Text style={[styles.sectionTitle, dynamicStyles.text]}>
-            Data & Account Management
-          </Text>
+          <View style={styles.sectionTitleRow}>
+            <AlertTriangle
+              size={20}
+              color={dynamicStyles.text.color}
+              strokeWidth={2}
+            />
+            <Text style={[styles.sectionTitle, dynamicStyles.text]}>
+              Data & Account Management
+            </Text>
+          </View>
 
           <Pressable style={[styles.actionButton, dynamicStyles.card]}>
             <Ionicons
@@ -372,8 +501,10 @@ const AccountSettings = () => {
 
         {/* Save Settings Button */}
         <View style={styles.saveButtonContainer}>
-          <Pressable style={styles.saveButton}>
-            <Text style={styles.saveButtonText}>Save Settings</Text>
+          <Pressable style={[styles.saveButton, dynamicStyles.saveButton]}>
+            <Text style={[styles.saveButtonText, dynamicStyles.saveButtonText]}>
+              Save Settings
+            </Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -405,10 +536,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 24,
   },
+  sectionTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 32,
+  },
   sectionTitle: {
     fontSize: 15,
     fontWeight: "bold",
-    marginBottom: 16,
   },
   inputGroup: {
     marginBottom: 16,
@@ -446,7 +582,6 @@ const styles = StyleSheet.create({
     top: 12,
   },
   updateButton: {
-    backgroundColor: "#FFFFFF",
     padding: 12,
     borderRadius: 8,
     alignItems: "center",
@@ -455,7 +590,6 @@ const styles = StyleSheet.create({
   updateButtonText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#000000",
   },
   toggleRow: {
     flexDirection: "row",
@@ -480,23 +614,17 @@ const styles = StyleSheet.create({
     width: 40,
     height: 20,
     borderRadius: 10,
-    backgroundColor: "#333333",
     justifyContent: "center",
     paddingHorizontal: 2,
     alignItems: "flex-start",
   },
   customToggleActive: {
-    backgroundColor: "#FFFFFF",
     alignItems: "flex-end",
   },
   customToggleDot: {
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: "#FFFFFF",
-  },
-  customToggleDotActive: {
-    backgroundColor: "#000000",
   },
   actionButton: {
     flexDirection: "row",

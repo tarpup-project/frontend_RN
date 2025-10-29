@@ -61,6 +61,12 @@ const Notifications = () => {
     onBadgeText: {
       color: isDark ? "#000000" : "#FFFFFF",
     },
+    saveNotificationButton: {
+      backgroundColor: isDark ? "#FFFFFF" : "#000000",
+    },
+    saveNotificationButtonText:{
+      color: isDark ? "#000000" : "#FFFFFF",
+    }
   };
 
   const enableAll = () => {
@@ -743,11 +749,11 @@ const Notifications = () => {
 
         {/* Save Button */}
         <View style={styles.saveButtonContainer}>
-          <Pressable style={styles.saveButton}>
-            <Text style={styles.saveButtonText}>
-              Save Notification Settings
-            </Text>
-          </Pressable>
+          <Pressable style={[styles.saveButton, dynamicStyles.saveNotificationButton]}>
+                      <Text style={[styles.saveButtonText, dynamicStyles.saveNotificationButtonText]}>
+                        Save Notification Settings
+                      </Text>
+                    </Pressable>
         </View>
       </ScrollView>
     </View>
