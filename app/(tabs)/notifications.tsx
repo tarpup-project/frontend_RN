@@ -1,15 +1,11 @@
-import Header from "@/components/Header";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import { useTheme } from "@/app/contexts/ThemeContext";
+import Header from "@/components/Header";
 import { Text } from "@/components/Themedtext";
+import { Ionicons } from "@expo/vector-icons";
+import { Bell } from "lucide-react-native";
+import { useRouter } from "expo-router";
 import { useState } from "react";
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 const Notifications = () => {
   const { isDark } = useTheme();
@@ -46,6 +42,24 @@ const Notifications = () => {
     },
     divider: {
       backgroundColor: isDark ? "#333333" : "#E0E0E0",
+    },
+    customToggle: {
+      backgroundColor: isDark ? "#333333" : "#E0E0E0",
+    },
+    customToggleActive: {
+      backgroundColor: isDark ? "#FFFFFF" : "#000000",
+    },
+    customToggleDot: {
+      backgroundColor: isDark ? "#FFFFFF" : "#999999",
+    },
+    customToggleDotActive: {
+      backgroundColor: isDark ? "#000000" : "#FFFFFF",
+    },
+    onBadge: {
+      backgroundColor: isDark ? "#FFFFFF" : "#000000",
+    },
+    onBadgeText: {
+      color: isDark ? "#000000" : "#FFFFFF",
     },
   };
 
@@ -89,7 +103,10 @@ const Notifications = () => {
 
       <ScrollView style={styles.content}>
         {/* Back Button */}
-        <Pressable style={styles.backButton} onPress={() => router.push("/profile")}>
+        <Pressable
+          style={styles.backButton}
+          onPress={() => router.push("/profile")}
+        >
           <Ionicons
             name="arrow-back"
             size={20}
@@ -114,8 +131,10 @@ const Notifications = () => {
                 Notification Settings
               </Text>
             </View>
-            <View style={styles.onBadge}>
-              <Text style={styles.onBadgeText}>ON</Text>
+            <View style={[styles.onBadge, dynamicStyles.onBadge]}>
+              <Text style={[styles.onBadgeText, dynamicStyles.onBadgeText]}>
+                ON
+              </Text>
             </View>
           </View>
 
@@ -169,13 +188,25 @@ const Notifications = () => {
             <View
               style={[
                 styles.customToggle,
+                { backgroundColor: dynamicStyles.customToggle.backgroundColor },
+                notificationsEnabled && {
+                  backgroundColor:
+                    dynamicStyles.customToggleActive.backgroundColor,
+                },
                 notificationsEnabled && styles.customToggleActive,
               ]}
             >
               <View
                 style={[
                   styles.customToggleDot,
-                  notificationsEnabled && styles.customToggleDotActive,
+                  {
+                    backgroundColor:
+                      dynamicStyles.customToggleDot.backgroundColor,
+                  },
+                  notificationsEnabled && {
+                    backgroundColor:
+                      dynamicStyles.customToggleDotActive.backgroundColor,
+                  },
                 ]}
               />
             </View>
@@ -189,9 +220,18 @@ const Notifications = () => {
             onPress={() => setNewMatches(!newMatches)}
           >
             <View style={styles.toggleInfo}>
-              <Text style={[styles.toggleLabel, dynamicStyles.text]}>
-                New Matches
-              </Text>
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+              >
+                <Bell
+                  size={16}
+                  color={dynamicStyles.text.color}
+                  strokeWidth={2}
+                />
+                <Text style={[styles.toggleLabel, dynamicStyles.text]}>
+                  New Matches
+                </Text>
+              </View>
               <Text style={[styles.toggleDescription, dynamicStyles.subtitle]}>
                 Get notified when you have new matches
               </Text>
@@ -199,13 +239,25 @@ const Notifications = () => {
             <View
               style={[
                 styles.customToggle,
+                { backgroundColor: dynamicStyles.customToggle.backgroundColor },
+                newMatches && {
+                  backgroundColor:
+                    dynamicStyles.customToggleActive.backgroundColor,
+                },
                 newMatches && styles.customToggleActive,
               ]}
             >
               <View
                 style={[
                   styles.customToggleDot,
-                  newMatches && styles.customToggleDotActive,
+                  {
+                    backgroundColor:
+                      dynamicStyles.customToggleDot.backgroundColor,
+                  },
+                  newMatches && {
+                    backgroundColor:
+                      dynamicStyles.customToggleDotActive.backgroundColor,
+                  },
                 ]}
               />
             </View>
@@ -226,13 +278,25 @@ const Notifications = () => {
             <View
               style={[
                 styles.customToggle,
+                { backgroundColor: dynamicStyles.customToggle.backgroundColor },
+                groupMessages && {
+                  backgroundColor:
+                    dynamicStyles.customToggleActive.backgroundColor,
+                },
                 groupMessages && styles.customToggleActive,
               ]}
             >
               <View
                 style={[
                   styles.customToggleDot,
-                  groupMessages && styles.customToggleDotActive,
+                  {
+                    backgroundColor:
+                      dynamicStyles.customToggleDot.backgroundColor,
+                  },
+                  groupMessages && {
+                    backgroundColor:
+                      dynamicStyles.customToggleDotActive.backgroundColor,
+                  },
                 ]}
               />
             </View>
@@ -253,13 +317,25 @@ const Notifications = () => {
             <View
               style={[
                 styles.customToggle,
+                { backgroundColor: dynamicStyles.customToggle.backgroundColor },
+                emergencyAlerts && {
+                  backgroundColor:
+                    dynamicStyles.customToggleActive.backgroundColor,
+                },
                 emergencyAlerts && styles.customToggleActive,
               ]}
             >
               <View
                 style={[
                   styles.customToggleDot,
-                  emergencyAlerts && styles.customToggleDotActive,
+                  {
+                    backgroundColor:
+                      dynamicStyles.customToggleDot.backgroundColor,
+                  },
+                  emergencyAlerts && {
+                    backgroundColor:
+                      dynamicStyles.customToggleDotActive.backgroundColor,
+                  },
                 ]}
               />
             </View>
@@ -295,13 +371,25 @@ const Notifications = () => {
             <View
               style={[
                 styles.customToggle,
+                { backgroundColor: dynamicStyles.customToggle.backgroundColor },
+                emailEnabled && {
+                  backgroundColor:
+                    dynamicStyles.customToggleActive.backgroundColor,
+                },
                 emailEnabled && styles.customToggleActive,
               ]}
             >
               <View
                 style={[
                   styles.customToggleDot,
-                  emailEnabled && styles.customToggleDotActive,
+                  {
+                    backgroundColor:
+                      dynamicStyles.customToggleDot.backgroundColor,
+                  },
+                  emailEnabled && {
+                    backgroundColor:
+                      dynamicStyles.customToggleDotActive.backgroundColor,
+                  },
                 ]}
               />
             </View>
@@ -322,13 +410,25 @@ const Notifications = () => {
             <View
               style={[
                 styles.customToggle,
+                { backgroundColor: dynamicStyles.customToggle.backgroundColor },
+                weeklyDigest && {
+                  backgroundColor:
+                    dynamicStyles.customToggleActive.backgroundColor,
+                },
                 weeklyDigest && styles.customToggleActive,
               ]}
             >
               <View
                 style={[
                   styles.customToggleDot,
-                  weeklyDigest && styles.customToggleDotActive,
+                  {
+                    backgroundColor:
+                      dynamicStyles.customToggleDot.backgroundColor,
+                  },
+                  weeklyDigest && {
+                    backgroundColor:
+                      dynamicStyles.customToggleDotActive.backgroundColor,
+                  },
                 ]}
               />
             </View>
@@ -349,13 +449,25 @@ const Notifications = () => {
             <View
               style={[
                 styles.customToggle,
+                { backgroundColor: dynamicStyles.customToggle.backgroundColor },
+                importantUpdates && {
+                  backgroundColor:
+                    dynamicStyles.customToggleActive.backgroundColor,
+                },
                 importantUpdates && styles.customToggleActive,
               ]}
             >
               <View
                 style={[
                   styles.customToggleDot,
-                  importantUpdates && styles.customToggleDotActive,
+                  {
+                    backgroundColor:
+                      dynamicStyles.customToggleDot.backgroundColor,
+                  },
+                  importantUpdates && {
+                    backgroundColor:
+                      dynamicStyles.customToggleDotActive.backgroundColor,
+                  },
                 ]}
               />
             </View>
@@ -376,13 +488,25 @@ const Notifications = () => {
             <View
               style={[
                 styles.customToggle,
+                { backgroundColor: dynamicStyles.customToggle.backgroundColor },
+                newFeatures && {
+                  backgroundColor:
+                    dynamicStyles.customToggleActive.backgroundColor,
+                },
                 newFeatures && styles.customToggleActive,
               ]}
             >
               <View
                 style={[
                   styles.customToggleDot,
-                  newFeatures && styles.customToggleDotActive,
+                  {
+                    backgroundColor:
+                      dynamicStyles.customToggleDot.backgroundColor,
+                  },
+                  newFeatures && {
+                    backgroundColor:
+                      dynamicStyles.customToggleDotActive.backgroundColor,
+                  },
                 ]}
               />
             </View>
@@ -409,13 +533,27 @@ const Notifications = () => {
               <View
                 style={[
                   styles.categoryToggle,
+                  {
+                    backgroundColor: dynamicStyles.customToggle.backgroundColor,
+                  },
+                  rides && {
+                    backgroundColor:
+                      dynamicStyles.customToggleActive.backgroundColor,
+                  },
                   rides && styles.categoryToggleActive,
                 ]}
               >
                 <View
                   style={[
                     styles.categoryToggleDot,
-                    rides && styles.categoryToggleDotActive,
+                    {
+                      backgroundColor:
+                        dynamicStyles.customToggleDot.backgroundColor,
+                    },
+                    rides && {
+                      backgroundColor:
+                        dynamicStyles.customToggleDotActive.backgroundColor,
+                    },
                   ]}
                 />
               </View>
@@ -431,13 +569,27 @@ const Notifications = () => {
               <View
                 style={[
                   styles.categoryToggle,
+                  {
+                    backgroundColor: dynamicStyles.customToggle.backgroundColor,
+                  },
+                  roommates && {
+                    backgroundColor:
+                      dynamicStyles.customToggleActive.backgroundColor,
+                  },
                   roommates && styles.categoryToggleActive,
                 ]}
               >
                 <View
                   style={[
                     styles.categoryToggleDot,
-                    roommates && styles.categoryToggleDotActive,
+                    {
+                      backgroundColor:
+                        dynamicStyles.customToggleDot.backgroundColor,
+                    },
+                    roommates && {
+                      backgroundColor:
+                        dynamicStyles.customToggleDotActive.backgroundColor,
+                    },
                   ]}
                 />
               </View>
@@ -453,13 +605,27 @@ const Notifications = () => {
               <View
                 style={[
                   styles.categoryToggle,
+                  {
+                    backgroundColor: dynamicStyles.customToggle.backgroundColor,
+                  },
+                  marketplace && {
+                    backgroundColor:
+                      dynamicStyles.customToggleActive.backgroundColor,
+                  },
                   marketplace && styles.categoryToggleActive,
                 ]}
               >
                 <View
                   style={[
                     styles.categoryToggleDot,
-                    marketplace && styles.categoryToggleDotActive,
+                    {
+                      backgroundColor:
+                        dynamicStyles.customToggleDot.backgroundColor,
+                    },
+                    marketplace && {
+                      backgroundColor:
+                        dynamicStyles.customToggleDotActive.backgroundColor,
+                    },
                   ]}
                 />
               </View>
@@ -475,13 +641,27 @@ const Notifications = () => {
               <View
                 style={[
                   styles.categoryToggle,
+                  {
+                    backgroundColor: dynamicStyles.customToggle.backgroundColor,
+                  },
+                  sports && {
+                    backgroundColor:
+                      dynamicStyles.customToggleActive.backgroundColor,
+                  },
                   sports && styles.categoryToggleActive,
                 ]}
               >
                 <View
                   style={[
                     styles.categoryToggleDot,
-                    sports && styles.categoryToggleDotActive,
+                    {
+                      backgroundColor:
+                        dynamicStyles.customToggleDot.backgroundColor,
+                    },
+                    sports && {
+                      backgroundColor:
+                        dynamicStyles.customToggleDotActive.backgroundColor,
+                    },
                   ]}
                 />
               </View>
@@ -497,13 +677,27 @@ const Notifications = () => {
               <View
                 style={[
                   styles.categoryToggle,
+                  {
+                    backgroundColor: dynamicStyles.customToggle.backgroundColor,
+                  },
+                  dating && {
+                    backgroundColor:
+                      dynamicStyles.customToggleActive.backgroundColor,
+                  },
                   dating && styles.categoryToggleActive,
                 ]}
               >
                 <View
                   style={[
                     styles.categoryToggleDot,
-                    dating && styles.categoryToggleDotActive,
+                    {
+                      backgroundColor:
+                        dynamicStyles.customToggleDot.backgroundColor,
+                    },
+                    dating && {
+                      backgroundColor:
+                        dynamicStyles.customToggleDotActive.backgroundColor,
+                    },
                   ]}
                 />
               </View>
@@ -519,13 +713,27 @@ const Notifications = () => {
               <View
                 style={[
                   styles.categoryToggle,
+                  {
+                    backgroundColor: dynamicStyles.customToggle.backgroundColor,
+                  },
+                  study && {
+                    backgroundColor:
+                      dynamicStyles.customToggleActive.backgroundColor,
+                  },
                   study && styles.categoryToggleActive,
                 ]}
               >
                 <View
                   style={[
                     styles.categoryToggleDot,
-                    study && styles.categoryToggleDotActive,
+                    {
+                      backgroundColor:
+                        dynamicStyles.customToggleDot.backgroundColor,
+                    },
+                    study && {
+                      backgroundColor:
+                        dynamicStyles.customToggleDotActive.backgroundColor,
+                    },
                   ]}
                 />
               </View>
@@ -587,7 +795,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   onBadge: {
-    backgroundColor: "#FFFFFF",
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 13,
@@ -595,7 +802,6 @@ const styles = StyleSheet.create({
   onBadgeText: {
     fontSize: 12,
     fontWeight: "bold",
-    color: "#000000",
   },
   quickActions: {
     flexDirection: "row",
@@ -659,23 +865,17 @@ const styles = StyleSheet.create({
     width: 40,
     height: 20,
     borderRadius: 10,
-    backgroundColor: "#333333",
     justifyContent: "center",
     paddingHorizontal: 2,
     alignItems: "flex-start",
   },
   customToggleActive: {
-    backgroundColor: "#FFFFFF",
     alignItems: "flex-end",
   },
   customToggleDot: {
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: "#FFFFFF",
-  },
-  customToggleDotActive: {
-    backgroundColor: "#000000",
   },
   categoryGrid: {
     flexDirection: "row",
@@ -699,23 +899,17 @@ const styles = StyleSheet.create({
     width: 40,
     height: 20,
     borderRadius: 10,
-    backgroundColor: "#333333",
     justifyContent: "center",
     paddingHorizontal: 2,
     alignItems: "flex-start",
   },
   categoryToggleActive: {
-    backgroundColor: "#FFFFFF",
     alignItems: "flex-end",
   },
   categoryToggleDot: {
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: "#FFFFFF",
-  },
-  categoryToggleDotActive: {
-    backgroundColor: "#000000",
   },
   saveButtonContainer: {
     flexDirection: "row",
