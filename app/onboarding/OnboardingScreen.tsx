@@ -39,21 +39,20 @@ const OnboardingScreen = ({
 }: OnboardingScreenProps) => {
   const { isDark } = useTheme();
 
-  // Animation values
-  const slideAnim = useRef(new Animated.Value(100)).current; // Start 100px below
-  const fadeAnim = useRef(new Animated.Value(0)).current; // Start invisible
 
-  // Run animation on mount
+  const slideAnim = useRef(new Animated.Value(100)).current; 
+  const fadeAnim = useRef(new Animated.Value(0)).current; 
+
   useEffect(() => {
     Animated.parallel([
       Animated.timing(slideAnim, {
-        toValue: 0, // End at original position
-        duration: 800, // 800ms animation
-        delay: 300, // Wait 300ms before starting
-        useNativeDriver: true, // Use native driver for better performance
+        toValue: 0, 
+        duration: 800,
+        delay: 300, 
+        useNativeDriver: true, 
       }),
       Animated.timing(fadeAnim, {
-        toValue: 1, // Fade in to full opacity
+        toValue: 1, 
         duration: 800,
         delay: 300,
         useNativeDriver: true,
@@ -207,7 +206,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 60,
+    paddingTop: 10,
   },
   skipButton: {
     alignSelf: "flex-end",
