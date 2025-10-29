@@ -8,14 +8,13 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
   TextInput,
   View,
 } from "react-native";
 
 const AccountSettings = () => {
   const router = useRouter();
-    const { isDark } = useTheme();
+  const { isDark } = useTheme();
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -68,7 +67,6 @@ const AccountSettings = () => {
         </Pressable>
 
         <View style={[styles.section, dynamicStyles.card]}>
-
           <View style={styles.inputGroup}>
             <Text style={[styles.label, dynamicStyles.text]}>
               Email Address
@@ -208,12 +206,21 @@ const AccountSettings = () => {
                 Add an extra layer of security
               </Text>
             </View>
-            <Switch
-              value={twoFactorEnabled}
-              onValueChange={setTwoFactorEnabled}
-              trackColor={{ false: "#333333", true: "#00D084" }}
-              thumbColor="#FFFFFF"
-            />
+            <Pressable onPress={() => setTwoFactorEnabled(!twoFactorEnabled)}>
+              <View
+                style={[
+                  styles.customToggle,
+                  twoFactorEnabled && styles.customToggleActive,
+                ]}
+              >
+                <View
+                  style={[
+                    styles.customToggleDot,
+                    twoFactorEnabled && styles.customToggleDotActive,
+                  ]}
+                />
+              </View>
+            </Pressable>
           </View>
         </View>
 
@@ -232,12 +239,21 @@ const AccountSettings = () => {
                 Show email to other students
               </Text>
             </View>
-            <Switch
-              value={emailVisible}
-              onValueChange={setEmailVisible}
-              trackColor={{ false: "#333333", true: "#00D084" }}
-              thumbColor="#FFFFFF"
-            />
+            <Pressable onPress={() => setEmailVisible(!emailVisible)}>
+              <View
+                style={[
+                  styles.customToggle,
+                  emailVisible && styles.customToggleActive,
+                ]}
+              >
+                <View
+                  style={[
+                    styles.customToggleDot,
+                    emailVisible && styles.customToggleDotActive,
+                  ]}
+                />
+              </View>
+            </Pressable>
           </View>
 
           <View style={styles.toggleRow}>
@@ -249,12 +265,21 @@ const AccountSettings = () => {
                 Make profile visible to others
               </Text>
             </View>
-            <Switch
-              value={profileVisible}
-              onValueChange={setProfileVisible}
-              trackColor={{ false: "#333333", true: "#00D084" }}
-              thumbColor="#FFFFFF"
-            />
+            <Pressable onPress={() => setProfileVisible(!profileVisible)}>
+              <View
+                style={[
+                  styles.customToggle,
+                  profileVisible && styles.customToggleActive,
+                ]}
+              >
+                <View
+                  style={[
+                    styles.customToggleDot,
+                    profileVisible && styles.customToggleDotActive,
+                  ]}
+                />
+              </View>
+            </Pressable>
           </View>
 
           <View style={styles.toggleRow}>
@@ -266,12 +291,21 @@ const AccountSettings = () => {
                 Automatically join suggested groups
               </Text>
             </View>
-            <Switch
-              value={autoJoinGroups}
-              onValueChange={setAutoJoinGroups}
-              trackColor={{ false: "#333333", true: "#00D084" }}
-              thumbColor="#FFFFFF"
-            />
+            <Pressable onPress={() => setAutoJoinGroups(!autoJoinGroups)}>
+              <View
+                style={[
+                  styles.customToggle,
+                  autoJoinGroups && styles.customToggleActive,
+                ]}
+              >
+                <View
+                  style={[
+                    styles.customToggleDot,
+                    autoJoinGroups && styles.customToggleDotActive,
+                  ]}
+                />
+              </View>
+            </Pressable>
           </View>
 
           <View style={styles.toggleRow}>
@@ -283,12 +317,21 @@ const AccountSettings = () => {
                 Share data for improved matching
               </Text>
             </View>
-            <Switch
-              value={dataSharing}
-              onValueChange={setDataSharing}
-              trackColor={{ false: "#333333", true: "#00D084" }}
-              thumbColor="#FFFFFF"
-            />
+            <Pressable onPress={() => setDataSharing(!dataSharing)}>
+              <View
+                style={[
+                  styles.customToggle,
+                  dataSharing && styles.customToggleActive,
+                ]}
+              >
+                <View
+                  style={[
+                    styles.customToggleDot,
+                    dataSharing && styles.customToggleDotActive,
+                  ]}
+                />
+              </View>
+            </Pressable>
           </View>
         </View>
 
@@ -431,6 +474,29 @@ const styles = StyleSheet.create({
   },
   toggleDescription: {
     fontSize: 12,
+  },
+  // Custom Toggle Styles
+  customToggle: {
+    width: 40,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#333333",
+    justifyContent: "center",
+    paddingHorizontal: 2,
+    alignItems: "flex-start",
+  },
+  customToggleActive: {
+    backgroundColor: "#FFFFFF",
+    alignItems: "flex-end",
+  },
+  customToggleDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "#FFFFFF",
+  },
+  customToggleDotActive: {
+    backgroundColor: "#000000",
   },
   actionButton: {
     flexDirection: "row",
