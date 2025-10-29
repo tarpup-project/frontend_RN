@@ -55,6 +55,9 @@ const EditProfile = () => {
     changePhotoText: {
       color: isDark ? "#000000" : "#FFFFFF",
     },
+    addButtonIcon: {
+      color: isDark ? "#000000" : "#FFFFFF",
+    },
   };
 
   const yearOptions = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
@@ -309,7 +312,7 @@ const EditProfile = () => {
                 }
               }}
             >
-              <Ionicons name="add" size={24} color="#000000" />
+              <Ionicons name="add" size={24} color={dynamicStyles.addButtonIcon.color} />
             </Pressable>
           </View>
 

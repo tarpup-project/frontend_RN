@@ -1,17 +1,12 @@
-import Header from "@/components/Header";
-import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/app/contexts/ThemeContext";
-import { useRouter } from "expo-router";
+import Header from "@/components/Header";
 import { Text } from "@/components/Themedtext";
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 const HowItWorks = () => {
-      const { isDark } = useTheme();
+  const { isDark } = useTheme();
   const router = useRouter();
 
   const dynamicStyles = {
@@ -25,12 +20,19 @@ const HowItWorks = () => {
       color: isDark ? "#CCCCCC" : "#666666",
     },
     card: {
-      backgroundColor: isDark ? "#000000" : "#F5F5F5",
+      backgroundColor: isDark ? "#000000" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     grayCard: {
       backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
       borderColor: isDark ? "#333333" : "#E0E0E0",
+    },
+    supportButton: {
+      backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF",
+      borderColor: isDark ? "#333333" : "#E0E0E0",
+    },
+    supportButtonText: {
+      color: isDark ? "#FFFFFF" : "#000000",
     },
   };
 
@@ -128,8 +130,15 @@ const HowItWorks = () => {
       <ScrollView style={styles.content}>
         {/* Header */}
         <View style={styles.header}>
-          <Pressable style={styles.backButton} onPress={() => router.push("/profile")}>
-            <Ionicons name="arrow-back" size={20} color={dynamicStyles.text.color} />
+          <Pressable
+            style={styles.backButton}
+            onPress={() => router.push("/profile")}
+          >
+            <Ionicons
+              name="arrow-back"
+              size={20}
+              color={dynamicStyles.text.color}
+            />
             <Text style={[styles.backText, dynamicStyles.text]}>
               Back to Profile
             </Text>
@@ -161,7 +170,8 @@ const HowItWorks = () => {
               style={[
                 styles.stepCard,
                 dynamicStyles.card,
-                index !== gettingStartedSteps.length - 1 && styles.stepCardMargin,
+                index !== gettingStartedSteps.length - 1 &&
+                  styles.stepCardMargin,
               ]}
             >
               <View
@@ -224,17 +234,20 @@ const HowItWorks = () => {
 
           <View style={[styles.matchingCard, dynamicStyles.card]}>
             {matchingSystem.map((item, index) => (
-              <View 
-                key={item.id} 
+              <View
+                key={item.id}
                 style={[
                   styles.matchingItem,
-                  index !== matchingSystem.length - 1 && styles.matchingItemMargin
+                  index !== matchingSystem.length - 1 &&
+                    styles.matchingItemMargin,
                 ]}
               >
                 <Text style={[styles.matchingTitle, dynamicStyles.text]}>
                   {item.title}
                 </Text>
-                <Text style={[styles.matchingDescription, dynamicStyles.subtitle]}>
+                <Text
+                  style={[styles.matchingDescription, dynamicStyles.subtitle]}
+                >
                   {item.description}
                 </Text>
               </View>
@@ -272,8 +285,17 @@ const HowItWorks = () => {
             button in the header to get help from our AI assistant.
           </Text>
 
-          <Pressable style={styles.supportButton}>
-            <Text style={styles.supportButtonText}>Contact Support</Text>
+          <Pressable
+            style={[styles.supportButton, dynamicStyles.supportButton]}
+          >
+            <Text
+              style={[
+                styles.supportButtonText,
+                dynamicStyles.supportButtonText,
+              ]}
+            >
+              Contact Support
+            </Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -379,8 +401,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
   },
-  matchingItem: {
-  },
+  matchingItem: {},
   matchingItemMargin: {
     marginBottom: 20,
   },
@@ -434,17 +455,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   supportButton: {
-    backgroundColor: "#1A1A1A",
     paddingVertical: 12,
     paddingHorizontal: 32,
     borderRadius: 8,
-    borderWidth: 1,     
-  borderColor: "#333333",
+    borderWidth: 1,
     width: "100%",
     alignItems: "center",
   },
   supportButtonText: {
-    color: "#FFFFFF",
     fontSize: 15,
     fontWeight: "600",
   },
