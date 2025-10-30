@@ -31,18 +31,30 @@ const Groups = () => {
     openButtonText: {
       color: isDark ? "#000000" : "#FFFFFF",
     },
+    categoryBadge: {
+      backgroundColor: isDark ? "#FFFFFF" : "#000000",
+    },
+    categoryBadgeText: {
+      color: isDark ? "#000000" : "#FFFFFF",
+    },
+    matchBadge: {
+      backgroundColor: isDark? "#0A4D2E" : "#c3f3d5",
+    },
+    matchText: {
+      color: isDark ? "#FFFFFF" : "#000000",
+    },
   };
 
-  const categoryColors: Record<string, { bg: string; icon: string }> = {
-    Giveaway: { bg: "#FFE5CC", icon: "gift-outline" },
-    Rides: { bg: "#E6F3FF", icon: "car-outline" },
-    Study: { bg: "#E6F0FF", icon: "book-outline" },
-    Roommate: { bg: "#D5F5E3", icon: "home-outline" },
-    Sports: { bg: "#FFE6D5", icon: "basketball-outline" },
-    Events: { bg: "#FFE6F0", icon: "calendar-outline" },
-    Party: { bg: "#F0E6FF", icon: "musical-notes-outline" },
-    Dating: { bg: "#FFE6E6", icon: "heart-outline" },
-    Marketplace: { bg: "#F5E6FF", icon: "cart-outline" },
+  const categoryColors: Record<string, { icon: string }> = {
+    Giveaway: { icon: "gift-outline" },
+    Rides: { icon: "car-outline" },
+    Study: { icon: "book-outline" },
+    Roommate: { icon: "home-outline" },
+    Sports: { icon: "basketball-outline" },
+    Events: { icon: "calendar-outline" },
+    Party: { icon: "musical-notes-outline" },
+    Dating: { icon: "heart-outline" },
+    Marketplace: { icon: "cart-outline" },
   };
 
   const groups = [
@@ -119,21 +131,22 @@ const Groups = () => {
           {groups.map((group) => (
             <View key={group.id} style={[styles.groupCard, dynamicStyles.card]}>
               <View style={styles.topRow}>
-                <View style={[
-                  styles.categoryBadge,
-                  { backgroundColor: categoryColors[group.category]?.bg || "#E0E0E0" }
-                ]}>
+                <View style={[styles.categoryBadge, dynamicStyles.categoryBadge]}>
                   <Ionicons 
                     name={(categoryColors[group.category]?.icon || "pricetag-outline") as any}
                     size={12} 
-                    color="#000000" 
+                    color="#d26925"
                   />
-                  <Text style={styles.categoryText}>{group.category}</Text>
+                  <Text style={[styles.categoryText, dynamicStyles.categoryBadgeText]}>
+                    {group.category}
+                  </Text>
                 </View>
 
-                <View style={styles.matchBadge}>
-                  <Ionicons name="star" size={12} color="#00D084" />
-                  <Text style={styles.matchText}>{group.matchPercentage} match</Text>
+                <View style={[styles.matchBadge, dynamicStyles.matchBadge]}>
+                  <Ionicons name="star-outline" size={12} color={dynamicStyles.matchText.color} />
+                  <Text style={[styles.matchText, dynamicStyles.matchText]}>
+                    {group.matchPercentage} match
+                  </Text>
                 </View>
               </View>
 
@@ -256,13 +269,11 @@ const styles = StyleSheet.create({
   categoryText: {
     fontSize: 11,
     fontWeight: "600",
-    color: "#000000",
   },
   matchBadge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#D4F4E7",
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
@@ -270,7 +281,6 @@ const styles = StyleSheet.create({
   matchText: {
     fontSize: 11,
     fontWeight: "600",
-    color: "#00D084",
   },
   groupTitle: {
     fontSize: 16,
@@ -319,13 +329,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   unreadBadge: {
-    backgroundColor: "#FF4444",
+    backgroundColor: "#f7cacf",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
   },
   unreadText: {
-    color: "#FFFFFF",
+    color: "#000000",
     fontSize: 11,
     fontWeight: "600",
   },
