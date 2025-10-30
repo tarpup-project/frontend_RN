@@ -45,6 +45,10 @@ const Index = () => {
       backgroundColor: isDark ? "#000000" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
+    innerCard: {
+      backgroundColor: isDark ? "#000000" : "#FFFFFF",
+      borderColor: isDark ? "#333333" : "#E0E0E0",
+    },
     card: {
       backgroundColor: isDark ? "#000000" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
@@ -165,72 +169,95 @@ const Index = () => {
               color={dynamicStyles.text.color}
             />
             <Text style={[styles.filterTitle, dynamicStyles.text]}>
-              Filter Campus
+              Filter Campus Needs
             </Text>
 
-            <Text style={[styles.liveText, dynamicStyles.subtitle]}>Live</Text>
+            <View style={styles.realTimeBadge}>
+              <Text style={[styles.realTimeText, dynamicStyles.text]}>
+                Real-Time
+              </Text>
+            </View>
           </View>
 
-          <View style={{ position: "relative" }}>
+          <View style={[styles.innerCard, dynamicStyles.innerCard]}>
+            <Text style={[styles.universityLabel, dynamicStyles.text]}>
+              University:
+            </Text>
+
+            <View style={{ position: "relative" }}>
+              <Pressable
+                style={[styles.campusSelector, dynamicStyles.innerCard]}
+                onPress={() => setIsDropdownOpen(!isDropdownOpen)}
+              >
+                <View style={styles.campusRow}>
+                  <Ionicons
+                    name="location-outline"
+                    size={16}
+                    color={dynamicStyles.text.color}
+                  />
+                  <View style={styles.dotIndicator} />
+                  <Text style={[styles.campusText, dynamicStyles.text]}>
+                    {selectedUni}
+                  </Text>
+                  <Ionicons
+                    name={isDropdownOpen ? "chevron-up" : "chevron-down"}
+                    size={16}
+                    color={dynamicStyles.text.color}
+                  />
+                </View>
+              </Pressable>
+
+              {isDropdownOpen && (
+                <View style={[styles.dropdown, dynamicStyles.innerCard]}>
+                  {universities.map((uni, index) => (
+                    <Pressable
+                      key={index}
+                      style={[
+                        styles.dropdownItem,
+                        index !== universities.length - 1 && {
+                          borderBottomWidth: 1,
+                          borderBottomColor:
+                            dynamicStyles.innerCard.borderColor,
+                        },
+                      ]}
+                      onPress={() => {
+                        setSelectedUni(uni);
+                        setIsDropdownOpen(false);
+                      }}
+                    >
+                      <Text style={[styles.dropdownText, dynamicStyles.text]}>
+                        {uni}
+                      </Text>
+                      {uni === selectedUni && (
+                        <Ionicons
+                          name="checkmark"
+                          size={18}
+                          color={dynamicStyles.text.color}
+                        />
+                      )}
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+            </View>
+
             <Pressable
-              style={[styles.campusSelector, dynamicStyles.filterContainer]}
-              onPress={() => setIsDropdownOpen(!isDropdownOpen)}
+              style={[
+                styles.resetButton,
+                { borderColor: dynamicStyles.innerCard.borderColor },
+              ]}
             >
-              <View style={styles.campusRow}>
-                <Ionicons
-                  name="location-outline"
-                  size={16}
-                  color={dynamicStyles.text.color}
-                />
-                <View style={styles.dotIndicator} />
-                <Text style={[styles.campusText, dynamicStyles.text]}>
-                  {selectedUni}
-                </Text>
-                <Ionicons
-                  name={isDropdownOpen ? "chevron-up" : "chevron-down"}
-                  size={16}
-                  color={dynamicStyles.text.color}
-                />
-              </View>
+              <Ionicons
+                name="refresh-outline"
+                size={16}
+                color={dynamicStyles.text.color}
+              />
+              <Text style={[styles.resetText, dynamicStyles.text]}>Reset</Text>
+              <Text style={[styles.resetSubtext, dynamicStyles.subtitle]}>
+                Filtered to your university
+              </Text>
             </Pressable>
           </View>
-
-          {isDropdownOpen && (
-            <View style={[styles.dropdown, dynamicStyles.filterContainer]}>
-              {universities.map((uni, index) => (
-                <Pressable
-                  key={index}
-                  style={[
-                    styles.dropdownItem,
-                    index !== universities.length - 1 && {
-                      borderBottomWidth: 1,
-                      borderBottomColor:
-                        dynamicStyles.filterContainer.borderColor,
-                    },
-                  ]}
-                  onPress={() => {
-                    setSelectedUni(uni);
-                    setIsDropdownOpen(false);
-                  }}
-                >
-                  <Text style={[styles.dropdownText, dynamicStyles.text]}>
-                    {uni}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          )}
-
-          <Pressable style={styles.resetButton}>
-            <Ionicons
-              name="funnel-outline"
-              size={16}
-              color={dynamicStyles.text.color}
-            />
-            <Text style={[styles.resetText, dynamicStyles.text]}>
-              Resets to My University
-            </Text>
-          </Pressable>
         </View>
 
         {/* Smart Matches Section */}
@@ -444,19 +471,31 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     flex: 1,
   },
-  liveText: {
-    fontSize: 10,
-    borderRadius: 8,
+  realTimeBadge: {
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "#333333",
-    paddingHorizontal: 6,
-    paddingVertical: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  realTimeText: {
+    fontSize: 10,
+    fontWeight: "500",
+  },
+  innerCard: {
+    borderRadius: 8,
+    borderWidth: 1,
+    padding: 12,
+    gap: 12,
+  },
+  universityLabel: {
+    fontSize: 13,
+    fontWeight: "600",
   },
   campusSelector: {
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    marginBottom: 12,
   },
   campusRow: {
     flexDirection: "row",
@@ -476,11 +515,10 @@ const styles = StyleSheet.create({
   resetButton: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
     gap: 8,
-    padding: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: "#333333",
     borderRadius: 8,
   },
   dashed: {
@@ -490,7 +528,11 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   resetText: {
-    fontSize: 10,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  resetSubtext: {
+    fontSize: 11,
   },
   matchesSection: {
     marginBottom: 30,
@@ -637,16 +679,19 @@ const styles = StyleSheet.create({
   },
   dropdown: {
     position: "absolute",
-    top: 86,
-    left: 11,
-    right: 11,
+    top: 48,
+    left: 40,
+    right: 0,
     zIndex: 1000,
     borderRadius: 8,
     borderWidth: 1,
     marginTop: 4,
   },
   dropdownItem: {
-    padding: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 12,
   },
   matchesBadge: {
     paddingHorizontal: 40,
