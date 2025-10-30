@@ -9,6 +9,7 @@ import {
   Car,
   Gamepad2,
   Gift,
+  Zap,
   Heart,
   Home,
   PartyPopper,

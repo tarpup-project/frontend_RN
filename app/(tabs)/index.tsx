@@ -50,7 +50,7 @@ const Index = () => {
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     matchesBadge: {
-      backgroundColor: isDark ? "#0A0A0A" : "#E0E0E0",
+      backgroundColor: isDark ? "#1A1A1A" : "#E0E0E0",
     },
     percentageBadge: {
       backgroundColor: isDark ? "#0A0A0A" : "#E5E5E5",
