@@ -63,6 +63,12 @@ const Prompts = () => {
     requestButtonText: {
       color: isDark ? "#000000" : "#FFFFFF",
     },
+    promptCategoryBadge: {
+      backgroundColor: isDark ? "#ffefd5" : "#ffefd5",
+    },
+    promptCategoryBadgeText: {
+      color: isDark ? "#f58c2d" : "#f58c2d",
+    },
   };
 
   const categories = [
@@ -77,59 +83,16 @@ const Prompts = () => {
     { name: "Dating", icon: Heart },
   ];
 
-  const categoryConfig: Record<
-    string,
-    {
-      icon: any;
-      bgColor: string;
-      iconColor: string;
-    }
-  > = {
-    Rides: {
-      icon: Car,
-      bgColor: "#eff6ff",
-      iconColor: "#3b82f6",
-    },
-    Events: {
-      icon: Calendar,
-      bgColor: "#eef2fe",
-      iconColor: "#f3917c",
-    },
-    Roommate: {
-      icon: Home,
-      bgColor: "#D5F5E3",
-      iconColor: "#10b981",
-    },
-    Party: {
-      icon: Music,
-      bgColor: "#ebfcf5",
-      iconColor: "#55ab9f",
-    },
-    Marketplace: {
-      icon: ShoppingBag,
-      bgColor: "#faf5ff",
-      iconColor: "#a275fa",
-    },
-    Study: {
-      icon: BookOpen,
-      bgColor: "#eef2fe",
-      iconColor: "#f3917c",
-    },
-    Sports: {
-      icon: Dumbbell,
-      bgColor: "#fff7ed",
-      iconColor: "#f3917c",
-    },
-    Dating: {
-      icon: Heart,
-      bgColor: "#fcf2f8",
-      iconColor: "#f3917c",
-    },
-    Giveaways: {
-      icon: Gift,
-      bgColor: "#f0fdfa",
-      iconColor: "#55ab9f",
-    },
+  const categoryConfig: Record<string, { icon: any }> = {
+    Rides: { icon: Car },
+    Events: { icon: Calendar },
+    Roommate: { icon: Home },
+    Party: { icon: Music },
+    Marketplace: { icon: ShoppingBag },
+    Study: { icon: BookOpen },
+    Sports: { icon: Dumbbell },
+    Dating: { icon: Heart },
+    Giveaways: { icon: Gift },
   };
 
   const prompts = [
@@ -138,7 +101,8 @@ const Prompts = () => {
       category: "Sports",
       badge: "Sports",
       time: "2 days ago",
-      title: "Looking for beginner tennis partner to learn with at Louisiana Tech University.",
+      title:
+        "Looking for beginner tennis partner to learn with at Louisiana Tech University.",
       author: "by Kalyb",
     },
     {
@@ -178,7 +142,8 @@ const Prompts = () => {
       category: "Events",
       badge: "Events",
       time: "Just now",
-      title: "Starting Avengers marathon in 30 mins! Bring snacks and join us in dorm common room",
+      title:
+        "Starting Avengers marathon in 30 mins! Bring snacks and join us in dorm common room",
       author: "by Mike R.",
     },
     {
@@ -186,7 +151,8 @@ const Prompts = () => {
       category: "Roommate",
       badge: "Roommate",
       time: "1 minute ago",
-      title: "Moving out! Grey sectional couch + matching coffee table. Great for dorms/apartments",
+      title:
+        "Moving out! Grey sectional couch + matching coffee table. Great for dorms/apartments",
       author: "by Dan P.",
     },
     {
@@ -322,27 +288,19 @@ const Prompts = () => {
                   <View
                     style={[
                       styles.categoryBadge,
-                      {
-                        backgroundColor:
-                          categoryConfig[prompt.badge]?.bgColor ||
-                          "#E0E0E0",
-                      },
+                      dynamicStyles.promptCategoryBadge,
                     ]}
                   >
                     {categoryConfig[prompt.badge]?.icon &&
                       React.createElement(categoryConfig[prompt.badge].icon, {
                         size: 12,
-                        color: categoryConfig[prompt.badge].iconColor,
+                        color: "#f58c2d",
                         strokeWidth: 2,
                       })}
                     <Text
                       style={[
                         styles.badgeText,
-                        {
-                          color:
-                            categoryConfig[prompt.badge]?.iconColor ||
-                            "#000000",
-                        },
+                        dynamicStyles.promptCategoryBadgeText,
                       ]}
                     >
                       {prompt.badge}
