@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   membersText: {
-    fontSize: 12,
+    fontSize: 13,
     marginLeft: 8,
   },
   footerRow: {
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   activeText: {
-    fontSize: 12,
+    fontSize: 10,
   },
   unreadBadge: {
     paddingHorizontal: 10,
