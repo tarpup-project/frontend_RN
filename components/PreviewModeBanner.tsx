@@ -1,5 +1,6 @@
 import { useTheme } from "@/app/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
+import { Sparkle } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { Text } from "@/components/Themedtext";
 import { Pressable, StyleSheet, View } from "react-native";
@@ -19,48 +20,73 @@ const PreviewModeBanner = () => {
     subtitle: {
       color: isDark ? "#CCCCCC" : "#666666",
     },
-    button: {
+    primaryButton: {
       backgroundColor: isDark ? "#FFFFFF" : "#000000",
     },
-    buttonText: {
+    primaryButtonText: {
       color: isDark ? "#000000" : "#FFFFFF",
+    },
+    secondaryButton: {
+      backgroundColor: isDark ? "#0D0D0D" : "#FFFFFF",
+      borderColor: isDark ? "#FFFFFF" : "#000000",
+    },
+    secondaryButtonText: {
+      color: isDark ? "#FFFFFF" : "#000000",
     },
   };
 
-  const handleSignUpPress = () => {
+  const handleHowItWorksPress = () => {
+    router.push("/how-it-works");
+  };
+
+  const handleGetStartedPress = () => {
     router.push("/(auth)/Signup");
   };
 
   return (
     <View style={[styles.container, dynamicStyles.container]}>
-      <View style={styles.leftContent}>
+      <View style={styles.header}>
         <Ionicons
           name="eye-outline"
-          size={20}
+          size={24}
           color={dynamicStyles.text.color}
         />
-        <View style={styles.textContent}>
-          <View style={styles.titleRow}>
-            <Text style={styles.emoji}>👀</Text>
-            <Text style={[styles.title, dynamicStyles.text]}>Preview Mode</Text>
-          </View>
-          <Text style={[styles.subtitle, dynamicStyles.subtitle]}>
-            Sign up to unlock all features
-          </Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.emoji}>👀</Text>
+          <Text style={[styles.title, dynamicStyles.text]}>Preview Mode</Text>
+          <Sparkle size={16} color={dynamicStyles.text.color} />
         </View>
       </View>
 
+      <Text style={[styles.subtitle, dynamicStyles.subtitle]}>
+        You're exploring Tarpail! Sign up to request matches and join groups.
+      </Text>
+
       <Pressable
-        style={[styles.button, dynamicStyles.button]}
-        onPress={handleSignUpPress}
+        style={[styles.button, styles.secondaryButton, dynamicStyles.secondaryButton]}
+        onPress={handleHowItWorksPress}
       >
-        <Text style={[styles.buttonText, dynamicStyles.buttonText]}>
-          Sign Up
+        <Text style={[styles.buttonText, dynamicStyles.secondaryButtonText]}>
+          How it works
+        </Text>
+        <Ionicons
+          name="help-circle-outline"
+          size={18}
+          color={dynamicStyles.secondaryButtonText.color}
+        />
+      </Pressable>
+
+      <Pressable
+        style={[styles.button, styles.primaryButton, dynamicStyles.primaryButton]}
+        onPress={handleGetStartedPress}
+      >
+        <Text style={[styles.buttonText, dynamicStyles.primaryButtonText]}>
+          Get Started
         </Text>
         <Ionicons
           name="arrow-forward"
-          size={16}
-          color={dynamicStyles.buttonText.color}
+          size={18}
+          color={dynamicStyles.primaryButtonText.color}
         />
       </Pressable>
     </View>
@@ -69,50 +95,52 @@ const PreviewModeBanner = () => {
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 12,
-    borderRadius: 8,
+    padding: 16,
+    borderRadius: 12,
     borderWidth: 1,
     marginHorizontal: 16,
     marginBottom: 16,
+    gap: 12,
   },
-  leftContent: {
+  header: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    flex: 1,
-  },
-  textContent: {
-    flex: 1,
+    gap: 8,
   },
   titleRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    marginBottom: 2,
+    gap: 6,
+    flex: 1,
   },
   emoji: {
-    fontSize: 14,
+    fontSize: 16,
   },
   title: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "600",
   },
   subtitle: {
-    fontSize: 12,
+    fontSize: 13,
+    lineHeight: 18,
   },
   button: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderRadius: 8,
   },
+  secondaryButton: {
+    borderWidth: 1,
+  },
+  primaryButton: {
+    borderWidth: 0,
+  },
   buttonText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "600",
   },
 });
