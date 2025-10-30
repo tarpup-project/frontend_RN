@@ -3,15 +3,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Text } from "@/components/Themedtext";
 import { StatusBar } from "expo-status-bar";
-import { Pressable, StyleSheet,  View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const Header = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { isDark, toggleTheme } = useTheme();
-
-  const isAuthenticated = false;
 
   const handleChatPress = () => {
     router.push("/chat");
@@ -35,7 +33,7 @@ const Header = () => {
     chatButton: {
       backgroundColor: isDark ? "#FFFFFF" : "#000000",
     },
-    chatIcon: {
+    chatText: {
       color: isDark ? "#000000" : "#FFFFFF",
     },
   };
@@ -65,19 +63,15 @@ const Header = () => {
             style={[styles.chatButton, dynamicStyles.chatButton]}
             onPress={handleChatPress}
           >
-            <View style={styles.chatIconsWrapper}>
+            <View style={styles.chatContent}>
               <Ionicons
                 name="chatbubble-outline"
-                size={20}
-                color={dynamicStyles.chatIcon.color}
+                size={18}
+                color={dynamicStyles.chatText.color}
               />
-              {!isAuthenticated && (
-                <Ionicons
-                  name="lock-closed-outline"
-                  size={20}
-                  color={dynamicStyles.chatIcon.color}
-                />
-              )}
+              <Text style={[styles.chatText, dynamicStyles.chatText]}>
+                Chat
+              </Text>
             </View>
           </Pressable>
         </View>
@@ -108,14 +102,18 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   chatButton: {
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
   },
-  chatIconsWrapper: {
+  chatContent: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+  },
+  chatText: {
+    fontSize: 13,
+    fontWeight: "600",
   },
 });
 

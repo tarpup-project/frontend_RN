@@ -43,6 +43,12 @@ const Groups = () => {
     matchText: {
       color: isDark ? "#FFFFFF" : "#000000",
     },
+    unreadBadge: {
+      backgroundColor: isDark? "#532325" : "#f7cacf",
+    },
+    unreadText: {
+      color: isDark? "#FFFFFF" : "#000000"
+    }
   };
 
   const categoryColors: Record<string, { icon: string }> = {
@@ -192,8 +198,8 @@ const Groups = () => {
                   </Text>
                 </View>
 
-                <View style={styles.unreadBadge}>
-                  <Text style={styles.unreadText}>{group.unreadCount} new messages</Text>
+                <View style={[styles.unreadBadge, dynamicStyles.unreadBadge]}>
+                  <Text style={[styles.unreadText, dynamicStyles.unreadText]}>{group.unreadCount} new messages</Text>
                 </View>
               </View>
 
@@ -276,7 +282,7 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 6,
+    borderRadius: 12,
   },
   matchText: {
     fontSize: 11,
@@ -287,7 +293,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   groupDescription: {
-    fontSize: 13,
+    fontSize: 12,
     lineHeight: 20,
   },
   membersRow: {
@@ -329,13 +335,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   unreadBadge: {
-    backgroundColor: "#f7cacf",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
   },
   unreadText: {
-    color: "#000000",
     fontSize: 11,
     fontWeight: "600",
   },
@@ -346,11 +350,11 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 20,
     marginTop: 4,
   },
   openButtonText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "600",
   },
 });
