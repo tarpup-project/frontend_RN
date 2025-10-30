@@ -34,6 +34,10 @@ const Profile = () => {
     iconBackground: {
       backgroundColor: isDark ? "#333333" : "#F0F0F0",
     },
+    referralLinkContainer: {
+      backgroundColor: isDark ? "#0A0A0A" : "#F5F5F5",
+      borderColor: isDark ? "#333333" : "#E0E0E0",
+    },
   };
 
   const interests = [
@@ -47,7 +51,7 @@ const Profile = () => {
   const settingsOptions = [
     {
       id: 1,
-      icon: Settings, // ← Gear icon
+      icon: Settings,
       title: "Account Settings",
       hasChevron: true,
     },
@@ -109,17 +113,6 @@ const Profile = () => {
                 </View>
               </View>
             </View>
-            <Pressable
-              style={styles.editButton}
-              onPress={() => router.push("/edit-profile")}
-            >
-              <Ionicons
-                name="create-outline"
-                size={18}
-                color={dynamicStyles.text.color}
-              />
-              <Text style={[styles.editText, dynamicStyles.text]}>Edit</Text>
-            </Pressable>
           </View>
 
           <Text style={[styles.memberSince, dynamicStyles.subtitle]}>
@@ -131,8 +124,58 @@ const Profile = () => {
             onPress={() => router.push("/edit-profile")}
           >
             <Text style={[styles.completeButtonText, dynamicStyles.text]}>
-              Complete Profile Setup
+              Edit Profile
             </Text>
+          </Pressable>
+        </View>
+
+        {/* Referrals Section */}
+        <View style={[styles.referralsCard, dynamicStyles.card]}>
+          <Text style={[styles.sectionTitle, dynamicStyles.text]}>
+            Referrals
+          </Text>
+
+          <View style={styles.referralStats}>
+            <View style={[styles.iconBackground, dynamicStyles.iconBackground]}>
+              <Ionicons
+                name="people-outline"
+                size={18}
+                color={dynamicStyles.subtitle.color}
+              />
+            </View>
+            <Text style={[styles.referralCount, dynamicStyles.text]}>
+              0 Total Referrals
+            </Text>
+          </View>
+
+          <Text style={[styles.referralDescription, dynamicStyles.subtitle]}>
+            Share your unique link and earn rewards when friends join!
+          </Text>
+
+          <View
+            style={[
+              styles.referralLinkContainer,
+              dynamicStyles.referralLinkContainer,
+            ]}
+          >
+            <Text
+              style={[styles.referralLink, dynamicStyles.text]}
+              numberOfLines={1}
+            >
+              https://tarpup.com/?ref=68f0f8227769a8a
+            </Text>
+            <Pressable style={styles.copyButton}>
+              <Ionicons
+                name="copy-outline"
+                size={18}
+                color={dynamicStyles.text.color}
+              />
+            </Pressable>
+          </View>
+
+          <Pressable style={styles.shareButton}>
+            <Ionicons name="share-social-outline" size={18} color="#FFFFFF" />
+            <Text style={styles.shareButtonText}>Share</Text>
           </Pressable>
         </View>
 
@@ -445,6 +488,60 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     padding: 16,
+  },
+  referralsCard: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 24,
+  },
+  referralStats: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 12,
+  },
+  referralCount: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  referralDescription: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  referralLinkContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  referralLink: {
+    fontSize: 12,
+    flex: 1,
+  },
+  copyButton: {
+    padding: 4,
+    marginLeft: 8,
+  },
+  shareButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#5c6df7",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+  },
+  shareButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#FFFFFF",
   },
   settingLeft: {
     flexDirection: "row",
