@@ -29,14 +29,13 @@ export default function TabLayout() {
                     marginHorizontal: 4,
                     overflow: 'hidden',
                 },
-                tabBarActiveBackgroundColor: isDark ? '#1A1A1A' : '#F5F5F5',
                 tabBarInactiveBackgroundColor: isDark ? '#000000' : '#FFFFFF',
             }}
         >
             <Tabs.Screen
                 name="index"
                 options={{
-                    title: 'Spots',
+                    title: 'Spot',
                     tabBarIcon: ({ color, focused }) => (
                         <Home 
                             size={24} 
