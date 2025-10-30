@@ -106,7 +106,6 @@ const Groups = () => {
       <Header />
 
       <ScrollView style={styles.content}>
-        {/* Header Section */}
         <View style={styles.headerSection}>
           <Text style={[styles.title, dynamicStyles.text]}>Your Groups</Text>
           <Text style={[styles.subtitle, dynamicStyles.subtitle]}>
@@ -114,11 +113,9 @@ const Groups = () => {
           </Text>
         </View>
 
-        {/* Groups List */}
         <View style={styles.groupsList}>
           {groups.map((group) => (
             <View key={group.id} style={[styles.groupCard, dynamicStyles.card]}>
-              {/* Category Badges */}
               <View style={styles.badgesRow}>
                 <View
                   style={[
@@ -139,7 +136,7 @@ const Groups = () => {
                     <Text style={styles.categoryText}>{group.badges[1]}</Text>
                   </View>
                 )}
-                {/* Star Rating - moved to top right */}
+
                 <View style={styles.ratingBadge}>
                   <Ionicons name="star-outline" size={12} color="#4A7BC8" />
                   <Text style={[styles.ratingText, dynamicStyles.ratingText]}>
@@ -148,7 +145,6 @@ const Groups = () => {
                 </View>
               </View>
 
-              {/* Group Info */}
               <Text style={[styles.groupName, dynamicStyles.text]}>
                 {group.name}
               </Text>
@@ -156,7 +152,6 @@ const Groups = () => {
                 {group.description}
               </Text>
 
-              {/* Members Row */}
               <View style={styles.membersRow}>
                 <View style={styles.avatarsContainer}>
                   {group.avatarColors.slice(0, 3).map((color, index) => (
@@ -178,7 +173,7 @@ const Groups = () => {
                     {group.members} members
                   </Text>
                 </View>
-                {/* Unread Count - moved here */}
+
                 {group.unreadCount && (
                   <View style={styles.unreadBadge}>
                     <Text style={styles.unreadText}>{group.unreadCount}</Text>
@@ -186,7 +181,6 @@ const Groups = () => {
                 )}
               </View>
 
-              {/* Footer Row */}
               <View style={styles.footerRow}>
                 <View style={styles.activeRow}>
                   <Ionicons

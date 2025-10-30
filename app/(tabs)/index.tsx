@@ -267,7 +267,7 @@ const Index = () => {
         {/* Smart Matches Section */}
         <View style={styles.matchesSection}>
           <Text style={[styles.sectionTitle, dynamicStyles.text]}>
-            Smart Matches
+            Tarp AI Smart Matches
           </Text>
           <Text style={[styles.sectionSubtitle, dynamicStyles.subtitle]}>
             AI-powered connections with students
@@ -316,7 +316,7 @@ const Index = () => {
               </Text>
               <Pressable onPress={() => setShowAllRecent(!showAllRecent)}>
                 <Text style={[styles.viewAllText, dynamicStyles.subtitle]}>
-                  {showAllRecent ? "Show Less" : "View All"}
+                  {showAllRecent ? "Show Less" : "Show All"}
                 </Text>
               </Pressable>
             </View>
