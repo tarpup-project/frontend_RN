@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     paddingHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: 20,
   },
   filterTitle: {
     fontSize: 14,
