@@ -241,22 +241,26 @@ const Index = () => {
               )}
             </View>
 
-            <Pressable
-              style={[
-                styles.resetButton,
-                { borderColor: dynamicStyles.innerCard.borderColor },
-              ]}
-            >
-              <Ionicons
-                name="refresh-outline"
-                size={16}
-                color={dynamicStyles.text.color}
-              />
-              <Text style={[styles.resetText, dynamicStyles.text]}>Reset</Text>
+            <View style={styles.resetSection}>
+              <Pressable
+                style={[
+                  styles.resetButton,
+                  { borderColor: dynamicStyles.innerCard.borderColor },
+                ]}
+              >
+                <Ionicons
+                  name="refresh-outline"
+                  size={16}
+                  color={dynamicStyles.text.color}
+                />
+                <Text style={[styles.resetText, dynamicStyles.text]}>
+                  Reset
+                </Text>
+              </Pressable>
               <Text style={[styles.resetSubtext, dynamicStyles.subtitle]}>
                 Filtered to your university
               </Text>
-            </Pressable>
+            </View>
           </View>
         </View>
 
@@ -512,12 +516,17 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
   },
-  resetButton: {
+  resetSection: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+  },
+  resetButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
     borderWidth: 1,
     borderRadius: 8,
   },
