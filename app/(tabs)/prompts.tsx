@@ -37,7 +37,7 @@ const Prompts = () => {
       backgroundColor: isDark ? "#000000" : "#F9F9F9",
     },
     categoryChip: {
-      backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF",
+      backgroundColor: isDark ? "#000000" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     categoryChipActive: {
@@ -50,12 +50,12 @@ const Prompts = () => {
     categoryChipTextActive: {
       color: isDark ? "#000000" : "#FFFFFF",
     },
-    promptCard: {
-      backgroundColor: isDark ? "#0A0A0A" : "#FFFFFF",
-      borderColor: isDark ? "#333333" : "#E0E0E0",
-    },
     promptTitle: {
       color: isDark ? "#FFFFFF" : "#000000",
+    },
+    promptCard: {
+      backgroundColor: isDark ? "#000000" : "#FFFFFF",
+      borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     requestButton: {
       backgroundColor: isDark ? "#FFFFFF" : "#000000",
@@ -300,7 +300,7 @@ const Prompts = () => {
             Real-time campus needs and connections
           </Text>
 
-          {/* Stats Row */}
+          {/* Stats Row
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <Ionicons
@@ -312,7 +312,7 @@ const Prompts = () => {
                 Showing 23 live prompts from University of South Florida
               </Text>
             </View>
-          </View>
+          </View> */}
 
           <View style={styles.statItem}>
             <Ionicons
@@ -392,18 +392,7 @@ const Prompts = () => {
             .map((prompt) => (
               <View
                 key={prompt.id}
-                style={[
-                  styles.promptCard,
-                  isDark
-                    ? {
-                        backgroundColor: prompt.bgColor,
-                        borderColor: prompt.borderColor,
-                      }
-                    : {
-                        backgroundColor: prompt.lightBgColor,
-                        borderColor: prompt.lightBorderColor,
-                      },
-                ]}
+                style={[styles.promptCard, dynamicStyles.promptCard]}
               >
                 <View style={styles.cardHeader}>
                   <View style={styles.badges}>
@@ -545,10 +534,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 12,
   },
-  statsRow: {
-    gap: 8,
-    marginBottom: 4,
-  },
+  // statsRow: {
+  //   gap: 8,
+  //   marginBottom: 4,
+  // },
   statItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -590,9 +579,9 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   promptCard: {
-    padding: 10,
+    padding: 16,
     borderRadius: 12,
-    borderWidth: 2,
+    borderWidth: 1,
   },
   cardHeader: {
     flexDirection: "row",
