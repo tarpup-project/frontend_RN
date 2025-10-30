@@ -11,7 +11,7 @@ const PreviewModeBanner = () => {
 
   const dynamicStyles = {
     container: {
-      backgroundColor: isDark ? "#0D0D0D" : "#F5F5F5",
+      backgroundColor: isDark ? "#000000" : "#F5F5F5",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     text: {
@@ -27,11 +27,11 @@ const PreviewModeBanner = () => {
       color: isDark ? "#000000" : "#FFFFFF",
     },
     secondaryButton: {
-      backgroundColor: isDark ? "#0D0D0D" : "#FFFFFF",
+      backgroundColor: isDark ? "#FFFFFF" : "#000000",
       borderColor: isDark ? "#FFFFFF" : "#000000",
     },
     secondaryButtonText: {
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#000000" : "#FFFFFF",
     },
   };
 
@@ -45,22 +45,24 @@ const PreviewModeBanner = () => {
 
   return (
     <View style={[styles.container, dynamicStyles.container]}>
-      <View style={styles.header}>
+      <View style={styles.headerSection}>
         <Ionicons
           name="eye-outline"
           size={24}
           color={dynamicStyles.text.color}
+          style={styles.eyeIcon}
         />
-        <View style={styles.titleRow}>
-          <Text style={styles.emoji}>👀</Text>
-          <Text style={[styles.title, dynamicStyles.text]}>Preview Mode</Text>
-          <Sparkle size={16} color={dynamicStyles.text.color} />
+        <View style={styles.contentColumn}>
+          <View style={styles.titleRow}>
+            <Text style={styles.emoji}>👀</Text>
+            <Text style={[styles.title, dynamicStyles.text]}>Preview Mode</Text>
+            <Sparkle size={16} color="#FFD700" />
+          </View>
+          <Text style={[styles.subtitle, dynamicStyles.subtitle]}>
+            You're exploring Tarpail! Sign up to request matches and join groups.
+          </Text>
         </View>
       </View>
-
-      <Text style={[styles.subtitle, dynamicStyles.subtitle]}>
-        You're exploring Tarpail! Sign up to request matches and join groups.
-      </Text>
 
       <Pressable
         style={[styles.button, styles.secondaryButton, dynamicStyles.secondaryButton]}
@@ -102,16 +104,21 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     gap: 12,
   },
-  header: {
+  headerSection: {
     flexDirection: "row",
-    alignItems: "center",
     gap: 8,
+  },
+  eyeIcon: {
+    marginTop: 2,
+  },
+  contentColumn: {
+    flex: 1,
+    gap: 4,
   },
   titleRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    flex: 1,
   },
   emoji: {
     fontSize: 16,
@@ -129,7 +136,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    paddingVertical: 12,
+    paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 8,
   },
@@ -140,7 +147,7 @@ const styles = StyleSheet.create({
     borderWidth: 0,
   },
   buttonText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "600",
   },
 });
