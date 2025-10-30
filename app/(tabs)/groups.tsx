@@ -31,73 +31,75 @@ const Groups = () => {
     openButtonText: {
       color: isDark ? "#000000" : "#FFFFFF",
     },
-    ratingText: {
-      color: isDark ? "#000000" : "#4A7BC8",
-    },
+  };
+
+  const categoryColors: Record<string, { bg: string; icon: string }> = {
+    Giveaway: { bg: "#FFE5CC", icon: "gift-outline" },
+    Rides: { bg: "#E6F3FF", icon: "car-outline" },
+    Study: { bg: "#E6F0FF", icon: "book-outline" },
+    Roommate: { bg: "#D5F5E3", icon: "home-outline" },
+    Sports: { bg: "#FFE6D5", icon: "basketball-outline" },
+    Events: { bg: "#FFE6F0", icon: "calendar-outline" },
+    Party: { bg: "#F0E6FF", icon: "musical-notes-outline" },
+    Dating: { bg: "#FFE6E6", icon: "heart-outline" },
+    Marketplace: { bg: "#F5E6FF", icon: "cart-outline" },
   };
 
   const groups = [
     {
       id: 1,
-      name: "Downtown Ride Group",
-      description: "Regular rides to downtown Tampa for weekend activities",
+      category: "Giveaway",
+      title: "Thermo Cup",
+      description: "Giving away a thermo cup at Louisiana Tech University.",
+      members: 2,
+      unreadCount: 0,
+      matchPercentage: "70%",
+      activeTime: "Active 15 hours ago",
+      avatarColors: ["#FF6B9D", "#4A90E2"],
+    },
+    {
+      id: 2,
       category: "Rides",
-      categoryColor: "#E6D5FF",
+      title: "Downtown Ride Group",
+      description: "Regular rides to downtown Tampa for weekend activities",
       members: 4,
       unreadCount: 3,
-      rating: "92%",
+      matchPercentage: "92%",
       activeTime: "Active 2 hours ago",
       avatarColors: ["#FF6B9D", "#4A90E2", "#9C27B0"],
     },
     {
-      id: 2,
-      name: "Organic Chemistry Study Circle",
-      description: "Weekly study sessions for Organic Chemistry",
+      id: 3,
       category: "Study",
-      categoryColor: "#D5E6FF",
+      title: "Organic Chemistry Study Circle",
+      description: "Weekly study sessions for Organic Chemistry",
       members: 2,
       unreadCount: 7,
-      rating: "88%",
+      matchPercentage: "88%",
       activeTime: "Active 30 minutes ago",
       avatarColors: ["#FF6B9D", "#4A90E2"],
     },
     {
-      id: 3,
-      name: "Spring Housing Group",
-      description: "Found compatible roommates for spring semester",
+      id: 4,
       category: "Roommate",
-      categoryColor: "#D5F5E3",
-      categoryColor2: "#FFE6D5",
+      title: "Spring Housing Group",
+      description: "Found compatible roommates for spring semester",
       members: 4,
-      unreadCount: null,
-      rating: "95%",
+      unreadCount: 0,
+      matchPercentage: "95%",
       activeTime: "Active 1 day ago",
       avatarColors: ["#FF6B9D", "#4A90E2", "#9C27B0"],
-      badges: ["Roommate", "Completed"],
-    },
-    {
-      id: 4,
-      name: "Friday Night Basketball",
-      description: "Weekly basketball games every Friday evening",
-      category: "Sports",
-      categoryColor: "#FFE6D5",
-      members: 8,
-      unreadCount: 2,
-      rating: "95%",
-      activeTime: "Active 3 hours ago",
-      avatarColors: ["#FF6B9D", "#4A90E2", "#9C27B0", "#00D084"],
     },
     {
       id: 5,
-      name: "Campus Events Squad",
-      description: "Attend campus events and concerts together",
-      category: "Events",
-      categoryColor: "#FFD5E6",
-      members: 6,
-      unreadCount: 5,
-      rating: "91%",
-      activeTime: "Active 1 hour ago",
-      avatarColors: ["#FF6B9D", "#4A90E2", "#9C27B0"],
+      category: "Sports",
+      title: "Friday Night Basketball",
+      description: "Weekly basketball games every Friday evening",
+      members: 8,
+      unreadCount: 2,
+      matchPercentage: "95%",
+      activeTime: "Active 3 hours ago",
+      avatarColors: ["#FF6B9D", "#4A90E2", "#9C27B0", "#00D084"],
     },
   ];
 
@@ -107,8 +109,8 @@ const Groups = () => {
 
       <ScrollView style={styles.content}>
         <View style={styles.headerSection}>
-          <Text style={[styles.title, dynamicStyles.text]}>Your Groups</Text>
-          <Text style={[styles.subtitle, dynamicStyles.subtitle]}>
+          <Text style={[styles.pageTitle, dynamicStyles.text]}>Your Groups</Text>
+          <Text style={[styles.pageSubtitle, dynamicStyles.subtitle]}>
             AI-matched groups you've joined
           </Text>
         </View>
@@ -116,37 +118,27 @@ const Groups = () => {
         <View style={styles.groupsList}>
           {groups.map((group) => (
             <View key={group.id} style={[styles.groupCard, dynamicStyles.card]}>
-              <View style={styles.badgesRow}>
-                <View
-                  style={[
-                    styles.categoryBadge,
-                    { backgroundColor: group.categoryColor },
-                  ]}
-                >
-                  <Ionicons name="pricetag" size={12} color="#000000" />
+              <View style={styles.topRow}>
+                <View style={[
+                  styles.categoryBadge,
+                  { backgroundColor: categoryColors[group.category]?.bg || "#E0E0E0" }
+                ]}>
+                  <Ionicons 
+                    name={(categoryColors[group.category]?.icon || "pricetag-outline") as any}
+                    size={12} 
+                    color="#000000" 
+                  />
                   <Text style={styles.categoryText}>{group.category}</Text>
                 </View>
-                {group.badges && group.badges[1] && (
-                  <View
-                    style={[
-                      styles.categoryBadge,
-                      { backgroundColor: group.categoryColor2 },
-                    ]}
-                  >
-                    <Text style={styles.categoryText}>{group.badges[1]}</Text>
-                  </View>
-                )}
 
-                <View style={styles.ratingBadge}>
-                  <Ionicons name="star-outline" size={12} color="#4A7BC8" />
-                  <Text style={[styles.ratingText, dynamicStyles.ratingText]}>
-                    {group.rating}
-                  </Text>
+                <View style={styles.matchBadge}>
+                  <Ionicons name="star" size={12} color="#00D084" />
+                  <Text style={styles.matchText}>{group.matchPercentage} match</Text>
                 </View>
               </View>
 
-              <Text style={[styles.groupName, dynamicStyles.text]}>
-                {group.name}
+              <Text style={[styles.groupTitle, dynamicStyles.text]}>
+                {group.category}: {group.title}
               </Text>
               <Text style={[styles.groupDescription, dynamicStyles.subtitle]}>
                 {group.description}
@@ -173,12 +165,6 @@ const Groups = () => {
                     {group.members} members
                   </Text>
                 </View>
-
-                {group.unreadCount && (
-                  <View style={styles.unreadBadge}>
-                    <Text style={styles.unreadText}>{group.unreadCount}</Text>
-                  </View>
-                )}
               </View>
 
               <View style={styles.footerRow}>
@@ -193,25 +179,29 @@ const Groups = () => {
                   </Text>
                 </View>
 
-                <Pressable
-                  style={[styles.openButton, dynamicStyles.openButton]}
-                  onPress={() => router.push(`/group-chat/${group.id}`)}
-                >
-                  <Ionicons
-                    name="chatbubble-outline"
-                    size={16}
-                    color={dynamicStyles.openButtonText.color}
-                  />
-                  <Text
-                    style={[
-                      styles.openButtonText,
-                      dynamicStyles.openButtonText,
-                    ]}
-                  >
-                    Open
-                  </Text>
-                </Pressable>
+                <View style={styles.unreadBadge}>
+                  <Text style={styles.unreadText}>{group.unreadCount} new messages</Text>
+                </View>
               </View>
+
+              <Pressable
+                style={[styles.openButton, dynamicStyles.openButton]}
+                onPress={() => router.push(`/group-chat/${group.id}`)}
+              >
+                <Ionicons
+                  name="chatbubble-outline"
+                  size={16}
+                  color={dynamicStyles.openButtonText.color}
+                />
+                <Text
+                  style={[
+                    styles.openButtonText,
+                    dynamicStyles.openButtonText,
+                  ]}
+                >
+                  Open Chat
+                </Text>
+              </Pressable>
             </View>
           ))}
         </View>
@@ -232,17 +222,71 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 24,
   },
-  title: {
+  pageTitle: {
     fontSize: 15,
     fontWeight: "bold",
     marginBottom: 4,
   },
-  subtitle: {
+  pageSubtitle: {
     fontSize: 14,
   },
   groupsList: {
     gap: 16,
     marginBottom: 50,
+  },
+  groupCard: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 12,
+  },
+  topRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  categoryBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  categoryText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#000000",
+  },
+  matchBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#D4F4E7",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  matchText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#00D084",
+  },
+  groupTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  groupDescription: {
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  membersRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  avatarsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   avatar: {
     width: 28,
@@ -256,88 +300,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 10,
     fontWeight: "600",
-  },
-  openButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 6,
-  },
-  openButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  ratingText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  groupCard: {
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  badgesRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 12,
-  },
-  categoryBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  categoryText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#000000",
-  },
-  unreadBadge: {
-    backgroundColor: "#FF4444",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginLeft: "auto",
-  },
-  unreadText: {
-    color: "#FFFFFF",
-    fontSize: 11,
-    fontWeight: "bold",
-  },
-  groupName: {
-    fontSize: 15,
-    fontWeight: "bold",
-    marginBottom: 6,
-  },
-  groupDescription: {
-    fontSize: 14,
-    marginBottom: 12,
-    lineHeight: 20,
-  },
-  membersRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  ratingBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "#EBF3FF",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 20,
-    marginLeft: "auto",
-  },
-  avatarsContainer: {
-    flexDirection: "row",
-    alignItems: "center",
   },
   membersText: {
     fontSize: 12,
@@ -355,7 +317,32 @@ const styles = StyleSheet.create({
   },
   activeText: {
     fontSize: 12,
-  }
+  },
+  unreadBadge: {
+    backgroundColor: "#FF4444",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  unreadText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  openButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 4,
+  },
+  openButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
 });
 
 export default Groups;
