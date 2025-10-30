@@ -135,145 +135,83 @@ const Prompts = () => {
   const prompts = [
     {
       id: 1,
-      category: "Rides",
-      badge: "Rides",
-      status: "Urgent",
-      statusColor: "#FF4444",
-      time: "Just now",
-      title: "Flight leaves in 3 hours! pay $25 for ride to TPA",
-      author: "by Sarah M.",
-      bgColor: "#1F0707",
-      lightBgColor: "#F8FAFF",
-      borderColor: "#FF4444",
-      lightBorderColor: "#F0F4FF",
+      category: "Sports",
+      badge: "Sports",
+      time: "2 days ago",
+      title: "Looking for beginner tennis partner to learn with at Louisiana Tech University.",
+      author: "by Kalyb",
     },
     {
       id: 2,
-      category: "Events",
-      badge: "Events",
-      status: "Urgent",
-      statusColor: "#FF4444",
-      time: "Just now",
-      title:
-        "Starting Avengers marathon in 30 mins! Bring snacks and join us in dorm common room",
-      author: "by Mike R.",
-      bgColor: "#1F0707",
-      lightBgColor: "#FCFAFF",
-      borderColor: "#FF4444",
-      lightBorderColor: "#F8F0FF",
+      category: "Giveaways",
+      badge: "Giveaways",
+      time: "6 days ago",
+      title: "Giving away a thermo cup at Louisiana Tech University.",
+      author: "by Charles (unverified)",
     },
     {
       id: 3,
-      category: "Roommate",
-      badge: "Roommate",
-      status: "New",
-      statusColor: "#00D084",
-      time: "1 minute ago",
-      title:
-        "Moving out! Grey sectional couch + matching coffee table. Great for dorms/apartments",
-      author: "by Dan P.",
-      bgColor: "#0A1A2A",
-      lightBgColor: "#FFFEف8",
-      borderColor: "#4A90E2",
-      lightBorderColor: "#FFFBF0",
+      category: "Rides",
+      badge: "Rides",
+      time: "8 days ago",
+      title: "Looking for a ride to Dallas tomorrow.",
+      author: "by Dipson",
     },
     {
       id: 4,
-      category: "Party",
-      badge: "Party",
-      status: "New",
-      statusColor: "#00D084",
-      time: "2 minutes ago",
-      title: "House party tonight at 9pm! BYOB. DJ spinning all night",
-      author: "by Alex K.",
-      bgColor: "#1A0A2A",
-      lightBgColor: "#F8FFFD",
-      borderColor: "#9C27B0",
-      lightBorderColor: "#F0FFFA",
+      category: "Giveaways",
+      badge: "Giveaways",
+      time: "8 days ago",
+      title: "Giving away a 3-hole punch at Louisiana Tech University.",
+      author: "by Charles (unverified)",
     },
     {
       id: 5,
-      category: "Marketplace",
-      badge: "Marketplace",
-      status: "Active",
-      statusColor: "#4A90E2",
-      time: "5 minutes ago",
-      title: "Selling textbooks for Biology 101 - great condition, half price",
-      author: "by Emma L.",
-      bgColor: "#0A2A0A",
-      lightBgColor: "#FFF8FC",
-      borderColor: "#00D084",
-      lightBorderColor: "#FFF0F8",
+      category: "Giveaways",
+      badge: "Giveaways",
+      time: "8 days ago",
+      title: "Giving away a 3-ring binder at Louisiana Tech University.",
+      author: "by Charles (unverified)",
     },
     {
       id: 6,
-      category: "Study",
-      badge: "Study",
-      status: "Active",
-      statusColor: "#4A90E2",
-      time: "10 minutes ago",
-      title: "Study group for Calculus exam next week. Meet at library 3pm",
-      author: "by James T.",
-      bgColor: "#0A1A2A",
-      lightBgColor: "#FFFCF8",
-      borderColor: "#4A90E2",
-      lightBorderColor: "#FFF8F0",
+      category: "Events",
+      badge: "Events",
+      time: "Just now",
+      title: "Starting Avengers marathon in 30 mins! Bring snacks and join us in dorm common room",
+      author: "by Mike R.",
     },
     {
       id: 7,
-      category: "Sports",
-      badge: "Sports",
-      status: "Urgent",
-      statusColor: "#FF4444",
-      time: "15 minutes ago",
-      title: "Need one more player for basketball game starting in 30 mins!",
-      author: "by Chris P.",
-      bgColor: "#1F0707",
-      lightBgColor: "#FFFAF8",
-      borderColor: "#FF4444",
-      lightBorderColor: "#FFF4F0",
+      category: "Roommate",
+      badge: "Roommate",
+      time: "1 minute ago",
+      title: "Moving out! Grey sectional couch + matching coffee table. Great for dorms/apartments",
+      author: "by Dan P.",
     },
     {
       id: 8,
-      category: "Dating",
-      badge: "Dating",
-      status: "New",
-      statusColor: "#00D084",
-      time: "20 minutes ago",
-      title: "Coffee date? Looking for someone to explore campus cafes with",
-      author: "by Taylor S.",
-      bgColor: "#2A0A1A",
-      lightBgColor: "#FFF8FA",
-      borderColor: "#FF69B4",
-      lightBorderColor: "#FFF0F4",
+      category: "Party",
+      badge: "Party",
+      time: "2 minutes ago",
+      title: "House party tonight at 9pm! BYOB. DJ spinning all night",
+      author: "by Alex K.",
     },
     {
       id: 9,
-      category: "Rides",
-      badge: "Rides",
-      status: "Active",
-      statusColor: "#4A90E2",
-      time: "25 minutes ago",
-      title: "Daily carpool to downtown campus. Split gas $5/day",
-      author: "by Jordan M.",
-      bgColor: "#0A1A2A",
-      lightBgColor: "#F8FAFF",
-      borderColor: "#4A90E2",
-      lightBorderColor: "#F0F4FF",
+      category: "Marketplace",
+      badge: "Marketplace",
+      time: "5 minutes ago",
+      title: "Selling textbooks for Biology 101 - great condition, half price",
+      author: "by Emma L.",
     },
     {
       id: 10,
-      category: "Events",
-      badge: "Events",
-      status: "Active",
-      statusColor: "#4A90E2",
-      time: "30 minutes ago",
-      title: "Free pizza at student center! Come join the club fair",
-      author: "by Student Council",
-      bgColor: "#0A1A2A",
-      lightBgColor: "#FCFAFF",
-      borderColor: "#4A90E2",
-      lightBorderColor: "#F8F0FF",
+      category: "Study",
+      badge: "Study",
+      time: "10 minutes ago",
+      title: "Study group for Calculus exam next week. Meet at library 3pm",
+      author: "by James T.",
     },
   ];
 
@@ -299,20 +237,6 @@ const Prompts = () => {
           <Text style={[styles.feedSubtitle, dynamicStyles.subtitle]}>
             Real-time campus needs and connections
           </Text>
-
-          {/* Stats Row
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Ionicons
-                name="location-outline"
-                size={16}
-                color={dynamicStyles.text.color}
-              />
-              <Text style={[styles.statText, dynamicStyles.subtitle]}>
-                Showing 23 live prompts from University of South Florida
-              </Text>
-            </View>
-          </View> */}
 
           <View style={styles.statItem}>
             <Ionicons
@@ -395,44 +319,34 @@ const Prompts = () => {
                 style={[styles.promptCard, dynamicStyles.promptCard]}
               >
                 <View style={styles.cardHeader}>
-                  <View style={styles.badges}>
-                    <View
+                  <View
+                    style={[
+                      styles.categoryBadge,
+                      {
+                        backgroundColor:
+                          categoryConfig[prompt.badge]?.bgColor ||
+                          "#E0E0E0",
+                      },
+                    ]}
+                  >
+                    {categoryConfig[prompt.badge]?.icon &&
+                      React.createElement(categoryConfig[prompt.badge].icon, {
+                        size: 12,
+                        color: categoryConfig[prompt.badge].iconColor,
+                        strokeWidth: 2,
+                      })}
+                    <Text
                       style={[
-                        styles.categoryBadge,
+                        styles.badgeText,
                         {
-                          backgroundColor:
-                            categoryConfig[prompt.badge]?.bgColor ||
-                            prompt.borderColor,
+                          color:
+                            categoryConfig[prompt.badge]?.iconColor ||
+                            "#000000",
                         },
                       ]}
                     >
-                      {categoryConfig[prompt.badge]?.icon &&
-                        React.createElement(categoryConfig[prompt.badge].icon, {
-                          size: 12,
-                          color: categoryConfig[prompt.badge].iconColor,
-                          strokeWidth: 2,
-                        })}
-                      <Text
-                        style={[
-                          styles.badgeText,
-                          {
-                            color:
-                              categoryConfig[prompt.badge]?.iconColor ||
-                              "#FFFFFF",
-                          },
-                        ]}
-                      >
-                        {prompt.badge}
-                      </Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.statusBadge,
-                        { backgroundColor: prompt.statusColor },
-                      ]}
-                    >
-                      <Text style={styles.badgeText}>{prompt.status}</Text>
-                    </View>
+                      {prompt.badge}
+                    </Text>
                   </View>
                   <View style={styles.headerRight}>
                     <View style={styles.timeRow}>
@@ -534,10 +448,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 12,
   },
-  // statsRow: {
-  //   gap: 8,
-  //   marginBottom: 4,
-  // },
   statItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -553,6 +463,7 @@ const styles = StyleSheet.create({
     display: "flex",
     flexDirection: "row",
     gap: 8,
+    alignItems: "center",
   },
   timeRow: {
     flexDirection: "row",
@@ -586,13 +497,8 @@ const styles = StyleSheet.create({
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
+    alignItems: "center",
     marginBottom: 12,
-  },
-  badges: {
-    flexDirection: "row",
-    gap: 6,
-    flex: 1,
   },
   categoryBadge: {
     flexDirection: "row",
@@ -600,12 +506,7 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 4,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+    borderRadius: 6,
   },
   categoryChip: {
     flexDirection: "row",
@@ -616,19 +517,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
   },
-  newBadge: {
-    backgroundColor: "#00D084",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
   badgeText: {
-    color: "#FFFFFF",
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  newBadgeText: {
-    color: "#FFFFFF",
     fontSize: 11,
     fontWeight: "600",
   },
@@ -637,13 +526,13 @@ const styles = StyleSheet.create({
     color: "#999999",
   },
   promptTitle: {
-    fontSize: 13,
+    fontSize: 14,
     marginBottom: 8,
     lineHeight: 20,
+    fontWeight: "500",
   },
   authorText: {
     fontSize: 12,
-    marginBottom: 12,
   },
 });
 
