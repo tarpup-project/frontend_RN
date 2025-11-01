@@ -4,7 +4,7 @@
     "slug": "Tarpup",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/tarpup-dark.png",
+    "icon": "./assets/images/tarpup-light.png",
     "scheme": "rnfrontend",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,

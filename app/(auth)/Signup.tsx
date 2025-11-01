@@ -472,6 +472,9 @@ const Signup = () => {
       backgroundColor: isDark ? "#000000" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
+    signInLink: {
+      color: isDark? "#FFFFFF": "#000000"
+    }
   };
 
   const fetchUniversities = async () => {
@@ -750,7 +753,7 @@ const Signup = () => {
               Already have an account?{" "}
             </Text>
             <Pressable onPress={() => router.push("/(auth)/signin")}>
-              <Text style={styles.signInLink}>Sign in</Text>
+              <Text style={[styles.signInLink, dynamicStyles.signInLink]}>Sign in</Text>
             </Pressable>
           </View>
         </View>
@@ -781,7 +784,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   appTitle: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: "bold",
     marginTop: 16,
   },
@@ -796,7 +799,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "bold",
     marginBottom: 8,
     textAlign: "center",
@@ -900,7 +903,7 @@ const styles = StyleSheet.create({
   signInLink: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#FFFFFF",
+
   },
 });
 
