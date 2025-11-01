@@ -146,7 +146,29 @@ export const getUserData = async () => {
   return await storage.getObject(StorageKeys.USER_DATA);
 };
 
+export const saveAccessToken = async (token: string) => {
+  await storage.setSecureValue('accessToken', token);
+};
+
+export const getAccessToken = async (): Promise<string | null> => {
+  return await storage.getSecureValue('accessToken');
+};
+
+export const saveRefreshToken = async (token: string) => {
+  await storage.setSecureValue('refreshToken', token);
+};
+
+export const getRefreshToken = async (): Promise<string | null> => {
+  return await storage.getSecureValue('refreshToken');
+};
+
+export const saveTokens = async (accessToken: string, refreshToken: string) => {
+  await storage.setSecureValue('accessToken', accessToken);
+  await storage.setSecureValue('refreshToken', refreshToken);
+};
+
 export const clearUserData = async () => {
-  await deleteAuthToken();
+  await storage.deleteSecureValue('accessToken');
+  await storage.deleteSecureValue('refreshToken');
   await storage.deleteValue(StorageKeys.USER_DATA);
 };
