@@ -8,14 +8,17 @@ import {
   Pressable,
   StyleSheet,
   TextInput,
-  KeyboardAvoidingView, 
+  KeyboardAvoidingView,
   Platform,
   View,
 } from "react-native";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner-native";
 
 const SignIn = () => {
   const { isDark } = useTheme();
   const router = useRouter();
+  const { login } = useAuth();
 
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -37,31 +40,65 @@ const SignIn = () => {
     },
   };
 
-  const handleContinue = () => {
-    if (email) {
-      setIsLoading(true);
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
 
-      // Simulate sending verification code
-      setTimeout(() => {
-        setIsLoading(false);
-        router.push({
-          pathname: "/(auth)/verify-signin",
-          params: { email },
+  const handleContinue = async () => {
+    // Validation
+    if (!email) {
+      toast.error("Please enter your email address");
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await login(email);
+      console.log(" SENDING LOGIN REQUEST:", {
+        email,
+      });
+      console.log("✅ LOGIN RESPONSE:", response);
+
+      if (response.success) {
+        toast.success("Verification code sent!", {
+          description: "Check your email for the 6-digit code",
         });
-      }, 2000); // 2 second delay to show loader
+
+        setTimeout(() => {
+          router.push({
+            pathname: "/(auth)/verify-signin",
+            params: { email },
+          });
+        }, 1000);
+      }
+    } catch (error: any) {
+      console.log("SIGNUP ERROR:", error);
+      console.log(" ERROR RESPONSE:", error.response?.data);
+      console.log(" ERROR STATUS:", error.response?.status);
+
+      toast.error("Failed to send verification code", {
+        description: error?.message || "Please try again",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView 
-  style={[styles.container, dynamicStyles.container]}
-  behavior={Platform.OS === "ios" ? "padding" : "height"}
->
+    <KeyboardAvoidingView
+      style={[styles.container, dynamicStyles.container]}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
       <View style={styles.content}>
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.titleRow}>
-            {/* TODO: Add your logo image here */}
             {/* <Image source={require('./path-to-logo.png')} style={styles.logo} /> */}
             <Text style={[styles.appTitle, dynamicStyles.text]}>
               TarpAI Connect
@@ -72,7 +109,6 @@ const SignIn = () => {
           </Text>
         </View>
 
-        {/* Sign In Section */}
         <View
           style={[styles.signInSection, styles.signInBox, dynamicStyles.input]}
         >
@@ -81,7 +117,6 @@ const SignIn = () => {
             Enter your email to sign in securely
           </Text>
 
-          {/* Email Input */}
           <View style={styles.inputGroup}>
             <Text style={[styles.label, dynamicStyles.text]}>
               University Email
@@ -109,7 +144,6 @@ const SignIn = () => {
             </Text>
           </View>
 
-          {/* Continue Button */}
           <Pressable
             style={[
               styles.continueButton,
@@ -133,7 +167,6 @@ const SignIn = () => {
             )}
           </Pressable>
 
-          {/* Security Note */}
           <View style={styles.securityNote}>
             <Ionicons
               name="shield-checkmark-outline"
@@ -145,7 +178,6 @@ const SignIn = () => {
             </Text>
           </View>
 
-          {/* Sign Up Link */}
           <View style={styles.signUpContainer}>
             <Text style={[styles.signUpText, dynamicStyles.subtitle]}>
               Don't have an account?{" "}
@@ -156,7 +188,7 @@ const SignIn = () => {
           </View>
         </View>
       </View>
-      </KeyboardAvoidingView>
+    </KeyboardAvoidingView>
   );
 };
 
