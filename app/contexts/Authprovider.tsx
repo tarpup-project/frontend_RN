@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useAuthStore } from '@/state/authStore';
+import { getAccessToken } from '@/utils/storage';
 import { api } from '@/api/client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -12,13 +13,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const fetchAuthUser = async () => {
     try {
-      const accessToken = await AsyncStorage.getItem('accessToken');
+      const accessToken = await getAccessToken();
       
       if (!accessToken) {
         setUser(undefined);
         return;
       }
-
+  
       const response = await api.get('/user/auth');
       setUser(response.data.data);
     } catch (error) {
