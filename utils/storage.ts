@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
-// Storage Keys
+
 export class StorageKeys {
   static APP_THEME = 'app_theme';
   static USER_AUTH_TOKEN = 'user-token';
@@ -11,7 +11,7 @@ export class StorageKeys {
   static USER_DATA = 'user.data';
 }
 
-// Storage utility class
+
 class StorageService {
   private static instance: StorageService;
 
@@ -24,11 +24,9 @@ class StorageService {
     return this.instance;
   }
 
-  // Secure storage for auth tokens (uses Keychain on iOS, EncryptedSharedPreferences on Android)
   async setSecureValue(key: string, value: string): Promise<void> {
     try {
       if (Platform.OS === 'web') {
-        // Fallback to AsyncStorage on web
         await AsyncStorage.setItem(key, value);
       } else {
         await SecureStore.setItemAsync(key, value);
@@ -65,7 +63,7 @@ class StorageService {
     }
   }
 
-  // Regular storage for non-sensitive data
+
   async setValue(key: string, value: string): Promise<void> {
     try {
       await AsyncStorage.setItem(key, value);
@@ -93,7 +91,7 @@ class StorageService {
     }
   }
 
-  // Store object as JSON
+
   async setObject(key: string, value: any): Promise<void> {
     try {
       const jsonValue = JSON.stringify(value);
@@ -114,11 +112,10 @@ class StorageService {
     }
   }
 
-  // Clear all storage
+
   async clearAll(): Promise<void> {
     try {
       await AsyncStorage.clear();
-      // Note: SecureStore doesn't have a clear all method, need to delete keys individually
     } catch (error) {
       console.error('Error clearing storage:', error);
       throw error;
@@ -126,10 +123,9 @@ class StorageService {
   }
 }
 
-// Export singleton instance
 export const storage = StorageService.getInstance();
 
-// Helper functions for common operations
+
 export const saveAuthToken = async (token: string) => {
   await storage.setSecureValue(StorageKeys.USER_AUTH_TOKEN, token);
 };
