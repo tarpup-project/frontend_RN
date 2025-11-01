@@ -474,6 +474,12 @@ const Signup = () => {
     },
     signInLink: {
       color: isDark? "#FFFFFF": "#000000"
+    },
+    verifyCode: {
+      color: isDark? "#FFFFFF": "#000000"
+    },
+    sendButtonMain: {
+      backgroundColor: isDark ? "#FFFFFF" : "#000000"
     }
   };
 
@@ -731,16 +737,19 @@ const Signup = () => {
 
           {!isLoading ? (
             <Pressable
-              style={[
-                styles.sendButton,
-                (!fullName || !email || !university || isLoadingUniversities) &&
-                  styles.sendButtonDisabled,
-              ]}
-              onPress={handleSendVerification}
-              disabled={!fullName || !email || !university || isLoadingUniversities}
-            >
-              <Text style={styles.sendButtonText}>Send Verification Code</Text>
-            </Pressable>
+            style={[
+              styles.sendButton,
+              dynamicStyles.sendButtonMain,
+              (!fullName || !email || !university || isLoadingUniversities) &&
+                styles.sendButtonDisabled,
+            ]}
+            onPress={handleSendVerification}
+            disabled={!fullName || !email || !university || isLoadingUniversities}
+          >
+            <Text style={[styles.sendButtonText, dynamicStyles.verifyCode]}>
+              Send Verification Code
+            </Text>
+          </Pressable>
           ) : (
             <View style={styles.sendButton}>
               <ActivityIndicator color="#000000" size="small" />
@@ -874,7 +883,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   sendButton: {
-    backgroundColor: "#FFFFFF",
     height: 50,
     borderRadius: 8,
     justifyContent: "center",
