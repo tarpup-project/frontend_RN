@@ -25,7 +25,6 @@ const SignupSuccess = () => {
   };
 
   useEffect(() => {
-    // Auto-navigate to main app after 3 seconds
     const timer = setTimeout(() => {
       router.replace("/(tabs)");
     }, 3000);

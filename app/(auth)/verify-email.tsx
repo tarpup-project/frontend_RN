@@ -1,4 +1,3 @@
-
 import { useTheme } from "@/app/contexts/ThemeContext";
 import { Text } from "@/components/Themedtext";
 import { Ionicons } from "@expo/vector-icons";
@@ -13,18 +12,17 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner-native";
+import axios from "axios";
+import { UrlConstants } from "@/constants/apiUrls";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const VerifyEmail = () => {
   const { isDark } = useTheme();
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { verifyOTP, resendOTP } = useAuth();
 
   const email = params.email as string;
-  const fullName = params.fullName as string;
-  const university = params.university as string;
 
   const [verificationCode, setVerificationCode] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
@@ -58,24 +56,36 @@ const VerifyEmail = () => {
 
     setIsVerifying(true);
     try {
-      const response = await verifyOTP(email, verificationCode);
+      const response = await axios.post(
+        `${UrlConstants.baseUrl}/user/verify`,
+        {
+          email: email,
+          token: verificationCode,
+        }
+      );
 
-      if (response.success) {
-        // Show success toast
+      if (response.data.status === "success") {
+        const { accessToken, refreshToken, user } = response.data.data;
+
+        await AsyncStorage.setItem("accessToken", accessToken);
+        await AsyncStorage.setItem("refreshToken", refreshToken);
+        await AsyncStorage.setItem("user", JSON.stringify(user));
+
         toast.success("Email verified!", {
           description: "Your account has been created successfully",
         });
 
-        // Navigate to success screen
         setTimeout(() => {
           router.replace("/(auth)/signup-success");
         }, 800);
       }
     } catch (error: any) {
+      const errorMessage =
+        error?.response?.data?.message || "Invalid code. Please try again.";
+
       toast.error("Verification failed", {
-        description: error?.message || "Invalid code. Please try again.",
+        description: errorMessage,
       });
-      // Clear the input on error
       setVerificationCode("");
     } finally {
       setIsVerifying(false);
@@ -85,16 +95,25 @@ const VerifyEmail = () => {
   const handleResendCode = async () => {
     setIsResending(true);
     try {
-      const response = await resendOTP(email, 'signup');
+      const response = await axios.post(
+        `${UrlConstants.baseUrl}/user/resend-otp`,
+        {
+          email: email,
+          mode: "signup",
+        }
+      );
 
-      if (response.success) {
+      if (response.data.status === "success") {
         toast.success("Code resent!", {
           description: "Check your email for the new code",
         });
       }
     } catch (error: any) {
+      const errorMessage =
+        error?.response?.data?.message || "Please try again";
+
       toast.error("Failed to resend code", {
-        description: error?.message || "Please try again",
+        description: errorMessage,
       });
     } finally {
       setIsResending(false);
@@ -111,11 +130,8 @@ const VerifyEmail = () => {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <View style={styles.content}>
-        {/* Header */}
         <View style={styles.header}>
           <View style={styles.titleRow}>
-            {/* TODO: Add your logo image here */}
-            {/* <Image source={require('./path-to-logo.png')} style={styles.logo} /> */}
             <Text style={[styles.appTitle, dynamicStyles.text]}>
               TarpAI Connect
             </Text>
@@ -125,11 +141,9 @@ const VerifyEmail = () => {
           </Text>
         </View>
 
-        {/* Verify Email Section */}
         <View
           style={[styles.verifySection, styles.verifyBox, dynamicStyles.input]}
         >
-          {/* Email Icon - Inside Box */}
           <View style={styles.iconContainer}>
             <Ionicons
               name="mail-outline"
@@ -146,7 +160,6 @@ const VerifyEmail = () => {
           </Text>
           <Text style={[styles.email, dynamicStyles.text]}>{email}</Text>
 
-          {/* Verification Code Input */}
           <View style={styles.inputGroup}>
             <Text style={[styles.label, dynamicStyles.text]}>
               Verification Code
@@ -164,7 +177,6 @@ const VerifyEmail = () => {
             />
           </View>
 
-          {/* Verify Button */}
           {!isVerifying ? (
             <Pressable
               style={[
@@ -183,7 +195,6 @@ const VerifyEmail = () => {
             </View>
           )}
 
-          {/* Resend Code */}
           <Pressable
             style={styles.resendContainer}
             onPress={handleResendCode}
@@ -200,7 +211,6 @@ const VerifyEmail = () => {
             </Text>
           </Pressable>
 
-          {/* Change Email Address */}
           <Pressable
             style={styles.changeEmailContainer}
             onPress={handleChangeEmail}
