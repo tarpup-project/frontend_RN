@@ -2,8 +2,10 @@ import { ThemeProvider, useTheme } from "@/app/contexts/ThemeContext";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import { Toaster } from "sonner-native";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler"; 
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Text } from "react-native";
 
@@ -27,6 +29,10 @@ function RootLayoutContent() {
             backgroundColor: isDark ? '#000000' : '#FFFFFF',
           },
         }} 
+      />
+      <Toaster 
+        theme={isDark ? 'dark' : 'light'}
+        position="top-center"
       />
     </>
   );
@@ -59,10 +65,12 @@ export default function RootLayout() {
   // TextInput.defaultProps.style = { fontFamily: 'Geist-Regular' };
 
   return (
-    <SafeAreaProvider>
-      <ThemeProvider>
-        <RootLayoutContent />
-      </ThemeProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}> 
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <RootLayoutContent />
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView> 
   );
 }
