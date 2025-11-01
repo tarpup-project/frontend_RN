@@ -98,10 +98,9 @@
 // export { api };
 
 
-
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { UrlConstants } from '../constants/apiUrls';
-import { getAccessToken, getRefreshToken, saveTokens } from '../utils/storage';
+import { getAccessToken, getRefreshToken, saveTokens, clearUserData } from '../utils/storage';
 
 const api = axios.create({
   baseURL: UrlConstants.baseUrl,
@@ -130,7 +129,7 @@ const processQueue = (error: any, token: string | null = null) => {
 
 api.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
-    const token = await AsyncStorage.getItem('accessToken');
+    const token = await getAccessToken();
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -164,7 +163,7 @@ api.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      const refreshToken = await AsyncStorage.getItem('refreshToken');
+      const refreshToken = await getRefreshToken();
       
       if (!refreshToken) {
         throw new Error('No refresh token available');
@@ -177,16 +176,13 @@ api.interceptors.response.use(
       
       const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data.data;
 
-      await AsyncStorage.setItem('accessToken', newAccessToken);
-      if (newRefreshToken) {
-        await AsyncStorage.setItem('refreshToken', newRefreshToken);
-      }
+      await saveTokens(newAccessToken, newRefreshToken);
 
       processQueue(null, newAccessToken);
       return api(originalRequest);
     } catch (err) {
       processQueue(err, null);
-      await AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'user']);
+      await clearUserData();
       return Promise.reject(err);
     } finally {
       isRefreshing = false;
