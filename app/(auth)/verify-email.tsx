@@ -46,6 +46,12 @@ const VerifyEmail = () => {
     codeDisplay: {
       backgroundColor: isDark ? "#000000" : "#F5F5F5",
     },
+    verifyButton: {
+      backgroundColor: isDark ? "#FFFFFF" : "#000000"
+    },
+    verifyButtonText: {
+      color: isDark ? "#000000" : "#FFFFFF"
+    }
   };
 
   const handleVerifyEmail = async () => {
@@ -53,7 +59,9 @@ const VerifyEmail = () => {
       toast.error("Please enter the complete 6-digit code");
       return;
     }
-
+  
+    console.log("Verifying OTP:", { email, token: verificationCode });
+    
     setIsVerifying(true);
     try {
       const response = await axios.post(
@@ -63,26 +71,29 @@ const VerifyEmail = () => {
           token: verificationCode,
         }
       );
-
+  
+      console.log("Verify response:", response.data);
+  
       if (response.data.status === "success") {
-        const { accessToken, refreshToken, user } = response.data.data;
-
-        await AsyncStorage.setItem("accessToken", accessToken);
-        await AsyncStorage.setItem("refreshToken", refreshToken);
-        await AsyncStorage.setItem("user", JSON.stringify(user));
-
+        const userData = response.data.data;
+        
+        await AsyncStorage.setItem("user", JSON.stringify(userData));
+  
         toast.success("Email verified!", {
           description: "Your account has been created successfully",
         });
-
+  
         setTimeout(() => {
           router.replace("/(auth)/signup-success");
         }, 800);
       }
     } catch (error: any) {
+      console.log("Verify error:", error);
+      console.log("Error response:", error?.response?.data);
+      
       const errorMessage =
         error?.response?.data?.message || "Invalid code. Please try again.";
-
+  
       toast.error("Verification failed", {
         description: errorMessage,
       });
@@ -178,22 +189,27 @@ const VerifyEmail = () => {
           </View>
 
           {!isVerifying ? (
-            <Pressable
-              style={[
-                styles.verifyButton,
-                verificationCode.length !== 6 && styles.verifyButtonDisabled,
-              ]}
-              onPress={handleVerifyEmail}
-              disabled={verificationCode.length !== 6}
-            >
-              <Text style={styles.verifyButtonText}>Verify Email</Text>
-            </Pressable>
-          ) : (
-            <View style={styles.verifyButton}>
-              <ActivityIndicator color="#000000" size="small" />
-              <Text style={styles.verifyButtonText}> Verifying...</Text>
-            </View>
-          )}
+  <Pressable
+    style={[
+      styles.verifyButton,
+      dynamicStyles.verifyButton,
+      verificationCode.length !== 6 && styles.verifyButtonDisabled,
+    ]}
+    onPress={handleVerifyEmail}
+    disabled={verificationCode.length !== 6}
+  >
+    <Text style={[styles.verifyButtonText, dynamicStyles.verifyButtonText]}>
+      Verify Email
+    </Text>
+  </Pressable>
+) : (
+  <View style={[styles.verifyButton, dynamicStyles.verifyButton]}>
+    <ActivityIndicator color={isDark ? "#000000" : "#FFFFFF"} size="small" />
+    <Text style={[styles.verifyButtonText, dynamicStyles.verifyButtonText]}>
+      {" "}Verifying...
+    </Text>
+  </View>
+)}
 
           <Pressable
             style={styles.resendContainer}
@@ -303,7 +319,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   verifyButton: {
-    backgroundColor: "#FFFFFF",
     height: 50,
     borderRadius: 8,
     justifyContent: "center",
@@ -315,7 +330,6 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   verifyButtonText: {
-    color: "#000000",
     fontSize: 16,
     fontWeight: "600",
   },

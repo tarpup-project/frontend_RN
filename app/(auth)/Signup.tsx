@@ -751,10 +751,12 @@ const Signup = () => {
             </Text>
           </Pressable>
           ) : (
-            <View style={styles.sendButton}>
-              <ActivityIndicator color="#000000" size="small" />
-              <Text style={styles.sendButtonText}> Sending...</Text>
-            </View>
+            <View style={[styles.sendButton, dynamicStyles.sendButton]}>
+              <ActivityIndicator color={isDark ? "#000000" : "#FFFFFF"} size="small" />
+              <Text style={[styles.sendButtonText, dynamicStyles.sendButtonText]}>
+                {" "}Sending...
+              </Text>
+            </View>        
           )}
 
           <View style={styles.signInContainer}>

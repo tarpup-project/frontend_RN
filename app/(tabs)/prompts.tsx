@@ -498,10 +498,13 @@
 
 
 
+
 import { useTheme } from "@/app/contexts/ThemeContext";
 import Header from "@/components/Header";
 import PreviewModeBanner from "@/components/PreviewModeBanner";
 import { Text } from "@/components/Themedtext";
+import { usePrompts } from "@/hooks/usePrompts";
+import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import {
@@ -516,7 +519,8 @@ import {
   Music,
   ShoppingBag,
 } from "lucide-react-native";
-import React, { useState, useMemo } from "react";
+import moment from "moment";
+import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -525,10 +529,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { usePrompts } from "@/hooks/usePrompts";
-import { useAuthStore } from "@/state/authStore";
 import { toast } from "sonner-native";
-import moment from "moment";
 
 const iconMap: Record<string, any> = {
   car: Car,
@@ -545,6 +546,57 @@ const iconMap: Record<string, any> = {
 const getIconComponent = (iconName: string) => {
   const normalizedName = iconName.toLowerCase();
   return iconMap[normalizedName] || Filter;
+};
+
+const SkeletonCard = ({ isDark }: { isDark: boolean }) => {
+  const skeletonColor = isDark ? "#1A1A1A" : "#F0F0F0";
+  
+  return (
+    <View
+      style={[
+        styles.promptCard,
+        {
+          backgroundColor: isDark ? "#000000" : "#FFFFFF",
+          borderColor: isDark ? "#333333" : "#E0E0E0",
+        },
+      ]}
+    >
+      <View style={styles.cardHeader}>
+        <View style={styles.categoryBadgesContainer}>
+          <View
+            style={[
+              styles.skeletonBadge,
+              { backgroundColor: skeletonColor },
+            ]}
+          />
+          <View
+            style={[
+              styles.skeletonBadge,
+              { backgroundColor: skeletonColor },
+            ]}
+          />
+        </View>
+        <View
+          style={[
+            styles.skeletonButton,
+            { backgroundColor: skeletonColor },
+          ]}
+        />
+      </View>
+      <View
+        style={[
+          styles.skeletonTitle,
+          { backgroundColor: skeletonColor },
+        ]}
+      />
+      <View
+        style={[
+          styles.skeletonSubtitle,
+          { backgroundColor: skeletonColor },
+        ]}
+      />
+    </View>
+  );
 };
 
 const Prompts = () => {
@@ -570,8 +622,6 @@ const Prompts = () => {
     campusID: user?.isStudent ? user?.universityID : undefined,
     stateID: !user?.isStudent ? user?.stateID : undefined,
     selectedCategory: { index: selectedCategoryIndex, id: selectedCategoryId },
-    autoRefresh: true,
-    refreshInterval: 15000,
   });
 
   const dynamicStyles = {
@@ -621,7 +671,10 @@ const Prompts = () => {
     setSelectedCategoryId(categoryId);
   };
 
-  const handleRequestClick = async (promptId: string, publicGroupId?: string) => {
+  const handleRequestClick = async (
+    promptId: string,
+    publicGroupId?: string
+  ) => {
     if (!isAuthenticated) {
       toast.error("Please sign in to request");
       router.push("/(auth)/signin");
@@ -660,7 +713,10 @@ const Prompts = () => {
       <ScrollView
         style={styles.content}
         refreshControl={
-          <RefreshControl refreshing={isLoadingPrompts} onRefresh={refresh} />
+          <RefreshControl
+            refreshing={isLoadingPrompts && prompts.length > 0}
+            onRefresh={refresh}
+          />
         }
       >
         <View style={[styles.feedHeader, dynamicStyles.sectionBg]}>
@@ -784,19 +840,23 @@ const Prompts = () => {
           )}
         </View>
 
-        {isLoadingPrompts && prompts.length === 0 ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={dynamicStyles.text.color} />
-          </View>
-        ) : prompts.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={[styles.emptyText, dynamicStyles.subtitle]}>
-              No prompts found
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.promptsList}>
-            {prompts.map((prompt) => (
+        <View style={styles.promptsList}>
+          {isLoadingPrompts && prompts.length === 0 ? (
+            <>
+              <SkeletonCard isDark={isDark} />
+              <SkeletonCard isDark={isDark} />
+              <SkeletonCard isDark={isDark} />
+              <SkeletonCard isDark={isDark} />
+              <SkeletonCard isDark={isDark} />
+            </>
+          ) : prompts.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={[styles.emptyText, dynamicStyles.subtitle]}>
+                No prompts found
+              </Text>
+            </View>
+          ) : (
+            prompts.map((prompt) => (
               <View
                 key={prompt.id}
                 style={[styles.promptCard, dynamicStyles.promptCard]}
@@ -819,10 +879,7 @@ const Prompts = () => {
                             strokeWidth={2}
                           />
                           <Text
-                            style={[
-                              styles.badgeText,
-                              { color: cat.colorHex },
-                            ]}
+                            style={[styles.badgeText, { color: cat.colorHex }]}
                           >
                             {cat.name}
                           </Text>
@@ -879,9 +936,9 @@ const Prompts = () => {
                     " (unverified)"}
                 </Text>
               </View>
-            ))}
-          </View>
-        )}
+            ))
+          )}
+        </View>
       </ScrollView>
     </View>
   );
@@ -1041,11 +1098,6 @@ const styles = StyleSheet.create({
   authorText: {
     fontSize: 12,
   },
-  loadingContainer: {
-    padding: 40,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   emptyContainer: {
     padding: 40,
     alignItems: "center",
@@ -1053,6 +1105,27 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
+  },
+  skeletonBadge: {
+    width: 60,
+    height: 24,
+    borderRadius: 6,
+  },
+  skeletonButton: {
+    width: 70,
+    height: 32,
+    borderRadius: 6,
+  },
+  skeletonTitle: {
+    width: "100%",
+    height: 16,
+    borderRadius: 4,
+    marginBottom: 8,
+  },
+  skeletonSubtitle: {
+    width: "60%",
+    height: 12,
+    borderRadius: 4,
   },
 });
 
