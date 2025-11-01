@@ -1,6 +1,7 @@
 import { ThemeProvider, useTheme } from "@/app/contexts/ThemeContext";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
+import { AuthProvider } from "./contexts/Authprovider";
 import * as SplashScreen from "expo-splash-screen";
 import { Toaster } from "sonner-native";
 import { StatusBar } from "expo-status-bar";
@@ -65,6 +66,7 @@ export default function RootLayout() {
   // TextInput.defaultProps.style = { fontFamily: 'Geist-Regular' };
 
   return (
+    <AuthProvider>
     <GestureHandlerRootView style={{ flex: 1 }}> 
       <SafeAreaProvider>
         <ThemeProvider>
@@ -72,5 +74,6 @@ export default function RootLayout() {
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView> 
+    </AuthProvider>
   );
 }
