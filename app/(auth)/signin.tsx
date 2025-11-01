@@ -571,11 +571,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 8,
   },
-  emailDisplay: {
-    fontSize: 15,
-    fontWeight: "600",
-    textAlign: "center",
-  },
   signUpContainer: {
     flexDirection: "row",
     justifyContent: "center",
