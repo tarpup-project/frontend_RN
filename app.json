@@ -22,7 +22,8 @@
       },
       "backgroundColor": "#000000",
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.vector10.Tarpup"
     },
     "web": {
       "output": "static",
@@ -47,6 +48,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "b5308305-a3e0-4349-870c-b26bd1b68fa2"
+      }
     }
   }
 }
