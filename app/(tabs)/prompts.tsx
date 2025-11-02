@@ -153,7 +153,8 @@ const Prompts = () => {
 
       <ScrollView
         style={styles.content}
-        refreshControl={<RefreshControl refreshing={isLoadingPrompts && prompts.length > 0} onRefresh={refresh} />}
+        // refreshControl={<RefreshControl refreshing={isLoadingPrompts && prompts.length > 0} onRefresh={refresh} />}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={refresh} />}
       >
         <View style={[styles.feedHeader, dynamicStyles.sectionBg]}>
           <View style={styles.feedTitleRow}>
