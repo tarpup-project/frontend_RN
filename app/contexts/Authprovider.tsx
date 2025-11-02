@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useAuthStore } from '@/state/authStore';
 import { getAccessToken } from '@/utils/storage';
 import { api } from '@/api/client';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface AuthProviderProps {
   children: React.ReactNode;
