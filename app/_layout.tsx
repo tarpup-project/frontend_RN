@@ -1,40 +1,68 @@
 import { ThemeProvider, useTheme } from "@/app/contexts/ThemeContext";
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
 import { AuthProvider } from "./contexts/Authprovider";
 import * as SplashScreen from "expo-splash-screen";
 import { Toaster } from "sonner-native";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
-import { GestureHandlerRootView } from "react-native-gesture-handler"; 
+import React, { useEffect } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { Text } from "react-native";
+import { Text, View, ActivityIndicator } from "react-native";
+import { useAuthStore } from "@/state/authStore";
 
 SplashScreen.preventAutoHideAsync();
 
 function RootLayoutContent() {
   const { isDark } = useTheme();
-  
+  const { isAuthenticated, isLoading } = useAuthStore();
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
+    const inAuthGroup = segments[0] === "(auth)";
+
+    if (isAuthenticated && inAuthGroup) {
+      router.replace("/(tabs)/prompts");
+    }
+  }, [isAuthenticated, isLoading, segments, router]);
+
+  if (isLoading) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: isDark ? "#000000" : "#FFFFFF",
+        }}
+      >
+        <ActivityIndicator size="large" color={isDark ? "#FFFFFF" : "#000000"} />
+      </View>
+    );
+  }
+
   return (
     <>
-      <StatusBar 
-        style={isDark ? 'light' : 'dark'} 
-        backgroundColor={isDark ? '#000000' : '#FFFFFF'}
+      <StatusBar
+        style={isDark ? "light" : "dark"}
+        backgroundColor={isDark ? "#000000" : "#FFFFFF"}
         translucent={false}
       />
-      <Stack 
-        screenOptions={{ 
+      <Stack
+        screenOptions={{
           headerShown: false,
-          animation: 'slide_from_right',
+          animation: "slide_from_right",
           contentStyle: {
-            backgroundColor: isDark ? '#000000' : '#FFFFFF',
+            backgroundColor: isDark ? "#000000" : "#FFFFFF",
           },
-        }} 
+        }}
       />
-      <Toaster 
-        theme={isDark ? 'dark' : 'light'}
-        position="top-center"
-      />
+      <Toaster theme={isDark ? "dark" : "light"} position="top-center" />
     </>
   );
 }
@@ -59,21 +87,18 @@ export default function RootLayout() {
   // @ts-ignore
   Text.defaultProps = Text.defaultProps || {};
   // @ts-ignore
-  Text.defaultProps.style = { fontFamily: 'Geist-Regular' };
-  // @ts-ignore
-  // TextInput.defaultProps = TextInput.defaultProps || {};
-  // // @ts-ignore
-  // TextInput.defaultProps.style = { fontFamily: 'Geist-Regular' };
+  Text.defaultProps.style = { fontFamily: "Geist-Regular" };
 
   return (
     <AuthProvider>
-    <GestureHandlerRootView style={{ flex: 1 }}> 
-      <SafeAreaProvider>
-        <ThemeProvider>
-          <RootLayoutContent />
-        </ThemeProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView> 
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <ThemeProvider>
+            <RootLayoutContent />
+          </ThemeProvider>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
     </AuthProvider>
   );
 }
+

@@ -165,17 +165,6 @@ const CategoryMatches = () => {
 
       {/* Category Title */}
       <View style={styles.titleSection}>
-        <View
-          style={[styles.categoryIcon, { backgroundColor: category?.color }]}
-        >
-          {IconComponent && (
-            <IconComponent
-              size={28}
-              color={category?.iconColor}
-              strokeWidth={2}
-            />
-          )}
-        </View>
         <View style={styles.titleContent}>
           <Text style={[styles.categoryTitle, dynamicStyles.text]}>
             {category?.name}
@@ -199,11 +188,7 @@ const CategoryMatches = () => {
                 <Text style={[styles.matchName, dynamicStyles.text]}>
                   {match.name}
                 </Text>
-                <Ionicons
-                  name="arrow-forward"
-                  size={16}
-                  color={dynamicStyles.subtitle.color}
-                />
+                <Zap color="#008000" size={12} />
                 <Text style={[styles.matchName, dynamicStyles.text]}>
                   {match.partner}
                 </Text>
