@@ -34,13 +34,6 @@ const Index = () => {
   const [universities, setUniversities] = useState<University[]>([]);
   const [isLoadingUniversities, setIsLoadingUniversities] = useState(true);
 
-  // const universities = [
-  //   "University of South Florida",
-  //   "Harvard University",
-  //   "Stanford University",
-  //   "MIT",
-  //   "Yale University",
-  // ];
   const { isDark } = useTheme();
   const { isAuthenticated } = useAuthStore();
   console.log(isAuthenticated);
@@ -600,7 +593,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 14,
-    fontWeight: "bold",
+    fontWeight: "800",
     marginBottom: 4,
   },
   sectionSubtitle: {
