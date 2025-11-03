@@ -59,7 +59,7 @@ const PreviewModeBanner = () => {
             <Sparkle size={16} color="#FFD700" />
           </View>
           <Text style={[styles.subtitle, dynamicStyles.subtitle]}>
-            You're exploring Tarpail! Sign up to request matches and join groups.
+            You're exploring TarpAI! Sign up to request matches and join groups.
           </Text>
         </View>
       </View>
