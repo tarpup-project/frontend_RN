@@ -11,7 +11,11 @@
     "backgroundColor": "#000000",
     "ios": {
       "supportsTablet": true,
-      "backgroundColor": "#000000"
+      "backgroundColor": "#000000",
+      "bundleIdentifier": "com.vector10.Tarpup",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
