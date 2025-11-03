@@ -2,7 +2,11 @@ import { useTheme } from "@/app/contexts/ThemeContext";
 import Header from "@/components/Header";
 import PreviewModeBanner from "@/components/PreviewModeBanner";
 import { Text } from "@/components/Themedtext";
+import { UrlConstants } from "@/constants/apiUrls";
+import { useAuthStore } from "@/state/authStore";
+import { University } from "@/types/auth";
 import { Ionicons } from "@expo/vector-icons";
+import axios from "axios";
 import { router } from "expo-router";
 import {
   BookOpen,
@@ -14,25 +18,32 @@ import {
   PartyPopper,
   ShoppingBag,
 } from "lucide-react-native";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { useAuthStore } from "@/state/authStore";
+
+interface UniversityGroup {
+  country: string;
+  state: string;
+  universities: University[];
+}
 
 const Index = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showAllRecent, setShowAllRecent] = useState(false);
-  const [selectedUni, setSelectedUni] = useState("University of South Florida");
+  const [selectedUni, setSelectedUni] = useState<University | null>(null);
+  const [universities, setUniversities] = useState<University[]>([]);
+  const [isLoadingUniversities, setIsLoadingUniversities] = useState(true);
 
-  const universities = [
-    "University of South Florida",
-    "Harvard University",
-    "Stanford University",
-    "MIT",
-    "Yale University",
-  ];
+  // const universities = [
+  //   "University of South Florida",
+  //   "Harvard University",
+  //   "Stanford University",
+  //   "MIT",
+  //   "Yale University",
+  // ];
   const { isDark } = useTheme();
   const { isAuthenticated } = useAuthStore();
-  console.log(isAuthenticated)
+  console.log(isAuthenticated);
 
   const dynamicStyles = {
     container: {
@@ -73,6 +84,32 @@ const Index = () => {
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
   };
+
+  const fetchUniversities = async () => {
+    try {
+      setIsLoadingUniversities(true);
+
+      const response = await axios.get<{
+        status: string;
+        data: UniversityGroup[];
+      }>(`${UrlConstants.baseUrl}${UrlConstants.fetchAllUniversities}`);
+
+      const allUniversities: University[] = response.data.data.flatMap(
+        (group) => group.universities
+      );
+
+      setUniversities(allUniversities);
+    } catch (error: any) {
+      console.error("Failed to load universities:", error);
+      setUniversities([]);
+    } finally {
+      setIsLoadingUniversities(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUniversities();
+  }, []);
 
   const matchCategories = [
     {
@@ -200,7 +237,9 @@ const Index = () => {
                   />
                   <View style={styles.dotIndicator} />
                   <Text style={[styles.campusText, dynamicStyles.text]}>
-                    {selectedUni}
+                    {isLoadingUniversities
+                      ? "Loading universities..."
+                      : selectedUni?.name || "Select your university"}
                   </Text>
                   <Ionicons
                     name={isDropdownOpen ? "chevron-up" : "chevron-down"}
@@ -211,14 +250,18 @@ const Index = () => {
               </Pressable>
 
               {isDropdownOpen && (
-                <View style={[styles.dropdown, dynamicStyles.innerCard]}>
-                  {universities.map((uni, index) => (
+                <ScrollView
+                  style={[styles.dropdown, dynamicStyles.innerCard]}
+                  showsVerticalScrollIndicator={true}
+                  nestedScrollEnabled
+                  keyboardShouldPersistTaps="handled"
+                >
+                  {universities.map((uni) => (
                     <Pressable
-                      key={index}
+                      key={uni.id}
                       style={[
                         styles.dropdownItem,
-                        index !== universities.length - 1 && {
-                          borderBottomWidth: 1,
+                        {
                           borderBottomColor:
                             dynamicStyles.innerCard.borderColor,
                         },
@@ -228,19 +271,25 @@ const Index = () => {
                         setIsDropdownOpen(false);
                       }}
                     >
-                      <Text style={[styles.dropdownText, dynamicStyles.text]}>
-                        {uni}
-                      </Text>
-                      {uni === selectedUni && (
-                        <Ionicons
-                          name="checkmark"
-                          size={18}
-                          color={dynamicStyles.text.color}
-                        />
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.dropdownText, dynamicStyles.text]}>
+                          {uni.name}
+                        </Text>
+                        <Text
+                          style={[
+                            { fontSize: 12, marginTop: 2 },
+                            dynamicStyles.subtitle,
+                          ]}
+                        >
+                          {uni.city}, {uni.state}
+                        </Text>
+                      </View>
+                      {selectedUni?.id === uni.id && (
+                        <Ionicons name="checkmark" size={18} color="#00D084" />
                       )}
                     </Pressable>
                   ))}
-                </View>
+                </ScrollView>
               )}
             </View>
 
@@ -571,7 +620,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     alignItems: "center",
-    justifyContent: "center"
+    justifyContent: "center",
   },
   iconCircle: {
     width: 50,
