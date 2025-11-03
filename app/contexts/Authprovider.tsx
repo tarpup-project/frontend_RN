@@ -1,42 +1,42 @@
 import React, { useEffect } from 'react';
 import { useAuthStore } from '@/state/authStore';
-import { getAccessToken } from '@/utils/storage';
+import { getUserData, getAccessToken } from '@/utils/storage';
 import { api } from '@/api/client';
-// import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface AuthProviderProps {
   children: React.ReactNode;
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const { setUser, setLoading, initializeAuth } = useAuthStore();
-
-  const fetchAuthUser = async () => {
-    try {
-      const accessToken = await getAccessToken();
-      
-      if (!accessToken) {
-        setUser(undefined);
-        return;
-      }
-  
-      const response = await api.get('/user/auth');
-      setUser(response.data.data);
-    } catch (error) {
-      console.error('Error fetching auth user:', error);
-      setUser(undefined);
-    }
-  };
+  const { setUser, setLoading } = useAuthStore();
 
   useEffect(() => {
-    const initialize = async () => {
+    const initializeAuth = async () => {
       setLoading(true);
-      await initializeAuth();
-      await fetchAuthUser();
-      setLoading(false);
+      
+      try {
+        const userData = await getUserData();
+        const token = await getAccessToken();
+        
+        if (userData && token) {
+          try {
+            const response = await api.get('/user/auth');
+            setUser(response.data.data || response.data.user);
+          } catch (error) {
+            setUser(undefined);
+          }
+        } else {
+          setUser(undefined);
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        setUser(undefined);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    initialize();
+    initializeAuth();
   }, []);
 
   return <>{children}</>;
