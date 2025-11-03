@@ -6,12 +6,14 @@ import * as SplashScreen from "expo-splash-screen";
 import { Toaster } from "sonner-native";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Text, View, ActivityIndicator } from "react-native";
 import { useAuthStore } from "@/state/authStore";
 
 SplashScreen.preventAutoHideAsync();
+const queryClient = new QueryClient();
 
 function RootLayoutContent() {
   const { isDark } = useTheme();
@@ -90,6 +92,7 @@ export default function RootLayout() {
   Text.defaultProps.style = { fontFamily: "Geist-Regular" };
 
   return (
+    <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
@@ -99,6 +102,7 @@ export default function RootLayout() {
         </SafeAreaProvider>
       </GestureHandlerRootView>
     </AuthProvider>
+    </QueryClientProvider>
   );
 }
 
