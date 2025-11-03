@@ -4,6 +4,8 @@ import PreviewModeBanner from "@/components/PreviewModeBanner";
 import { Text } from "@/components/Themedtext";
 import { UrlConstants } from "@/constants/apiUrls";
 import { useAuthStore } from "@/state/authStore";
+import { useCampus } from '@/hooks/useCampus';
+import { useCategories } from '@/hooks/useCategories';
 import { University } from "@/types/auth";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
@@ -30,12 +32,20 @@ interface UniversityGroup {
 const Index = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showAllRecent, setShowAllRecent] = useState(false);
-  const [selectedUni, setSelectedUni] = useState<University | null>(null);
-  const [universities, setUniversities] = useState<University[]>([]);
-  const [isLoadingUniversities, setIsLoadingUniversities] = useState(true);
 
   const { isDark } = useTheme();
   const { isAuthenticated } = useAuthStore();
+  const {
+    selectedUniversity,
+    universities,
+    isLoadingUniversities,
+    setSelectedUniversity,
+    setUniversities,
+    setIsLoadingUniversities,
+    reset,
+  } = useCampus();
+  const { categories, isLoading, setCategories, setLoading } =
+    useCategories();
   console.log(isAuthenticated);
 
   const dynamicStyles = {
@@ -100,9 +110,42 @@ const Index = () => {
     }
   };
 
+  const fetchCategories = async (universityId?: string) => {
+    try {
+      setLoading(true);
+
+      const response = await axios.get(
+        `${UrlConstants.baseUrl}${UrlConstants.fetchAllCategories(
+          universityId
+        )}`
+      );
+
+      const transformedCategories = response.data.data.map((item: any) => ({
+        id: item.categoryDetails.id,
+        name: item.categoryDetails.name,
+        subtitle: item.categoryDetails.shortDesc,
+        matches: item.matches,
+        bgColor: item.categoryDetails.bgColorHex,
+        iconColor: item.categoryDetails.colorHex,
+        icon: item.categoryDetails.icon,
+      }));
+
+      setCategories(transformedCategories);
+    } catch (error: any) {
+      console.error("Failed to load categories:", error);
+      setCategories([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchUniversities();
   }, []);
+
+  useEffect(() => {
+    fetchCategories(selectedUniversity?.id);
+  }, [selectedUniversity]);
 
   const matchCategories = [
     {
@@ -232,7 +275,7 @@ const Index = () => {
                   <Text style={[styles.campusText, dynamicStyles.text]}>
                     {isLoadingUniversities
                       ? "Loading universities..."
-                      : selectedUni?.name || "Select your university"}
+                      : selectedUniversity?.name || "Select your university"}
                   </Text>
                   <Ionicons
                     name={isDropdownOpen ? "chevron-up" : "chevron-down"}
@@ -260,7 +303,7 @@ const Index = () => {
                         },
                       ]}
                       onPress={() => {
-                        setSelectedUni(uni);
+                        setSelectedUniversity(uni);
                         setIsDropdownOpen(false);
                       }}
                     >
@@ -277,7 +320,7 @@ const Index = () => {
                           {uni.city}, {uni.state}
                         </Text>
                       </View>
-                      {selectedUni?.id === uni.id && (
+                      {selectedUniversity?.id === uni.id && (
                         <Ionicons name="checkmark" size={18} color="#00D084" />
                       )}
                     </Pressable>
@@ -292,6 +335,7 @@ const Index = () => {
                   styles.resetButton,
                   { borderColor: dynamicStyles.innerCard.borderColor },
                 ]}
+                onPress={() => reset()}
               >
                 <Ionicons
                   name="refresh-outline"
@@ -319,7 +363,7 @@ const Index = () => {
           </Text>
 
           <View style={styles.cardsGrid}>
-            {matchCategories.map((category) => (
+            {categories.map((category) => (
               <Pressable
                 key={category.id}
                 style={[styles.card, dynamicStyles.card]}
