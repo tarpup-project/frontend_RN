@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "bold",
   },
   iconsContainer: {
     flexDirection: "row",
