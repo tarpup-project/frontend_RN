@@ -2,13 +2,11 @@ import { useTheme } from "@/app/contexts/ThemeContext";
 import Header from "@/components/Header";
 import PreviewModeBanner from "@/components/PreviewModeBanner";
 import { Text } from "@/components/Themedtext";
-import { UrlConstants } from "@/constants/apiUrls";
 import { useAuthStore } from "@/state/authStore";
 import { useCampus } from '@/hooks/useCampus';
 import { useCategories } from '@/hooks/useCategories';
 import { University } from "@/types/auth";
 import { Ionicons } from "@expo/vector-icons";
-import axios from "axios";
 import { router } from "expo-router";
 import {
   BookOpen,
@@ -23,11 +21,7 @@ import {
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
-interface UniversityGroup {
-  country: string;
-  state: string;
-  universities: University[];
-}
+
 
 const Index = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -35,18 +29,17 @@ const Index = () => {
 
   const { isDark } = useTheme();
   const { isAuthenticated } = useAuthStore();
-  const {
-    selectedUniversity,
-    universities,
-    isLoadingUniversities,
-    setSelectedUniversity,
-    setUniversities,
-    setIsLoadingUniversities,
-    reset,
-  } = useCampus();
-  const { categories, isLoading, setCategories, setLoading } =
-    useCategories();
+  const { selectedUniversity, setSelectedUniversity, reset } = useCampus();
+const { data: categories = [], isLoading } = useCategories(selectedUniversity?.id);
   console.log(isAuthenticated);
+
+  useEffect(() => {
+    fetchUniversities();
+  }, []);
+  
+  useEffect(() => {
+    fetchCategories(selectedUniversity?.id);
+  }, [selectedUniversity]);
 
   const dynamicStyles = {
     container: {
@@ -88,139 +81,6 @@ const Index = () => {
     },
   };
 
-  const fetchUniversities = async () => {
-    try {
-      setIsLoadingUniversities(true);
-
-      const response = await axios.get<{
-        status: string;
-        data: UniversityGroup[];
-      }>(`${UrlConstants.baseUrl}${UrlConstants.fetchAllUniversities}`);
-
-      const allUniversities: University[] = response.data.data.flatMap(
-        (group) => group.universities
-      );
-
-      setUniversities(allUniversities);
-    } catch (error: any) {
-      console.error("Failed to load universities:", error);
-      setUniversities([]);
-    } finally {
-      setIsLoadingUniversities(false);
-    }
-  };
-
-  const fetchCategories = async (universityId?: string) => {
-    try {
-      setLoading(true);
-
-      const response = await axios.get(
-        `${UrlConstants.baseUrl}${UrlConstants.fetchAllCategories(
-          universityId
-        )}`
-      );
-
-      const transformedCategories = response.data.data.map((item: any) => ({
-        id: item.categoryDetails.id,
-        name: item.categoryDetails.name,
-        subtitle: item.categoryDetails.shortDesc,
-        matches: item.matches,
-        bgColor: item.categoryDetails.bgColorHex,
-        iconColor: item.categoryDetails.colorHex,
-        icon: item.categoryDetails.icon,
-      }));
-
-      setCategories(transformedCategories);
-    } catch (error: any) {
-      console.error("Failed to load categories:", error);
-      setCategories([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchUniversities();
-  }, []);
-
-  useEffect(() => {
-    fetchCategories(selectedUniversity?.id);
-  }, [selectedUniversity]);
-
-  const matchCategories = [
-    {
-      id: 1,
-      name: "Rides",
-      subtitle: "Share rides & carpools",
-      matches: 91,
-      bgColor: "#eff6ff",
-      iconColor: "#3b82f6",
-      icon: Car,
-    },
-    {
-      id: 2,
-      name: "Roommates",
-      subtitle: "Find housing & roommates",
-      matches: 72,
-      bgColor: "#D5F5E3",
-      iconColor: "#10b981",
-      icon: Home,
-    },
-    {
-      id: 3,
-      name: "Marketplace",
-      subtitle: "Buy & sell items",
-      matches: 86,
-      bgColor: "#faf5ff",
-      iconColor: "#a275fa",
-      icon: ShoppingBag,
-    },
-    {
-      id: 4,
-      name: "Sports and Games",
-      subtitle: "Find game partners",
-      matches: 52,
-      bgColor: "#fff7ed",
-      iconColor: "#f3917c",
-      icon: Gamepad2,
-    },
-    {
-      id: 5,
-      name: "Dating",
-      subtitle: "Meet new people",
-      matches: 40,
-      bgColor: "#fcf2f8",
-      iconColor: "#f3917c",
-      icon: Heart,
-    },
-    {
-      id: 6,
-      name: "Study Groups",
-      subtitle: "Events and Social gatherings",
-      matches: 856,
-      bgColor: "#eef2fe",
-      iconColor: "#f3917c",
-      icon: BookOpen,
-    },
-    {
-      id: 7,
-      name: "Giveaways",
-      subtitle: "Free items and donations",
-      matches: 763,
-      bgColor: "#f0fdfa",
-      iconColor: "#55ab9f",
-      icon: Gift,
-    },
-    {
-      id: 8,
-      name: "Party",
-      subtitle: "Events and Social gatherings",
-      matches: 856,
-      bgColor: "#ebfcf5",
-      iconColor: "#55ab9f",
-      icon: PartyPopper,
-    },
-  ];
 
   return (
     <View style={[styles.container, dynamicStyles.container]}>
