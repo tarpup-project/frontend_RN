@@ -536,7 +536,7 @@ const styles = StyleSheet.create({
   dashed: {
     borderWidth: 1,
     borderStyle: "dashed",
-    borderRadius: 8,
+    borderRadius: 15,
     padding: 12,
   },
   resetText: {

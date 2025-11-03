@@ -14,9 +14,7 @@ import {
 import { saveAuthToken, saveUserData, clearUserData } from '../../utils/storage';
 
 export class AuthAPI {
-  /**
-   * Create new user account and send OTP
-   */
+
   static async signup(data: SignupRequest): Promise<SignupResponse> {
     const response = await api.post<{ data: { message: string } }>(
       UrlConstants.createUser,
@@ -34,9 +32,7 @@ export class AuthAPI {
     };
   }
 
-  /**
-   * Send login email to receive OTP
-   */
+
   static async login(email: string): Promise<LoginResponse> {
     const response = await api.post<LoginResponse>(UrlConstants.loginUser, {
       email,
@@ -44,9 +40,7 @@ export class AuthAPI {
     return response.data;
   }
 
-  /**
-   * Verify OTP and complete login/signup
-   */
+
   static async verifyOTP(email: string, otp: string): Promise<VerifyOTPResponse> {
     const response = await api.post<{ data: AuthUserInterface }>(UrlConstants.verifyOTP, {
       email,
