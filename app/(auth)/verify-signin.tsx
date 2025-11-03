@@ -99,7 +99,7 @@ const VerifySignIn = () => {
         }, 800);
       }
 
-      
+
     } catch (error: any) {
       const errorMessage =
         error?.response?.data?.message || "Invalid code. Please try again.";
@@ -124,6 +124,7 @@ const VerifySignIn = () => {
           mode: "signin",
         }
       );
+      console.log(email, response);
 
       if (response.data.status === "success") {
         toast.success("Code resent!", {

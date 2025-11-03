@@ -1,4 +1,4 @@
-// Authentication Types
+
 export interface AuthUserInterface {
     id: string;
     fname: string;
@@ -57,7 +57,7 @@ export interface AuthUserInterface {
     };
   }
   
-  // API Request/Response Types
+
   export interface LoginRequest {
     email: string;
   }
@@ -88,7 +88,7 @@ export interface AuthUserInterface {
     success: boolean;
   }
   
-  // Signup Types
+
   export interface SignupRequest {
     email: string;
     fullName: string;
@@ -105,4 +105,8 @@ export interface AuthUserInterface {
   export interface University {
     id: string;
     name: string;
+    city: string;
+    state: string;
+    country: string;
+    createdAt?: string;
   }
