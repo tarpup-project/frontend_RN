@@ -53,33 +53,43 @@
 //   };
 // };
 
-
-
 import { useQuery } from '@tanstack/react-query';
-import { useEffect } from 'react';
-import { useCampusStore } from '@/state/campusStore';
-import { UrlConstants } from '@/constants/apiUrls';
 import axios from 'axios';
+import { UrlConstants } from '@/constants/apiUrls';
+import { useCampusStore } from '@/state/campusStore';
+import { University } from '@/types/auth';
+
+interface UniversityGroup {
+  country: string;
+  state: string;
+  universities: University[];
+}
 
 export const useCampus = () => {
   const { selectedUniversity, setSelectedUniversity, reset } = useCampusStore();
-  const { setUniversities, setIsLoadingUniversities } = useCampusStore();
+
 
   const { data: universities = [], isLoading } = useQuery({
     queryKey: ['universities'],
     queryFn: async () => {
-      const response = await axios.get(`${UrlConstants.baseUrl}${UrlConstants.fetchAllUniversities}`);
-      return response.data.data.flatMap((group: any) => group.universities);
+      const response = await axios.get<{
+        status: string;
+        data: UniversityGroup[];
+      }>(`${UrlConstants.baseUrl}${UrlConstants.fetchAllUniversities}`);
+
+      return response.data.data.flatMap(
+        (group) => group.universities
+      );
     },
     staleTime: 5 * 60 * 1000, 
-    retry: 3,
+    retry: 2,
   });
 
-
-  useEffect(() => {
-    setUniversities(universities);
-    setIsLoadingUniversities(isLoading);
-  }, [universities, isLoading]);
-
-  return { selectedUniversity, universities, isLoading, setSelectedUniversity, reset };
+  return {
+    selectedUniversity,
+    universities,
+    isLoading,
+    setSelectedUniversity,
+    reset,
+  };
 };
