@@ -12,7 +12,7 @@ export const usePersonalSocket = (): UsePersonalSocketReturn => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const { user } = useAuthStore();
-  const reconnectTimeoutRef = useRef<number>();
+  const reconnectTimeoutRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     if (!user?.id) return;
