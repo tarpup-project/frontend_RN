@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useGroupSocket } from '../contexts/SocketProvider';
-import { useAuthStore } from '../state/authStore';
-import { api } from '../clients/api';
-import { UrlConstants } from '../constants/apiUrls';
+import { useAuthStore } from '@/state/authStore';
+import { api } from '@/api/client';
+import { UrlConstants } from '@/constants/apiUrls';
 import { 
   GroupMessage, 
   UserMessage, 
@@ -17,6 +16,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 interface UseGroupMessagesProps {
   groupId: string;
+  socket?: any;
 }
 
 interface SendMessageOptions {
@@ -25,21 +25,18 @@ interface SendMessageOptions {
   replyingTo?: UserMessage;
 }
 
-export const useGroupMessages = ({ groupId }: UseGroupMessagesProps) => {
+export const useGroupMessages = ({ groupId, socket }: UseGroupMessagesProps) => {
   const [messages, setMessages] = useState<GroupMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
-  const { socket } = useGroupSocket();
   const { user } = useAuthStore();
   const messagesRef = useRef<GroupMessage[]>([]);
 
-  // Keep messages ref in sync
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
 
-  // Join group room and load message history
   useEffect(() => {
     if (!socket || !user || !groupId) return;
 
@@ -50,16 +47,13 @@ export const useGroupMessages = ({ groupId }: UseGroupMessagesProps) => {
       });
     };
 
-    // Join room when socket connects
     if (socket.connected) {
       joinRoom();
     } else {
       socket.on(SocketEvents.CONNECT, joinRoom);
     }
 
-    // Listen for join room response with message history
     const handleJoinRoom = (data: { messages: GroupMessage[] }) => {
-      console.log(`📥 Received ${data.messages.length} messages for group ${groupId}`);
       setMessages(data.messages || []);
       setIsLoading(false);
       setError(null);
@@ -67,12 +61,8 @@ export const useGroupMessages = ({ groupId }: UseGroupMessagesProps) => {
 
     socket.on(SocketEvents.JOIN_GROUP_ROOM, handleJoinRoom);
 
-    // Listen for new messages
     const handleNewMessage = (data: SendMessagePayload) => {
-      // Only process messages for this group
       if (data.roomID !== groupId) return;
-
-      console.log('📨 New message received:', data);
 
       let newMessage: GroupMessage;
       
@@ -101,7 +91,6 @@ export const useGroupMessages = ({ groupId }: UseGroupMessagesProps) => {
       }
 
       setMessages((prevMessages) => {
-        // Avoid duplicate messages
         const exists = prevMessages.find(msg => msg.content.id === newMessage.content.id);
         if (exists) return prevMessages;
         
@@ -111,15 +100,12 @@ export const useGroupMessages = ({ groupId }: UseGroupMessagesProps) => {
 
     socket.on(SocketEvents.GROUP_ROOM_MESSAGE, handleNewMessage);
 
-    // Handle socket errors
     const handleError = (data: { message: string }) => {
-      console.error('❌ Socket error:', data);
       setError(data.message || 'Connection error');
     };
 
     socket.on(SocketEvents.ERROR, handleError);
 
-    // Cleanup listeners
     return () => {
       socket.off(SocketEvents.CONNECT, joinRoom);
       socket.off(SocketEvents.JOIN_GROUP_ROOM, handleJoinRoom);
@@ -128,7 +114,6 @@ export const useGroupMessages = ({ groupId }: UseGroupMessagesProps) => {
     };
   }, [socket, user, groupId]);
 
-  // Send message function
   const sendMessage = useCallback(async ({ 
     message, 
     file, 
@@ -157,23 +142,19 @@ export const useGroupMessages = ({ groupId }: UseGroupMessagesProps) => {
         replyingTo: replyingTo?.content.id,
       };
 
-      // Optimistically add message to UI
       const optimisticMessage: UserMessage = {
         messageType: MessageType.USER,
         content: payload.content,
         sender: payload.sender,
         file,
         replyingTo,
-        // No createdAt means it's pending
       };
 
       setMessages(prev => [...prev, optimisticMessage]);
 
-      // Send via socket with confirmation
       return new Promise((resolve) => {
         socket.emit(SocketEvents.GROUP_ROOM_MESSAGE, payload, (response: any) => {
           if (response.status === 'ok') {
-            // Update the optimistic message with server timestamp
             setMessages(prev => prev.map(msg => 
               msg.content.id === messageId 
                 ? { ...msg, createdAt: new Date().toISOString() }
@@ -181,7 +162,6 @@ export const useGroupMessages = ({ groupId }: UseGroupMessagesProps) => {
             ));
             resolve(true);
           } else {
-            // Remove optimistic message on failure
             setMessages(prev => prev.filter(msg => msg.content.id !== messageId));
             setError('Failed to send message');
             resolve(false);
@@ -190,14 +170,12 @@ export const useGroupMessages = ({ groupId }: UseGroupMessagesProps) => {
         });
       });
     } catch (err) {
-      console.error('Error sending message:', err);
       setError('Failed to send message');
       setIsSending(false);
       return false;
     }
   }, [socket, user, groupId]);
 
-  // Mark messages as read
   const markAsRead = useCallback(async () => {
     try {
       await api.post(UrlConstants.markGroupMessageAsRead(groupId));
@@ -206,10 +184,7 @@ export const useGroupMessages = ({ groupId }: UseGroupMessagesProps) => {
     }
   }, [groupId]);
 
-  // Scroll to message by ID
   const scrollToMessage = useCallback((messageId: string) => {
-    // This will be handled by the UI component
-    // Return the message index for scrolling
     const messageIndex = messages.findIndex(msg => msg.content.id === messageId);
     return messageIndex;
   }, [messages]);
@@ -222,17 +197,14 @@ export const useGroupMessages = ({ groupId }: UseGroupMessagesProps) => {
     sendMessage,
     markAsRead,
     scrollToMessage,
-    // Utility functions
     clearError: () => setError(null),
     retryConnection: () => {
       setError(null);
       setIsLoading(true);
-      // Socket will auto-reconnect
     },
   };
 };
 
-// Helper hook for managing message replies
 export const useMessageReply = () => {
   const [replyingTo, setReplyingTo] = useState<UserMessage | undefined>();
 
@@ -251,7 +223,6 @@ export const useMessageReply = () => {
   };
 };
 
-// Helper function to format time ago
 export const formatTimeAgo = (dateString: string): string => {
   const now = new Date();
   const date = new Date(dateString);
