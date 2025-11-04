@@ -12,7 +12,7 @@ import {
   MessageContent
 } from '../types/groups';
 import { SocketEvents } from '../types/socket';
-import { v4 as uuidv4 } from 'uuid';
+
 
 interface UseGroupMessagesProps {
   groupId: string;
