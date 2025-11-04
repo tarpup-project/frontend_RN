@@ -443,11 +443,11 @@ import {
   Image,
 } from "react-native";
 import { GroupSocketProvider } from "@/app/contexts/SocketProvider";
-import { useGroupMessages, useMessageReply } from "@/app/hooks/useGroupMessages";
-import { useGroupDetails, useGroupActions } from "@/app/hooks/useGroups";
-import { useFileUpload } from "@/app/hooks/useFileUpload";
-import { useAuthStore } from "@/app/state/authStore";
-import { UserMessage, MessageType } from "@/app/types/groups";
+import { useGroupMessages, useMessageReply } from "@/hooks/useGroupMessages";
+import { useGroupDetails, useGroupActions } from "@/hooks/useGroups";
+import { useFileUpload } from "@/hooks/useFileUpload";
+import { useAuthStore } from "@/state/authStore";
+import { UserMessage, MessageType } from "@/types/groups";
 
 // Main Group Chat Component with Socket Provider
 const GroupChat = () => {
