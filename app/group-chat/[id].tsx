@@ -647,7 +647,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
 
   // Error state
   if (groupError || error) {
-    return <ErrorScreen message={groupError || error || "Failed to load chat"} />;
+    return <ErrorScreen message={String(groupError || error || "Failed to load chat")} />;
   }
 
   if (!groupDetails) {

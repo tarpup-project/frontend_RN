@@ -371,13 +371,11 @@ import { router } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View, RefreshControl, ActivityIndicator, Image } from "react-native";
 import { useGroups, transformGroupForUI } from "@/hooks/useGroups";
 import { useCampus } from "@/hooks/useCampus";
-import { useAuthStore } from "@/state/authStore";
 
 const Groups = () => {
   const { isDark } = useTheme();
   const { data: groups, isLoading, isError, refetch, isRefetching } = useGroups();
-  const { selectedCampus } = useCampus();
-  const { user } = useAuthStore();
+  const { selectedUniversity } = useCampus();
 
   const dynamicStyles = {
     container: {
@@ -514,7 +512,7 @@ const Groups = () => {
           <Text style={[styles.pageTitle, dynamicStyles.text]}>Your Groups</Text>
           <Text style={[styles.pageSubtitle, dynamicStyles.subtitle]}>
             AI-matched groups you've joined
-            {selectedCampus && ` • ${selectedCampus.name}`}
+            {selectedUniversity && ` • ${selectedUniversity.name}`}
           </Text>
         </View>
 
@@ -524,7 +522,7 @@ const Groups = () => {
               <View style={styles.topRow}>
                 <View style={[styles.categoryBadge, dynamicStyles.categoryBadge]}>
                   <Ionicons 
-                    name={group.categoryIcon}
+                    name={group.categoryIcon as any}
                     size={12} 
                     color="#d26925"
                   />

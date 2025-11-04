@@ -1,10 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/api/client';
-import { UrlConstants } from '../constants/apiUrls';
+import { UrlConstants } from '@/constants/apiUrls';
 import { useCampus } from './useCampus';
-import { Group, GroupsResponse } from '../types/groups';
+import { Group, GroupsResponse } from '@/types/groups';
 
-// Query Keys
 export const groupsKeys = {
   all: ['groups'] as const,
   lists: () => [...groupsKeys.all, 'list'] as const,
@@ -13,7 +12,6 @@ export const groupsKeys = {
   detail: (id: string) => [...groupsKeys.details(), id] as const,
 };
 
-// Fetch Groups Function
 const fetchGroups = async (campusId?: string): Promise<Group[]> => {
   const response = await api.get<GroupsResponse>(
     UrlConstants.fetchAllGroups(campusId)
@@ -21,23 +19,21 @@ const fetchGroups = async (campusId?: string): Promise<Group[]> => {
   return response.data.data;
 };
 
-// useGroups Hook
 export const useGroups = () => {
-  const { selectedCampus } = useCampus();
+  const { selectedUniversity } = useCampus();
   
   return useQuery({
-    queryKey: groupsKeys.list(selectedCampus?.id),
-    queryFn: () => fetchGroups(selectedCampus?.id),
-    enabled: !!selectedCampus?.id, // Only fetch when campus is selected
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    refetchInterval: 1000 * 15, // Refetch every 15 seconds (like web app)
+    queryKey: groupsKeys.list(selectedUniversity?.id),
+    queryFn: () => fetchGroups(selectedUniversity?.id),
+    enabled: !!selectedUniversity?.id,
+    staleTime: 1000 * 60 * 5,
+    refetchInterval: 1000 * 15,
     refetchOnWindowFocus: true,
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 };
 
-// Fetch Single Group Details
 const fetchGroupDetails = async (groupId: string): Promise<Group> => {
   const response = await api.get<{ data: Group }>(
     UrlConstants.fetchInviteGroupDetails(groupId)
@@ -45,33 +41,28 @@ const fetchGroupDetails = async (groupId: string): Promise<Group> => {
   return response.data.data;
 };
 
-// useGroupDetails Hook
 export const useGroupDetails = (groupId: string) => {
   return useQuery({
     queryKey: groupsKeys.detail(groupId),
     queryFn: () => fetchGroupDetails(groupId),
     enabled: !!groupId,
-    staleTime: 1000 * 60 * 2, // 2 minutes
+    staleTime: 1000 * 60 * 2,
     retry: 3,
   });
 };
 
-// Mark Group Messages as Read
 const markGroupAsRead = async (groupId: string): Promise<void> => {
   await api.post(UrlConstants.markGroupMessageAsRead(groupId));
 };
 
-// Leave Group
 const leaveGroup = async (groupId: string): Promise<void> => {
   await api.post(UrlConstants.leaveGroup, { groupID: groupId });
 };
 
-// Join Group
 const joinGroup = async (groupId: string): Promise<void> => {
   await api.post(UrlConstants.fetchInviteGroupDetails(groupId), {});
 };
 
-// Custom mutations for group actions
 export const useGroupActions = () => {
   return {
     markAsRead: markGroupAsRead,
@@ -80,7 +71,6 @@ export const useGroupActions = () => {
   };
 };
 
-// Transform group data for UI
 export const transformGroupForUI = (group: Group) => {
   return {
     id: group.id,
@@ -98,11 +88,10 @@ export const transformGroupForUI = (group: Group) => {
       return colors[index % colors.length];
     }),
     categoryIcon: getCategoryIcon(group.category[0]?.icon),
-    rawGroup: group, // Keep original data for detailed operations
+    rawGroup: group,
   };
 };
 
-// Utility Functions
 const getTimeAgo = (dateString: string): string => {
   const now = new Date();
   const date = new Date(dateString);
@@ -121,8 +110,8 @@ const getTimeAgo = (dateString: string): string => {
   }
 };
 
-const getCategoryIcon = (iconName?: string): keyof typeof import('@expo/vector-icons/Ionicons')['glyphMap'] => {
-  const iconMap: Record<string, keyof typeof import('@expo/vector-icons/Ionicons')['glyphMap']> = {
+const getCategoryIcon = (iconName?: string): string => {
+  const iconMap: Record<string, string> = {
     'gift': 'gift-outline',
     'car': 'car-outline', 
     'book': 'book-outline',
