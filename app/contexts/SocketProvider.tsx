@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { UrlConstants } from '../constants/apiUrls';
-import { api } from '../clients/api';
-import { useAuthStore } from '../state/authStore';
-import { SocketInterface, SocketState, SocketEvents } from '../types/socket';
+import { UrlConstants } from '@/constants/apiUrls';
+import { api } from '@/api/client';
+import { useAuthStore } from '@/state/authStore';
+import { SocketInterface, SocketState, SocketEvents } from '@/types/socket';
 
 // Socket Context
 const SocketContext = createContext<SocketInterface | undefined>(undefined);

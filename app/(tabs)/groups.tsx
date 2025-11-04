@@ -369,9 +369,9 @@ import { Text } from "@/components/Themedtext";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View, RefreshControl, ActivityIndicator, Image } from "react-native";
-import { useGroups, transformGroupForUI } from "@/app/hooks/useGroups";
-import { useCampus } from "@/app/hooks/useCampus";
-import { useAuthStore } from "@/app/state/authStore";
+import { useGroups, transformGroupForUI } from "@/hooks/useGroups";
+import { useCampus } from "@/hooks/useCampus";
+import { useAuthStore } from "@/state/authStore";
 
 const Groups = () => {
   const { isDark } = useTheme();

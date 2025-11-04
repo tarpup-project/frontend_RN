@@ -10,9 +10,9 @@ import {
   Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { UserMessage, AlertMessage, MessageType, MessageFile } from '@/app/types/groups';
-import { Group } from '@/app/types/groups';
-import { formatTimeAgo, formatFileSize } from '@/app/hooks/useFileUpload';
+import { UserMessage, AlertMessage, MessageType, MessageFile, Group } from '@/types/groups';
+import {  formatFileSize } from '@/hooks/useFileUpload';
+import { formatTimeAgo } from "@/hooks/useGroupMessages"
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
