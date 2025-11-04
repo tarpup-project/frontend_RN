@@ -20,6 +20,8 @@ export const usePrompts = (params?: UsePromptsParams) => {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
+  
+
   // Fetch categories
   const fetchCategories = useCallback(async () => {
     setIsLoadingCategories(true);
@@ -37,6 +39,14 @@ export const usePrompts = (params?: UsePromptsParams) => {
 
   // Fetch prompts
   const fetchPrompts = useCallback(async () => {
+
+    console.log('Fetching prompts with params:', {
+      campusID: params?.campusID,
+      stateID: params?.stateID,
+      categoryID: params?.selectedCategory?.id,
+    });
+
+    
     setIsLoadingPrompts(true);
     setError(null);
     try {
