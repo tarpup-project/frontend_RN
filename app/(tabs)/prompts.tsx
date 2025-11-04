@@ -135,7 +135,7 @@ const Prompts = () => {
     publicGroupId?: string
   ) => {
     if (!isAuthenticated) {
-      toast.error("Please sign in to request");
+      toast.error("Please sign in to request access to groups");
       router.push("/(auth)/signin");
       return;
     }
@@ -147,7 +147,7 @@ const Prompts = () => {
       } else {
         await submitRequest(promptId);
         toast.success("Request submitted!");
-        router.push("/request-chat");
+        router.push("/chat");
       }
     } catch (err: any) {
       toast.error(err?.message || "Failed to submit request");
