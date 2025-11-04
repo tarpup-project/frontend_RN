@@ -101,6 +101,13 @@ const Prompts = () => {
     selectedCategory: { index: selectedCategoryIndex, id: selectedCategoryId },
   });
 
+
+  console.log('Debug prompts:', { 
+    isLoadingPrompts, 
+    prompts: prompts.length, 
+    isLoadingCategories,
+    categories: categories.length 
+  });
   const dynamicStyles = {
     container: { backgroundColor: isDark ? "#000000" : "#FFFFFF" },
     text: { color: isDark ? "#FFFFFF" : "#000000" },
