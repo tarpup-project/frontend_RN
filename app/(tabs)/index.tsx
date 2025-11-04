@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
 import { useCampus } from "@/hooks/useCampus";
 import { useCategories } from "@/hooks/useCategories";
+import { useRecentMatches } from "@/hooks/useRecentMatches";
 import { useAuthStore } from "@/state/authStore";
 import { Category } from "@/types/prompts";
 import { Ionicons } from "@expo/vector-icons";
@@ -19,8 +20,9 @@ import {
   PartyPopper,
   ShoppingBag,
 } from "lucide-react-native";
+import moment from "moment";
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 const getIconComponent = (iconName: string) => {
   const iconMap: { [key: string]: any } = {
@@ -122,10 +124,14 @@ const Index = () => {
     reset,
   } = useCampus();
 
+  const { data: recentMatchesData, isLoading: isLoadingRecentMatches } =
+    useRecentMatches(
+      selectedUniversity?.id,
+      !selectedUniversity ? undefined : undefined
+    );
+
   const { data: categories = [], isLoading: isLoadingCategories } =
     useCategories(selectedUniversity?.id);
-
-  console.log(isAuthenticated);
 
   const dynamicStyles = {
     container: {
@@ -175,7 +181,6 @@ const Index = () => {
       </View>
 
       <ScrollView style={styles.content}>
-        {/* Filter Campus Section */}
         <View
           style={[
             styles.filterSection,
@@ -310,7 +315,6 @@ const Index = () => {
           </View>
         </View>
 
-        {/* Smart Matches Section */}
         <View style={styles.matchesSection}>
           <Text style={[styles.sectionTitle, dynamicStyles.text]}>
             Tarp AI Smart Matches
@@ -319,7 +323,6 @@ const Index = () => {
             AI-powered connections with students
           </Text>
 
-          {/* Categories with Skeleton Loading */}
           {isLoadingCategories ? (
             <View style={styles.cardsGrid}>
               {Array.from({ length: 8 }).map((_, i) => (
@@ -383,96 +386,107 @@ const Index = () => {
               </Pressable>
             </View>
 
-            {/* Recent Matches with Skeleton Loading */}
-            {isLoadingCategories ? (
+            {isLoadingRecentMatches ? (
               <>
                 {Array.from({ length: 3 }).map((_, i) => (
                   <RecentMatchSkeleton key={i} />
                 ))}
               </>
-            ) : (
-              [
-                {
-                  id: 1,
-                  title: "63 new in Rides",
-                  users: 3,
-                  match: "96%",
-                  icon: Car,
-                  color: "#E6D5FF",
-                  time: "Just now",
-                },
-                {
-                  id: 2,
-                  title: "51 new in Giveaways",
-                  users: 3,
-                  match: "89%",
-                  icon: Gift,
-                  color: "#D5F5E3",
-                  time: "Just now",
-                },
-                {
-                  id: 3,
-                  title: "71 new in Party",
-                  users: 3,
-                  match: "93%",
-                  icon: PartyPopper,
-                  color: "#FFD5E6",
-                  time: "Just now",
-                },
-                {
-                  id: 4,
-                  title: "67 new in Study Groups",
-                  users: 3,
-                  match: "95%",
-                  icon: BookOpen,
-                  color: "#FFF9D5",
-                  time: "Just now",
-                },
-              ]
-                .slice(0, showAllRecent ? 4 : 3)
-                .map((match) => (
+            ) : recentMatchesData?.allMatches &&
+              recentMatchesData.allMatches.length > 0 ? (
+              recentMatchesData.allMatches
+                .slice(
+                  0,
+                  showAllRecent ? recentMatchesData.allMatches.length : 3
+                )
+                .map((match, matchIndex) => (
                   <Pressable
-                    key={match.id}
+                    key={`${match.id}-${match.categoryDetails.id}-${matchIndex}`}
                     style={[styles.recentCard, dynamicStyles.card]}
-                    onPress={() => console.log(`Maps to ${match.title}`)}
+                    onPress={() =>
+                      console.log(`Maps to ${match.categoryDetails.name}`)
+                    }
                   >
                     <View
                       style={[
                         styles.recentIconCircle,
-                        { backgroundColor: match.color },
+                        { backgroundColor: match.categoryDetails.bgColorHex },
                       ]}
                     >
-                      <match.icon size={20} color="#000000" strokeWidth={2} />
+                      {(() => {
+                        const IconComponent = getIconComponent(
+                          match.categoryDetails.icon
+                        );
+                        return (
+                          <IconComponent
+                            size={20}
+                            color={match.categoryDetails.colorHex}
+                            strokeWidth={2}
+                          />
+                        );
+                      })()}
                     </View>
                     <View style={styles.recentContent}>
                       <Text style={[styles.recentTitle, dynamicStyles.text]}>
-                        {match.title}
+                        {match.matches.length} new matches in{" "}
+                        {match.categoryDetails.name}
                       </Text>
                       <View style={styles.recentUsers}>
-                        {[...Array(match.users)].map((_, i) => (
-                          <View
-                            key={i}
-                            style={[
-                              styles.userAvatar,
-                              dynamicStyles.avatarBorder,
-                              i > 0 && { marginLeft: -8 },
-                            ]}
-                          >
-                            <Text style={styles.avatarText}>
-                              {String.fromCharCode(65 + i)}
-                            </Text>
-                          </View>
-                        ))}
+                        <View
+                          style={{
+                            position: "relative",
+                            flexDirection: "row",
+                            height: 25,
+                            width:
+                              match.members.length > 3
+                                ? 75
+                                : match.members.length * 25,
+                          }}
+                        >
+                          {match.members.slice(0, 3).map((member, index) => (
+                            <View
+                              key={`${match.id}-${member.id}-${index}`}
+                              style={[
+                                styles.userAvatar,
+                                dynamicStyles.avatarBorder,
+                                {
+                                  position: "absolute",
+                                  left: index * 20,
+                                  zIndex: 3 - index,
+                                },
+                              ]}
+                            >
+                              {member.bgUrl ? (
+                                <Image
+                                  source={{ uri: member.bgUrl }}
+                                  style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    borderRadius: 10,
+                                  }}
+                                />
+                              ) : (
+                                <Text style={styles.avatarText}>
+                                  {member.fname[0]}
+                                </Text>
+                              )}
+                            </View>
+                          ))}
+                        </View>
                         <Text
                           style={[styles.usersText, dynamicStyles.subtitle]}
                         >
-                          +{match.users}
+                          {match.members.length > 3
+                            ? `+${match.members.length - 3} more`
+                            : `${match.members.length} member${
+                                match.members.length > 1 ? "s" : ""
+                              }`}
                         </Text>
                       </View>
                     </View>
                     <View style={styles.recentRight}>
                       <Text style={[styles.timeText, dynamicStyles.subtitle]}>
-                        {match.time}
+                        {moment(match.createdAt).fromNow()}
                       </Text>
                       <View
                         style={[
@@ -486,16 +500,21 @@ const Index = () => {
                             dynamicStyles.percentageText,
                           ]}
                         >
-                          {match.match}
+                          {match.avgMatch}% avg match
                         </Text>
                       </View>
                     </View>
                   </Pressable>
                 ))
+            ) : (
+              <View style={styles.emptyContainer}>
+                <Text style={[styles.emptyText, dynamicStyles.subtitle]}>
+                  No recent matches found
+                </Text>
+              </View>
             )}
 
-            {/* Compatibility Card with Skeleton */}
-            {isLoadingCategories ? (
+            {isLoadingRecentMatches ? (
               <View
                 style={[
                   styles.compatibilityCard,
@@ -512,7 +531,7 @@ const Index = () => {
                   <Skeleton width="60%" height={12} />
                 </View>
               </View>
-            ) : (
+            ) : recentMatchesData?.matchSummary ? (
               <Pressable
                 style={[
                   styles.compatibilityCard,
@@ -526,7 +545,8 @@ const Index = () => {
                 />
                 <View style={styles.compatibilityContent}>
                   <Text style={[styles.compatibilityTitle, dynamicStyles.text]}>
-                    🎉 87% avg compatibility!
+                    🎉 {recentMatchesData.matchSummary.avgPercent}% avg
+                    compatibility!
                   </Text>
                   <Text
                     style={[
@@ -534,11 +554,12 @@ const Index = () => {
                       dynamicStyles.subtitle,
                     ]}
                   >
-                    Higher than 92% of users
+                    Higher than {recentMatchesData.matchSummary.relativePercent}
+                    % of users
                   </Text>
                 </View>
               </Pressable>
-            )}
+            ) : null}
           </View>
         </View>
       </ScrollView>
@@ -546,7 +567,6 @@ const Index = () => {
   );
 };
 
-// Same styles - unchanged
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -808,6 +828,14 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   dropdownText: {
+    fontSize: 14,
+  },
+  emptyContainer: {
+    padding: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyText: {
     fontSize: 14,
   },
 });
