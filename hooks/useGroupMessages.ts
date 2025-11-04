@@ -124,7 +124,7 @@ export const useGroupMessages = ({ groupId, socket }: UseGroupMessagesProps) => 
     }
 
     setIsSending(true);
-    const messageId = uuidv4();
+    const messageId = Date.now().toString() + Math.random().toString(36);
 
     try {
       const payload: SendMessagePayload = {
