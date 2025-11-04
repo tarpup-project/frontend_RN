@@ -1,11 +1,12 @@
 import { useTheme } from "@/app/contexts/ThemeContext";
 import Header from "@/components/Header";
 import PreviewModeBanner from "@/components/PreviewModeBanner";
+import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
+import { useCampus } from "@/hooks/useCampus";
+import { useCategories } from "@/hooks/useCategories";
 import { useAuthStore } from "@/state/authStore";
-import { useCampus } from '@/hooks/useCampus';
-import { useCategories } from '@/hooks/useCategories';
-import { University } from "@/types/auth";
+import { Category } from "@/types/prompts";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import {
@@ -19,7 +20,92 @@ import {
   ShoppingBag,
 } from "lucide-react-native";
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View, ActivityIndicator } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+
+const getIconComponent = (iconName: string) => {
+  const iconMap: { [key: string]: any } = {
+    Car: Car,
+    Home: Home,
+    ShoppingBag: ShoppingBag,
+    Gamepad2: Gamepad2,
+    Heart: Heart,
+    BookOpen: BookOpen,
+    Gift: Gift,
+    PartyPopper: PartyPopper,
+    car: Car,
+    book: BookOpen,
+    gift: Gift,
+    party: PartyPopper,
+  };
+  return iconMap[iconName] || Car;
+};
+
+const CategoryCardSkeleton = () => {
+  const { isDark } = useTheme();
+
+  return (
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: isDark ? "#000000" : "#FFFFFF",
+          borderColor: isDark ? "#333333" : "#E0E0E0",
+        },
+      ]}
+    >
+      <Skeleton
+        width={50}
+        height={50}
+        borderRadius={25}
+        style={{ marginBottom: 20 }}
+      />
+      <Skeleton width="80%" height={16} style={{ marginBottom: 10 }} />
+      <Skeleton width="90%" height={12} style={{ marginBottom: 15 }} />
+      <Skeleton width={80} height={20} borderRadius={12} />
+    </View>
+  );
+};
+
+const UniversityDropdownSkeleton = () => (
+  <View style={{ gap: 8 }}>
+    {Array.from({ length: 5 }).map((_, i) => (
+      <View key={i} style={[styles.dropdownItem, { gap: 12 }]}>
+        <View style={{ flex: 1 }}>
+          <Skeleton width="70%" height={16} style={{ marginBottom: 4 }} />
+          <Skeleton width="50%" height={12} />
+        </View>
+      </View>
+    ))}
+  </View>
+);
+
+const RecentMatchSkeleton = () => {
+  const { isDark } = useTheme();
+
+  return (
+    <View
+      style={[
+        styles.recentCard,
+        {
+          backgroundColor: isDark ? "#000000" : "#FFFFFF",
+          borderColor: isDark ? "#333333" : "#E0E0E0",
+        },
+      ]}
+    >
+      <Skeleton width={40} height={40} borderRadius={20} />
+      <View style={styles.recentContent}>
+        <Skeleton width="80%" height={16} style={{ marginBottom: 4 }} />
+        <View style={styles.recentUsers}>
+          <Skeleton width={60} height={12} />
+        </View>
+      </View>
+      <View style={styles.recentRight}>
+        <Skeleton width={50} height={12} style={{ marginBottom: 4 }} />
+        <Skeleton width={40} height={20} borderRadius={8} />
+      </View>
+    </View>
+  );
+};
 
 const Index = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -27,12 +113,17 @@ const Index = () => {
 
   const { isDark } = useTheme();
   const { isAuthenticated } = useAuthStore();
-  
-  // Campus data from TanStack Query
-  const { selectedUniversity, universities, isLoading: isLoadingUniversities, setSelectedUniversity, reset } = useCampus();
-  
-  // Categories data from TanStack Query
-  const { data: categories = [], isLoading: isLoadingCategories } = useCategories(selectedUniversity?.id);
+
+  const {
+    selectedUniversity,
+    universities,
+    isLoading: isLoadingUniversities,
+    setSelectedUniversity,
+    reset,
+  } = useCampus();
+
+  const { data: categories = [], isLoading: isLoadingCategories } =
+    useCategories(selectedUniversity?.id);
 
   console.log(isAuthenticated);
 
@@ -146,39 +237,49 @@ const Index = () => {
                   nestedScrollEnabled
                   keyboardShouldPersistTaps="handled"
                 >
-                  {universities.map((uni) => (
-                    <Pressable
-                      key={uni.id}
-                      style={[
-                        styles.dropdownItem,
-                        {
-                          borderBottomColor:
-                            dynamicStyles.innerCard.borderColor,
-                        },
-                      ]}
-                      onPress={() => {
-                        setSelectedUniversity(uni);
-                        setIsDropdownOpen(false);
-                      }}
-                    >
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.dropdownText, dynamicStyles.text]}>
-                          {uni.name}
-                        </Text>
-                        <Text
-                          style={[
-                            { fontSize: 12, marginTop: 2 },
-                            dynamicStyles.subtitle,
-                          ]}
-                        >
-                          {uni.city}, {uni.state}
-                        </Text>
-                      </View>
-                      {selectedUniversity?.id === uni.id && (
-                        <Ionicons name="checkmark" size={18} color="#00D084" />
-                      )}
-                    </Pressable>
-                  ))}
+                  {isLoadingUniversities ? (
+                    <UniversityDropdownSkeleton />
+                  ) : (
+                    universities.map((uni) => (
+                      <Pressable
+                        key={uni.id}
+                        style={[
+                          styles.dropdownItem,
+                          {
+                            borderBottomColor:
+                              dynamicStyles.innerCard.borderColor,
+                          },
+                        ]}
+                        onPress={() => {
+                          setSelectedUniversity(uni);
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text
+                            style={[styles.dropdownText, dynamicStyles.text]}
+                          >
+                            {uni.name}
+                          </Text>
+                          <Text
+                            style={[
+                              { fontSize: 12, marginTop: 2 },
+                              dynamicStyles.subtitle,
+                            ]}
+                          >
+                            {uni.city}, {uni.state}
+                          </Text>
+                        </View>
+                        {selectedUniversity?.id === uni.id && (
+                          <Ionicons
+                            name="checkmark"
+                            size={18}
+                            color="#00D084"
+                          />
+                        )}
+                      </Pressable>
+                    ))
+                  )}
                 </ScrollView>
               )}
             </View>
@@ -201,7 +302,9 @@ const Index = () => {
                 </Text>
               </Pressable>
               <Text style={[styles.resetSubtext, dynamicStyles.subtitle]}>
-                {selectedUniversity ? "Filtered to your university" : "No filter applied"}
+                {selectedUniversity
+                  ? "Filtered to your university"
+                  : "No filter applied"}
               </Text>
             </View>
           </View>
@@ -216,21 +319,16 @@ const Index = () => {
             AI-powered connections with students
           </Text>
 
-          {/* Loading state for categories */}
+          {/* Categories with Skeleton Loading */}
           {isLoadingCategories ? (
             <View style={styles.cardsGrid}>
               {Array.from({ length: 8 }).map((_, i) => (
-                <View
-                  key={i}
-                  style={[styles.card, dynamicStyles.card, { justifyContent: 'center' }]}
-                >
-                  <ActivityIndicator size="large" color={dynamicStyles.text.color} />
-                </View>
+                <CategoryCardSkeleton key={i} />
               ))}
             </View>
           ) : (
             <View style={styles.cardsGrid}>
-              {categories.map((category) => (
+              {categories.map((category: Category) => (
                 <Pressable
                   key={category.id}
                   style={[styles.card, dynamicStyles.card]}
@@ -244,11 +342,16 @@ const Index = () => {
                       { backgroundColor: category.bgColor },
                     ]}
                   >
-                    <category.icon
-                      size={24}
-                      color={category.iconColor}
-                      strokeWidth={2}
-                    />
+                    {(() => {
+                      const IconComponent = getIconComponent(category.icon);
+                      return (
+                        <IconComponent
+                          size={24}
+                          color={category.iconColor}
+                          strokeWidth={2}
+                        />
+                      );
+                    })()}
                   </View>
                   <Text style={[styles.cardTitle, dynamicStyles.text]}>
                     {category.name}
@@ -256,7 +359,9 @@ const Index = () => {
                   <Text style={[styles.cardSubtitle, dynamicStyles.subtitle]}>
                     {category.subtitle}
                   </Text>
-                  <View style={[styles.matchesBadge, dynamicStyles.matchesBadge]}>
+                  <View
+                    style={[styles.matchesBadge, dynamicStyles.matchesBadge]}
+                  >
                     <Text style={[styles.matchesText, dynamicStyles.subtitle]}>
                       {category.matches} matches
                     </Text>
@@ -278,129 +383,162 @@ const Index = () => {
               </Pressable>
             </View>
 
-            {[
-              {
-                id: 1,
-                title: "63 new in Rides",
-                users: 3,
-                match: "96%",
-                icon: Car,
-                color: "#E6D5FF",
-                time: "Just now",
-              },
-              {
-                id: 2,
-                title: "51 new in Giveaways",
-                users: 3,
-                match: "89%",
-                icon: Gift,
-                color: "#D5F5E3",
-                time: "Just now",
-              },
-              {
-                id: 3,
-                title: "71 new in Party",
-                users: 3,
-                match: "93%",
-                icon: PartyPopper,
-                color: "#FFD5E6",
-                time: "Just now",
-              },
-              {
-                id: 4,
-                title: "67 new in Study Groups",
-                users: 3,
-                match: "95%",
-                icon: BookOpen,
-                color: "#FFF9D5",
-                time: "Just now",
-              },
-            ]
-              .slice(0, showAllRecent ? 4 : 3)
-              .map((match) => (
-                <Pressable
-                  key={match.id}
-                  style={[styles.recentCard, dynamicStyles.card]}
-                  onPress={() => console.log(`Maps to ${match.title}`)}
-                >
-                  <View
-                    style={[
-                      styles.recentIconCircle,
-                      { backgroundColor: match.color },
-                    ]}
+            {/* Recent Matches with Skeleton Loading */}
+            {isLoadingCategories ? (
+              <>
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <RecentMatchSkeleton key={i} />
+                ))}
+              </>
+            ) : (
+              [
+                {
+                  id: 1,
+                  title: "63 new in Rides",
+                  users: 3,
+                  match: "96%",
+                  icon: Car,
+                  color: "#E6D5FF",
+                  time: "Just now",
+                },
+                {
+                  id: 2,
+                  title: "51 new in Giveaways",
+                  users: 3,
+                  match: "89%",
+                  icon: Gift,
+                  color: "#D5F5E3",
+                  time: "Just now",
+                },
+                {
+                  id: 3,
+                  title: "71 new in Party",
+                  users: 3,
+                  match: "93%",
+                  icon: PartyPopper,
+                  color: "#FFD5E6",
+                  time: "Just now",
+                },
+                {
+                  id: 4,
+                  title: "67 new in Study Groups",
+                  users: 3,
+                  match: "95%",
+                  icon: BookOpen,
+                  color: "#FFF9D5",
+                  time: "Just now",
+                },
+              ]
+                .slice(0, showAllRecent ? 4 : 3)
+                .map((match) => (
+                  <Pressable
+                    key={match.id}
+                    style={[styles.recentCard, dynamicStyles.card]}
+                    onPress={() => console.log(`Maps to ${match.title}`)}
                   >
-                    <match.icon size={20} color="#000000" strokeWidth={2} />
-                  </View>
-                  <View style={styles.recentContent}>
-                    <Text style={[styles.recentTitle, dynamicStyles.text]}>
-                      {match.title}
-                    </Text>
-                    <View style={styles.recentUsers}>
-                      {[...Array(match.users)].map((_, i) => (
-                        <View
-                          key={i}
-                          style={[
-                            styles.userAvatar,
-                            dynamicStyles.avatarBorder,
-                            i > 0 && { marginLeft: -8 },
-                          ]}
-                        >
-                          <Text style={styles.avatarText}>
-                            {String.fromCharCode(65 + i)}
-                          </Text>
-                        </View>
-                      ))}
-                      <Text style={[styles.usersText, dynamicStyles.subtitle]}>
-                        +{match.users}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.recentRight}>
-                    <Text style={[styles.timeText, dynamicStyles.subtitle]}>
-                      {match.time}
-                    </Text>
                     <View
                       style={[
-                        styles.percentageBadge,
-                        dynamicStyles.percentageBadge,
+                        styles.recentIconCircle,
+                        { backgroundColor: match.color },
                       ]}
                     >
-                      <Text
+                      <match.icon size={20} color="#000000" strokeWidth={2} />
+                    </View>
+                    <View style={styles.recentContent}>
+                      <Text style={[styles.recentTitle, dynamicStyles.text]}>
+                        {match.title}
+                      </Text>
+                      <View style={styles.recentUsers}>
+                        {[...Array(match.users)].map((_, i) => (
+                          <View
+                            key={i}
+                            style={[
+                              styles.userAvatar,
+                              dynamicStyles.avatarBorder,
+                              i > 0 && { marginLeft: -8 },
+                            ]}
+                          >
+                            <Text style={styles.avatarText}>
+                              {String.fromCharCode(65 + i)}
+                            </Text>
+                          </View>
+                        ))}
+                        <Text
+                          style={[styles.usersText, dynamicStyles.subtitle]}
+                        >
+                          +{match.users}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={styles.recentRight}>
+                      <Text style={[styles.timeText, dynamicStyles.subtitle]}>
+                        {match.time}
+                      </Text>
+                      <View
                         style={[
-                          styles.matchPercent,
-                          dynamicStyles.percentageText,
+                          styles.percentageBadge,
+                          dynamicStyles.percentageBadge,
                         ]}
                       >
-                        {match.match}
-                      </Text>
+                        <Text
+                          style={[
+                            styles.matchPercent,
+                            dynamicStyles.percentageText,
+                          ]}
+                        >
+                          {match.match}
+                        </Text>
+                      </View>
                     </View>
-                  </View>
-                </Pressable>
-              ))}
+                  </Pressable>
+                ))
+            )}
 
-            {/* Compatibility Card */}
-            <Pressable
-              style={[
-                styles.compatibilityCard,
-                dynamicStyles.compatibilityCard,
-              ]}
-            >
-              <Ionicons
-                name="heart-outline"
-                size={24}
-                color={dynamicStyles.text.color}
-              />
-              <View style={styles.compatibilityContent}>
-                <Text style={[styles.compatibilityTitle, dynamicStyles.text]}>
-                  🎉 87% avg compatibility!
-                </Text>
-                <Text
-                  style={[styles.compatibilitySubtitle, dynamicStyles.subtitle]}
-                >
-                  Higher than 92% of users
-                </Text>
+            {/* Compatibility Card with Skeleton */}
+            {isLoadingCategories ? (
+              <View
+                style={[
+                  styles.compatibilityCard,
+                  dynamicStyles.compatibilityCard,
+                ]}
+              >
+                <Skeleton width={24} height={24} borderRadius={12} />
+                <View style={styles.compatibilityContent}>
+                  <Skeleton
+                    width="80%"
+                    height={16}
+                    style={{ marginBottom: 2 }}
+                  />
+                  <Skeleton width="60%" height={12} />
+                </View>
               </View>
-            </Pressable>
+            ) : (
+              <Pressable
+                style={[
+                  styles.compatibilityCard,
+                  dynamicStyles.compatibilityCard,
+                ]}
+              >
+                <Ionicons
+                  name="heart-outline"
+                  size={24}
+                  color={dynamicStyles.text.color}
+                />
+                <View style={styles.compatibilityContent}>
+                  <Text style={[styles.compatibilityTitle, dynamicStyles.text]}>
+                    🎉 87% avg compatibility!
+                  </Text>
+                  <Text
+                    style={[
+                      styles.compatibilitySubtitle,
+                      dynamicStyles.subtitle,
+                    ]}
+                  >
+                    Higher than 92% of users
+                  </Text>
+                </View>
+              </Pressable>
+            )}
           </View>
         </View>
       </ScrollView>
