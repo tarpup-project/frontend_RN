@@ -25,7 +25,7 @@ export const useGroups = () => {
   return useQuery({
     queryKey: groupsKeys.list(selectedUniversity?.id),
     queryFn: () => fetchGroups(selectedUniversity?.id),
-    enabled: !!selectedUniversity?.id,
+    enabled: true,
     staleTime: 1000 * 60 * 5,
     refetchInterval: 1000 * 15,
     refetchOnWindowFocus: true,
