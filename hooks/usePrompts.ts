@@ -14,12 +14,14 @@ interface UsePromptsParams {
 export const usePrompts = (params?: UsePromptsParams) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [prompts, setPrompts] = useState<Prompt[]>([]);
+  const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>(
+    {}
+  );
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [isLoadingPrompts, setIsLoadingPrompts] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-
 
   const fetchCategories = useCallback(async () => {
     setIsLoadingCategories(true);
@@ -61,13 +63,11 @@ export const usePrompts = (params?: UsePromptsParams) => {
     }
   }, [params?.campusID, params?.stateID, params?.selectedCategory]);
 
-
   const submitRequest = async (requestID: string) => {
-    setIsSubmitting(true);
+    setLoadingStates((prev) => ({ ...prev, [requestID]: true }));
     setError(null);
     try {
       await PromptsAPI.submitRequest(requestID);
-
       await fetchPrompts();
       return true;
     } catch (err) {
@@ -75,17 +75,15 @@ export const usePrompts = (params?: UsePromptsParams) => {
       setError(errorMessage);
       throw err;
     } finally {
-      setIsSubmitting(false);
+      setLoadingStates((prev) => ({ ...prev, [requestID]: false }));
     }
   };
 
-
   const joinPublicGroup = async (groupID: string) => {
-    setIsSubmitting(true);
+    setLoadingStates((prev) => ({ ...prev, [groupID]: true }));
     setError(null);
     try {
       await PromptsAPI.joinPublicGroup(groupID);
-
       await fetchPrompts();
       return true;
     } catch (err) {
@@ -93,10 +91,9 @@ export const usePrompts = (params?: UsePromptsParams) => {
       setError(errorMessage);
       throw err;
     } finally {
-      setIsSubmitting(false);
+      setLoadingStates((prev) => ({ ...prev, [groupID]: false }));
     }
   };
-
 
   useEffect(() => {
     fetchCategories();
@@ -106,37 +103,34 @@ export const usePrompts = (params?: UsePromptsParams) => {
     fetchPrompts();
   }, [fetchPrompts]);
 
-  // Auto-refresh prompts
   useEffect(() => {
     if (params?.autoRefresh) {
       const interval = setInterval(() => {
         fetchPrompts();
-      }, params?.refreshInterval || 15000); // Default 15 seconds
+      }, params?.refreshInterval || 15000);
 
       return () => clearInterval(interval);
     }
   }, [params?.autoRefresh, params?.refreshInterval, fetchPrompts]);
 
   return {
-    // Data
     categories,
     prompts,
     lastUpdated,
 
-    // Loading states
     isLoadingCategories,
     isLoadingPrompts,
     isSubmitting,
     isLoading: isLoadingCategories || isLoadingPrompts,
 
-    // Error
     error,
     clearError: () => setError(null),
 
-    // Actions
     fetchCategories,
     fetchPrompts,
     submitRequest,
+    loadingStates,
+    isSubmittingRequest: (id: string) => loadingStates[id] || false,
     joinPublicGroup,
     refresh: fetchPrompts,
   };
