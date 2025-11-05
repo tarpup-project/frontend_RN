@@ -15,24 +15,6 @@ export class PromptsAPI {
   }
 
 
-  // static async fetchPrompts(params?: {
-  //   campusID?: string;
-  //   stateID?: string;
-  //   categoryID?: string;
-  //   userID?: string;
-  // }): Promise<AllPromptsResponse> {
-  //   const response = await api.get<{ data: AllPromptsResponse }>(
-  //     UrlConstants.fetchAllRequests(
-  //       params?.campusID,
-  //       params?.stateID,
-  //       params?.categoryID,
-  //       params?.userID
-  //     )
-  //   );
-    
-  //   return response.data.data;
-  // }
-
   static async fetchPrompts(params?: {
     campusID?: string;
     stateID?: string;
