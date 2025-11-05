@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
-import { PromptsAPI } from "../api/endpoints/prompts";
-import { Category, FilterType, Prompt } from "../types/prompts";
-import { ErrorHandler } from "../utils/errorHandler";
+import { useState, useEffect, useCallback } from 'react';
+import { PromptsAPI } from '../api/endpoints/prompts';
+import { Category, Prompt, FilterType } from '../types/prompts';
+import { ErrorHandler } from '../utils/errorHandler';
 
 interface UsePromptsParams {
   campusID?: string;
@@ -14,15 +14,15 @@ interface UsePromptsParams {
 export const usePrompts = (params?: UsePromptsParams) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [prompts, setPrompts] = useState<Prompt[]>([]);
-  const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>(
-    {}
-  );
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [isLoadingPrompts, setIsLoadingPrompts] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
+  
+
+  // Fetch categories
   const fetchCategories = useCallback(async () => {
     setIsLoadingCategories(true);
     setError(null);
@@ -39,12 +39,14 @@ export const usePrompts = (params?: UsePromptsParams) => {
 
   // Fetch prompts
   const fetchPrompts = useCallback(async () => {
-    console.log("Fetching prompts with params:", {
+
+    console.log('Fetching prompts with params:', {
       campusID: params?.campusID,
       stateID: params?.stateID,
       categoryID: params?.selectedCategory?.id,
     });
 
+    
     setIsLoadingPrompts(true);
     setError(null);
     try {
@@ -63,11 +65,13 @@ export const usePrompts = (params?: UsePromptsParams) => {
     }
   }, [params?.campusID, params?.stateID, params?.selectedCategory]);
 
+  // Submit request
   const submitRequest = async (requestID: string) => {
-    setLoadingStates((prev) => ({ ...prev, [requestID]: true }));
+    setIsSubmitting(true);
     setError(null);
     try {
       await PromptsAPI.submitRequest(requestID);
+      // Refresh prompts after submission
       await fetchPrompts();
       return true;
     } catch (err) {
@@ -75,15 +79,17 @@ export const usePrompts = (params?: UsePromptsParams) => {
       setError(errorMessage);
       throw err;
     } finally {
-      setLoadingStates((prev) => ({ ...prev, [requestID]: false }));
+      setIsSubmitting(false);
     }
   };
 
+  // Join public group
   const joinPublicGroup = async (groupID: string) => {
-    setLoadingStates((prev) => ({ ...prev, [groupID]: true }));
+    setIsSubmitting(true);
     setError(null);
     try {
       await PromptsAPI.joinPublicGroup(groupID);
+      // Refresh prompts after joining
       await fetchPrompts();
       return true;
     } catch (err) {
@@ -91,46 +97,50 @@ export const usePrompts = (params?: UsePromptsParams) => {
       setError(errorMessage);
       throw err;
     } finally {
-      setLoadingStates((prev) => ({ ...prev, [groupID]: false }));
+      setIsSubmitting(false);
     }
   };
 
+  // Initial fetch
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
 
   useEffect(() => {
     fetchPrompts();
-  }, [fetchPrompts]);
+  }, [params?.campusID, params?.stateID, params?.selectedCategory?.id]);
 
+  // Auto-refresh prompts
   useEffect(() => {
     if (params?.autoRefresh) {
       const interval = setInterval(() => {
         fetchPrompts();
-      }, params?.refreshInterval || 15000);
+      }, params?.refreshInterval || 15000); // Default 15 seconds
 
       return () => clearInterval(interval);
     }
-  }, [params?.autoRefresh, params?.refreshInterval, fetchPrompts]);
+  }, [params?.autoRefresh, params?.refreshInterval]);
 
   return {
+    // Data
     categories,
     prompts,
     lastUpdated,
 
+    // Loading states
     isLoadingCategories,
     isLoadingPrompts,
     isSubmitting,
     isLoading: isLoadingCategories || isLoadingPrompts,
 
+    // Error
     error,
     clearError: () => setError(null),
 
+    // Actions
     fetchCategories,
     fetchPrompts,
     submitRequest,
-    loadingStates,
-    isSubmittingRequest: (id: string) => loadingStates[id] || false,
     joinPublicGroup,
     refresh: fetchPrompts,
   };
