@@ -1,4 +1,5 @@
 import { useTheme } from "@/app/contexts/ThemeContext";
+import { Loader } from "@/components/Loader";
 import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
 import { useCampus } from "@/hooks/useCampus";
@@ -81,6 +82,9 @@ const SkeletonCard = ({ isDark }: { isDark: boolean }) => {
 const Prompts = () => {
   const { isDark } = useTheme();
   const { user, isAuthenticated } = useAuthStore();
+  const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>(
+    {}
+  );
   const { selectedUniversity } = useCampus();
   const [selectedCategoryIndex, setSelectedCategoryIndex] = useState(0);
   const [selectedCategoryId, setSelectedCategoryId] = useState<
@@ -103,12 +107,11 @@ const Prompts = () => {
     selectedCategory: { index: selectedCategoryIndex, id: selectedCategoryId },
   });
 
-
-  // console.log('Debug prompts:', { 
-  //   isLoadingPrompts, 
-  //   prompts: prompts.length, 
+  // console.log('Debug prompts:', {
+  //   isLoadingPrompts,
+  //   prompts: prompts.length,
   //   isLoadingCategories,
-  //   categories: categories.length 
+  //   categories: categories.length
   // });
   const dynamicStyles = {
     container: { backgroundColor: isDark ? "#000000" : "#FFFFFF" },
@@ -148,6 +151,10 @@ const Prompts = () => {
       router.push("/(auth)/signin");
       return;
     }
+
+    const loadingKey = publicGroupId || promptId;
+    setLoadingStates((prev) => ({ ...prev, [loadingKey]: true }));
+
     try {
       if (publicGroupId) {
         await joinPublicGroup(publicGroupId);
@@ -160,6 +167,8 @@ const Prompts = () => {
       }
     } catch (err: any) {
       toast.error(err?.message || "Failed to submit request");
+    } finally {
+      setLoadingStates((prev) => ({ ...prev, [loadingKey]: false }));
     }
   };
 
@@ -376,21 +385,36 @@ const Prompts = () => {
                         style={[
                           styles.requestButton,
                           dynamicStyles.requestButton,
-                          isSubmitting && styles.requestButtonDisabled,
+                          loadingStates[prompt.publicGroupID || prompt.id] &&
+                            styles.requestButtonDisabled,
                         ]}
                         onPress={() =>
                           handleRequestClick(prompt.id, prompt.publicGroupID)
                         }
-                        disabled={isSubmitting}
+                        disabled={
+                          loadingStates[prompt.publicGroupID || prompt.id]
+                        }
                       >
-                        <Text
-                          style={[
-                            styles.requestButtonText,
-                            dynamicStyles.requestButtonText,
-                          ]}
-                        >
-                          {prompt.publicGroupID ? "Join" : "Request"}
-                        </Text>
+                        {loadingStates[prompt.publicGroupID || prompt.id] ? (
+                          <Loader
+                            color={dynamicStyles.requestButtonText.color}
+                            text={
+                              prompt.publicGroupID
+                                ? "Joining..."
+                                : "Requesting..."
+                            }
+                            textStyle={dynamicStyles.requestButtonText}
+                          />
+                        ) : (
+                          <Text
+                            style={[
+                              styles.requestButtonText,
+                              dynamicStyles.requestButtonText,
+                            ]}
+                          >
+                            {prompt.publicGroupID ? "Join" : "Request"}
+                          </Text>
+                        )}
                       </Pressable>
                     )}
                   </View>
