@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
-import { PromptsAPI } from '../api/endpoints/prompts';
-import { Category, Prompt, FilterType } from '../types/prompts';
-import { ErrorHandler } from '../utils/errorHandler';
+import { useCallback, useEffect, useState } from "react";
+import { PromptsAPI } from "../api/endpoints/prompts";
+import { Category, FilterType, Prompt } from "../types/prompts";
+import { ErrorHandler } from "../utils/errorHandler";
 
 interface UsePromptsParams {
   campusID?: string;
@@ -20,9 +20,7 @@ export const usePrompts = (params?: UsePromptsParams) => {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  
 
-  // Fetch categories
   const fetchCategories = useCallback(async () => {
     setIsLoadingCategories(true);
     setError(null);
@@ -39,14 +37,12 @@ export const usePrompts = (params?: UsePromptsParams) => {
 
   // Fetch prompts
   const fetchPrompts = useCallback(async () => {
-
-    console.log('Fetching prompts with params:', {
+    console.log("Fetching prompts with params:", {
       campusID: params?.campusID,
       stateID: params?.stateID,
       categoryID: params?.selectedCategory?.id,
     });
 
-    
     setIsLoadingPrompts(true);
     setError(null);
     try {
@@ -65,13 +61,13 @@ export const usePrompts = (params?: UsePromptsParams) => {
     }
   }, [params?.campusID, params?.stateID, params?.selectedCategory]);
 
-  // Submit request
+
   const submitRequest = async (requestID: string) => {
     setIsSubmitting(true);
     setError(null);
     try {
       await PromptsAPI.submitRequest(requestID);
-      // Refresh prompts after submission
+
       await fetchPrompts();
       return true;
     } catch (err) {
@@ -83,13 +79,13 @@ export const usePrompts = (params?: UsePromptsParams) => {
     }
   };
 
-  // Join public group
+
   const joinPublicGroup = async (groupID: string) => {
     setIsSubmitting(true);
     setError(null);
     try {
       await PromptsAPI.joinPublicGroup(groupID);
-      // Refresh prompts after joining
+
       await fetchPrompts();
       return true;
     } catch (err) {
@@ -101,7 +97,7 @@ export const usePrompts = (params?: UsePromptsParams) => {
     }
   };
 
-  // Initial fetch
+
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);

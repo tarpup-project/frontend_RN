@@ -15,20 +15,42 @@ export class PromptsAPI {
   }
 
 
+  // static async fetchPrompts(params?: {
+  //   campusID?: string;
+  //   stateID?: string;
+  //   categoryID?: string;
+  //   userID?: string;
+  // }): Promise<AllPromptsResponse> {
+  //   const response = await api.get<{ data: AllPromptsResponse }>(
+  //     UrlConstants.fetchAllRequests(
+  //       params?.campusID,
+  //       params?.stateID,
+  //       params?.categoryID,
+  //       params?.userID
+  //     )
+  //   );
+    
+  //   return response.data.data;
+  // }
+
   static async fetchPrompts(params?: {
     campusID?: string;
     stateID?: string;
     categoryID?: string;
     userID?: string;
   }): Promise<AllPromptsResponse> {
-    const response = await api.get<{ data: AllPromptsResponse }>(
-      UrlConstants.fetchAllRequests(
-        params?.campusID,
-        params?.stateID,
-        params?.categoryID,
-        params?.userID
-      )
+    
+    const url = UrlConstants.fetchAllRequests(
+      params?.campusID,
+      params?.stateID,
+      params?.categoryID,
+      params?.userID
     );
+    console.log('Prompts API URL:', url);
+    
+    const response = await api.get<{ data: AllPromptsResponse }>(url);
+    console.log('Prompts API response:', response.data);
+    
     return response.data.data;
   }
 

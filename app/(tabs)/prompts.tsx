@@ -1,6 +1,7 @@
 import { useTheme } from "@/app/contexts/ThemeContext";
 import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
+import { useCampus } from "@/hooks/useCampus";
 import { usePrompts } from "@/hooks/usePrompts";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
@@ -80,6 +81,7 @@ const SkeletonCard = ({ isDark }: { isDark: boolean }) => {
 const Prompts = () => {
   const { isDark } = useTheme();
   const { user, isAuthenticated } = useAuthStore();
+  const { selectedUniversity } = useCampus();
   const [selectedCategoryIndex, setSelectedCategoryIndex] = useState(0);
   const [selectedCategoryId, setSelectedCategoryId] = useState<
     string | undefined
@@ -96,18 +98,18 @@ const Prompts = () => {
     joinPublicGroup,
     refresh,
   } = usePrompts({
-    campusID: user?.isStudent ? user?.universityID : undefined,
-    stateID: !user?.isStudent ? user?.stateID : undefined,
+    campusID: selectedUniversity?.id,
+    stateID: !selectedUniversity ? user?.stateID : undefined,
     selectedCategory: { index: selectedCategoryIndex, id: selectedCategoryId },
   });
 
 
-  console.log('Debug prompts:', { 
-    isLoadingPrompts, 
-    prompts: prompts.length, 
-    isLoadingCategories,
-    categories: categories.length 
-  });
+  // console.log('Debug prompts:', { 
+  //   isLoadingPrompts, 
+  //   prompts: prompts.length, 
+  //   isLoadingCategories,
+  //   categories: categories.length 
+  // });
   const dynamicStyles = {
     container: { backgroundColor: isDark ? "#000000" : "#FFFFFF" },
     text: { color: isDark ? "#FFFFFF" : "#000000" },
