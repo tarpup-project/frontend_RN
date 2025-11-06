@@ -179,7 +179,7 @@ const Index = () => {
 
       <ScrollView style={styles.content}>
         {!isAuthenticated && (
-          <View style={{ marginTop: 16 }}>
+          <View style={{ marginTop: 16, marginHorizontal: -16 }}>
             <PreviewModeBanner />
           </View>
         )}
@@ -578,6 +578,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 16,
+    paddingTop: 0,
   },
   filterSection: {
     marginTop: 16,
