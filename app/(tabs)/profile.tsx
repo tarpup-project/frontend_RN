@@ -1,14 +1,643 @@
+// import { useTheme } from "@/app/contexts/ThemeContext";
+// import Header from "@/components/Header";
+// import { Text } from "@/components/Themedtext";
+// import { Ionicons } from "@expo/vector-icons";
+// import { useRouter } from "expo-router";
+// import { Bell, HelpCircle, Settings, ShieldCheck } from "lucide-react-native";
+// import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+
+// const Profile = () => {
+//   const { isDark } = useTheme();
+//   const router = useRouter();
+
+//   const dynamicStyles = {
+//     container: {
+//       backgroundColor: isDark ? "#000000" : "#FFFFFF",
+//     },
+//     text: {
+//       color: isDark ? "#FFFFFF" : "#000000",
+//     },
+//     subtitle: {
+//       color: isDark ? "#CCCCCC" : "#666666",
+//     },
+//     card: {
+//       backgroundColor: isDark ? "#000000" : "#FFFFFF",
+//       borderColor: isDark ? "#333333" : "#E0E0E0",
+//     },
+//     button: {
+//       backgroundColor: isDark ? "#000000" : "#FFFFFF",
+//       borderColor: isDark ? "#333333" : "#E0E0E0",
+//     },
+//     statDivider: {
+//       backgroundColor: isDark ? "#333333" : "#E0E0E0",
+//     },
+//     iconBackground: {
+//       backgroundColor: isDark ? "#333333" : "#F0F0F0",
+//     },
+//     referralLinkContainer: {
+//       backgroundColor: isDark ? "#0A0A0A" : "#F5F5F5",
+//       borderColor: isDark ? "#333333" : "#E0E0E0",
+//     },
+//   };
+
+//   const interests = [
+//     "Computer Science",
+//     "Gaming",
+//     "Movies",
+//     "Study Groups",
+//     "Downtown",
+//   ];
+
+//   const settingsOptions = [
+//     {
+//       id: 1,
+//       icon: Settings,
+//       title: "Account Settings",
+//       hasChevron: true,
+//     },
+//     {
+//       id: 2,
+//       icon: Bell,
+//       title: "Notifications",
+//       hasChevron: true,
+//     },
+//     {
+//       id: 3,
+//       icon: ShieldCheck,
+//       title: "Privacy & Safety",
+//       hasChevron: true,
+//     },
+//     {
+//       id: 4,
+//       icon: HelpCircle,
+//       title: "How It Works",
+//       hasChevron: true,
+//     },
+//   ];
+
+//   return (
+//     <View style={[styles.container, dynamicStyles.container]}>
+//       <Header />
+
+//       <ScrollView style={styles.content}>
+//         {/* Profile Section */}
+//         <View style={[styles.profileCard, dynamicStyles.card]}>
+//           <View style={styles.profileHeader}>
+//             <View style={styles.avatarContainer}>
+//               <View style={styles.avatar}>
+//                 <Text style={styles.avatarText}>J</Text>
+//               </View>
+//               <View style={styles.profileInfo}>
+//                 <Text style={[styles.profileName, dynamicStyles.text]}>
+//                   John Doe
+//                 </Text>
+//                 <View style={styles.infoRow}>
+//                   <Ionicons
+//                     name="school-outline"
+//                     size={14}
+//                     color={dynamicStyles.subtitle.color}
+//                   />
+//                   <Text style={[styles.infoText, dynamicStyles.subtitle]}>
+//                     University of South Florida
+//                   </Text>
+//                 </View>
+//                 <View style={styles.infoRow}>
+//                   <Ionicons
+//                     name="mail-outline"
+//                     size={14}
+//                     color={dynamicStyles.subtitle.color}
+//                   />
+//                   <Text style={[styles.infoText, dynamicStyles.subtitle]}>
+//                     JoeDoeUSF01@gmail.com
+//                   </Text>
+//                 </View>
+//               </View>
+//             </View>
+//           </View>
+
+//           <Text style={[styles.memberSince, dynamicStyles.subtitle]}>
+//             Member Since September 2024
+//           </Text>
+
+//           <Pressable
+//             style={[styles.completeButton, dynamicStyles.button]}
+//             onPress={() => router.push("/edit-profile")}
+//           >
+//             <Text style={[styles.completeButtonText, dynamicStyles.text]}>
+//               Edit Profile
+//             </Text>
+//           </Pressable>
+//         </View>
+
+//         {/* Referrals Section */}
+//         <View style={[styles.referralsCard, dynamicStyles.card]}>
+//           <Text style={[styles.sectionTitle, dynamicStyles.text]}>
+//             Referrals
+//           </Text>
+
+//           <View style={styles.referralStats}>
+//             <View style={[styles.iconBackground, dynamicStyles.iconBackground]}>
+//               <Ionicons
+//                 name="people-outline"
+//                 size={18}
+//                 color={dynamicStyles.subtitle.color}
+//               />
+//             </View>
+//             <Text style={[styles.referralCount, dynamicStyles.text]}>
+//               0 Total Referrals
+//             </Text>
+//           </View>
+
+//           <Text style={[styles.referralDescription, dynamicStyles.subtitle]}>
+//             Share your unique link and earn rewards when friends join!
+//           </Text>
+
+//           <View
+//             style={[
+//               styles.referralLinkContainer,
+//               dynamicStyles.referralLinkContainer,
+//             ]}
+//           >
+//             <Text
+//               style={[styles.referralLink, dynamicStyles.text]}
+//               numberOfLines={1}
+//             >
+//               https://tarpup.com/?ref=68f0f8227769a8a
+//             </Text>
+//             <Pressable style={styles.copyButton}>
+//               <Ionicons
+//                 name="copy-outline"
+//                 size={18}
+//                 color={dynamicStyles.text.color}
+//               />
+//             </Pressable>
+//           </View>
+
+//           <Pressable style={styles.shareButton}>
+//             <Ionicons name="share-social-outline" size={18} color="#FFFFFF" />
+//             <Text style={styles.shareButtonText}>Share</Text>
+//           </Pressable>
+//         </View>
+
+//         {/* Activity Stats */}
+//         <View style={styles.section}>
+//           <View style={[styles.statsCard, dynamicStyles.card]}>
+//             <Text style={[styles.sectionTitle, dynamicStyles.text]}>
+//               Activity Stats
+//             </Text>
+
+//             <View style={styles.statsContainer}>
+//               <View style={styles.statItem}>
+//                 <View
+//                   style={[styles.iconBackground, dynamicStyles.iconBackground]}
+//                 >
+//                   <Ionicons
+//                     name="star-outline"
+//                     size={18}
+//                     color={dynamicStyles.subtitle.color}
+//                   />
+//                 </View>
+//                 <Text style={[styles.statNumber, dynamicStyles.text]}>12</Text>
+//                 <Text style={[styles.statLabel, dynamicStyles.subtitle]}>
+//                   Total Matches
+//                 </Text>
+//               </View>
+
+//               <View style={styles.statItem}>
+//                 <View
+//                   style={[styles.iconBackground, dynamicStyles.iconBackground]}
+//                 >
+//                   <Ionicons
+//                     name="people-outline"
+//                     size={18}
+//                     color={dynamicStyles.subtitle.color}
+//                   />
+//                 </View>
+//                 <Text style={[styles.statNumber, dynamicStyles.text]}>4</Text>
+//                 <Text style={[styles.statLabel, dynamicStyles.subtitle]}>
+//                   Active Groups
+//                 </Text>
+//               </View>
+
+//               <View style={styles.statItem}>
+//                 <View
+//                   style={[styles.iconBackground, dynamicStyles.iconBackground]}
+//                 >
+//                   <Ionicons
+//                     name="trending-up-outline"
+//                     size={18}
+//                     color={dynamicStyles.subtitle.color}
+//                   />
+//                 </View>
+//                 <Text style={[styles.statNumber, dynamicStyles.text]}>87%</Text>
+//                 <Text style={[styles.statLabel, dynamicStyles.subtitle]}>
+//                   Avg Compatibility
+//                 </Text>
+//               </View>
+//             </View>
+//           </View>
+//         </View>
+//         {/* Your Interests */}
+//         <View style={styles.section}>
+//           <View style={[styles.interestsCard, dynamicStyles.card]}>
+//             <View style={styles.interestsHeader}>
+//               <Text style={[styles.sectionTitle, dynamicStyles.text]}>
+//                 Your Interests
+//               </Text>
+//               <Pressable onPress={() => router.push("/edit-profile")}>
+//                 <Text style={[styles.addMoreText, dynamicStyles.text]}>
+//                   Add More
+//                 </Text>
+//               </Pressable>
+//             </View>
+
+//             <View style={styles.interestsGrid}>
+//               {interests.map((interest, index) => (
+//                 <View
+//                   key={index}
+//                   style={[styles.interestChip, dynamicStyles.button]}
+//                 >
+//                   <Text style={[styles.interestText, dynamicStyles.text]}>
+//                     {interest}
+//                   </Text>
+//                 </View>
+//               ))}
+//             </View>
+//           </View>
+//         </View>
+
+//         {/* Settings */}
+//         <View style={[styles.settingsCard, dynamicStyles.card]}>
+//           <Text style={[styles.sectionTitleInCard, dynamicStyles.text]}>
+//             Settings
+//           </Text>
+//           {settingsOptions.map((option) => (
+//             <Pressable
+//               key={option.id}
+//               style={styles.settingItem}
+//               onPress={() => {
+//                 if (option.id === 1) router.push("/account-settings");
+//                 if (option.id === 2) router.push("/notifications");
+//                 if (option.id === 3) router.push("/privacy");
+//                 if (option.id === 4) router.push("/how-it-works");
+//               }}
+//             >
+//               <View style={styles.settingLeft}>
+//                 <option.icon
+//                   size={20}
+//                   color={dynamicStyles.text.color}
+//                   strokeWidth={2}
+//                 />
+//                 <Text style={[styles.settingText, dynamicStyles.text]}>
+//                   {option.title}
+//                 </Text>
+//               </View>
+//               {option.hasChevron && (
+//                 <Ionicons
+//                   name="chevron-forward"
+//                   size={20}
+//                   color={dynamicStyles.subtitle.color}
+//                 />
+//               )}
+//             </Pressable>
+//           ))}
+
+//           {/* Sign Out - now inside settings card */}
+//           <Pressable
+//             style={styles.settingItem}
+//             onPress={() => router.push("/onboarding/Welcome-screen-one")}
+//           >
+//             <View style={styles.settingLeft}>
+//               <Ionicons name="log-out-outline" size={20} color="#FF4444" />
+//               <Text style={styles.signOutText}>Sign Out</Text>
+//             </View>
+//           </Pressable>
+//         </View>
+
+//         {/* Footer */}
+//         <View style={[styles.footerCard, dynamicStyles.card]}>
+//           <Text style={[styles.footerTitle, dynamicStyles.text]}>
+//             TarpAI Connect
+//           </Text>
+//           <Text style={[styles.footerSubtitle, dynamicStyles.subtitle]}>
+//             Smart campus connections powered by AI
+//           </Text>
+//           <Text style={[styles.footerVersion, dynamicStyles.subtitle]}>
+//             Version 1.0.0
+//           </Text>
+//         </View>
+//       </ScrollView>
+//     </View>
+//   );
+// };
+
+// const styles = StyleSheet.create({
+//   container: {
+//     flex: 1,
+//   },
+//   content: {
+//     flex: 1,
+//     paddingHorizontal: 16,
+//   },
+//   profileCard: {
+//     padding: 16,
+//     borderRadius: 12,
+//     borderWidth: 1,
+//     marginTop: 16,
+//     marginBottom: 24,
+//   },
+//   profileHeader: {
+//     flexDirection: "row",
+//     justifyContent: "space-between",
+//     alignItems: "flex-start",
+//     marginBottom: 12,
+//   },
+//   avatarContainer: {
+//     flexDirection: "row",
+//     gap: 12,
+//     flex: 1,
+//   },
+//   avatar: {
+//     width: 60,
+//     height: 60,
+//     borderRadius: 30,
+//     backgroundColor: "#00D084",
+//     justifyContent: "center",
+//     alignItems: "center",
+//   },
+//   avatarText: {
+//     fontSize: 24,
+//     fontWeight: "bold",
+//     color: "#FFFFFF",
+//   },
+//   profileInfo: {
+//     flex: 1,
+//     gap: 4,
+//   },
+//   profileName: {
+//     fontSize: 16,
+//     fontWeight: "bold",
+//   },
+//   infoRow: {
+//     flexDirection: "row",
+//     alignItems: "center",
+//     gap: 6,
+//   },
+//   infoText: {
+//     fontSize: 12,
+//   },
+//   editButton: {
+//     flexDirection: "row",
+//     alignItems: "center",
+//     gap: 4,
+//   },
+//   editText: {
+//     fontSize: 14,
+//     fontWeight: "600",
+//   },
+//   memberSince: {
+//     fontSize: 14,
+//     marginBottom: 16,
+//   },
+//   completeButton: {
+//     padding: 14,
+//     borderRadius: 8,
+//     borderWidth: 1,
+//     alignItems: "center",
+//   },
+//   completeButtonText: {
+//     fontSize: 14,
+//     fontWeight: "600",
+//   },
+//   section: {
+//     marginBottom: 24,
+//   },
+//   sectionTitle: {
+//     fontSize: 16,
+//     fontWeight: "bold",
+//     marginBottom: 16,
+//   },
+//   statsCard: {
+//     padding: 16,
+//     borderRadius: 12,
+//     borderWidth: 1,
+//   },
+//   statsContainer: {
+//     flexDirection: "row",
+//     alignItems: "center",
+//     justifyContent: "space-between",
+//   },
+//   statItem: {
+//     flex: 1,
+//     alignItems: "center",
+//     gap: 8,
+//   },
+//   statNumber: {
+//     fontSize: 20,
+//     fontWeight: "bold",
+//   },
+//   statLabel: {
+//     fontSize: 11,
+//     textAlign: "center",
+//   },
+//   interestsCard: {
+//     padding: 16,
+//     borderRadius: 12,
+//     borderWidth: 1,
+//   },
+//   interestsHeader: {
+//     flexDirection: "row",
+//     justifyContent: "space-between",
+//     alignItems: "center",
+//     marginBottom: 16,
+//   },
+//   addMoreText: {
+//     fontSize: 10,
+//     fontWeight: "bold",
+//   },
+//   interestsGrid: {
+//     flexDirection: "row",
+//     flexWrap: "wrap",
+//     gap: 8,
+//   },
+//   interestChip: {
+//     paddingHorizontal: 16,
+//     paddingVertical: 8,
+//     borderRadius: 20,
+//     borderWidth: 1,
+//   },
+//   interestText: {
+//     fontSize: 9,
+//     fontWeight: "500",
+//   },
+//   settingsCard: {
+//     padding: 16,
+//     borderRadius: 12,
+//     borderWidth: 1,
+//     overflow: "hidden",
+//     marginBottom: 16,
+//   },
+//   sectionTitleInCard: {
+//     fontSize: 18,
+//     fontWeight: "bold",
+//     marginBottom: 16,
+//     marginTop: 0,
+//   },
+//   settingItem: {
+//     flexDirection: "row",
+//     justifyContent: "space-between",
+//     alignItems: "center",
+//     padding: 16,
+//   },
+//   referralsCard: {
+//     padding: 16,
+//     borderRadius: 12,
+//     borderWidth: 1,
+//     marginBottom: 24,
+//   },
+//   referralStats: {
+//     flexDirection: "row",
+//     alignItems: "center",
+//     gap: 12,
+//     marginBottom: 12,
+//   },
+//   referralCount: {
+//     fontSize: 14,
+//     fontWeight: "600",
+//   },
+//   referralDescription: {
+//     fontSize: 13,
+//     lineHeight: 18,
+//     marginBottom: 12,
+//   },
+//   referralLinkContainer: {
+//     flexDirection: "row",
+//     alignItems: "center",
+//     justifyContent: "space-between",
+//     paddingHorizontal: 12,
+//     paddingVertical: 10,
+//     borderRadius: 20,
+//     borderWidth: 1,
+//     marginBottom: 12,
+//   },
+//   referralLink: {
+//     fontSize: 12,
+//     flex: 1,
+//   },
+//   copyButton: {
+//     padding: 4,
+//     marginLeft: 8,
+//   },
+//   shareButton: {
+//     flexDirection: "row",
+//     alignItems: "center",
+//     justifyContent: "center",
+//     gap: 8,
+//     backgroundColor: "#5c6df7",
+//     paddingVertical: 12,
+//     paddingHorizontal: 16,
+//     borderRadius: 16,
+//   },
+//   shareButtonText: {
+//     fontSize: 14,
+//     fontWeight: "600",
+//     color: "#FFFFFF",
+//   },
+//   settingLeft: {
+//     flexDirection: "row",
+//     alignItems: "center",
+//     gap: 12,
+//   },
+//   settingText: {
+//     fontSize: 15,
+//     fontWeight: "500",
+//   },
+//   signOutText: {
+//     fontSize: 15,
+//     fontWeight: "600",
+//     color: "#FF4444",
+//   },
+//   footerCard: {
+//     padding: 16,
+//     borderRadius: 12,
+//     borderWidth: 1,
+//     alignItems: "center",
+//     marginBottom: 30,
+//   },
+//   footerTitle: {
+//     fontSize: 16,
+//     fontWeight: "bold",
+//     marginBottom: 4,
+//   },
+//   iconBackground: {
+//     width: 35,
+//     height: 35,
+//     borderRadius: 24,
+//     justifyContent: "center",
+//     alignItems: "center",
+//   },
+//   footerSubtitle: {
+//     fontSize: 12,
+//     marginBottom: 8,
+//   },
+//   footerVersion: {
+//     fontSize: 11,
+//   },
+// });
+
+// export default Profile;
 import { useTheme } from "@/app/contexts/ThemeContext";
 import Header from "@/components/Header";
+import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
+import { useProfileStats } from "@/hooks/useProfileStats";
+import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { router } from "expo-router";
 import { Bell, HelpCircle, Settings, ShieldCheck } from "lucide-react-native";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import moment from "moment";
+import React, { useState, useMemo } from "react";
+import {
+  Alert,
+  Image,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Share,
+  StyleSheet,
+  View,
+} from "react-native";
+import * as Clipboard from "expo-clipboard";
+import { toast } from "sonner-native";
+
+const SkeletonStat = ({ isDark }: { isDark: boolean }) => {
+  const dynamicStyles = {
+    iconBackground: {
+      backgroundColor: isDark ? "#333333" : "#F0F0F0",
+    },
+  };
+
+  return (
+    <View style={styles.statItem}>
+      <View style={[styles.iconBackground, dynamicStyles.iconBackground]}>
+        <Skeleton width={18} height={18} borderRadius={9} />
+      </View>
+      <Skeleton width={30} height={20} borderRadius={4} style={{ marginVertical: 4 }} />
+      <Skeleton width={60} height={11} borderRadius={4} />
+    </View>
+  );
+};
+
+const SkeletonInterest = () => {
+  return <Skeleton width={80} height={32} borderRadius={16} style={{ marginRight: 8, marginBottom: 8 }} />;
+};
 
 const Profile = () => {
   const { isDark } = useTheme();
-  const router = useRouter();
+  const { user, isAuthenticated, logout } = useAuthStore();
+  const { stats, isLoading: isLoadingStats, refresh } = useProfileStats();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [copyLoading, setCopyLoading] = useState(false);
 
   const dynamicStyles = {
     container: {
@@ -40,13 +669,65 @@ const Profile = () => {
     },
   };
 
-  const interests = [
-    "Computer Science",
-    "Gaming",
-    "Movies",
-    "Study Groups",
-    "Downtown",
-  ];
+  // Generate referral link
+  const referralLink = `https://tarpup.com/?ref=${user?.id}`;
+
+  // Handle refresh
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refresh();
+    setIsRefreshing(false);
+  };
+
+  // Handle copy referral link
+  const handleCopyReferralLink = async () => {
+    try {
+      setCopyLoading(true);
+      await Clipboard.setStringAsync(referralLink);
+      toast.success("Referral link copied to clipboard!");
+    } catch (error) {
+      toast.error("Failed to copy link");
+    } finally {
+      setCopyLoading(false);
+    }
+  };
+
+  // Handle share referral link
+  const handleShareReferralLink = async () => {
+    try {
+      await Share.share({
+        message: `Hey! Sign up to TarpAI Connect using my referral link and let's connect there!\n\n${referralLink}`,
+        title: "Join me on TarpAI Connect 🎉",
+        url: referralLink,
+      });
+    } catch (error) {
+      // Fallback to copy if share fails
+      handleCopyReferralLink();
+    }
+  };
+
+  // Handle logout with confirmation
+  const handleLogout = () => {
+    Alert.alert(
+      "Sign Out?",
+      "Are you sure you want to sign out?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Sign Out",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await logout();
+              router.push("/onboarding/Welcome-screen-one");
+            } catch (error) {
+              toast.error("Failed to sign out");
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const settingsOptions = [
     {
@@ -54,53 +735,86 @@ const Profile = () => {
       icon: Settings,
       title: "Account Settings",
       hasChevron: true,
+      route: "/account-settings",
     },
     {
       id: 2,
       icon: Bell,
       title: "Notifications",
       hasChevron: true,
+      route: "/notifications",
     },
     {
       id: 3,
       icon: ShieldCheck,
       title: "Privacy & Safety",
       hasChevron: true,
+      route: "/privacy",
     },
     {
       id: 4,
       icon: HelpCircle,
       title: "How It Works",
       hasChevron: true,
+      route: "/how-it-works",
     },
   ];
+
+  // Show loading state if user is not loaded
+  if (!isAuthenticated || !user) {
+    return (
+      <View style={[styles.container, dynamicStyles.container]}>
+        <Header />
+        <ScrollView style={styles.content}>
+          <View style={[styles.profileCard, dynamicStyles.card]}>
+            <View style={styles.profileHeader}>
+              <View style={styles.avatarContainer}>
+                <Skeleton width={60} height={60} borderRadius={30} />
+                <View style={styles.profileInfo}>
+                  <Skeleton width={120} height={16} borderRadius={4} style={{ marginBottom: 8 }} />
+                  <Skeleton width={180} height={12} borderRadius={4} style={{ marginBottom: 4 }} />
+                  <Skeleton width={160} height={12} borderRadius={4} />
+                </View>
+              </View>
+            </View>
+            <Skeleton width={140} height={14} borderRadius={4} style={{ marginBottom: 16 }} />
+            <Skeleton width="100%" height={48} borderRadius={8} />
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, dynamicStyles.container]}>
       <Header />
 
-      <ScrollView style={styles.content}>
+      <ScrollView 
+        style={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+        }
+      >
         {/* Profile Section */}
         <View style={[styles.profileCard, dynamicStyles.card]}>
           <View style={styles.profileHeader}>
             <View style={styles.avatarContainer}>
               <View style={styles.avatar}>
-                <Text style={styles.avatarText}>J</Text>
+                {user.bgUrl ? (
+                  <Image 
+                    source={{ uri: user.bgUrl }} 
+                    style={styles.avatarImage}
+                  />
+                ) : (
+                  <Text style={styles.avatarText}>
+                    {user.fname?.[0]?.toUpperCase() || "U"}
+                  </Text>
+                )}
               </View>
               <View style={styles.profileInfo}>
                 <Text style={[styles.profileName, dynamicStyles.text]}>
-                  John Doe
+                  {user.fname} {user.lname}
                 </Text>
-                <View style={styles.infoRow}>
-                  <Ionicons
-                    name="school-outline"
-                    size={14}
-                    color={dynamicStyles.subtitle.color}
-                  />
-                  <Text style={[styles.infoText, dynamicStyles.subtitle]}>
-                    University of South Florida
-                  </Text>
-                </View>
                 <View style={styles.infoRow}>
                   <Ionicons
                     name="mail-outline"
@@ -108,7 +822,7 @@ const Profile = () => {
                     color={dynamicStyles.subtitle.color}
                   />
                   <Text style={[styles.infoText, dynamicStyles.subtitle]}>
-                    JoeDoeUSF01@gmail.com
+                    {user.email}
                   </Text>
                 </View>
               </View>
@@ -116,7 +830,7 @@ const Profile = () => {
           </View>
 
           <Text style={[styles.memberSince, dynamicStyles.subtitle]}>
-            Member Since September 2024
+            Member since {moment(user.createdAt).format("MMMM YYYY")}
           </Text>
 
           <Pressable
@@ -144,7 +858,7 @@ const Profile = () => {
               />
             </View>
             <Text style={[styles.referralCount, dynamicStyles.text]}>
-              0 Total Referrals
+              {new Intl.NumberFormat('en-US').format(user.refferals ?? 0)} Total Referrals
             </Text>
           </View>
 
@@ -162,18 +876,22 @@ const Profile = () => {
               style={[styles.referralLink, dynamicStyles.text]}
               numberOfLines={1}
             >
-              https://tarpup.com/?ref=68f0f8227769a8a
+              {referralLink}
             </Text>
-            <Pressable style={styles.copyButton}>
+            <Pressable 
+              style={styles.copyButton}
+              onPress={handleCopyReferralLink}
+              disabled={copyLoading}
+            >
               <Ionicons
-                name="copy-outline"
+                name={copyLoading ? "hourglass-outline" : "copy-outline"}
                 size={18}
                 color={dynamicStyles.text.color}
               />
             </Pressable>
           </View>
 
-          <Pressable style={styles.shareButton}>
+          <Pressable style={styles.shareButton} onPress={handleShareReferralLink}>
             <Ionicons name="share-social-outline" size={18} color="#FFFFFF" />
             <Text style={styles.shareButtonText}>Share</Text>
           </Pressable>
@@ -187,56 +905,73 @@ const Profile = () => {
             </Text>
 
             <View style={styles.statsContainer}>
-              <View style={styles.statItem}>
-                <View
-                  style={[styles.iconBackground, dynamicStyles.iconBackground]}
-                >
-                  <Ionicons
-                    name="star-outline"
-                    size={18}
-                    color={dynamicStyles.subtitle.color}
-                  />
-                </View>
-                <Text style={[styles.statNumber, dynamicStyles.text]}>12</Text>
-                <Text style={[styles.statLabel, dynamicStyles.subtitle]}>
-                  Total Matches
-                </Text>
-              </View>
+              {isLoadingStats ? (
+                <>
+                  <SkeletonStat isDark={isDark} />
+                  <SkeletonStat isDark={isDark} />
+                  <SkeletonStat isDark={isDark} />
+                </>
+              ) : (
+                <>
+                  <View style={styles.statItem}>
+                    <View
+                      style={[styles.iconBackground, dynamicStyles.iconBackground]}
+                    >
+                      <Ionicons
+                        name="star-outline"
+                        size={18}
+                        color={dynamicStyles.subtitle.color}
+                      />
+                    </View>
+                    <Text style={[styles.statNumber, dynamicStyles.text]}>
+                      {stats?.totalMatches ?? 0}
+                    </Text>
+                    <Text style={[styles.statLabel, dynamicStyles.subtitle]}>
+                      Total Matches
+                    </Text>
+                  </View>
 
-              <View style={styles.statItem}>
-                <View
-                  style={[styles.iconBackground, dynamicStyles.iconBackground]}
-                >
-                  <Ionicons
-                    name="people-outline"
-                    size={18}
-                    color={dynamicStyles.subtitle.color}
-                  />
-                </View>
-                <Text style={[styles.statNumber, dynamicStyles.text]}>4</Text>
-                <Text style={[styles.statLabel, dynamicStyles.subtitle]}>
-                  Active Groups
-                </Text>
-              </View>
+                  <View style={styles.statItem}>
+                    <View
+                      style={[styles.iconBackground, dynamicStyles.iconBackground]}
+                    >
+                      <Ionicons
+                        name="people-outline"
+                        size={18}
+                        color={dynamicStyles.subtitle.color}
+                      />
+                    </View>
+                    <Text style={[styles.statNumber, dynamicStyles.text]}>
+                      {stats?.activeGroups ?? 0}
+                    </Text>
+                    <Text style={[styles.statLabel, dynamicStyles.subtitle]}>
+                      Active Groups
+                    </Text>
+                  </View>
 
-              <View style={styles.statItem}>
-                <View
-                  style={[styles.iconBackground, dynamicStyles.iconBackground]}
-                >
-                  <Ionicons
-                    name="trending-up-outline"
-                    size={18}
-                    color={dynamicStyles.subtitle.color}
-                  />
-                </View>
-                <Text style={[styles.statNumber, dynamicStyles.text]}>87%</Text>
-                <Text style={[styles.statLabel, dynamicStyles.subtitle]}>
-                  Avg Compatibility
-                </Text>
-              </View>
+                  <View style={styles.statItem}>
+                    <View
+                      style={[styles.iconBackground, dynamicStyles.iconBackground]}
+                    >
+                      <Ionicons
+                        name="trending-up-outline"
+                        size={18}
+                        color={dynamicStyles.subtitle.color}
+                      />
+                    </View>
+                    <Text style={[styles.statNumber, dynamicStyles.text]}>
+                      {stats?.avgCompatibility ?? 0}%
+                    </Text>
+                    <Text style={[styles.statLabel, dynamicStyles.subtitle]}>
+                      Avg Compatibility
+                    </Text>
+                  </View>
+                </>
+              )}
             </View>
           </View>
         </View>
+
         {/* Your Interests */}
         <View style={styles.section}>
           <View style={[styles.interestsCard, dynamicStyles.card]}>
@@ -252,16 +987,37 @@ const Profile = () => {
             </View>
 
             <View style={styles.interestsGrid}>
-              {interests.map((interest, index) => (
-                <View
-                  key={index}
-                  style={[styles.interestChip, dynamicStyles.button]}
-                >
-                  <Text style={[styles.interestText, dynamicStyles.text]}>
-                    {interest}
-                  </Text>
-                </View>
-              ))}
+              {isLoadingStats ? (
+                <>
+                  <SkeletonInterest />
+                  <SkeletonInterest />
+                  <SkeletonInterest />
+                  <SkeletonInterest />
+                  <SkeletonInterest />
+                </>
+              ) : (
+                stats?.interests?.map((interest, index) => (
+                  <View
+                    key={index}
+                    style={[styles.interestChip, dynamicStyles.button]}
+                  >
+                    <Text style={[styles.interestText, dynamicStyles.text]}>
+                      {interest}
+                    </Text>
+                  </View>
+                )) ?? (
+                  user.interests?.map((interest, index) => (
+                    <View
+                      key={index}
+                      style={[styles.interestChip, dynamicStyles.button]}
+                    >
+                      <Text style={[styles.interestText, dynamicStyles.text]}>
+                        {interest}
+                      </Text>
+                    </View>
+                  ))
+                )
+              )}
             </View>
           </View>
         </View>
@@ -275,12 +1031,7 @@ const Profile = () => {
             <Pressable
               key={option.id}
               style={styles.settingItem}
-              onPress={() => {
-                if (option.id === 1) router.push("/account-settings");
-                if (option.id === 2) router.push("/notifications");
-                if (option.id === 3) router.push("/privacy");
-                if (option.id === 4) router.push("/how-it-works");
-              }}
+              onPress={() => router.push(option.route as any)}
             >
               <View style={styles.settingLeft}>
                 <option.icon
@@ -302,11 +1053,8 @@ const Profile = () => {
             </Pressable>
           ))}
 
-          {/* Sign Out - now inside settings card */}
-          <Pressable
-            style={styles.settingItem}
-            onPress={() => router.push("/onboarding/Welcome-screen-one")}
-          >
+          {/* Sign Out */}
+          <Pressable style={styles.settingItem} onPress={handleLogout}>
             <View style={styles.settingLeft}>
               <Ionicons name="log-out-outline" size={20} color="#FF4444" />
               <Text style={styles.signOutText}>Sign Out</Text>
@@ -364,6 +1112,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#00D084",
     justifyContent: "center",
     alignItems: "center",
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 30,
   },
   avatarText: {
     fontSize: 24,
