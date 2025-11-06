@@ -62,7 +62,7 @@ const OnboardingScreen = ({
 
   const dynamicStyles = {
     container: {
-      backgroundColor: isDark ? "#000000" : "#FFFFFF",
+      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     skipText: {
       color: isDark ? "#FFFFFF" : "#000000",

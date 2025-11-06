@@ -21,7 +21,7 @@ const Header = () => {
 
   const dynamicStyles = {
     container: {
-      backgroundColor: isDark ? "#000000" : "#FFFFFF",
+      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
       borderBottomColor: isDark ? "#333333" : "#E0E0E0",
     },
     title: {

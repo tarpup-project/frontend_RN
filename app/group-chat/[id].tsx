@@ -76,10 +76,10 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
 
   const dynamicStyles = {
     container: {
-      backgroundColor: isDark ? "#000000" : "#FFFFFF",
+      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     header: {
-      backgroundColor: isDark ? "#000000" : "#FFFFFF",
+      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
       borderBottomColor: isDark ? "#333333" : "#E0E0E0",
     },
     text: {
@@ -587,7 +587,7 @@ const ErrorScreen = ({ message }: { message: string }) => {
       style={[
         styles.container,
         styles.centerContainer,
-        { backgroundColor: isDark ? "#000000" : "#FFFFFF" },
+        { backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF" },
       ]}
     >
       <Ionicons name="alert-circle-outline" size={48} color="#FF3B30" />

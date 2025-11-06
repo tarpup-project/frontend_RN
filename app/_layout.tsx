@@ -40,7 +40,7 @@ function RootLayoutContent() {
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
-          backgroundColor: isDark ? "#000000" : "#FFFFFF",
+          backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
         }}
       >
         <ActivityIndicator size="large" color={isDark ? "#FFFFFF" : "#000000"} />
@@ -60,7 +60,7 @@ function RootLayoutContent() {
           headerShown: false,
           animation: "slide_from_right",
           contentStyle: {
-            backgroundColor: isDark ? "#000000" : "#FFFFFF",
+            backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
           },
         }}
       />
