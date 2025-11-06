@@ -206,12 +206,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 10,
   },
   skipButton: {
     alignSelf: "flex-end",
     paddingVertical: 8,
     paddingHorizontal: 16,
+    marginTop: 16, 
   },
   skipText: {
     fontSize: 16,
