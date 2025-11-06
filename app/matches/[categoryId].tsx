@@ -323,48 +323,41 @@
 
 // export default CategoryMatches;
 
-
-
-
-
 import { useTheme } from "@/app/contexts/ThemeContext";
 import Header from "@/components/Header";
 import PreviewModeBanner from "@/components/PreviewModeBanner";
 import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
+import { UrlConstants } from "@/constants/apiUrls";
 import { useCampus } from "@/hooks/useCampus";
 import { useCategories } from "@/hooks/useCategories";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
 import { router, useLocalSearchParams } from "expo-router";
-import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
-import { UrlConstants } from '@/constants/apiUrls';
-import {
-  Clock,
-  Zap,
-} from "lucide-react-native";
+import { Clock, Zap } from "lucide-react-native";
 import moment from "moment";
 import { useEffect, useRef } from "react";
-import { 
+import {
   Animated,
-  Pressable, 
-  ScrollView, 
-  StyleSheet, 
-  View 
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
 } from "react-native";
 
 // CategoryMatches API Hook
 interface CategoryMatch {
   id: string;
   createdAt: string;
-  members: Array<{
+  members: {
     user: {
       id: string;
       fname: string;
       bgUrl?: string;
     };
-  }>;
+  }[];
   request?: {
     title: string;
   };
@@ -375,13 +368,18 @@ interface CategoryMatch {
 
 const useCategoryMatches = (categoryId: string, campusId?: string) => {
   return useQuery({
-    queryKey: ['categoryMatches', categoryId, campusId],
+    queryKey: ["categoryMatches", categoryId, campusId],
     queryFn: async () => {
       const response = await axios.get<{
         status: string;
         data: CategoryMatch[];
-      }>(`${UrlConstants.baseUrl}${UrlConstants.fetchCategoryMatches(categoryId, campusId || '')}`);
-      
+      }>(
+        `${UrlConstants.baseUrl}${UrlConstants.fetchCategoryMatches(
+          categoryId,
+          campusId || ""
+        )}`
+      );
+
       return response.data.data;
     },
     enabled: !!categoryId && !!campusId,
@@ -393,7 +391,7 @@ const useCategoryMatches = (categoryId: string, campusId?: string) => {
 // Loading Skeleton Component
 const MatchCardSkeleton = () => {
   const { isDark } = useTheme();
-  
+
   return (
     <View
       style={[
@@ -407,7 +405,12 @@ const MatchCardSkeleton = () => {
       <View style={styles.matchHeader}>
         <View style={styles.namesRow}>
           <Skeleton width={60} height={16} style={{ marginRight: 8 }} />
-          <Skeleton width={12} height={12} borderRadius={6} style={{ marginRight: 8 }} />
+          <Skeleton
+            width={12}
+            height={12}
+            borderRadius={6}
+            style={{ marginRight: 8 }}
+          />
           <Skeleton width={60} height={16} />
         </View>
       </View>
@@ -420,8 +423,12 @@ const MatchCardSkeleton = () => {
 };
 
 // Animated Match Card Component
-const AnimatedMatchCard = ({ match, index, dynamicStyles }: { 
-  match: CategoryMatch; 
+const AnimatedMatchCard = ({
+  match,
+  index,
+  dynamicStyles,
+}: {
+  match: CategoryMatch;
   index: number;
   dynamicStyles: any;
 }) => {
@@ -468,7 +475,7 @@ const AnimatedMatchCard = ({ match, index, dynamicStyles }: {
             </Text>
           </View>
         </View>
-        
+
         <Text style={[styles.matchDescription, dynamicStyles.text]}>
           for {match.request?.title || match.group?.name || "Connection"}
         </Text>
@@ -490,19 +497,16 @@ const CategoryMatches = () => {
   const { selectedUniversity } = useCampus();
   const { data: categories } = useCategories(selectedUniversity?.id);
   const { isAuthenticated } = useAuthStore();
-  
+
   // Get category details from the categories data
-  const category = categories?.find(cat => cat.id === categoryId);
-  
+  const category = categories?.find((cat: any) => cat.id === categoryId);
+
   // Fetch matches for this category
-  const { 
-    data: matches, 
+  const {
+    data: matches,
     isLoading: isLoadingMatches,
-    error 
-  } = useCategoryMatches(
-    categoryId as string, 
-    selectedUniversity?.id
-  );
+    error,
+  } = useCategoryMatches(categoryId as string, selectedUniversity?.id);
 
   const dynamicStyles = {
     container: {
@@ -522,15 +526,14 @@ const CategoryMatches = () => {
 
   return (
     <View style={[styles.container, dynamicStyles.container]}>
-      <ScrollView 
+      <Header />
+
+      <ScrollView
         style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header and Preview Banner in ScrollView */}
-        <View style={{ gap: 12 }}>
-          <Header />
-          {!isAuthenticated && <PreviewModeBanner />}
-        </View>
+        {/* Only Preview Banner scrolls */}
+        {!isAuthenticated && <PreviewModeBanner />}
 
         {/* Back Navigation */}
         <View style={styles.header}>
@@ -616,7 +619,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(128, 128, 128, 0.2)',
+    borderBottomColor: "rgba(128, 128, 128, 0.2)",
   },
   backButton: {
     flexDirection: "row",
@@ -638,7 +641,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   categoryTitle: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: "bold",
     marginBottom: 4,
   },
@@ -668,7 +671,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   matchName: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
   },
   matchDescription: {
@@ -689,7 +692,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
     textAlign: "center",
     marginBottom: 8,
