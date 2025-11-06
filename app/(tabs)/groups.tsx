@@ -463,7 +463,7 @@ const GroupSkeletonCard = ({ isDark }: { isDark: boolean }) => {
       style={[
         styles.groupCard,
         {
-          backgroundColor: isDark ? "#000000" : "#FFFFFF",
+          backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
           borderColor: isDark ? "#333333" : "#E0E0E0",
         },
       ]}
@@ -519,7 +519,7 @@ const Groups = () => {
 
   const dynamicStyles = {
     container: {
-      backgroundColor: isDark ? "#000000" : "#FFFFFF",
+      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     text: {
       color: isDark ? "#FFFFFF" : "#000000",
@@ -528,7 +528,7 @@ const Groups = () => {
       color: isDark ? "#CCCCCC" : "#666666",
     },
     card: {
-      backgroundColor: isDark ? "#000000" : "#FFFFFF",
+      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     avatarBorder: {

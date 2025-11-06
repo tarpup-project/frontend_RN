@@ -634,10 +634,10 @@ const Chat = () => {
 
   const dynamicStyles = {
     container: {
-      backgroundColor: isDark ? "#000000" : "#FFFFFF",
+      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     header: {
-      backgroundColor: isDark ? "#000000" : "#FFFFFF",
+      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
       borderBottomColor: isDark ? "#333333" : "#E0E0E0",
     },
     text: {
@@ -647,7 +647,7 @@ const Chat = () => {
       color: isDark ? "#CCCCCC" : "#666666",
     },
     quickStartButton: {
-      backgroundColor: isDark ? "#000000" : "#FFFFFF",
+      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     userMessage: {
@@ -660,7 +660,7 @@ const Chat = () => {
       backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
     },
     matchButton: {
-      backgroundColor: isDark ? "#000000" : "#FFFFFF",
+      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     input: {

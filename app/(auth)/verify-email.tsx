@@ -386,7 +386,7 @@ const VerifyEmail = () => {
 
   const dynamicStyles = {
     container: {
-      backgroundColor: isDark ? "#000000" : "#FFFFFF",
+      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     text: {
       color: isDark ? "#FFFFFF" : "#000000",
@@ -395,12 +395,12 @@ const VerifyEmail = () => {
       color: isDark ? "#CCCCCC" : "#666666",
     },
     input: {
-      backgroundColor: isDark ? "#000000" : "#FFFFFF",
+      backgroundColor: isDark ? "##0a0a0a" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
       color: isDark ? "#FFFFFF" : "#000000",
     },
     codeDisplay: {
-      backgroundColor: isDark ? "#000000" : "#F5F5F5",
+      backgroundColor: isDark ? "#0a0a0a" : "#F5F5F5",
     },
     verifyButton: {
       backgroundColor: isDark ? "#FFFFFF" : "#000000",

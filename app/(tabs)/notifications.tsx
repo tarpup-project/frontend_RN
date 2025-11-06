@@ -987,7 +987,7 @@ const Notifications = () => {
 
   const dynamicStyles = {
     container: {
-      backgroundColor: isDark ? "#000000" : "#FFFFFF",
+      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     text: {
       color: isDark ? "#FFFFFF" : "#000000",
@@ -996,7 +996,7 @@ const Notifications = () => {
       color: isDark ? "#CCCCCC" : "#666666",
     },
     card: {
-      backgroundColor: isDark ? "#000000" : "#FFFFFF",
+      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     divider: {
@@ -1012,7 +1012,7 @@ const Notifications = () => {
       backgroundColor: isDark ? "#FFFFFF" : "#999999",
     },
     customToggleDotActive: {
-      backgroundColor: isDark ? "#000000" : "#FFFFFF",
+      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     onBadge: {
       backgroundColor: isDark ? "#FFFFFF" : "#000000",

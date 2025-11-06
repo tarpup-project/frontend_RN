@@ -47,7 +47,7 @@ const Signup = () => {
 
   const dynamicStyles = {
     container: {
-      backgroundColor: isDark ? "#000000" : "#FFFFFF",
+      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     text: {
       color: isDark ? "#FFFFFF" : "#000000",
@@ -56,12 +56,12 @@ const Signup = () => {
       color: isDark ? "#CCCCCC" : "#666666",
     },
     input: {
-      backgroundColor: isDark ? "#000000" : "#FFFFFF",
+      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
       color: isDark ? "#FFFFFF" : "#000000",
     },
     dropdown: {
-      backgroundColor: isDark ? "#000000" : "#FFFFFF",
+      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     signInLink: {

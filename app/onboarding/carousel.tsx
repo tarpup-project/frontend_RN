@@ -106,7 +106,7 @@ const OnboardingCarousel = () => {
     <View
       style={[
         styles.container,
-        { backgroundColor: isDark ? "#000000" : "#FFFFFF" },
+        { backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF" },
       ]}
     >
       <FlatList

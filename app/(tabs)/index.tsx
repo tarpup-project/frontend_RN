@@ -50,7 +50,7 @@ const CategoryCardSkeleton = () => {
       style={[
         styles.card,
         {
-          backgroundColor: isDark ? "#000000" : "#FFFFFF",
+          backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
           borderColor: isDark ? "#333333" : "#E0E0E0",
         },
       ]}
@@ -89,7 +89,7 @@ const RecentMatchSkeleton = () => {
       style={[
         styles.recentCard,
         {
-          backgroundColor: isDark ? "#000000" : "#FFFFFF",
+          backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
           borderColor: isDark ? "#333333" : "#E0E0E0",
         },
       ]}
@@ -135,7 +135,7 @@ const Index = () => {
 
   const dynamicStyles = {
     container: {
-      backgroundColor: isDark ? "#000000" : "#FFFFFF",
+      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     text: {
       color: isDark ? "#FFFFFF" : "#000000",
@@ -144,22 +144,22 @@ const Index = () => {
       color: isDark ? "#CCCCCC" : "#666666",
     },
     filterContainer: {
-      backgroundColor: isDark ? "#000000" : "#FFFFFF",
+      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     innerCard: {
-      backgroundColor: isDark ? "#000000" : "#FFFFFF",
+      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     card: {
-      backgroundColor: isDark ? "#000000" : "#FFFFFF",
+      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     matchesBadge: {
       backgroundColor: isDark ? "#1A1A1A" : "#E0E0E0",
     },
     percentageBadge: {
-      backgroundColor: isDark ? "#0A0A0A" : "#E5E5E5",
+      backgroundColor: isDark ? "#0a0a0a" : "#E5E5E5",
     },
     percentageText: {
       color: isDark ? "#FFFFFF" : "#000000",
@@ -168,7 +168,7 @@ const Index = () => {
       borderColor: isDark ? "#000000" : "#FFFFFF",
     },
     compatibilityCard: {
-      backgroundColor: isDark ? "#0A0A0A" : "#F5F5F5",
+      backgroundColor: isDark ? "#0a0a0a" : "#F5F5F5",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
   };

@@ -15,7 +15,7 @@ export default function TabLayout() {
                 tabBarActiveTintColor: isDark ? '#FFFFFF' : '#000000',
                 tabBarInactiveTintColor: isDark ? '#666666' : '#999999',
                 tabBarStyle: {
-                    backgroundColor: isDark ? '#000000' : '#FFFFFF',
+                    backgroundColor: isDark ? '#0a0a0a' : '#FFFFFF',
                     borderTopColor: isDark ? '#333333' : '#E0E0E0',
                     borderTopWidth: 1,
                     height: 80,
@@ -31,7 +31,7 @@ export default function TabLayout() {
                     marginHorizontal: 4,
                     overflow: 'hidden',
                 },
-                tabBarInactiveBackgroundColor: isDark ? '#000000' : '#FFFFFF',
+                tabBarInactiveBackgroundColor: isDark ? '#0a0a0a' : '#FFFFFF',
             }}
         >
             <Tabs.Screen
