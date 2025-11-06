@@ -648,8 +648,8 @@ import {
   View,
 } from "react-native";
 import { toast } from "sonner-native";
-import { api } from "@/constants/apiUrls";
-import { UrlConstants } from "@/api/client";
+import { api } from "@/api/client";
+import { UrlConstants  } from "@/constants/apiUrls";
 
 interface NotificationSettings {
   emailVisibile?: boolean;
