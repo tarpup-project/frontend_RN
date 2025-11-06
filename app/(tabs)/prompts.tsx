@@ -107,12 +107,6 @@ const Prompts = () => {
     selectedCategory: { index: selectedCategoryIndex, id: selectedCategoryId },
   });
 
-  // console.log('Debug prompts:', {
-  //   isLoadingPrompts,
-  //   prompts: prompts.length,
-  //   isLoadingCategories,
-  //   categories: categories.length
-  // });
   const dynamicStyles = {
     container: { backgroundColor: isDark ? "#000000" : "#FFFFFF" },
     text: { color: isDark ? "#FFFFFF" : "#000000" },
@@ -181,10 +175,7 @@ const Prompts = () => {
 
   return (
     <View style={[styles.container, dynamicStyles.container]}>
-      <View style={{ gap: 12 }}>
-        <Header />
-        {!isAuthenticated && <PreviewModeBanner />}
-      </View>
+      <Header />
 
       <ScrollView
         style={styles.content}
@@ -192,6 +183,11 @@ const Prompts = () => {
           <RefreshControl refreshing={false} onRefresh={refresh} />
         }
       >
+        {!isAuthenticated && (
+          <View style={{ marginTop: 16 }}>
+            <PreviewModeBanner />
+          </View>
+        )}
         <View style={[styles.feedHeader, dynamicStyles.sectionBg]}>
           <View style={styles.feedTitleRow}>
             <Text style={[styles.feedTitle, dynamicStyles.text]}>
