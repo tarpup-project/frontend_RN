@@ -233,7 +233,10 @@ const Groups = () => {
 
               <Pressable
                 style={[styles.openButton, dynamicStyles.openButton]}
-                onPress={() => router.push(`/group-chat/${group.id}`)}
+                onPress={() => {
+                  console.log('Navigating to group:', group.id);
+                  router.push(`/group-chat/${group.id}`);
+                }}
               >
                 <Ionicons
                   name="chatbubble-outline"

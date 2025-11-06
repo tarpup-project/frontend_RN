@@ -40,7 +40,10 @@ export const useGroupMessages = ({ groupId, socket }: UseGroupMessagesProps) => 
   useEffect(() => {
     if (!socket || !user || !groupId) return;
 
+    console.log('🔍 Setting up socket listeners for group:', groupId);
+
     const joinRoom = () => {
+      console.log('📤 Emitting JOIN_GROUP_ROOM:', { roomID: groupId, userID: user.id });
       socket.emit(SocketEvents.JOIN_GROUP_ROOM, {
         roomID: groupId,
         userID: user.id,
@@ -54,6 +57,7 @@ export const useGroupMessages = ({ groupId, socket }: UseGroupMessagesProps) => 
     }
 
     const handleJoinRoom = (data: { messages: GroupMessage[] }) => {
+      console.log('📥 Received JOIN_GROUP_ROOM response:', data);
       setMessages(data.messages || []);
       setIsLoading(false);
       setError(null);
