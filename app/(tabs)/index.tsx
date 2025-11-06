@@ -175,12 +175,15 @@ const Index = () => {
 
   return (
     <View style={[styles.container, dynamicStyles.container]}>
-      <View style={{ gap: 12 }}>
-        <Header />
-        {!isAuthenticated && <PreviewModeBanner />}
-      </View>
+      <Header />
 
       <ScrollView style={styles.content}>
+        {!isAuthenticated && (
+          <View style={{ marginTop: 16 }}>
+            <PreviewModeBanner />
+          </View>
+        )}
+
         <View
           style={[
             styles.filterSection,
