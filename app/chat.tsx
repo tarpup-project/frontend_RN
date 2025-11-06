@@ -1190,7 +1190,7 @@ const styles = StyleSheet.create({
   },
   inputSection: {
     padding: 16,
-    paddingBottom: Platform.OS === "ios" ? 34 : 24,
+    paddingBottom: Platform.OS === "ios" ? 24 : 2,
     borderTopWidth: 1,
     borderTopColor: "rgba(255, 255, 255, 0.1)",
   },
