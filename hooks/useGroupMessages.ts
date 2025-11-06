@@ -38,13 +38,19 @@ export const useGroupMessages = ({ groupId, socket }: UseGroupMessagesProps) => 
   }, [messages]);
 
   useEffect(() => {
-    if (!socket || !user || !groupId) return;
+    console.log('🔍 useGroupMessages effect triggered:', { socket: !!socket, user: !!user, groupId });
+  
+    if (!socket || !user || !groupId) {
+      console.log('❌ Missing dependencies:', { socket: !!socket, user: !!user, groupId: !!groupId });
+      return;
+    }
 
     console.log('🔍 Setting up socket listeners for group:', groupId);
+    console.log('✅ All dependencies present, setting up socket listeners');
 
     const joinRoom = () => {
       console.log('📤 Emitting JOIN_GROUP_ROOM:', { roomID: groupId, userID: user.id });
-      socket.emit(SocketEvents.JOIN_GROUP_ROOM, {
+      socket.emit('joinGroupRoom', {  
         roomID: groupId,
         userID: user.id,
       });
@@ -63,7 +69,7 @@ export const useGroupMessages = ({ groupId, socket }: UseGroupMessagesProps) => 
       setError(null);
     };
 
-    socket.on(SocketEvents.JOIN_GROUP_ROOM, handleJoinRoom);
+    socket.on('joinGroupRoom', handleJoinRoom);
 
     const handleNewMessage = (data: SendMessagePayload) => {
       if (data.roomID !== groupId) return;
