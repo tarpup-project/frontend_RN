@@ -1,6 +1,6 @@
+import { useTheme } from "@/app/contexts/ThemeContext";
 import { Text } from "@/components/Themedtext";
 import { LinearGradient } from "expo-linear-gradient";
-import { useTheme } from "@/app/contexts/ThemeContext";
 import { MessageSquare, UsersRound } from "lucide-react-native";
 import { useEffect, useRef } from "react";
 import {
@@ -11,6 +11,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface OnboardingScreenProps {
   icon: ImageSourcePropType | string;
@@ -39,20 +40,19 @@ const OnboardingScreen = ({
 }: OnboardingScreenProps) => {
   const { isDark } = useTheme();
 
-
-  const slideAnim = useRef(new Animated.Value(100)).current; 
-  const fadeAnim = useRef(new Animated.Value(0)).current; 
+  const slideAnim = useRef(new Animated.Value(100)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(slideAnim, {
-        toValue: 0, 
+        toValue: 0,
         duration: 800,
-        delay: 300, 
-        useNativeDriver: true, 
+        delay: 300,
+        useNativeDriver: true,
       }),
       Animated.timing(fadeAnim, {
-        toValue: 1, 
+        toValue: 1,
         duration: 800,
         delay: 300,
         useNativeDriver: true,
@@ -114,7 +114,7 @@ const OnboardingScreen = ({
   };
 
   return (
-    <View style={[styles.container, dynamicStyles.container]}>
+    <SafeAreaView style={[styles.container, dynamicStyles.container]}>
       {/* Skip Button */}
       <Pressable style={styles.skipButton} onPress={onSkip}>
         <Text style={[styles.skipText, dynamicStyles.skipText]}>Skip</Text>
@@ -198,7 +198,7 @@ const OnboardingScreen = ({
           </View>
         </Pressable>
       </Animated.View>
-    </View>
+    </SafeAreaView>
   );
 };
 

@@ -1,5 +1,6 @@
 import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/app/contexts/ThemeContext";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from "expo-router";
 import {
   Image,
@@ -34,7 +35,7 @@ const WelcomeScreenOne = () => {
   };
 
   return (
-    <View style={[styles.container, dynamicStyles.container]}>
+    <SafeAreaView style={[styles.container, dynamicStyles.container]}>
       <Pressable
         style={styles.skipButton}
         onPress={() => router.push("/onboarding/carousel")}
@@ -75,7 +76,7 @@ const WelcomeScreenOne = () => {
           </View>
         </Pressable>
       </View>
-    </View>
+      </SafeAreaView>
   );
 };
 
