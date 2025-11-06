@@ -940,10 +940,10 @@
 // export default Notifications;
 
 
-
 import { useTheme } from "@/app/contexts/ThemeContext";
 import Header from "@/components/Header";
 import { Loader } from "@/components/Loader";
+import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
 import { Ionicons } from "@expo/vector-icons";
 import { Bell } from "lucide-react-native";
@@ -1225,17 +1225,27 @@ const Notifications = () => {
     </Pressable>
   );
 
-  // Show loading state
-  if (isLoading) {
+  // Skeleton components
+  const SkeletonToggle = () => {
     return (
-      <View style={[styles.container, dynamicStyles.container]}>
-        <Header />
-        <View style={styles.loadingContainer}>
-          <Loader color={dynamicStyles.text.color} text="Loading settings..." />
+      <View style={styles.toggleRow}>
+        <View style={styles.toggleInfo}>
+          <Skeleton width={120} height={16} borderRadius={4} style={{ marginBottom: 4 }} />
+          <Skeleton width={180} height={12} borderRadius={4} />
         </View>
+        <Skeleton width={40} height={20} borderRadius={10} />
       </View>
     );
-  }
+  };
+
+  const SkeletonCategory = () => {
+    return (
+      <View style={[styles.categoryCard, dynamicStyles.card]}>
+        <Skeleton width={60} height={14} borderRadius={4} />
+        <Skeleton width={40} height={20} borderRadius={10} />
+      </View>
+    );
+  };
 
   return (
     <View style={[styles.container, dynamicStyles.container]}>
@@ -1245,7 +1255,7 @@ const Notifications = () => {
         {/* Back Button */}
         <Pressable
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={() => router.push("/profile")}
         >
           <Ionicons
             name="arrow-back"
@@ -1272,7 +1282,7 @@ const Notifications = () => {
             </View>
             <View style={[styles.onBadge, dynamicStyles.onBadge]}>
               <Text style={[styles.onBadgeText, dynamicStyles.onBadgeText]}>
-                {(settings.emailNotification && settings.importantUpdates && 
+                {isLoading ? "..." : (settings.emailNotification && settings.importantUpdates && 
                   settings.weeklyDigest && settings.newFeature) ? "ON" : "OFF"}
               </Text>
             </View>
@@ -1282,6 +1292,7 @@ const Notifications = () => {
             <Pressable
               style={[styles.quickActionButton, dynamicStyles.card]}
               onPress={enableAll}
+              disabled={isLoading}
             >
               <Text style={[styles.quickActionText, dynamicStyles.text]}>
                 Enable All
@@ -1290,6 +1301,7 @@ const Notifications = () => {
             <Pressable
               style={[styles.quickActionButton, dynamicStyles.card]}
               onPress={disableAll}
+              disabled={isLoading}
             >
               <Text style={[styles.quickActionText, dynamicStyles.text]}>
                 Disable All
@@ -1356,33 +1368,44 @@ const Notifications = () => {
             </Text>
           </View>
 
-          <ToggleSwitch
-            value={settings.emailNotification ?? true}
-            onValueChange={(value) => updateSetting('emailNotification', value)}
-            label="Enable Email Notifications"
-            description="Receive notifications via email"
-          />
+          {isLoading ? (
+            <>
+              <SkeletonToggle />
+              <SkeletonToggle />
+              <SkeletonToggle />
+              <SkeletonToggle />
+            </>
+          ) : (
+            <>
+              <ToggleSwitch
+                value={settings.emailNotification ?? true}
+                onValueChange={(value) => updateSetting('emailNotification', value)}
+                label="Enable Email Notifications"
+                description="Receive notifications via email"
+              />
 
-          <ToggleSwitch
-            value={settings.weeklyDigest ?? true}
-            onValueChange={(value) => updateSetting('weeklyDigest', value)}
-            label="Weekly Digest"
-            description="Summary of your weekly activity"
-          />
+              <ToggleSwitch
+                value={settings.weeklyDigest ?? true}
+                onValueChange={(value) => updateSetting('weeklyDigest', value)}
+                label="Weekly Digest"
+                description="Summary of your weekly activity"
+              />
 
-          <ToggleSwitch
-            value={settings.importantUpdates ?? true}
-            onValueChange={(value) => updateSetting('importantUpdates', value)}
-            label="Important Updates"
-            description="Account and security notifications"
-          />
+              <ToggleSwitch
+                value={settings.importantUpdates ?? true}
+                onValueChange={(value) => updateSetting('importantUpdates', value)}
+                label="Important Updates"
+                description="Account and security notifications"
+              />
 
-          <ToggleSwitch
-            value={settings.newFeature ?? false}
-            onValueChange={(value) => updateSetting('newFeature', value)}
-            label="New Features"
-            description="Updates about new app features"
-          />
+              <ToggleSwitch
+                value={settings.newFeature ?? false}
+                onValueChange={(value) => updateSetting('newFeature', value)}
+                label="New Features"
+                description="Updates about new app features"
+              />
+            </>
+          )}
         </View>
 
         {/* Category Preferences */}
@@ -1395,14 +1418,25 @@ const Notifications = () => {
           </Text>
 
           <View style={styles.categoryGrid}>
-            {['Rides', 'Roommates', 'Marketplace', 'Sports', 'Dating', 'Study'].map((category) => (
-              <CategoryCard
-                key={category}
-                category={category}
-                value={getCategoryPref(category)}
-                onValueChange={(value) => updateCategoryPref(category, value)}
-              />
-            ))}
+            {isLoading ? (
+              <>
+                <SkeletonCategory />
+                <SkeletonCategory />
+                <SkeletonCategory />
+                <SkeletonCategory />
+                <SkeletonCategory />
+                <SkeletonCategory />
+              </>
+            ) : (
+              ['Rides', 'Roommates', 'Marketplace', 'Sports', 'Dating', 'Study'].map((category) => (
+                <CategoryCard
+                  key={category}
+                  category={category}
+                  value={getCategoryPref(category)}
+                  onValueChange={(value) => updateCategoryPref(category, value)}
+                />
+              ))
+            )}
           </View>
         </View>
 
@@ -1412,10 +1446,10 @@ const Notifications = () => {
             style={[
               styles.saveButton, 
               dynamicStyles.saveNotificationButton,
-              isSaving && styles.saveButtonDisabled
+              (isSaving || isLoading) && styles.saveButtonDisabled
             ]}
             onPress={handleSave}
-            disabled={isSaving}
+            disabled={isSaving || isLoading}
           >
             {isSaving ? (
               <Loader 

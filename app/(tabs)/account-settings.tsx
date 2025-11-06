@@ -1,33 +1,53 @@
+
 // import Header from "@/components/Header";
+// import { Loader } from "@/components/Loader";
+// import { Text } from "@/components/Themedtext";
+// import { useAuthStore } from "@/state/authStore";
 // import { Ionicons } from "@expo/vector-icons";
 // import { useTheme } from "@/app/contexts/ThemeContext";
-// import { useRouter } from "expo-router";
-// import { useState } from "react";
-// import { Text } from "@/components/Themedtext";
+// import { router } from "expo-router";
+// import { useEffect, useState } from "react";
 // import { User, Lock, Shield, AlertTriangle } from "lucide-react-native";
 // import {
+//   Alert,
 //   Pressable,
 //   ScrollView,
 //   StyleSheet,
 //   TextInput,
 //   View,
 // } from "react-native";
+// import { toast } from "sonner-native";
+// import { api } from "@/api/client";
+// import { UrlConstants  } from "@/constants/apiUrls";
+
+// interface NotificationSettings {
+//   emailVisibile?: boolean;
+//   profileVisibile?: boolean;
+//   dataSharing?: boolean;
+// }
 
 // const AccountSettings = () => {
 //   const { isDark } = useTheme();
-//   const router = useRouter();
-
+//   const { user, logout } = useAuthStore();
+  
+//   const [isLoading, setIsLoading] = useState(false);
+//   const [isPasswordLoading, setIsPasswordLoading] = useState(false);
+  
+//   // Password fields
 //   const [currentPassword, setCurrentPassword] = useState("");
 //   const [newPassword, setNewPassword] = useState("");
 //   const [confirmPassword, setConfirmPassword] = useState("");
 //   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
 //   const [showNewPassword, setShowNewPassword] = useState(false);
 //   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+//   // Settings
 //   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
-//   const [emailVisible, setEmailVisible] = useState(true);
-//   const [profileVisible, setProfileVisible] = useState(true);
-//   const [autoJoinGroups, setAutoJoinGroups] = useState(true);
-//   const [dataSharing, setDataSharing] = useState(false);
+//   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
+//     emailVisibile: true,
+//     profileVisibile: true,
+//     dataSharing: false,
+//   });
 
 //   const dynamicStyles = {
 //     container: {
@@ -60,7 +80,6 @@
 //     saveButtonText: {
 //       color: isDark ? "#000000" : "#FFFFFF",
 //     },
-//     // Light mode specific toggle styles
 //     customToggle: {
 //       backgroundColor: isDark ? "#333333" : "#E0E0E0",
 //     },
@@ -74,6 +93,149 @@
 //       backgroundColor: isDark ? "#000000" : "#FFFFFF",
 //     },
 //   };
+
+//   // Load notification settings on mount
+//   useEffect(() => {
+//     const loadNotificationSettings = async () => {
+//       try {
+//         const response = await api.get(UrlConstants.notificationSettings);
+//         setNotificationSettings(response.data.data);
+//       } catch (error) {
+//         console.error("Failed to load notification settings:", error);
+//       }
+//     };
+
+//     loadNotificationSettings();
+//   }, []);
+
+//   const handlePasswordUpdate = async () => {
+//     if (!currentPassword || !newPassword || !confirmPassword) {
+//       toast.error("Please fill in all password fields");
+//       return;
+//     }
+
+//     if (newPassword !== confirmPassword) {
+//       toast.error("New passwords don't match");
+//       return;
+//     }
+
+//     if (newPassword.length < 8) {
+//       toast.error("Password must be at least 8 characters");
+//       return;
+//     }
+
+//     try {
+//       setIsPasswordLoading(true);
+      
+//       // Note: You'll need to add this endpoint to your UrlConstants
+//       await api.post("/user/change-password", {
+//         currentPassword,
+//         newPassword,
+//       });
+
+//       toast.success("Password updated successfully!");
+//       setCurrentPassword("");
+//       setNewPassword("");
+//       setConfirmPassword("");
+      
+//     } catch (error: any) {
+//       toast.error(error?.response?.data?.message || "Failed to update password");
+//     } finally {
+//       setIsPasswordLoading(false);
+//     }
+//   };
+
+//   const handleDeleteAccount = () => {
+//     Alert.alert(
+//       "Delete Account",
+//       "Are you sure you want to DELETE your account? This action cannot be undone. All your data will be permanently deleted.",
+//       [
+//         { text: "Cancel", style: "cancel" },
+//         {
+//           text: "Delete",
+//           style: "destructive",
+//           onPress: async () => {
+//             try {
+//               await api.delete(UrlConstants.deleteAccount);
+//               await logout();
+//               router.push("/onboarding/Welcome-screen-one");
+//               toast.success("Account deleted successfully");
+//             } catch (error) {
+//               toast.error("Failed to delete account");
+//             }
+//           },
+//         },
+//       ]
+//     );
+//   };
+
+//   const handleTransferUniversity = () => {
+//     toast.info("Feature will be released soon...");
+//   };
+
+//   const updateNotificationSetting = (key: keyof NotificationSettings, value: boolean) => {
+//     setNotificationSettings(prev => ({ ...prev, [key]: value }));
+//   };
+
+//   const handleSaveSettings = async () => {
+//     try {
+//       setIsLoading(true);
+      
+//       const response = await api.post(UrlConstants.notificationSettings, {
+//         emailVisibile: notificationSettings.emailVisibile,
+//         profileVisibile: notificationSettings.profileVisibile,
+//         dataSharing: notificationSettings.dataSharing,
+//       });
+
+//       toast.success("Settings saved successfully!");
+      
+//     } catch (error: any) {
+//       toast.error(error?.response?.data?.message || "Failed to save settings");
+//     } finally {
+//       setIsLoading(false);
+//     }
+//   };
+
+//   const ToggleSwitch = ({ 
+//     value, 
+//     onValueChange, 
+//     label, 
+//     description 
+//   }: { 
+//     value: boolean; 
+//     onValueChange: (value: boolean) => void;
+//     label: string;
+//     description: string;
+//   }) => (
+//     <View style={styles.toggleRow}>
+//       <View style={styles.toggleInfo}>
+//         <Text style={[styles.toggleLabel, dynamicStyles.text]}>
+//           {label}
+//         </Text>
+//         <Text style={[styles.toggleDescription, dynamicStyles.subtitle]}>
+//           {description}
+//         </Text>
+//       </View>
+//       <Pressable onPress={() => onValueChange(!value)}>
+//         <View
+//           style={[
+//             styles.customToggle,
+//             { backgroundColor: dynamicStyles.customToggle.backgroundColor },
+//             value && { backgroundColor: dynamicStyles.customToggleActive.backgroundColor },
+//             value && styles.customToggleActive,
+//           ]}
+//         >
+//           <View
+//             style={[
+//               styles.customToggleDot,
+//               { backgroundColor: dynamicStyles.customToggleDot.backgroundColor },
+//               value && { backgroundColor: dynamicStyles.customToggleDotActive.backgroundColor },
+//             ]}
+//           />
+//         </View>
+//       </Pressable>
+//     </View>
+//   );
 
 //   return (
 //     <View style={[styles.container, dynamicStyles.container]}>
@@ -97,7 +259,6 @@
 
 //         {/* Account Information Section */}
 //         <View style={[styles.section, dynamicStyles.card]}>
-//           {/* Section Title with Icon */}
 //           <View style={styles.sectionTitleRow}>
 //             <User size={20} color={dynamicStyles.text.color} strokeWidth={2} />
 //             <Text style={[styles.sectionTitle, dynamicStyles.text]}>
@@ -113,7 +274,7 @@
 //               style={[styles.input, styles.disabledInput, dynamicStyles.input]}
 //             >
 //               <Text style={[styles.disabledText, dynamicStyles.subtitle]}>
-//                 john.doe@usf.edu
+//                 {user?.email}
 //               </Text>
 //             </View>
 //             <Text style={[styles.hint, dynamicStyles.subtitle]}>
@@ -121,19 +282,7 @@
 //             </Text>
 //           </View>
 
-//           <View style={styles.inputGroup}>
-//             <Text style={[styles.label, dynamicStyles.text]}>University</Text>
-//             <View
-//               style={[styles.input, styles.disabledInput, dynamicStyles.input]}
-//             >
-//               <Text style={[styles.disabledText, dynamicStyles.subtitle]}>
-//                 University of South Florida
-//               </Text>
-//             </View>
-//             <Text style={[styles.hint, dynamicStyles.subtitle]}>
-//               University cannot be changed after verification.
-//             </Text>
-//           </View>
+//           {/* Note: University name removed as per your Profile page design */}
 //         </View>
 
 //         {/* Password & Security */}
@@ -234,44 +383,34 @@
 //           </View>
 
 //           <Pressable
-//             style={[styles.updateButton, dynamicStyles.updateButton]}
+//             style={[
+//               styles.updateButton, 
+//               dynamicStyles.updateButton,
+//               isPasswordLoading && styles.updateButtonDisabled
+//             ]}
+//             onPress={handlePasswordUpdate}
+//             disabled={isPasswordLoading}
 //           >
-//             <Text
-//               style={[styles.updateButtonText, dynamicStyles.updateButtonText]}
-//             >
-//               Update Password
-//             </Text>
+//             {isPasswordLoading ? (
+//               <Loader 
+//                 color={dynamicStyles.updateButtonText.color}
+//                 text="Updating..."
+//                 textStyle={dynamicStyles.updateButtonText}
+//               />
+//             ) : (
+//               <Text style={[styles.updateButtonText, dynamicStyles.updateButtonText]}>
+//                 Update Password
+//               </Text>
+//             )}
 //           </Pressable>
 
 //           {/* Two-Factor Authentication */}
-//           <View style={styles.toggleRow}>
-//             <View style={styles.toggleInfo}>
-//               <Text style={[styles.toggleLabel, dynamicStyles.text]}>
-//                 Two-Factor Authentication
-//               </Text>
-//               <Text style={[styles.toggleDescription, dynamicStyles.subtitle]}>
-//                 Add an extra layer of security
-//               </Text>
-//             </View>
-//             <Pressable onPress={() => setTwoFactorEnabled(!twoFactorEnabled)}>
-//               <View
-//                 style={[
-//                   styles.customToggle,
-//                   { backgroundColor: dynamicStyles.customToggle.backgroundColor },
-//                   twoFactorEnabled && { backgroundColor: dynamicStyles.customToggleActive.backgroundColor },
-//                   twoFactorEnabled && styles.customToggleActive,
-//                 ]}
-//               >
-//                 <View
-//                   style={[
-//                     styles.customToggleDot,
-//                     { backgroundColor: dynamicStyles.customToggleDot.backgroundColor },
-//                     twoFactorEnabled && { backgroundColor: dynamicStyles.customToggleDotActive.backgroundColor },
-//                   ]}
-//                 />
-//               </View>
-//             </Pressable>
-//           </View>
+//           <ToggleSwitch
+//             value={twoFactorEnabled}
+//             onValueChange={setTwoFactorEnabled}
+//             label="Two-Factor Authentication"
+//             description="Add an extra layer of security"
+//           />
 //         </View>
 
 //         {/* Privacy Settings */}
@@ -283,121 +422,26 @@
 //             </Text>
 //           </View>
 
-//           <View style={styles.toggleRow}>
-//             <View style={styles.toggleInfo}>
-//               <Text style={[styles.toggleLabel, dynamicStyles.text]}>
-//                 Email Visibility
-//               </Text>
-//               <Text style={[styles.toggleDescription, dynamicStyles.subtitle]}>
-//                 Show email to other students
-//               </Text>
-//             </View>
-//             <Pressable onPress={() => setEmailVisible(!emailVisible)}>
-//               <View
-//                 style={[
-//                   styles.customToggle,
-//                   { backgroundColor: dynamicStyles.customToggle.backgroundColor },
-//                   emailVisible && { backgroundColor: dynamicStyles.customToggleActive.backgroundColor },
-//                   emailVisible && styles.customToggleActive,
-//                 ]}
-//               >
-//                 <View
-//                   style={[
-//                     styles.customToggleDot,
-//                     { backgroundColor: dynamicStyles.customToggleDot.backgroundColor },
-//                     emailVisible && { backgroundColor: dynamicStyles.customToggleDotActive.backgroundColor },
-//                   ]}
-//                 />
-//               </View>
-//             </Pressable>
-//           </View>
+//           <ToggleSwitch
+//             value={notificationSettings.emailVisibile ?? true}
+//             onValueChange={(value) => updateNotificationSetting('emailVisibile', value)}
+//             label="Email Visibility"
+//             description="Show your email to matched users"
+//           />
 
-//           <View style={styles.toggleRow}>
-//             <View style={styles.toggleInfo}>
-//               <Text style={[styles.toggleLabel, dynamicStyles.text]}>
-//                 Profile Visibility
-//               </Text>
-//               <Text style={[styles.toggleDescription, dynamicStyles.subtitle]}>
-//                 Make profile visible to others
-//               </Text>
-//             </View>
-//             <Pressable onPress={() => setProfileVisible(!profileVisible)}>
-//               <View
-//                 style={[
-//                   styles.customToggle,
-//                   { backgroundColor: dynamicStyles.customToggle.backgroundColor },
-//                   profileVisible && { backgroundColor: dynamicStyles.customToggleActive.backgroundColor },
-//                   profileVisible && styles.customToggleActive,
-//                 ]}
-//               >
-//                 <View
-//                   style={[
-//                     styles.customToggleDot,
-//                     { backgroundColor: dynamicStyles.customToggleDot.backgroundColor },
-//                     profileVisible && { backgroundColor: dynamicStyles.customToggleDotActive.backgroundColor },
-//                   ]}
-//                 />
-//               </View>
-//             </Pressable>
-//           </View>
+//           <ToggleSwitch
+//             value={notificationSettings.profileVisibile ?? true}
+//             onValueChange={(value) => updateNotificationSetting('profileVisibile', value)}
+//             label="Profile Visibility"
+//             description="Make your profile visible in search"
+//           />
 
-//           <View style={styles.toggleRow}>
-//             <View style={styles.toggleInfo}>
-//               <Text style={[styles.toggleLabel, dynamicStyles.text]}>
-//                 Auto-Join Groups
-//               </Text>
-//               <Text style={[styles.toggleDescription, dynamicStyles.subtitle]}>
-//                 Automatically join suggested groups
-//               </Text>
-//             </View>
-//             <Pressable onPress={() => setAutoJoinGroups(!autoJoinGroups)}>
-//               <View
-//                 style={[
-//                   styles.customToggle,
-//                   { backgroundColor: dynamicStyles.customToggle.backgroundColor },
-//                   autoJoinGroups && { backgroundColor: dynamicStyles.customToggleActive.backgroundColor },
-//                   autoJoinGroups && styles.customToggleActive,
-//                 ]}
-//               >
-//                 <View
-//                   style={[
-//                     styles.customToggleDot,
-//                     { backgroundColor: dynamicStyles.customToggleDot.backgroundColor },
-//                     autoJoinGroups && { backgroundColor: dynamicStyles.customToggleDotActive.backgroundColor },
-//                   ]}
-//                 />
-//               </View>
-//             </Pressable>
-//           </View>
-
-//           <View style={styles.toggleRow}>
-//             <View style={styles.toggleInfo}>
-//               <Text style={[styles.toggleLabel, dynamicStyles.text]}>
-//                 Data Sharing
-//               </Text>
-//               <Text style={[styles.toggleDescription, dynamicStyles.subtitle]}>
-//                 Share data for improved matching
-//               </Text>
-//             </View>
-//             <Pressable onPress={() => setDataSharing(!dataSharing)}>
-//               <View
-//                 style={[
-//                   styles.customToggle,
-//                   { backgroundColor: dynamicStyles.customToggle.backgroundColor },
-//                   dataSharing && { backgroundColor: dynamicStyles.customToggleActive.backgroundColor },
-//                   dataSharing && styles.customToggleActive,
-//                 ]}
-//               >
-//                 <View
-//                   style={[
-//                     styles.customToggleDot,
-//                     { backgroundColor: dynamicStyles.customToggleDot.backgroundColor },
-//                     dataSharing && { backgroundColor: dynamicStyles.customToggleDotActive.backgroundColor },
-//                   ]}
-//                 />
-//               </View>
-//             </Pressable>
-//           </View>
+//           <ToggleSwitch
+//             value={notificationSettings.dataSharing ?? false}
+//             onValueChange={(value) => updateNotificationSetting('dataSharing', value)}
+//             label="Data Sharing for Research"
+//             description="Share anonymized data to improve matching algorithms"
+//           />
 //         </View>
 
 //         {/* Data & Account Management */}
@@ -409,7 +453,10 @@
 //             </Text>
 //           </View>
 
-//           <Pressable style={[styles.actionButton, dynamicStyles.card]}>
+//           <Pressable 
+//             style={[styles.actionButton, dynamicStyles.card]}
+//             onPress={handleTransferUniversity}
+//           >
 //             <Ionicons
 //               name="swap-horizontal-outline"
 //               size={20}
@@ -427,7 +474,10 @@
 //               <Text style={styles.dangerTitle}>Danger Zone</Text>
 //             </View>
 
-//             <Pressable style={styles.deleteButton}>
+//             <Pressable 
+//               style={styles.deleteButton}
+//               onPress={handleDeleteAccount}
+//             >
 //               <Text style={styles.deleteButtonText}>Delete Account</Text>
 //             </Pressable>
 
@@ -440,10 +490,26 @@
 
 //         {/* Save Settings Button */}
 //         <View style={styles.saveButtonContainer}>
-//           <Pressable style={[styles.saveButton, dynamicStyles.saveButton]}>
-//             <Text style={[styles.saveButtonText, dynamicStyles.saveButtonText]}>
-//               Save Settings
-//             </Text>
+//           <Pressable 
+//             style={[
+//               styles.saveButton, 
+//               dynamicStyles.saveButton,
+//               isLoading && styles.saveButtonDisabled
+//             ]}
+//             onPress={handleSaveSettings}
+//             disabled={isLoading}
+//           >
+//             {isLoading ? (
+//               <Loader 
+//                 color={dynamicStyles.saveButtonText.color}
+//                 text="Saving..."
+//                 textStyle={dynamicStyles.saveButtonText}
+//               />
+//             ) : (
+//               <Text style={[styles.saveButtonText, dynamicStyles.saveButtonText]}>
+//                 Save Settings
+//               </Text>
+//             )}
 //           </Pressable>
 //         </View>
 //       </ScrollView>
@@ -525,6 +591,10 @@
 //     borderRadius: 8,
 //     alignItems: "center",
 //     marginBottom: 16,
+//     minHeight: 48,
+//   },
+//   updateButtonDisabled: {
+//     opacity: 0.6,
 //   },
 //   updateButtonText: {
 //     fontSize: 14,
@@ -548,7 +618,6 @@
 //   toggleDescription: {
 //     fontSize: 12,
 //   },
-//   // Custom Toggle Styles
 //   customToggle: {
 //     width: 40,
 //     height: 20,
@@ -619,6 +688,10 @@
 //     paddingVertical: 12,
 //     borderRadius: 8,
 //     alignItems: "center",
+//     minWidth: 120,
+//   },
+//   saveButtonDisabled: {
+//     opacity: 0.6,
 //   },
 //   saveButtonText: {
 //     fontSize: 14,
@@ -627,6 +700,10 @@
 // });
 
 // export default AccountSettings;
+
+
+
+
 
 
 
@@ -649,7 +726,7 @@ import {
 } from "react-native";
 import { toast } from "sonner-native";
 import { api } from "@/api/client";
-import { UrlConstants  } from "@/constants/apiUrls";
+import { UrlConstants } from "@/constants/apiUrls";
 
 interface NotificationSettings {
   emailVisibile?: boolean;
@@ -674,6 +751,11 @@ const AccountSettings = () => {
   
   // Settings
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [emailVisible, setEmailVisible] = useState(true);
+  const [profileVisible, setProfileVisible] = useState(true);
+  const [autoJoinGroups, setAutoJoinGroups] = useState(true);
+  const [dataSharing, setDataSharing] = useState(false);
+  
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
     emailVisibile: true,
     profileVisibile: true,
@@ -705,12 +787,6 @@ const AccountSettings = () => {
     updateButtonText: {
       color: isDark ? "#000000" : "#FFFFFF",
     },
-    saveButton: {
-      backgroundColor: isDark ? "#FFFFFF" : "#000000",
-    },
-    saveButtonText: {
-      color: isDark ? "#000000" : "#FFFFFF",
-    },
     customToggle: {
       backgroundColor: isDark ? "#333333" : "#E0E0E0",
     },
@@ -723,6 +799,12 @@ const AccountSettings = () => {
     customToggleDotActive: {
       backgroundColor: isDark ? "#000000" : "#FFFFFF",
     },
+    saveButton: {
+      backgroundColor: isDark ? "#FFFFFF" : "#000000",
+    },
+    saveButtonText: {
+      color: isDark ? "#000000" : "#FFFFFF",
+    },
   };
 
   // Load notification settings on mount
@@ -730,7 +812,11 @@ const AccountSettings = () => {
     const loadNotificationSettings = async () => {
       try {
         const response = await api.get(UrlConstants.notificationSettings);
-        setNotificationSettings(response.data.data);
+        const data = response.data.data;
+        setNotificationSettings(data);
+        setEmailVisible(data.emailVisibile ?? true);
+        setProfileVisible(data.profileVisibile ?? true);
+        setDataSharing(data.dataSharing ?? false);
       } catch (error) {
         console.error("Failed to load notification settings:", error);
       }
@@ -758,7 +844,6 @@ const AccountSettings = () => {
     try {
       setIsPasswordLoading(true);
       
-      // Note: You'll need to add this endpoint to your UrlConstants
       await api.post("/user/change-password", {
         currentPassword,
         newPassword,
@@ -804,18 +889,14 @@ const AccountSettings = () => {
     toast.info("Feature will be released soon...");
   };
 
-  const updateNotificationSetting = (key: keyof NotificationSettings, value: boolean) => {
-    setNotificationSettings(prev => ({ ...prev, [key]: value }));
-  };
-
   const handleSaveSettings = async () => {
     try {
       setIsLoading(true);
       
-      const response = await api.post(UrlConstants.notificationSettings, {
-        emailVisibile: notificationSettings.emailVisibile,
-        profileVisibile: notificationSettings.profileVisibile,
-        dataSharing: notificationSettings.dataSharing,
+      await api.post(UrlConstants.notificationSettings, {
+        emailVisibile: emailVisible,
+        profileVisibile: profileVisible,
+        dataSharing: dataSharing,
       });
 
       toast.success("Settings saved successfully!");
@@ -913,7 +994,19 @@ const AccountSettings = () => {
             </Text>
           </View>
 
-          {/* Note: University name removed as per your Profile page design */}
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, dynamicStyles.text]}>University</Text>
+            <View
+              style={[styles.input, styles.disabledInput, dynamicStyles.input]}
+            >
+              <Text style={[styles.disabledText, dynamicStyles.subtitle]}>
+                University of South Florida
+              </Text>
+            </View>
+            <Text style={[styles.hint, dynamicStyles.subtitle]}>
+              University cannot be changed after verification.
+            </Text>
+          </View>
         </View>
 
         {/* Password & Security */}
@@ -1054,24 +1147,31 @@ const AccountSettings = () => {
           </View>
 
           <ToggleSwitch
-            value={notificationSettings.emailVisibile ?? true}
-            onValueChange={(value) => updateNotificationSetting('emailVisibile', value)}
+            value={emailVisible}
+            onValueChange={setEmailVisible}
             label="Email Visibility"
-            description="Show your email to matched users"
+            description="Show email to other students"
           />
 
           <ToggleSwitch
-            value={notificationSettings.profileVisibile ?? true}
-            onValueChange={(value) => updateNotificationSetting('profileVisibile', value)}
+            value={profileVisible}
+            onValueChange={setProfileVisible}
             label="Profile Visibility"
-            description="Make your profile visible in search"
+            description="Make profile visible to others"
           />
 
           <ToggleSwitch
-            value={notificationSettings.dataSharing ?? false}
-            onValueChange={(value) => updateNotificationSetting('dataSharing', value)}
-            label="Data Sharing for Research"
-            description="Share anonymized data to improve matching algorithms"
+            value={autoJoinGroups}
+            onValueChange={setAutoJoinGroups}
+            label="Auto-Join Groups"
+            description="Automatically join suggested groups"
+          />
+
+          <ToggleSwitch
+            value={dataSharing}
+            onValueChange={setDataSharing}
+            label="Data Sharing"
+            description="Share data for improved matching"
           />
         </View>
 
