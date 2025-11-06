@@ -904,7 +904,7 @@ const EditProfile = () => {
         {/* Back Button */}
         <Pressable
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={() => router.push("/profile")}
         >
           <Ionicons
             name="arrow-back"
