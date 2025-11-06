@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
-import { io, Socket } from 'socket.io-client';
-import { UrlConstants } from '../constants/apiUrls';
-import { useAuthStore } from '../state/authStore';
+import { useEffect, useRef, useState } from "react";
+import { io, Socket } from "socket.io-client";
+import { UrlConstants } from "../constants/apiUrls";
+import { useAuthStore } from "../state/authStore";
 
 interface UsePersonalSocketReturn {
   socket: Socket | null;
@@ -17,21 +17,23 @@ export const usePersonalSocket = (): UsePersonalSocketReturn => {
   useEffect(() => {
     if (!user?.id) return;
 
-    const newSocket = io(UrlConstants.baseUrl, {
-      transports: ['websocket'],
+    const newSocket = io(`${UrlConstants.baseUrl}/groups`, {
+      transports: ["websocket"],
       autoConnect: true,
     });
 
-    newSocket.on('connect', () => {
+    newSocket.on("connect", () => {
+      console.log("✅ Personal socket connected");
+      console.log("📤 Emitting joinPersonalRoom:", { roomID: user.id });
       setIsConnected(true);
-      newSocket.emit('joinPersonalRoom', { roomID: user.id });
+      newSocket.emit("joinPersonalRoom", { roomID: user.id });
     });
 
-    newSocket.on('disconnect', () => {
+    newSocket.on("disconnect", () => {
       setIsConnected(false);
     });
 
-    newSocket.on('connect_error', () => {
+    newSocket.on("connect_error", () => {
       setIsConnected(false);
       reconnectTimeoutRef.current = setTimeout(() => {
         newSocket.connect();

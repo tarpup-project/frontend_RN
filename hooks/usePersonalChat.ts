@@ -62,6 +62,7 @@ export const usePersonalChat = (): UsePersonalChatReturn => {
       ...messageData,
       roomID: user.id,
       campusID: selectedUniversity?.id,
+      stateID: user?.stateID,      
     });
   }, [socket, user, selectedUniversity?.id]);
 
