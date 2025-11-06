@@ -885,7 +885,7 @@ const Chat = () => {
             <Ionicons
               name="trash-outline"
               size={20}
-              color={dynamicStyles.text.color}
+              color="#EF4444"
             />
           </Pressable>
           <Pressable style={styles.closeButton} onPress={handleClose}>
