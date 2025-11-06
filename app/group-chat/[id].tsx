@@ -25,16 +25,12 @@ import { UserMessage, MessageType } from "@/types/groups";
 
 
 const GroupChat = () => {
-  // const { groupId } = useLocalSearchParams();
   const { id } = useLocalSearchParams();
 
   if (!id) {
     return <ErrorScreen message="Group not found" />;
   }
   
-  // if (!groupId) {
-  //   return <ErrorScreen message="Group not found" />;
-  // }
 
   return (
     <GroupSocketProvider groupId={id as string}>
@@ -52,11 +48,13 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   const { user } = useAuthStore();
   const { socket } = useGroupSocket();
   const scrollViewRef = useRef<ScrollView>(null);
+
+  console.log('Socket and user status:', { socket: !!socket, user: !!user });
   
   // Real data hooks
   const { data: groupDetails, isLoading: groupLoading, error: groupError } = useGroupDetails(groupId);
   console.log('1. Group details hook result:', { groupDetails, groupLoading, groupError });
-  const { messages, isLoading, error, sendMessage, markAsRead } = useGroupMessages({ groupId, socket });
+  const { messages, isLoading, error, sendMessage, markAsRead } = useGroupMessages({ groupId, socket: socket && user ? socket : undefined });
   console.log('2. Group messages hook result:', { messages, isLoading, error });
   const { replyingTo, startReply, cancelReply } = useMessageReply();
   console.log('3. Message reply hook result:', { replyingTo });
@@ -64,6 +62,8 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   console.log('4. File upload hook result:', { selectedFile });
   const { joinGroup } = useGroupActions();
   console.log('5. Group actions hook result:', 'loaded');
+
+  
   
   // Local state
   const [message, setMessage] = useState("");
@@ -111,6 +111,8 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
   };
+
+  
 
   // Mark messages as read when entering
   useEffect(() => {
@@ -227,6 +229,17 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
         <ActivityIndicator size="large" color={dynamicStyles.text.color} />
         <Text style={[{ marginTop: 12, fontSize: 16 }, dynamicStyles.text]}>
           Loading chat...
+        </Text>
+      </View>
+    );
+  }
+
+  if (!socket || !user) {
+    return (
+      <View style={[styles.container, dynamicStyles.container, styles.centerContainer]}>
+        <ActivityIndicator size="large" color={dynamicStyles.text.color} />
+        <Text style={[{ marginTop: 12, fontSize: 16 }, dynamicStyles.text]}>
+          Connecting...
         </Text>
       </View>
     );
