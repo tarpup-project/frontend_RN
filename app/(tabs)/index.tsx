@@ -5,6 +5,7 @@ import PreviewModeBanner from "@/components/PreviewModeBanner";
 import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
 import { useCampus } from "@/hooks/useCampus";
+
 import { useCategories } from "@/hooks/useCategories";
 import { useRecentMatches } from "@/hooks/useRecentMatches";
 import { useAuthStore } from "@/state/authStore";
@@ -25,8 +26,15 @@ import {
   Trophy,
 } from "lucide-react-native";
 import moment from "moment";
-import { useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { useState, useEffect, useRef } from "react";
+import {
+  Animated,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 
 const getIconComponent = (iconName: any) => {
   if (typeof iconName === "object" && iconName.$$typeof) {
@@ -128,6 +136,27 @@ const Index = () => {
   const { isDark } = useTheme();
   const { isAuthenticated } = useAuthStore();
 
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+useEffect(() => {
+  const pulse = Animated.loop(
+    Animated.sequence([
+      Animated.timing(pulseAnim, {
+        toValue: 0.4,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.timing(pulseAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+    ])
+  );
+  pulse.start();
+  return () => pulse.stop();
+}, []);
+
   const {
     selectedUniversity,
     universities,
@@ -168,7 +197,7 @@ const Index = () => {
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     matchesBadge: {
-      backgroundColor: isDark ? "#1A1A1A" : "#E0E0E0",
+      backgroundColor: isDark ? "#444953" : "#E0E0E0",
     },
     percentageBadge: {
       backgroundColor: isDark ? "#0a0a0a" : "#E5E5E5",
@@ -372,13 +401,19 @@ const Index = () => {
                   <Text style={[styles.cardSubtitle, dynamicStyles.subtitle]}>
                     {category.subtitle}
                   </Text>
-                  <View
-                    style={[styles.matchesBadge, dynamicStyles.matchesBadge]}
+                  <Animated.View
+                    style={[
+                      styles.matchesBadge,
+                      dynamicStyles.matchesBadge,
+                      {
+                        opacity: category.matches > 0 ? pulseAnim : 1,
+                      },
+                    ]}
                   >
                     <Text style={[styles.matchesText, dynamicStyles.subtitle]}>
                       {category.matches} matches
                     </Text>
-                  </View>
+                  </Animated.View>
                 </Pressable>
               ))}
             </View>
@@ -836,7 +871,7 @@ const styles = StyleSheet.create({
   matchesBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 8,
     alignSelf: "center",
   },
   dropdownText: {
