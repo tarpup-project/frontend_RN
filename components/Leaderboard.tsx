@@ -167,15 +167,15 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   rankText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
   },
   rankTotal: {
-    fontSize: 17,
-    fontWeight: '400',
+    fontSize: 15,
+    fontWeight: '700',
   },
   risingStarBadge: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
     gap: 4,
     paddingHorizontal: 8,
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 10,
-    fontWeight: '500',
+    fontWeight: '700',
   },
   rankingSubtitle: {
     fontSize: 10,
@@ -205,8 +205,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   pointsText: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
   },
   pointsLabel: {
     fontSize: 10,
