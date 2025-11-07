@@ -55,22 +55,23 @@ const numberToStandard = (num: number): string => {
   return num.toLocaleString();
 };
 
-const getIconComponent = (iconName: string) => {
-  const iconMap: { [key: string]: any } = {
-    Car: Car,
-    Home: Home,
-    ShoppingBag: ShoppingBag,
-    Gamepad2: Gamepad2,
-    Heart: Heart,
-    BookOpen: BookOpen,
-    Gift: Gift,
-    PartyPopper: PartyPopper,
+const getIconComponent = (iconName: any) => {
+  if (typeof iconName !== "string") return Car; 
+
+  const normalized = iconName.trim().toLowerCase();
+
+  const iconMap: Record<string, any> = {
     car: Car,
-    book: BookOpen,
+    home: Home,
+    shoppingbag: ShoppingBag,
+    gamepad2: Gamepad2,
+    heart: Heart,
+    bookopen: BookOpen,
     gift: Gift,
-    party: PartyPopper,
+    partypopper: PartyPopper,
   };
-  return iconMap[iconName] || Car;
+
+  return iconMap[normalized] || Car;
 };
 
 const LeaderBoard = () => {
@@ -480,7 +481,9 @@ const Index = () => {
             </View>
           ) : (
             <View style={styles.cardsGrid}>
+              
               {categories.map((category: Category) => (
+                
                 <Pressable
                   key={category.id}
                   style={[styles.card, dynamicStyles.card]}
