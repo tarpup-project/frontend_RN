@@ -52,6 +52,24 @@ const GroupSkeletonCard = ({ isDark }: { isDark: boolean }) => {
   );
 };
 
+const getGroupIconByCategory = (categoryName: string) => {
+  const categoryIconMap: Record<string, string> = {
+    'giveaway': 'gift-outline',
+    'sports': 'football-outline',
+    'games': 'game-controller-outline', 
+    'friends': 'people-outline',
+    'market': 'storefront-outline',
+    'party': 'wine-outline',
+    'rides': 'car-outline',
+    'roommates': 'home-outline',
+    'dating': 'heart-outline',
+    'study group': 'book-outline',
+  };
+  
+  const normalized = categoryName.toLowerCase().trim();
+  return categoryIconMap[normalized] || 'pricetag-outline';
+};
+
 const Groups = () => {
   const { isDark } = useTheme();
   const { data: groups, isLoading, isError, refetch, isRefetching } = useGroups();
@@ -184,15 +202,13 @@ const Groups = () => {
           {/* Groups List */}
           {!isLoading && !isError && groups && groups.length > 0 && 
             groups.map(transformGroupForUI).map((group) => {
-              console.log('Group category icon:', group.categoryIcon);
-              console.log('Full group object:', group);
               
               return (
                 <View key={group.id} style={[styles.groupCard, dynamicStyles.card]}>
                   <View style={styles.topRow}>
                     <View style={[styles.categoryBadge, dynamicStyles.categoryBadge]}>
                       <Ionicons 
-                        name={group.categoryIcon as any}
+                        name={getGroupIconByCategory(group.category) as any}
                         size={12} 
                         color="#d26925"
                       />
@@ -267,8 +283,7 @@ const Groups = () => {
 
                   <Pressable
                     style={[styles.openButton, dynamicStyles.openButton]}
-                    onPress={() => {
-                      console.log('Navigating to group:', group.id);
+                    onPress={() => {                      
                       router.push(`/group-chat/${group.id}`);
                     }}
                   >
