@@ -229,7 +229,8 @@ const Prompts = () => {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.categoriesScroll}
+              contentInset={{ left: 16, right: 16 }}
+              contentContainerStyle={[styles.categoriesScroll, { paddingHorizontal: 16 }]}
             >
               {[1, 2, 3, 4, 5].map((_, i) => (
                 <Skeleton
@@ -485,7 +486,8 @@ const styles = StyleSheet.create({
   categoriesScroll: { 
     paddingLeft: 16,
     paddingRight: 16,
-    gap: 8 
+    gap: 8 ,
+    alignItems: 'center'
   },
   promptsList: { padding: 16, gap: 16 },
   promptCard: { padding: 16, borderRadius: 12, borderWidth: 1 },
