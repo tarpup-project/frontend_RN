@@ -482,7 +482,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   filterTitle: { fontSize: 14, fontWeight: "600" },
-  categoriesScroll: { paddingHorizontal: 16, gap: 8 },
+  categoriesScroll: { 
+    paddingLeft: 16,
+    paddingRight: 16,
+    gap: 8 
+  },
   promptsList: { padding: 16, gap: 16 },
   promptCard: { padding: 16, borderRadius: 12, borderWidth: 1 },
   cardHeader: {
