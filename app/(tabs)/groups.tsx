@@ -65,11 +65,6 @@ const Groups = () => {
     }
   }, [isAuthenticated]);
 
-  // if (!isAuthenticated) {
-  //   toast.error("Please sign in to access groups");
-  //   // router.push("/(auth)/signin");
-  //   return null;
-  // }
 
   const dynamicStyles = {
     container: {
@@ -322,7 +317,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   pageSubtitle: {
-    fontSize: 14,
+    fontSize: 12,
   },
   groupsList: {
     gap: 16,
@@ -348,7 +343,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   categoryText: {
-    fontSize: 11,
+    fontSize: 8,
     fontWeight: "600",
   },
   matchBadge: {
@@ -360,15 +355,15 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   matchText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "600",
   },
   groupTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "bold",
   },
   groupDescription: {
-    fontSize: 12,
+    fontSize: 10,
     lineHeight: 20,
   },
   membersRow: {
@@ -399,7 +394,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   membersText: {
-    fontSize: 13,
+    fontSize: 11,
     marginLeft: 8,
   },
   footerRow: {
@@ -429,16 +424,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    paddingVertical: 12,
+    paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 20,
     marginTop: 4,
   },
   openButtonText: {
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: 11,
+    fontWeight: "700",
   },
-  // Error and empty states
   errorText: {
     fontSize: 18,
     fontWeight: '600',

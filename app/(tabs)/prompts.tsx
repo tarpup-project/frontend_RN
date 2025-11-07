@@ -117,7 +117,7 @@ const Prompts = () => {
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     filter: {
-      color: isDark? "#b2b2b2" : "#535353",
+      color: isDark ? "#b2b2b2" : "#535353",
     },
     categoryChipActive: {
       backgroundColor: isDark ? "#FFFFFF" : "#000000",
@@ -233,7 +233,10 @@ const Prompts = () => {
               horizontal
               showsHorizontalScrollIndicator={false}
               contentInset={{ left: 16, right: 16 }}
-              contentContainerStyle={[styles.categoriesScroll, { paddingHorizontal: 16 }]}
+              contentContainerStyle={[
+                styles.categoriesScroll,
+                { paddingHorizontal: 16 },
+              ]}
             >
               {[1, 2, 3, 4, 5].map((_, i) => (
                 <Skeleton
@@ -247,81 +250,83 @@ const Prompts = () => {
             </ScrollView>
           ) : (
             <View style={{ paddingHorizontal: 14 }}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.categoriesScroll}
-            >
-              <Pressable
-                style={[
-                  styles.categoryChip,
-                  dynamicStyles.categoryChip,
-                  selectedCategoryIndex === 0 && [
-                    dynamicStyles.categoryChipActive,
-                  ],
-                ]}
-                onPress={() => handleCategorySelect(0, undefined)}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.categoriesScroll}
               >
-                <Filter
-                  size={16}
-                  color={
-                    selectedCategoryIndex === 0
-                      ? dynamicStyles.categoryChipTextActive.color
-                      : dynamicStyles.categoryChipText.color
-                  }
-                  strokeWidth={2}
-                />
-                <Text
+                <Pressable
                   style={[
-                    styles.categoryText,
-                    dynamicStyles.categoryChipText,
+                    styles.categoryChip,
+                    dynamicStyles.categoryChip,
                     selectedCategoryIndex === 0 && [
-                      dynamicStyles.categoryChipTextActive,
+                      dynamicStyles.categoryChipActive,
                     ],
                   ]}
+                  onPress={() => handleCategorySelect(0, undefined)}
                 >
-                  All
-                </Text>
-              </Pressable>
-
-              {categories.map((category, index) => {
-                const IconComponent = getIconComponent(category.icon);
-                return (
-                  <Pressable
-                    key={category.id}
+                  <Filter
+                    size={16}
+                    color={
+                      selectedCategoryIndex === 0
+                        ? dynamicStyles.categoryChipTextActive.color
+                        : dynamicStyles.categoryChipText.color
+                    }
+                    strokeWidth={2}
+                  />
+                  <Text
                     style={[
-                      styles.categoryChip,
-                      dynamicStyles.categoryChip,
-                      selectedCategoryIndex === index + 1 && [
-                        dynamicStyles.categoryChipActive,
+                      styles.categoryText,
+                      dynamicStyles.categoryChipText,
+                      selectedCategoryIndex === 0 && [
+                        dynamicStyles.categoryChipTextActive,
                       ],
                     ]}
-                    onPress={() => handleCategorySelect(index + 1, category.id)}
                   >
-                    <IconComponent
-                      size={16}
-                      color={
-                        selectedCategoryIndex === index + 1
-                          ? dynamicStyles.categoryChipTextActive.color
-                          : dynamicStyles.categoryChipText.color
-                      }
-                      strokeWidth={2}
-                    />
-                    <Text
+                    All
+                  </Text>
+                </Pressable>
+
+                {categories.map((category, index) => {
+                  const IconComponent = getIconComponent(category.icon);
+                  return (
+                    <Pressable
+                      key={category.id}
                       style={[
-                        styles.categoryText,
-                        dynamicStyles.categoryChipText,
+                        styles.categoryChip,
+                        dynamicStyles.categoryChip,
                         selectedCategoryIndex === index + 1 && [
-                          dynamicStyles.categoryChipTextActive,
+                          dynamicStyles.categoryChipActive,
                         ],
                       ]}
+                      onPress={() =>
+                        handleCategorySelect(index + 1, category.id)
+                      }
                     >
-                      {category.name}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
+                      <IconComponent
+                        size={16}
+                        color={
+                          selectedCategoryIndex === index + 1
+                            ? dynamicStyles.categoryChipTextActive.color
+                            : dynamicStyles.categoryChipText.color
+                        }
+                        strokeWidth={2}
+                      />
+                      <Text
+                        style={[
+                          styles.categoryText,
+                          dynamicStyles.categoryChipText,
+                          selectedCategoryIndex === index + 1 && [
+                            dynamicStyles.categoryChipTextActive,
+                          ],
+                        ]}
+                      >
+                        {category.name}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
             </View>
           )}
         </View>
@@ -377,8 +382,17 @@ const Prompts = () => {
                   </View>
                   <View style={styles.headerRight}>
                     <View style={styles.timeRow}>
-                      <Ionicons name="time-outline" size={14} color="#999999" />
-                      <Text style={styles.timeText}>
+                      <Ionicons
+                        name="time-outline"
+                        size={14}
+                        color={isDark ? "#FFFFFF" : "#999999"}
+                      />
+                      <Text
+                        style={[
+                          styles.timeText,
+                          { color: isDark ? "#CCCCCC" : "#999999" },
+                        ]}
+                      >
                         {moment(prompt.createdAt).fromNow()}
                       </Text>
                     </View>
@@ -469,7 +483,7 @@ const styles = StyleSheet.create({
   },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#00FF00" },
   liveText: { color: "#00FF00", fontSize: 10, fontWeight: "bold" },
-  feedSubtitle: { fontSize: 11, marginBottom: 12, fontWeight: "700"  },
+  feedSubtitle: { fontSize: 11, marginBottom: 12, fontWeight: "700" },
   statItem: { flexDirection: "row", alignItems: "center", gap: 6 },
   statText: { fontSize: 12 },
   filterSection: { paddingVertical: 16 },
@@ -488,11 +502,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   filterTitle: { fontSize: 12, fontWeight: "700" },
-  categoriesScroll: { 
+  categoriesScroll: {
     paddingLeft: 16,
     paddingRight: 16,
-    gap: 8 ,
-    alignItems: 'center'
+    gap: 8,
+    alignItems: "center",
   },
   promptsList: { padding: 16, gap: 16 },
   promptCard: { padding: 16, borderRadius: 12, borderWidth: 1 },
@@ -528,12 +542,12 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 11, fontWeight: "600" },
   timeText: { fontSize: 10, color: "#999999" },
   promptTitle: {
-    fontSize: 10,
+    fontSize: 12,
     marginBottom: 8,
     lineHeight: 20,
     fontWeight: "700",
   },
-  authorText: { fontSize: 12 },
+  authorText: { fontSize: 11 },
   emptyContainer: {
     padding: 40,
     alignItems: "center",
