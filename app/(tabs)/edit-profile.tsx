@@ -63,7 +63,7 @@ const EditProfile = () => {
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     input: {
-      backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
+      backgroundColor: isDark ? "#0A0A0A" : "#F5F5F5",
       borderColor: isDark ? "#333333" : "#E0E0E0",
       color: isDark ? "#FFFFFF" : "#000000",
     },
@@ -334,6 +334,7 @@ const EditProfile = () => {
               placeholder="Enter your full name"
               placeholderTextColor={dynamicStyles.subtitle.color}
             />
+            
           </View>
 
           <View style={styles.inputGroup}>
@@ -571,7 +572,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   backText: {
-    fontSize: 16,
+    fontSize: 12,
   },
   photoSection: {
     padding: 20,
@@ -617,7 +618,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 15,
+    fontSize: 12,
     fontWeight: "bold",
     marginBottom: 16,
   },
@@ -625,12 +626,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   label: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "600",
     marginBottom: 8,
   },
   input: {
-    padding: 12,
+    padding: 10,
     borderRadius: 8,
     borderWidth: 1,
     fontSize: 14,
@@ -692,7 +693,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 6,
+    borderRadius: 14,
     alignSelf: "flex-start",
   },
   changePhotoText: {
