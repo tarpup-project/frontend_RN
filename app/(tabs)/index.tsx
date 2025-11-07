@@ -1,7 +1,7 @@
 import { useTheme } from "@/app/contexts/ThemeContext";
 import Header from "@/components/Header";
-import PreviewModeBanner from "@/components/PreviewModeBanner";
 import LeaderBoard from "@/components/Leaderboard";
+import PreviewModeBanner from "@/components/PreviewModeBanner";
 import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
 import { useCampus } from "@/hooks/useCampus";
@@ -20,23 +20,22 @@ import {
   Home,
   PartyPopper,
   ShoppingBag,
-  Trophy,
-  TrendingUp,
   Sparkles,
-  ChevronRight,
+  TrendingUp,
+  Trophy,
 } from "lucide-react-native";
 import moment from "moment";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 const getIconComponent = (iconName: any) => {
-  if (typeof iconName === 'object' && iconName.$$typeof) {
+  if (typeof iconName === "object" && iconName.$$typeof) {
     return iconName;
   }
-  
-  if (typeof iconName !== "string") return Car; 
 
-  const normalized = iconName.trim().toLowerCase().replace(/-/g, ''); 
+  if (typeof iconName !== "string") return Car;
+
+  const normalized = iconName.trim().toLowerCase().replace(/-/g, "");
 
   const iconMap: Record<string, any> = {
     car: Car,
@@ -285,20 +284,12 @@ const Index = () => {
                           >
                             {uni.name}
                           </Text>
-                          <Text
-                            style={[
-                              { fontSize: 12, marginTop: 2 },
-                              dynamicStyles.subtitle,
-                            ]}
-                          >
-                            {uni.city}, {uni.state}
-                          </Text>
                         </View>
                         {selectedUniversity?.id === uni.id && (
                           <Ionicons
                             name="checkmark"
                             size={18}
-                            color="#00D084"
+                            color={isDark ? "#FFFFFF" : "#000000"}
                           />
                         )}
                       </Pressable>
@@ -350,9 +341,7 @@ const Index = () => {
             </View>
           ) : (
             <View style={styles.cardsGrid}>
-              
               {categories.map((category: Category) => (
-                
                 <Pressable
                   key={category.id}
                   style={[styles.card, dynamicStyles.card]}
@@ -631,8 +620,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   universityLabel: {
-    fontSize: 13,
-    fontWeight: "600",
+    fontSize: 12,
+    fontWeight: "700",
   },
   campusSelector: {
     padding: 12,
@@ -645,14 +634,15 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   dotIndicator: {
-    width: 6,
-    height: 6,
+    width: 8,
+    height: 8,
     borderRadius: 6,
     backgroundColor: "#FFFFFF",
   },
   campusText: {
     flex: 1,
     fontSize: 14,
+    fontWeight: "700",
   },
   resetSection: {
     flexDirection: "row",
@@ -663,16 +653,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
     borderWidth: 1,
     borderRadius: 8,
   },
   dashed: {
-    borderWidth: 2,
+    borderWidth: 1,
     borderStyle: "dashed",
     borderRadius: 15,
-    padding: 12,
+    padding: 20,
   },
   resetText: {
     fontSize: 12,
@@ -702,7 +692,7 @@ const styles = StyleSheet.create({
     width: "48%",
     display: "flex",
     flexDirection: "column",
-    height: 250,
+    height: 230,
     borderRadius: 12,
     borderWidth: 0.5,
     alignItems: "center",
@@ -714,7 +704,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 40,
   },
   cardTitle: {
     fontSize: 14,
