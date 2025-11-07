@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     height: 35,
   },
   title: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "bold",
   },
   iconsContainer: {
