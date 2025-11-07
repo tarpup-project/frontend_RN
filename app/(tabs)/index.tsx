@@ -28,7 +28,19 @@ import moment from "moment";
 import { useState, useEffect } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, View } from "react-native";
 
-// Helper functions
+
+
+interface LeaderboardData {
+  position: {
+    rank: number;
+    totalUsers: number;
+  };
+  totalPoints: number;
+  pointMonthDiff?: number;
+  totalActivities?: number;
+
+}
+
 const numberToSocial = (num: number): string => {
   if (num >= 1000000) {
     return (num / 1000000).toFixed(1) + 'M';
@@ -64,7 +76,7 @@ const getIconComponent = (iconName: string) => {
 const LeaderBoard = () => {
   const { isDark } = useTheme();
   const { user } = useAuthStore();
-  const [leaderboardData, setLeaderboardData] = useState(null);
+  const [leaderboardData, setLeaderboardData] = useState<LeaderboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -74,8 +86,9 @@ const LeaderBoard = () => {
   }, [user?.id]);
 
   const fetchLeaderboardData = async () => {
+    if (!user?.id) return;
+    
     try {
-      // Replace with your actual API call
       const response = await fetch(`https://server.tarpup.com/analytics/user/${user.id}`);
       const data = await response.json();
       setLeaderboardData(data.data);
