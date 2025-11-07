@@ -369,7 +369,7 @@ const Profile = () => {
                     >
                       <Ionicons
                         name="star-outline"
-                        size={18}
+                        size={16}
                         color={dynamicStyles.subtitle.color}
                       />
                     </View>
@@ -390,7 +390,7 @@ const Profile = () => {
                     >
                       <Ionicons
                         name="people-outline"
-                        size={18}
+                        size={16}
                         color={dynamicStyles.subtitle.color}
                       />
                     </View>
@@ -411,7 +411,7 @@ const Profile = () => {
                     >
                       <Ionicons
                         name="trending-up-outline"
-                        size={18}
+                        size={16}
                         color={dynamicStyles.subtitle.color}
                       />
                     </View>
@@ -649,6 +649,7 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 11,
     textAlign: "center",
+    fontWeight: "700",
   },
   interestsCard: {
     padding: 16,
@@ -688,7 +689,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitleInCard: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
     marginBottom: 16,
     marginTop: 0,
@@ -759,8 +760,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   settingText: {
-    fontSize: 15,
-    fontWeight: "500",
+    fontSize: 12,
+    fontWeight: "700",
   },
   signOutText: {
     fontSize: 15,
@@ -768,16 +769,17 @@ const styles = StyleSheet.create({
     color: "#FF4444",
   },
   footerCard: {
-    padding: 16,
+    // padding: 16,
+    paddingVertical: 22,
     borderRadius: 12,
     borderWidth: 1,
     alignItems: "center",
     marginBottom: 30,
   },
   footerTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "bold",
-    marginBottom: 4,
+    marginBottom: 14,
   },
   iconBackground: {
     width: 35,
@@ -787,8 +789,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   footerSubtitle: {
-    fontSize: 12,
-    marginBottom: 8,
+    fontSize: 11,
+    marginBottom: 14,
   },
   footerVersion: {
     fontSize: 11,
