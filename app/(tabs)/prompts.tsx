@@ -110,11 +110,14 @@ const Prompts = () => {
   const dynamicStyles = {
     container: { backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF" },
     text: { color: isDark ? "#FFFFFF" : "#000000" },
-    subtitle: { color: isDark ? "#6c6c6c" : "#666666" },
+    subtitle: { color: isDark ? "#9a9a9a" : "#666666" },
     sectionBg: { backgroundColor: isDark ? "#0a0a0a" : "#F9F9F9" },
     categoryChip: {
       backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
+    },
+    filter: {
+      color: isDark? "#b2b2b2" : "#535353",
     },
     categoryChipActive: {
       backgroundColor: isDark ? "#FFFFFF" : "#000000",
@@ -220,8 +223,8 @@ const Prompts = () => {
               size={16}
               color={dynamicStyles.text.color}
             />
-            <Text style={[styles.filterTitle, dynamicStyles.text]}>
-              Filter by Category
+            <Text style={[styles.filterTitle, dynamicStyles.filter]}>
+              Filter by category
             </Text>
           </View>
 
@@ -243,7 +246,7 @@ const Prompts = () => {
               ))}
             </ScrollView>
           ) : (
-            <View style={{ paddingHorizontal: 16 }}>
+            <View style={{ paddingHorizontal: 14 }}>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -454,7 +457,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   requestButtonDisabled: { opacity: 0.5 },
-  requestButtonText: { fontSize: 13, fontWeight: "600" },
+  requestButtonText: { fontSize: 10, fontWeight: "600" },
   feedTitle: { fontSize: 12, fontWeight: "700" },
   liveBadge: {
     flexDirection: "row",
@@ -517,18 +520,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 8,
     borderWidth: 1,
   },
   badgeText: { fontSize: 11, fontWeight: "600" },
   timeText: { fontSize: 10, color: "#999999" },
   promptTitle: {
-    fontSize: 14,
+    fontSize: 10,
     marginBottom: 8,
     lineHeight: 20,
-    fontWeight: "500",
+    fontWeight: "700",
   },
   authorText: { fontSize: 12 },
   emptyContainer: {
