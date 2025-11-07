@@ -36,15 +36,37 @@ import {
   View,
 } from "react-native";
 
-const getIconComponent = (iconName: any) => {
-  if (typeof iconName === "object" && iconName.$$typeof) {
-    return iconName;
+
+const getIconComponent = (iconName: any, categoryName?: string) => {
+  // If iconName is already a React component, use categoryName if provided
+  if (typeof iconName === 'object' && iconName.$$typeof) {
+    if (categoryName) {
+      // Map by category name instead
+      const nameMap: Record<string, any> = {
+        'giveaway': Gift,
+        'sports': Trophy,
+        'friends': Heart,
+        'market': ShoppingBag,
+        'games': Gamepad2,
+        'party': PartyPopper,
+        'rides': Car,
+        'roommates': Home,
+        'dating': Heart,
+        'study group': BookOpen,
+      };
+      
+      const normalized = categoryName.toLowerCase().trim();
+      return nameMap[normalized] || Car;
+    }
+    // If no categoryName provided, just return Car as fallback
+    return Car;
   }
-
+  
+  // Original logic for when API sends proper strings
   if (typeof iconName !== "string") return Car;
-
-  const normalized = iconName.trim().toLowerCase().replace(/-/g, "");
-
+  
+  const normalized = iconName.trim().toLowerCase().replace(/-/g, '');
+  
   const iconMap: Record<string, any> = {
     car: Car,
     home: Home,
@@ -364,52 +386,59 @@ const Index = () => {
             </View>
           ) : (
             <View style={styles.cardsGrid}>
-              {categories.map((category: Category) => (
-                <Pressable
-                  key={category.id}
-                  style={[styles.card, dynamicStyles.card]}
-                  onPress={() => {
-                    router.push(`/matches/${category.id}`);
-                  }}
-                >
-                  <View
-                    style={[
-                      styles.iconCircle,
-                      { backgroundColor: category.bgColor },
-                    ]}
+              {categories.map((category: Category) => {
+                console.log("Icon name from API:", category.icon);
+                console.log("Full category object:", category);
+
+                return (
+                  <Pressable
+                    key={category.id}
+                    style={[styles.card, dynamicStyles.card]}
+                    onPress={() => {
+                      router.push(`/matches/${category.id}`);
+                    }}
                   >
-                    {(() => {
-                      const IconComponent = getIconComponent(category.icon);
-                      return (
-                        <IconComponent
-                          size={24}
-                          color={category.iconColor}
-                          strokeWidth={2}
-                        />
-                      );
-                    })()}
-                  </View>
-                  <Text style={[styles.cardTitle, dynamicStyles.text]}>
-                    {category.name}
-                  </Text>
-                  <Text style={[styles.cardSubtitle, dynamicStyles.subtitle]}>
-                    {category.subtitle}
-                  </Text>
-                  <Animated.View
-                    style={[
-                      styles.matchesBadge,
-                      dynamicStyles.matchesBadge,
-                      {
-                        opacity: category.matches > 0 ? pulseAnim : 1,
-                      },
-                    ]}
-                  >
-                    <Text style={[styles.matchesText, dynamicStyles.subtitle]}>
-                      {category.matches} matches
+                    <View
+                      style={[
+                        styles.iconCircle,
+                        { backgroundColor: category.bgColor },
+                      ]}
+                    >
+                      {(() => {
+                        const IconComponent = getIconComponent(category.icon, category.name);
+                        return (
+                          <IconComponent
+                            size={24}
+                            color={category.iconColor}
+                            strokeWidth={2}
+                          />
+                        );
+                      })()}
+                    </View>
+                    <Text style={[styles.cardTitle, dynamicStyles.text]}>
+                      {category.name}
                     </Text>
-                  </Animated.View>
-                </Pressable>
-              ))}
+                    <Text style={[styles.cardSubtitle, dynamicStyles.subtitle]}>
+                      {category.subtitle}
+                    </Text>
+                    <Animated.View
+                      style={[
+                        styles.matchesBadge,
+                        dynamicStyles.matchesBadge,
+                        {
+                          opacity: category.matches > 0 ? pulseAnim : 1,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[styles.matchesText, dynamicStyles.subtitle]}
+                      >
+                        {category.matches} matches
+                      </Text>
+                    </Animated.View>
+                  </Pressable>
+                );
+              })}
             </View>
           )}
 
@@ -479,7 +508,7 @@ const Index = () => {
                             width:
                               match.members.length > 3
                                 ? 60
-                                : match.members.length * 15, 
+                                : match.members.length * 15,
                           }}
                         >
                           {match.members.slice(0, 3).map((member, index) => (
@@ -490,7 +519,7 @@ const Index = () => {
                                 dynamicStyles.avatarBorder,
                                 {
                                   position: "absolute",
-                                  left: index * 19, 
+                                  left: index * 19,
                                   zIndex: 3 - index,
                                 },
                               ]}
@@ -526,21 +555,21 @@ const Index = () => {
                         {moment(match.createdAt).fromNow()}
                       </Text>
                       <View style={[styles.percentageBadge]}>
-  <Text
-    style={[
-      styles.matchPercent, 
-      { 
-        color: "#FFFFFF",
-        backgroundColor: isDark ? "#b7bbc2" : "#b7bbc2",
-        borderRadius: 8,
-        paddingHorizontal: 7,
-        paddingVertical: 5
-      }
-    ]}
-  >
-    {match.avgMatch}% avg match
-  </Text>
-</View>
+                        <Text
+                          style={[
+                            styles.matchPercent,
+                            {
+                              color: "#FFFFFF",
+                              backgroundColor: isDark ? "#b7bbc2" : "#b7bbc2",
+                              borderRadius: 8,
+                              paddingHorizontal: 7,
+                              paddingVertical: 5,
+                            },
+                          ]}
+                        >
+                          {match.avgMatch}% avg match
+                        </Text>
+                      </View>
                     </View>
                   </Pressable>
                 ))
