@@ -26,7 +26,7 @@ import {
   Trophy,
 } from "lucide-react-native";
 import moment from "moment";
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Image,
@@ -138,24 +138,24 @@ const Index = () => {
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
-useEffect(() => {
-  const pulse = Animated.loop(
-    Animated.sequence([
-      Animated.timing(pulseAnim, {
-        toValue: 0.4,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.timing(pulseAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-    ])
-  );
-  pulse.start();
-  return () => pulse.stop();
-}, []);
+  useEffect(() => {
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 0.4,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, []);
 
   const {
     selectedUniversity,
@@ -199,17 +199,11 @@ useEffect(() => {
     matchesBadge: {
       backgroundColor: isDark ? "#444953" : "#E0E0E0",
     },
-    percentageBadge: {
-      backgroundColor: isDark ? "#0a0a0a" : "#E5E5E5",
-    },
-    percentageText: {
-      color: isDark ? "#FFFFFF" : "#000000",
-    },
     avatarBorder: {
       borderColor: isDark ? "#000000" : "#FFFFFF",
     },
     compatibilityCard: {
-      backgroundColor: isDark ? "#0a0a0a" : "#F5F5F5",
+      backgroundColor: isDark ? "#202123" : "#F6F6F6",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
   };
@@ -442,7 +436,7 @@ useEffect(() => {
               recentMatchesData.allMatches
                 .slice(
                   0,
-                  showAllRecent ? recentMatchesData.allMatches.length : 3
+                  showAllRecent ? recentMatchesData.allMatches.length : 7
                 )
                 .map((match, matchIndex) => (
                   <Pressable
@@ -484,8 +478,8 @@ useEffect(() => {
                             height: 25,
                             width:
                               match.members.length > 3
-                                ? 75
-                                : match.members.length * 25,
+                                ? 60
+                                : match.members.length * 15, 
                           }}
                         >
                           {match.members.slice(0, 3).map((member, index) => (
@@ -496,7 +490,7 @@ useEffect(() => {
                                 dynamicStyles.avatarBorder,
                                 {
                                   position: "absolute",
-                                  left: index * 20,
+                                  left: index * 19, 
                                   zIndex: 3 - index,
                                 },
                               ]}
@@ -518,9 +512,7 @@ useEffect(() => {
                             </View>
                           ))}
                         </View>
-                        <Text
-                          style={[styles.usersText, dynamicStyles.subtitle]}
-                        >
+                        <Text style={[styles.usersText]}>
                           {match.members.length > 3
                             ? `+${match.members.length - 3} more`
                             : `${match.members.length} member${
@@ -533,21 +525,19 @@ useEffect(() => {
                       <Text style={[styles.timeText, dynamicStyles.subtitle]}>
                         {moment(match.createdAt).fromNow()}
                       </Text>
-                      <View
-                        style={[
-                          styles.percentageBadge,
-                          dynamicStyles.percentageBadge,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.matchPercent,
-                            dynamicStyles.percentageText,
-                          ]}
-                        >
-                          {match.avgMatch}% avg match
-                        </Text>
-                      </View>
+                      <View style={[styles.percentageBadge]}>
+  <Text
+    style={[
+      styles.matchPercent, 
+      { 
+        color: "#FFFFFF",
+        backgroundColor: isDark ? "#b7bbc2" : "#b7bbc2"
+      }
+    ]}
+  >
+    {match.avgMatch}% avg match
+  </Text>
+</View>
                     </View>
                   </Pressable>
                 ))
@@ -583,14 +573,17 @@ useEffect(() => {
                   dynamicStyles.compatibilityCard,
                 ]}
               >
-                <Ionicons
-                  name="heart-outline"
-                  size={24}
-                  color={dynamicStyles.text.color}
-                />
+                <View
+                  style={[
+                    styles.grayHeart,
+                    { backgroundColor: isDark ? "#55575a" : "#f5f5f5" },
+                  ]}
+                >
+                  <Ionicons name="heart-outline" size={24} color="#808080" />
+                </View>
                 <View style={styles.compatibilityContent}>
                   <Text style={[styles.compatibilityTitle, dynamicStyles.text]}>
-                    🎉 {recentMatchesData.matchSummary.avgPercent}% avg
+                    🎉 You have {recentMatchesData.matchSummary.avgPercent}% avg
                     compatibility!
                   </Text>
                   <Text
@@ -767,12 +760,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   viewAllText: {
-    fontSize: 14,
+    fontSize: 10,
   },
   recentCard: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 12,
+    padding: 16,
     borderRadius: 12,
     borderWidth: 1,
     marginBottom: 12,
@@ -789,8 +782,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   recentTitle: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 12,
+    fontWeight: "700",
     marginBottom: 4,
   },
   recentUsers: {
@@ -799,10 +792,10 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   userAvatar: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "#9C27B0",
+    width: 30,
+    height: 30,
+    borderRadius: 20,
+    backgroundColor: "#00D084",
     borderWidth: 2,
     justifyContent: "center",
     alignItems: "center",
@@ -810,22 +803,28 @@ const styles = StyleSheet.create({
   avatarText: {
     color: "#FFFFFF",
     fontSize: 8,
-    fontWeight: "600",
+    fontWeight: "700",
+  },
+  grayHeart: {
+    borderRadius: 30,
+    padding: 10,
   },
   usersText: {
-    fontSize: 12,
+    fontSize: 10,
+    fontWeight: "700",
     marginLeft: 4,
+    color: "#939393",
   },
   recentRight: {
     alignItems: "flex-end",
   },
   timeText: {
-    fontSize: 12,
+    fontSize: 10,
     marginBottom: 4,
   },
   matchPercent: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 9,
+    fontWeight: "700",
   },
   compatibilityCard: {
     flexDirection: "row",
@@ -840,8 +839,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   compatibilityTitle: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 12,
+    fontWeight: "700",
     marginBottom: 2,
   },
   compatibilitySubtitle: {
