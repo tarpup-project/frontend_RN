@@ -110,7 +110,7 @@ const Prompts = () => {
   const dynamicStyles = {
     container: { backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF" },
     text: { color: isDark ? "#FFFFFF" : "#000000" },
-    subtitle: { color: isDark ? "#CCCCCC" : "#666666" },
+    subtitle: { color: isDark ? "#6c6c6c" : "#666666" },
     sectionBg: { backgroundColor: isDark ? "#0a0a0a" : "#F9F9F9" },
     categoryChip: {
       backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
@@ -455,7 +455,7 @@ const styles = StyleSheet.create({
   },
   requestButtonDisabled: { opacity: 0.5 },
   requestButtonText: { fontSize: 13, fontWeight: "600" },
-  feedTitle: { fontSize: 14, fontWeight: "bold" },
+  feedTitle: { fontSize: 12, fontWeight: "700" },
   liveBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
   },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#00FF00" },
   liveText: { color: "#00FF00", fontSize: 10, fontWeight: "bold" },
-  feedSubtitle: { fontSize: 14, marginBottom: 12 },
+  feedSubtitle: { fontSize: 11, marginBottom: 12, fontWeight: "700"  },
   statItem: { flexDirection: "row", alignItems: "center", gap: 6 },
   statText: { fontSize: 12 },
   filterSection: { paddingVertical: 16 },
@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 20,
   },
-  filterTitle: { fontSize: 14, fontWeight: "600" },
+  filterTitle: { fontSize: 12, fontWeight: "700" },
   categoriesScroll: { 
     paddingLeft: 16,
     paddingRight: 16,
