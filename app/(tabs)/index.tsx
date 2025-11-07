@@ -203,7 +203,7 @@ const Index = () => {
       borderColor: isDark ? "#000000" : "#FFFFFF",
     },
     compatibilityCard: {
-      backgroundColor: isDark ? "#202123" : "#F6F6F6",
+      backgroundColor: isDark ? "#202123" : "#f0f1f3",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
   };
@@ -531,7 +531,10 @@ const Index = () => {
       styles.matchPercent, 
       { 
         color: "#FFFFFF",
-        backgroundColor: isDark ? "#b7bbc2" : "#b7bbc2"
+        backgroundColor: isDark ? "#b7bbc2" : "#b7bbc2",
+        borderRadius: 8,
+        paddingHorizontal: 7,
+        paddingVertical: 5
       }
     ]}
   >
@@ -576,7 +579,7 @@ const Index = () => {
                 <View
                   style={[
                     styles.grayHeart,
-                    { backgroundColor: isDark ? "#55575a" : "#f5f5f5" },
+                    { backgroundColor: isDark ? "#55575a" : "#e7e9ec" },
                   ]}
                 >
                   <Ionicons name="heart-outline" size={24} color="#808080" />
