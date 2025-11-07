@@ -19,10 +19,29 @@ import {
   Home,
   PartyPopper,
   ShoppingBag,
+  Trophy,
+  TrendingUp,
+  Sparkles,
+  ChevronRight,
 } from "lucide-react-native";
 import moment from "moment";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, View } from "react-native";
+
+// Helper functions
+const numberToSocial = (num: number): string => {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M';
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K';
+  }
+  return num.toString();
+};
+
+const numberToStandard = (num: number): string => {
+  return num.toLocaleString();
+};
 
 const getIconComponent = (iconName: string) => {
   const iconMap: { [key: string]: any } = {
@@ -40,6 +59,118 @@ const getIconComponent = (iconName: string) => {
     party: PartyPopper,
   };
   return iconMap[iconName] || Car;
+};
+
+const LeaderBoard = () => {
+  const { isDark } = useTheme();
+  const { user } = useAuthStore();
+  const [leaderboardData, setLeaderboardData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchLeaderboardData();
+    }
+  }, [user?.id]);
+
+  const fetchLeaderboardData = async () => {
+    try {
+      // Replace with your actual API call
+      const response = await fetch(`https://server.tarpup.com/analytics/user/${user.id}`);
+      const data = await response.json();
+      setLeaderboardData(data.data);
+    } catch (error) {
+      console.error('Failed to fetch leaderboard:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const dynamicStyles = {
+    container: {
+      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
+      borderColor: isDark ? "#333333" : "#E0E0E0",
+    },
+    text: {
+      color: isDark ? "#FFFFFF" : "#000000",
+    },
+    subtitle: {
+      color: isDark ? "#CCCCCC" : "#666666",
+    },
+    badge: {
+      backgroundColor: isDark ? "#1A1A1A" : "#F0F0F0",
+    },
+  };
+
+  if (!leaderboardData || isLoading) {
+    return (
+      <View style={[styles.leaderboardContainer, dynamicStyles.container]}>
+        <View style={styles.leaderboardContent}>
+          <View style={styles.leaderboardLeft}>
+            <View style={[styles.trophyIcon, { backgroundColor: '#FF7B00' }]}>
+              <Trophy size={20} color="#FFFFFF" />
+            </View>
+            <View style={styles.rankingInfo}>
+              <View style={styles.rankRow}>
+                <Skeleton width={60} height={20} style={{ marginRight: 8 }} />
+                <Skeleton width={80} height={16} />
+              </View>
+              <Skeleton width={120} height={12} style={{ marginTop: 4 }} />
+            </View>
+          </View>
+          <View style={styles.leaderboardRight}>
+            <Skeleton width={60} height={24} />
+            <ChevronRight size={18} color={dynamicStyles.subtitle.color} />
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <Pressable style={[styles.leaderboardContainer, dynamicStyles.container]}>
+      <View style={styles.leaderboardContent}>
+        <View style={styles.leaderboardLeft}>
+          <View style={[styles.trophyIcon, { backgroundColor: '#FF7B00' }]}>
+            <Trophy size={20} color="#FFFFFF" />
+          </View>
+          <View style={styles.rankingInfo}>
+            <View style={styles.rankRow}>
+              <Text style={[styles.rankText, dynamicStyles.text]}>
+                #{numberToStandard(leaderboardData.position.rank)}
+                <Text style={[styles.rankTotal, dynamicStyles.subtitle]}>
+                  {' '}/ {numberToStandard(leaderboardData.position.totalUsers)}
+                </Text>
+              </Text>
+              <View style={[styles.risingStarBadge, dynamicStyles.badge]}>
+                <Sparkles size={12} color={dynamicStyles.text.color} />
+                <Text style={[styles.badgeText, dynamicStyles.text]}>
+                  Rising Star
+                </Text>
+              </View>
+            </View>
+            <Text style={[styles.rankingSubtitle, dynamicStyles.subtitle]}>
+              Your TarpAI ranking
+            </Text>
+          </View>
+        </View>
+        <View style={styles.leaderboardRight}>
+          <View style={styles.pointsContainer}>
+            <View style={styles.pointsRow}>
+              <TrendingUp size={18} color={dynamicStyles.text.color} />
+              <Text style={[styles.pointsText, dynamicStyles.text]}>
+                {numberToSocial(leaderboardData.totalPoints)}
+              </Text>
+            </View>
+            <Text style={[styles.pointsLabel, dynamicStyles.subtitle]}>
+              Points
+            </Text>
+          </View>
+          <ChevronRight size={18} color={dynamicStyles.subtitle.color} />
+        </View>
+      </View>
+    </Pressable>
+  );
 };
 
 const CategoryCardSkeleton = () => {
@@ -178,6 +309,8 @@ const Index = () => {
       <Header />
 
       <ScrollView style={styles.content}>
+        {isAuthenticated && <LeaderBoard />}
+
         {!isAuthenticated && (
           <View style={{ marginTop: 16, marginHorizontal: -16 }}>
             <PreviewModeBanner />
@@ -579,6 +712,85 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
     paddingTop: 0,
+  },
+  leaderboardContainer: {
+    marginTop: 16,
+    marginHorizontal: -16,
+    marginBottom: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 16,
+  },
+  leaderboardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  leaderboardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 12,
+  },
+  trophyIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rankingInfo: {
+    flex: 1,
+  },
+  rankRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  rankText: {
+    fontSize: 17,
+    fontWeight: '600',
+  },
+  rankTotal: {
+    fontSize: 17,
+    fontWeight: '400',
+  },
+  risingStarBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: '500',
+  },
+  rankingSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  leaderboardRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  pointsContainer: {
+    alignItems: 'flex-end',
+  },
+  pointsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  pointsText: {
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  pointsLabel: {
+    fontSize: 10,
+    marginTop: 2,
   },
   filterSection: {
     marginTop: 16,
