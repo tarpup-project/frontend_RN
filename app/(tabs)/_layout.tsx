@@ -40,7 +40,7 @@ export default function TabLayout() {
                     title: 'Spot',
                     tabBarIcon: ({ color, focused }) => (
                         <Home 
-                            size={18} 
+                        size={20} 
                             color={color} 
                             strokeWidth={focused ? 2.5 : 2}
                         />
@@ -53,7 +53,7 @@ export default function TabLayout() {
                     title: 'Prompts',
                     tabBarIcon: ({ color, focused }) => (
                         <Activity 
-                            size={18} 
+                        size={20} 
                             color={color} 
                             strokeWidth={focused ? 2.5 : 2}
                         />
@@ -66,7 +66,7 @@ export default function TabLayout() {
                     title: 'Groups',
                     tabBarIcon: ({ color, focused }) => (
                         <Users 
-                            size={18} 
+                        size={20} 
                             color={color} 
                             strokeWidth={focused ? 2.5 : 2}
                         />
@@ -79,7 +79,7 @@ export default function TabLayout() {
                     title: 'Profile',
                     tabBarIcon: ({ color, focused }) => (
                         <User 
-                            size={18} 
+                            size={20} 
                             color={color} 
                             strokeWidth={focused ? 2.5 : 2}
                         />
