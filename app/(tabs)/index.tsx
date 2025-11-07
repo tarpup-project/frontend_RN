@@ -38,10 +38,9 @@ import {
 
 
 const getIconComponent = (iconName: any, categoryName?: string) => {
-  // If iconName is already a React component, use categoryName if provided
   if (typeof iconName === 'object' && iconName.$$typeof) {
     if (categoryName) {
-      // Map by category name instead
+ 
       const nameMap: Record<string, any> = {
         'giveaway': Gift,
         'sports': Trophy,
@@ -58,11 +57,10 @@ const getIconComponent = (iconName: any, categoryName?: string) => {
       const normalized = categoryName.toLowerCase().trim();
       return nameMap[normalized] || Car;
     }
-    // If no categoryName provided, just return Car as fallback
     return Car;
   }
   
-  // Original logic for when API sends proper strings
+
   if (typeof iconName !== "string") return Car;
   
   const normalized = iconName.trim().toLowerCase().replace(/-/g, '');
