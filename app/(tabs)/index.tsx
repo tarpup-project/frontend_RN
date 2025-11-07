@@ -339,7 +339,7 @@ const Index = () => {
             Tarp AI Smart Matches
           </Text>
           <Text style={[styles.sectionSubtitle, dynamicStyles.subtitle]}>
-            AI-powered connections with students
+            AI-powered connections with compatible students
           </Text>
 
           {isLoadingCategories ? (
@@ -669,17 +669,17 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   dashed: {
-    borderWidth: 1,
+    borderWidth: 2,
     borderStyle: "dashed",
     borderRadius: 15,
     padding: 12,
   },
   resetText: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   resetSubtext: {
-    fontSize: 11,
+    fontSize: 9,
   },
   matchesSection: {
     marginBottom: 30,
@@ -690,7 +690,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   sectionSubtitle: {
-    fontSize: 12,
+    fontSize: 10,
     marginBottom: 16,
   },
   cardsGrid: {
@@ -704,7 +704,7 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     height: 250,
     borderRadius: 12,
-    borderWidth: 1,
+    borderWidth: 0.5,
     alignItems: "center",
     justifyContent: "center",
   },
