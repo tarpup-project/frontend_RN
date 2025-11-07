@@ -555,7 +555,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   backText: {
-    fontSize: 16,
+    fontSize: 12,
   },
   section: {
     padding: 16,

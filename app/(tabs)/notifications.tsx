@@ -549,7 +549,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   backText: {
-    fontSize: 16,
+    fontSize: 12,
   },
   headerCard: {
     padding: 16,
