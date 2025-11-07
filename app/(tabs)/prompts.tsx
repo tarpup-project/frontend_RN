@@ -243,6 +243,7 @@ const Prompts = () => {
               ))}
             </ScrollView>
           ) : (
+            <View style={{ paddingHorizontal: 16 }}>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -318,6 +319,7 @@ const Prompts = () => {
                 );
               })}
             </ScrollView>
+            </View>
           )}
         </View>
 
