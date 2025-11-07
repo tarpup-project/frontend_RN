@@ -5,10 +5,17 @@ import { Text } from "@/components/Themedtext";
 import { useProfileStats } from "@/hooks/useProfileStats";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
+import * as Clipboard from "expo-clipboard";
 import { router } from "expo-router";
-import { Bell, HelpCircle, Settings, ShieldCheck } from "lucide-react-native";
+import {
+  Bell,
+  HelpCircle,
+  Settings,
+  ShieldCheck,
+  Users,
+} from "lucide-react-native";
 import moment from "moment";
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import {
   Alert,
   Image,
@@ -19,7 +26,6 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import * as Clipboard from "expo-clipboard";
 import { toast } from "sonner-native";
 
 const SkeletonStat = ({ isDark }: { isDark: boolean }) => {
@@ -34,14 +40,26 @@ const SkeletonStat = ({ isDark }: { isDark: boolean }) => {
       <View style={[styles.iconBackground, dynamicStyles.iconBackground]}>
         <Skeleton width={18} height={18} borderRadius={9} />
       </View>
-      <Skeleton width={30} height={20} borderRadius={4} style={{ marginVertical: 4 }} />
+      <Skeleton
+        width={30}
+        height={20}
+        borderRadius={4}
+        style={{ marginVertical: 4 }}
+      />
       <Skeleton width={60} height={11} borderRadius={4} />
     </View>
   );
 };
 
 const SkeletonInterest = () => {
-  return <Skeleton width={80} height={32} borderRadius={16} style={{ marginRight: 8, marginBottom: 8 }} />;
+  return (
+    <Skeleton
+      width={80}
+      height={32}
+      borderRadius={16}
+      style={{ marginRight: 8, marginBottom: 8 }}
+    />
+  );
 };
 
 const Profile = () => {
@@ -76,7 +94,7 @@ const Profile = () => {
       backgroundColor: isDark ? "#333333" : "#F0F0F0",
     },
     referralLinkContainer: {
-      backgroundColor: isDark ? "#0A0A0A" : "#F5F5F5",
+      backgroundColor: isDark ? "#212122" : "#F5F5F5",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
   };
@@ -113,32 +131,26 @@ const Profile = () => {
         url: referralLink,
       });
     } catch (error) {
-      // Fallback to copy if share fails
       handleCopyReferralLink();
     }
   };
 
-  // Handle logout with confirmation
   const handleLogout = () => {
-    Alert.alert(
-      "Sign Out?",
-      "Are you sure you want to sign out?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Sign Out",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await logout();
-              router.push("/onboarding/Welcome-screen-one");
-            } catch (error) {
-              toast.error("Failed to sign out");
-            }
-          },
+    Alert.alert("Sign Out?", "Are you sure you want to sign out?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Sign Out",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await logout();
+            router.push("/onboarding/Welcome-screen-one");
+          } catch (error) {
+            toast.error("Failed to sign out");
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const settingsOptions = [
@@ -172,7 +184,6 @@ const Profile = () => {
     },
   ];
 
-  // Show loading state if user is not loaded
   if (!isAuthenticated || !user) {
     return (
       <View style={[styles.container, dynamicStyles.container]}>
@@ -183,13 +194,28 @@ const Profile = () => {
               <View style={styles.avatarContainer}>
                 <Skeleton width={60} height={60} borderRadius={30} />
                 <View style={styles.profileInfo}>
-                  <Skeleton width={120} height={16} borderRadius={4} style={{ marginBottom: 8 }} />
-                  <Skeleton width={180} height={12} borderRadius={4} style={{ marginBottom: 4 }} />
+                  <Skeleton
+                    width={120}
+                    height={16}
+                    borderRadius={4}
+                    style={{ marginBottom: 8 }}
+                  />
+                  <Skeleton
+                    width={180}
+                    height={12}
+                    borderRadius={4}
+                    style={{ marginBottom: 4 }}
+                  />
                   <Skeleton width={160} height={12} borderRadius={4} />
                 </View>
               </View>
             </View>
-            <Skeleton width={140} height={14} borderRadius={4} style={{ marginBottom: 16 }} />
+            <Skeleton
+              width={140}
+              height={14}
+              borderRadius={4}
+              style={{ marginBottom: 16 }}
+            />
             <Skeleton width="100%" height={48} borderRadius={8} />
           </View>
         </ScrollView>
@@ -201,7 +227,7 @@ const Profile = () => {
     <View style={[styles.container, dynamicStyles.container]}>
       <Header />
 
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         refreshControl={
           <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
@@ -213,8 +239,8 @@ const Profile = () => {
             <View style={styles.avatarContainer}>
               <View style={styles.avatar}>
                 {user.bgUrl ? (
-                  <Image 
-                    source={{ uri: user.bgUrl }} 
+                  <Image
+                    source={{ uri: user.bgUrl }}
                     style={styles.avatarImage}
                   />
                 ) : (
@@ -263,14 +289,20 @@ const Profile = () => {
 
           <View style={styles.referralStats}>
             <View style={[styles.iconBackground, dynamicStyles.iconBackground]}>
-              <Ionicons
-                name="people-outline"
+              <Users
                 size={18}
                 color={dynamicStyles.subtitle.color}
+                strokeWidth={2}
               />
             </View>
             <Text style={[styles.referralCount, dynamicStyles.text]}>
-              {new Intl.NumberFormat('en-US').format(user.refferals ?? 0)} Total Referrals
+              <Text style={{ color: "#FFFFFF" }}>
+                {new Intl.NumberFormat("en-US").format(user.refferals ?? 0)}
+              </Text>
+              <Text style={[{ color: dynamicStyles.subtitle.color }]}>
+                {" "}
+                Total Referrals
+              </Text>
             </Text>
           </View>
 
@@ -290,7 +322,7 @@ const Profile = () => {
             >
               {referralLink}
             </Text>
-            <Pressable 
+            <Pressable
               style={styles.copyButton}
               onPress={handleCopyReferralLink}
               disabled={copyLoading}
@@ -303,7 +335,10 @@ const Profile = () => {
             </Pressable>
           </View>
 
-          <Pressable style={styles.shareButton} onPress={handleShareReferralLink}>
+          <Pressable
+            style={styles.shareButton}
+            onPress={handleShareReferralLink}
+          >
             <Ionicons name="share-social-outline" size={18} color="#FFFFFF" />
             <Text style={styles.shareButtonText}>Share</Text>
           </Pressable>
@@ -327,7 +362,10 @@ const Profile = () => {
                 <>
                   <View style={styles.statItem}>
                     <View
-                      style={[styles.iconBackground, dynamicStyles.iconBackground]}
+                      style={[
+                        styles.iconBackground,
+                        dynamicStyles.iconBackground,
+                      ]}
                     >
                       <Ionicons
                         name="star-outline"
@@ -345,7 +383,10 @@ const Profile = () => {
 
                   <View style={styles.statItem}>
                     <View
-                      style={[styles.iconBackground, dynamicStyles.iconBackground]}
+                      style={[
+                        styles.iconBackground,
+                        dynamicStyles.iconBackground,
+                      ]}
                     >
                       <Ionicons
                         name="people-outline"
@@ -363,7 +404,10 @@ const Profile = () => {
 
                   <View style={styles.statItem}>
                     <View
-                      style={[styles.iconBackground, dynamicStyles.iconBackground]}
+                      style={[
+                        styles.iconBackground,
+                        dynamicStyles.iconBackground,
+                      ]}
                     >
                       <Ionicons
                         name="trending-up-outline"
@@ -417,18 +461,17 @@ const Profile = () => {
                       {interest}
                     </Text>
                   </View>
-                )) ?? (
-                  user.interests?.map((interest, index) => (
-                    <View
-                      key={index}
-                      style={[styles.interestChip, dynamicStyles.button]}
-                    >
-                      <Text style={[styles.interestText, dynamicStyles.text]}>
-                        {interest}
-                      </Text>
-                    </View>
-                  ))
-                )
+                )) ??
+                user.interests?.map((interest, index) => (
+                  <View
+                    key={index}
+                    style={[styles.interestChip, dynamicStyles.button]}
+                  >
+                    <Text style={[styles.interestText, dynamicStyles.text]}>
+                      {interest}
+                    </Text>
+                  </View>
+                ))
               )}
             </View>
           </View>
@@ -564,22 +607,23 @@ const styles = StyleSheet.create({
   memberSince: {
     fontSize: 14,
     marginBottom: 16,
+    fontWeight: "700",
   },
   completeButton: {
-    padding: 14,
+    padding: 9,
     borderRadius: 8,
     borderWidth: 1,
     alignItems: "center",
   },
   completeButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 12,
+    fontWeight: "700",
   },
   section: {
     marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "bold",
     marginBottom: 16,
   },
@@ -668,11 +712,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   referralCount: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 11,
+    fontWeight: "700",
   },
   referralDescription: {
-    fontSize: 13,
+    fontSize: 12,
     lineHeight: 18,
     marginBottom: 12,
   },
@@ -681,7 +725,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
     marginBottom: 12,
@@ -699,10 +743,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#5c6df7",
-    paddingVertical: 12,
+    backgroundColor: "#4f46e5",
+    paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 16,
+    borderRadius: 14,
   },
   shareButtonText: {
     fontSize: 14,
