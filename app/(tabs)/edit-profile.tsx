@@ -102,7 +102,6 @@ const EditProfile = () => {
     "Gaming Friends",
   ];
 
-  // Initialize form with user data
   useEffect(() => {
     if (user) {
       setFormData({
@@ -192,7 +191,6 @@ const EditProfile = () => {
     try {
       setIsLoading(true);
       
-      // Create FormData for multipart upload
       const uploadFormData = new FormData();
       
       if (formData.fullName) {
