@@ -12,7 +12,6 @@ import { useAuthStore } from "@/state/authStore";
 import { MessageType, UserMessage } from "@/types/groups";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { UsersRound } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import {
   ActionSheetIOS,
@@ -409,22 +408,21 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
               >
                 {!msg.isMe && (
                   <View style={styles.messageAvatarContainer}>
-                    {msg.rawMessage?.sender?.bgUrl ? (
+                    {/* This is the original logic */}
+                    {typeof msg.avatar === "string" &&
+                    msg.avatar.startsWith("http") ? (
                       <Image
-                        source={{ uri: msg.rawMessage.sender.bgUrl }}
+                        source={{ uri: msg.avatar }}
                         style={styles.messageAvatarImage}
                       />
                     ) : (
                       <View
                         style={[
                           styles.messageAvatar,
-                          dynamicStyles.theirMessage,
+                          { backgroundColor: msg.avatar },
                         ]}
                       >
-                        <UsersRound
-                          color={dynamicStyles.theirMessageText.color}
-                          size={18}
-                        />
+                        <Text style={styles.avatarText}>{msg.sender[0]}</Text>
                       </View>
                     )}
                   </View>
@@ -742,7 +740,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   groupName: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "600",
     marginBottom: 2,
   },
