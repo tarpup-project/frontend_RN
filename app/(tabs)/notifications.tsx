@@ -613,9 +613,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 13,
     fontWeight: "700",
+    marginBottom: 16,
   },
   sectionSubtitle: {
-    fontSize: 10,
+    fontSize: 11,
     marginBottom: 16,
     fontWeight: "700",
   },

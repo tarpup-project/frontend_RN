@@ -643,7 +643,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   statNumber: {
-    fontSize: 20,
+    fontSize: 14,
     fontWeight: "bold",
   },
   statLabel: {
@@ -764,12 +764,11 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   signOutText: {
-    fontSize: 15,
+    fontSize: 12,
     fontWeight: "600",
     color: "#FF4444",
   },
   footerCard: {
-    // padding: 16,
     paddingVertical: 22,
     borderRadius: 12,
     borderWidth: 1,

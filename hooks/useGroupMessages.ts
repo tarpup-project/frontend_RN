@@ -8,8 +8,7 @@ import {
   AlertMessage, 
   MessageType, 
   SendMessagePayload,
-  MessageFile,
-  MessageContent
+  MessageFile
 } from '../types/groups';
 import { SocketEvents } from '../types/socket';
 
