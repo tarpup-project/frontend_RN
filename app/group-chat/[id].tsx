@@ -3,9 +3,12 @@ import {
   useGroupSocket,
 } from "@/app/contexts/SocketProvider";
 import { useTheme } from "@/app/contexts/ThemeContext";
+import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { useGroupMessages, useMessageReply } from "@/hooks/useGroupMessages";
+import { PanGestureHandler } from 'react-native-gesture-handler';
+import Animated, { useSharedValue, useAnimatedGestureHandler, useAnimatedStyle, runOnJS } from 'react-native-reanimated';
 import { useGroupActions, useGroupDetails } from "@/hooks/useGroups";
 import { useAuthStore } from "@/state/authStore";
 import { MessageType, UserMessage } from "@/types/groups";
@@ -40,6 +43,11 @@ const GroupChat = () => {
     </GroupSocketProvider>
   );
 };
+
+const replyIconStyle = useAnimatedStyle(() => ({
+  opacity: translateX.value > 20 ? 1 : 0,
+  transform: [{ translateX: translateX.value - 60 }],
+}));
 
 const GroupChatContent = ({ groupId }: { groupId: string }) => {
   const { isDark } = useTheme();
@@ -226,19 +234,64 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     console.log("Open group info");
   };
 
+  const MessageSkeleton = ({ isMe }: { isMe: boolean }) => (
+    <View style={[styles.messageRow, isMe && styles.myMessageRow]}>
+      {!isMe && <Skeleton width={32} height={32} borderRadius={16} />}
+      <View style={[styles.messageBubble, { padding: 12 }]}>
+        {!isMe && (
+          <Skeleton width={60} height={12} style={{ marginBottom: 4 }} />
+        )}
+        <Skeleton
+          width={Math.random() * 100 + 100}
+          height={14}
+          style={{ marginBottom: 4 }}
+        />
+        <Skeleton width={40} height={10} />
+      </View>
+    </View>
+  );
+
   if (groupLoading || isLoading) {
     return (
-      <View
-        style={[
-          styles.container,
-          dynamicStyles.container,
-          styles.centerContainer,
-        ]}
-      >
-        <ActivityIndicator size="large" color={dynamicStyles.text.color} />
-        <Text style={[{ marginTop: 12, fontSize: 16 }, dynamicStyles.text]}>
-          Loading chat...
-        </Text>
+      <View style={[styles.container, dynamicStyles.container]}>
+        {/* Header Skeleton */}
+        <View style={[styles.header, dynamicStyles.header]}>
+          <Skeleton width={24} height={24} borderRadius={12} />
+          <View style={styles.headerInfo}>
+            <View style={styles.avatarsContainer}>
+              <Skeleton width={32} height={32} borderRadius={16} />
+              <Skeleton
+                width={32}
+                height={32}
+                borderRadius={16}
+                style={{ marginLeft: -8 }}
+              />
+            </View>
+            <View style={styles.headerText}>
+              <Skeleton width={120} height={16} style={{ marginBottom: 4 }} />
+              <Skeleton width={80} height={12} />
+            </View>
+          </View>
+          <Skeleton width={24} height={24} borderRadius={12} />
+        </View>
+
+        {/* Messages Skeleton */}
+        <View style={styles.messagesContainer}>
+          <View style={styles.messagesContent}>
+            {Array(6)
+              .fill(0)
+              .map((_, i) => (
+                <MessageSkeleton key={i} isMe={i % 3 === 0} />
+              ))}
+          </View>
+        </View>
+
+        {/* Input Skeleton */}
+        <View style={styles.inputSection}>
+          <Skeleton width={24} height={24} borderRadius={12} />
+          <Skeleton height={44} borderRadius={22} style={{ flex: 1 }} />
+          <Skeleton width={44} height={44} borderRadius={22} />
+        </View>
       </View>
     );
   }
@@ -416,12 +469,12 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
                 </Text>
               </View>
             ) : (
-              <Pressable
-                style={[styles.messageRow, msg.isMe && styles.myMessageRow]}
-                onLongPress={() =>
-                  !msg.isMe && msg.rawMessage && startReply(msg.rawMessage)
-                }
-              >
+              <PanGestureHandler onGestureEvent={gestureHandler}>
+  <Animated.View style={[animatedStyle]}>
+    <Pressable
+      style={[styles.messageRow, msg.isMe && styles.myMessageRow]}
+      onLongPress={() => !msg.isMe && msg.rawMessage && startReply(msg.rawMessage)}
+    >
                 {!msg.isMe && (
                   <View style={styles.messageAvatarContainer}>
                     {typeof msg.avatar === "string" &&
@@ -479,36 +532,38 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
                   )}
 
                   {msg.text && (
-                    <Hyperlink
-                      linkDefault={true}                     
-                      linkStyle={{
-                        color: msg.isMe ? "#87CEEB" : "#007AFF",
-                        textDecorationLine: "underline",
-                      }}
-                      linkText={(url) => {
-                        if (url.length > 30) {
-                          return url.substring(0, 30) + "...";
-                        }
-                        return url;
-                      }}
-                    >
-                      <Text
-                        style={[
-                          styles.messageText,
-                          msg.isMe
-                            ? dynamicStyles.myMessageText
-                            : dynamicStyles.theirMessageText,
-                        ]}
+                    <View>
+                      <Hyperlink
+                        linkDefault={true}
+                        linkStyle={{
+                          color: msg.isMe ? "#87CEEB" : "#007AFF",
+                          textDecorationLine: "underline",
+                        }}
+                        linkText={(url) => {
+                          if (url.length > 30) {
+                            return url.substring(0, 30) + "...";
+                          }
+                          return url;
+                        }}
                       >
-                        {msg.text}
-                      </Text>
-                    </Hyperlink>
+                        <Text
+                          style={[
+                            styles.messageText,
+                            msg.isMe
+                              ? dynamicStyles.myMessageText
+                              : dynamicStyles.theirMessageText,
+                          ]}
+                        >
+                          {msg.text}
+                        </Text>
+                      </Hyperlink>
+                    </View>
                   )}
                   <Text style={[styles.messageTime, dynamicStyles.subtitle]}>
                     {msg.time}
-                  </Text>
-                </View>
-              </Pressable>
+                    </Pressable>
+  </Animated.View>
+</PanGestureHandler>
             )}
           </View>
         ))}
@@ -818,6 +873,12 @@ const styles = StyleSheet.create({
   cancelReply: {
     padding: 4,
   },
+  replyIcon: {
+    position: 'absolute',
+    right: 10,
+    alignSelf: 'center',
+    zIndex: -1,
+  }
   // File preview styles
   filePreview: {
     flexDirection: "row",
