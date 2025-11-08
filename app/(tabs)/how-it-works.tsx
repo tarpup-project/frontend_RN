@@ -151,7 +151,7 @@ const HowItWorks = () => {
             Welcome to Tarpup AI
           </Text>
           <Text style={[styles.welcomeDescription, dynamicStyles.subtitle]}>
-            Targit AI is an AI-powered platform that automatically matches
+            Tarpup AI is an AI-powered platform that automatically matches
             students within the same university for various needs including
             rides, roommates, marketplace items, sports activities, dating, and
             study groups.
@@ -331,19 +331,19 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   welcomeTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: "bold",
     marginBottom: 12,
   },
   welcomeDescription: {
-    fontSize: 14,
+    fontSize: 12,
     lineHeight: 20,
   },
   mainSection: {
     marginBottom: 32,
   },
   mainSectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
     marginBottom: 16,
   },
@@ -358,8 +358,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   stepIcon: {
-    width: 56,
-    height: 56,
+    width: 50,
+    height: 50,
     borderRadius: 28,
     justifyContent: "center",
     alignItems: "center",
@@ -368,12 +368,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   stepTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: 14,
+    fontWeight: "700",
     marginBottom: 8,
   },
   stepDescription: {
-    fontSize: 14,
+    fontSize: 12,
     lineHeight: 20,
   },
   featureCard: {
@@ -389,15 +389,15 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   featureTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "bold",
   },
   featureDescription: {
-    fontSize: 14,
+    fontSize: 12,
     lineHeight: 20,
   },
   matchingCard: {
-    padding: 16,
+    padding: 14,
     borderRadius: 12,
     borderWidth: 1,
   },
@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   matchingTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "bold",
     marginBottom: 8,
   },
@@ -443,13 +443,13 @@ const styles = StyleSheet.create({
     marginBottom: 80,
   },
   helpTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
     marginBottom: 12,
     textAlign: "left",
   },
   helpDescription: {
-    fontSize: 14,
+    fontSize: 12,
     lineHeight: 20,
     textAlign: "left",
     marginBottom: 20,
@@ -463,7 +463,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   supportButtonText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "600",
   },
 });

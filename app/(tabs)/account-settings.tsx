@@ -570,14 +570,14 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   sectionTitle: {
-    fontSize: 15,
-    fontWeight: "bold",
+    fontSize: 13,
+    fontWeight: "700",
   },
   inputGroup: {
     marginBottom: 16,
   },
   label: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "600",
     marginBottom: 8,
   },
@@ -585,16 +585,16 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    fontSize: 14,
+    fontSize: 12,
   },
   disabledInput: {
     justifyContent: "center",
   },
   disabledText: {
-    fontSize: 14,
+    fontSize: 12,
   },
   hint: {
-    fontSize: 12,
+    fontSize: 10,
     marginTop: 4,
   },
   passwordInputContainer: {
@@ -633,12 +633,12 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   toggleLabel: {
-    fontSize: 15,
-    fontWeight: "600",
+    fontSize: 12,
+    fontWeight: "700",
     marginBottom: 4,
   },
   toggleDescription: {
-    fontSize: 12,
+    fontSize: 10,
   },
   customToggle: {
     width: 40,
@@ -660,8 +660,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    padding: 16,
-    borderRadius: 8,
+    padding: 10,
+    borderRadius: 10,
     borderWidth: 1,
     marginBottom: 16,
   },
@@ -692,12 +692,13 @@ const styles = StyleSheet.create({
   },
   deleteButtonText: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "700",
     color: "#FFFFFF",
   },
   dangerDescription: {
-    fontSize: 12,
+    fontSize: 10,
     textAlign: "left",
+    fontWeight: "700",
   },
   saveButtonContainer: {
     flexDirection: "row",

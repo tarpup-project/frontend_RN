@@ -52,7 +52,7 @@ const Notifications = () => {
       color: isDark ? "#FFFFFF" : "#000000",
     },
     subtitle: {
-      color: isDark ? "#CCCCCC" : "#666666",
+      color: isDark ? "#8c8c8c" : "#666666",
     },
     card: {
       backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
@@ -570,8 +570,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 12,
+    fontWeight: "700",
   },
   onBadge: {
     paddingHorizontal: 12,
@@ -611,12 +611,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 13,
+    fontWeight: "700",
   },
   sectionSubtitle: {
-    fontSize: 13,
+    fontSize: 10,
     marginBottom: 16,
+    fontWeight: "700",
   },
   divider: {
     height: 1,
@@ -633,12 +634,12 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   toggleLabel: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: "600",
     marginBottom: 4,
   },
   toggleDescription: {
-    fontSize: 12,
+    fontSize: 11,
   },
   customToggle: {
     width: 40,
@@ -671,8 +672,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   categoryLabel: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 12,
+    fontWeight: "700",
   },
   categoryToggle: {
     width: 40,
@@ -707,8 +708,8 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   saveButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 12,
+    fontWeight: "700",
   },
 });
 
