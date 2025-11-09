@@ -1,5 +1,7 @@
 import { useTheme } from "@/app/contexts/ThemeContext";
 import { Text } from "@/components/Themedtext";
+
+import { Skeleton } from "@/components/Skeleton";
 import { useMatchActions } from "@/hooks/useMatchActions";
 import { usePersonalChat } from "@/hooks/usePersonalChat";
 import { useAuthStore } from "@/state/authStore";
@@ -89,6 +91,59 @@ const Chat = () => {
       color: isDark ? "#000000" : "#FFFFFF",
     },
   };
+
+  // Skeleton Loading Components
+  const MessageSkeleton = ({ isUser }: { isUser: boolean }) => (
+    <View style={[styles.messageContainer, isUser && styles.userMessageContainer]}>
+      {!isUser && (
+        <View style={styles.avatarContainer}>
+          <Skeleton width={32} height={32} borderRadius={16} />
+        </View>
+      )}
+      <View style={[styles.messageBubble, { padding: 12 }]}>
+        <Skeleton
+          width={Math.random() * 120 + 80}
+          height={14}
+          style={{ marginBottom: 4 }}
+        />
+        <Skeleton
+          width={Math.random() * 100 + 60}
+          height={14}
+          style={{ marginBottom: 4 }}
+        />
+        <Skeleton width={40} height={10} />
+      </View>
+      {isUser && (
+        <View style={styles.avatarContainer}>
+          <Skeleton width={32} height={32} borderRadius={16} />
+        </View>
+      )}
+    </View>
+  );
+
+  const QuickStartSkeleton = () => (
+    <View style={styles.quickStartSection}>
+      <Skeleton width={80} height={16} style={{ marginBottom: 8 }} />
+      <View style={styles.quickStartGrid}>
+        {Array(5).fill(0).map((_, i) => (
+          <View key={i} style={[styles.quickStartButton, { borderWidth: 1, borderColor: '#333' }]}>
+            <Skeleton width={14} height={14} borderRadius={7} />
+            <Skeleton width={Math.random() * 60 + 80} height={12} style={{ flex: 1, marginLeft: 6 }} />
+          </View>
+        ))}
+      </View>
+      
+      {/* Initial AI Message Skeleton */}
+      <View style={styles.initialAiMessageSection}>
+        <Skeleton width={32} height={32} borderRadius={16} />
+        <View style={[styles.initialAiMessage, { padding: 12 }]}>
+          <Skeleton width="100%" height={14} style={{ marginBottom: 4 }} />
+          <Skeleton width="90%" height={14} style={{ marginBottom: 4 }} />
+          <Skeleton width="70%" height={14} />
+        </View>
+      </View>
+    </View>
+  );
 
   const handleClose = () => {
     markAsRead();
@@ -254,15 +309,36 @@ const Chat = () => {
     markAsRead();
   }, []);
 
+  // Loading State with Skeleton
   if (isLoading) {
     return (
-      <View
-        style={[styles.container, dynamicStyles.container, styles.centered]}
-      >
-        <ActivityIndicator size="large" color={dynamicStyles.text.color} />
-        <Text style={[styles.loadingText, dynamicStyles.text]}>
-          Loading chat...
-        </Text>
+      <View style={[styles.container, dynamicStyles.container]}>
+        {/* Header Skeleton */}
+        <View style={[styles.header, dynamicStyles.header]}>
+          <Skeleton width={120} height={20} />
+          <View style={styles.headerActions}>
+            <Skeleton width={24} height={24} borderRadius={12} />
+            <Skeleton width={24} height={24} borderRadius={12} />
+          </View>
+        </View>
+
+        {/* Content Skeleton */}
+        <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+          <QuickStartSkeleton />
+          
+          {/* Messages Skeleton */}
+          {Array(4).fill(0).map((_, i) => (
+            <MessageSkeleton key={i} isUser={i % 3 === 0} />
+          ))}
+        </ScrollView>
+
+        {/* Input Skeleton */}
+        <View style={styles.inputSection}>
+          <View style={styles.inputContainer}>
+            <Skeleton height={50} borderRadius={25} style={{ flex: 1 }} />
+            <Skeleton width={50} height={50} borderRadius={25} />
+          </View>
+        </View>
       </View>
     );
   }
@@ -438,6 +514,7 @@ const Chat = () => {
   );
 };
 
+// Keep all your existing styles exactly the same
 const styles = StyleSheet.create({
   container: {
     flex: 1,
