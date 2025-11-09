@@ -1,14 +1,13 @@
-
 import { useTheme } from "@/app/contexts/ThemeContext";
 import { Text } from "@/components/Themedtext";
 import { UrlConstants } from "@/constants/apiUrls";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import { useRouter } from "expo-router";
-import { Sparkles } from "lucide-react-native";
 import { useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -111,10 +110,14 @@ const SignIn = () => {
       <View style={styles.content}>
         <View style={styles.header}>
           <View style={styles.titleRow}>
-            <Sparkles
-              size={24}
-              color={dynamicStyles.text.color}
-              strokeWidth={2}
+            <Image
+              source={
+                isDark
+                  ? require("@/assets/images/tarpup-plain-dark.png")
+                  : require("@/assets/images/tarpup-plain.png")
+              }
+              style={styles.logo}
+              resizeMode="contain"
             />
             <Text style={[styles.appTitle, dynamicStyles.text]}>
               TarpAI Connect
@@ -287,6 +290,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     marginBottom: 8,
+  },
+  logo: {
+    width: 24,
+    height: 24,
   },
   input: {
     height: 45,
