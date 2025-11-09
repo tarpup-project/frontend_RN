@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   continueButton: {
-    height: 50,
+    height: 35,
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
@@ -323,13 +323,12 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   continueButtonText: {
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: "600",
   },
   securityNote: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
     gap: 8,
     marginTop: 12,
     paddingVertical: 8,
@@ -338,13 +337,14 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   securityText: {
-    fontSize: 12,
+    fontSize: 10,
   },
   emailInputContainer: {
     borderWidth: 1,
     borderRadius: 8,
-    paddingHorizontal: 16,
-    marginBottom: 8,
+    paddingVertical: 2,
+    paddingHorizontal: 12,
+    marginBottom: 4,
   },
   signUpContainer: {
     flexDirection: "row",
@@ -353,10 +353,10 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   signUpText: {
-    fontSize: 14,
+    fontSize: 12,
   },
   signUpLink: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
   },
 });
