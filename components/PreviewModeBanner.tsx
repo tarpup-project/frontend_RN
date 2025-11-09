@@ -14,7 +14,7 @@ const PreviewModeBanner = () => {
 
   const dynamicStyles = {
     container: {
-      backgroundColor: isDark ? "#0a0a0a" : "#F5F5F5",
+      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     text: {
