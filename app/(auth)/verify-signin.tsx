@@ -247,6 +247,9 @@ const VerifySignIn = () => {
               <Text style={styles.verifyButtonText}> Verifying...</Text>
             </View>
           )}
+          <Text style={[styles.spam, dynamicStyles.subtitle]}>
+              Didn't Receive it? Please check your spam or junk folder.
+            </Text>
 
           <Pressable
             style={styles.resendContainer}
@@ -311,7 +314,7 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 5,
   },
   verifySection: {
     width: "100%",
@@ -330,10 +333,10 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 12,
     textAlign: "center",
-    marginBottom: 4,
+    marginBottom: 8,
   },
   email: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: "600",
     textAlign: "center",
     marginBottom: 12,
@@ -342,8 +345,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   label: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 12,
+    fontWeight: "700",
+    textAlign: "center",
     marginBottom: 8,
   },
   digitContainer: {
@@ -353,8 +357,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   digitBox: {
-    width: 30,  
-    height: 30,
+    width: 40,  
+    height: 40,
     borderRadius: 8,
     borderWidth: 1,
     fontSize: 20,
@@ -401,6 +405,11 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     fontWeight: "700",
   },
+  spam: {
+    fontSize: 9,
+    textAlign: "center",
+    marginTop: 10
+  }
 });
 
 export default VerifySignIn;
