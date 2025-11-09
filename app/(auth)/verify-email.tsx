@@ -1,9 +1,8 @@
-
 import { useTheme } from "@/app/contexts/ThemeContext";
 import { Text } from "@/components/Themedtext";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -12,6 +11,7 @@ import {
   StyleSheet,
   TextInput,
   View,
+  Image,
 } from "react-native";
 import { toast } from "sonner-native";
 import axios from "axios";
@@ -24,10 +24,11 @@ const VerifyEmail = () => {
   const params = useLocalSearchParams();
 
   const email = params.email as string;
-
-  const [verificationCode, setVerificationCode] = useState("");
+  const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
+
+  const inputRefs = useRef<(TextInput | null)[]>([]);
 
   const dynamicStyles = {
     container: {
@@ -40,28 +41,42 @@ const VerifyEmail = () => {
       color: isDark ? "#CCCCCC" : "#666666",
     },
     input: {
-      backgroundColor: isDark ? "##0a0a0a" : "#FFFFFF",
+      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
       color: isDark ? "#FFFFFF" : "#000000",
     },
-    codeDisplay: {
-      backgroundColor: isDark ? "#0a0a0a" : "#F5F5F5",
-    },
-    verifyButton: {
-      backgroundColor: isDark ? "#FFFFFF" : "#000000",
-    },
-    verifyButtonText: {
-      color: isDark ? "#000000" : "#FFFFFF",
+    digitBox: {
+      backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
+      borderColor: isDark ? "#333333" : "#E0E0E0",
     },
   };
 
+  const handleCodeChange = (text: string, index: number) => {
+    if (text.length > 1) {
+      text = text[text.length - 1];
+    }
+
+    const newCode = [...code];
+    newCode[index] = text;
+    setCode(newCode);
+
+    if (text && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyPress = (e: any, index: number) => {
+    if (e.nativeEvent.key === "Backspace" && !code[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
   const handleVerifyEmail = async () => {
+    const verificationCode = code.join("");
     if (verificationCode.length !== 6) {
       toast.error("Please enter the complete 6-digit code");
       return;
     }
-
-    console.log("Verifying OTP:", { email, token: verificationCode });
 
     setIsVerifying(true);
     try {
@@ -72,8 +87,6 @@ const VerifyEmail = () => {
           token: verificationCode,
         }
       );
-
-      console.log("Verify response:", response.data);
 
       if (response.data.status === "success") {
         const userData = response.data.data;
@@ -88,16 +101,14 @@ const VerifyEmail = () => {
         }, 800);
       }
     } catch (error: any) {
-      console.log("Verify error:", error);
-      console.log("Error response:", error?.response?.data);
-
       const errorMessage =
         error?.response?.data?.message || "Invalid code. Please try again.";
 
       toast.error("Verification failed", {
         description: errorMessage,
       });
-      setVerificationCode("");
+      setCode(["", "", "", "", "", ""]);
+      inputRefs.current[0]?.focus();
     } finally {
       setIsVerifying(false);
     }
@@ -142,13 +153,24 @@ const VerifyEmail = () => {
     >
       <View style={styles.content}>
         <View style={styles.header}>
-          <View style={styles.titleRow}>
+          <View style={styles.titleContainer}>
+            <View style={styles.logoSpace}>
+              <Image
+                source={
+                  isDark
+                    ? require("@/assets/images/tarpup-plain-dark.png")
+                    : require("@/assets/images/tarpup-plain.png")
+                }
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            </View>
             <Text style={[styles.appTitle, dynamicStyles.text]}>
               TarpAI Connect
             </Text>
           </View>
           <Text style={[styles.tagline, dynamicStyles.subtitle]}>
-            Join Your Campus Community
+            Smart campus connections powered by AI
           </Text>
         </View>
 
@@ -175,49 +197,73 @@ const VerifyEmail = () => {
             <Text style={[styles.label, dynamicStyles.text]}>
               Verification Code
             </Text>
-            <TextInput
-              style={[styles.input, dynamicStyles.input]}
-              placeholder="Enter 6-digit code"
-              placeholderTextColor={isDark ? "#666666" : "#999999"}
-              value={verificationCode}
-              onChangeText={setVerificationCode}
-              keyboardType="number-pad"
-              maxLength={6}
-              editable={!isVerifying}
-              autoFocus
-            />
+            <View style={styles.digitContainer}>
+              {code.slice(0, 3).map((digit, index) => (
+                <TextInput
+                  key={index}
+                  ref={(ref) => {
+                    inputRefs.current[index] = ref;
+                  }}
+                  style={[
+                    styles.digitBox,
+                    dynamicStyles.digitBox,
+                    dynamicStyles.text,
+                  ]}
+                  value={digit}
+                  onChangeText={(text) => handleCodeChange(text, index)}
+                  onKeyPress={(e) => handleKeyPress(e, index)}
+                  keyboardType="number-pad"
+                  maxLength={1}
+                  editable={!isVerifying}
+                  selectTextOnFocus
+                />
+              ))}
+
+              <Text style={[styles.hyphen, dynamicStyles.text]}>—</Text>
+
+              {code.slice(3, 6).map((digit, index) => (
+                <TextInput
+                  key={index + 3}
+                  ref={(ref) => {
+                    inputRefs.current[index + 3] = ref;
+                  }}
+                  style={[
+                    styles.digitBox,
+                    dynamicStyles.digitBox,
+                    dynamicStyles.text,
+                  ]}
+                  value={digit}
+                  onChangeText={(text) => handleCodeChange(text, index + 3)}
+                  onKeyPress={(e) => handleKeyPress(e, index + 3)}
+                  keyboardType="number-pad"
+                  maxLength={1}
+                  editable={!isVerifying}
+                  selectTextOnFocus
+                />
+              ))}
+            </View>
           </View>
 
           {!isVerifying ? (
             <Pressable
               style={[
                 styles.verifyButton,
-                dynamicStyles.verifyButton,
-                verificationCode.length !== 6 && styles.verifyButtonDisabled,
+                code.join("").length !== 6 && styles.verifyButtonDisabled,
               ]}
               onPress={handleVerifyEmail}
-              disabled={verificationCode.length !== 6}
+              disabled={code.join("").length !== 6}
             >
-              <Text
-                style={[styles.verifyButtonText, dynamicStyles.verifyButtonText]}
-              >
-                Verify Email
-              </Text>
+              <Text style={styles.verifyButtonText}>Verify Email</Text>
             </Pressable>
           ) : (
-            <View style={[styles.verifyButton, dynamicStyles.verifyButton]}>
-              <ActivityIndicator
-                color={isDark ? "#000000" : "#FFFFFF"}
-                size="small"
-              />
-              <Text
-                style={[styles.verifyButtonText, dynamicStyles.verifyButtonText]}
-              >
-                {" "}
-                Verifying...
-              </Text>
+            <View style={styles.verifyButton}>
+              <ActivityIndicator color="#000000" size="small" />
+              <Text style={styles.verifyButtonText}> Verifying...</Text>
             </View>
           )}
+          <Text style={[styles.spam, dynamicStyles.subtitle]}>
+            Didn't Receive it? Please check your spam or junk folder.
+          </Text>
 
           <Pressable
             style={styles.resendContainer}
@@ -231,7 +277,7 @@ const VerifyEmail = () => {
                 (isResending || isVerifying) && { opacity: 0.5 },
               ]}
             >
-              {isResending ? "Sending..." : "Resend code"}
+              {isResending ? "Sending..." : "Resend Code"}
             </Text>
           </Pressable>
 
@@ -257,32 +303,36 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 120,
+    paddingTop: 180,
   },
   header: {
     alignItems: "center",
     marginBottom: 20,
   },
-  titleRow: {
+  titleContainer: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
+  logoSpace: {
+    width: 35,
+    height: 35,
+  },
   logo: {
-    width: 32,
-    height: 32,
+    width: 35,
+    height: 35,
   },
   appTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
+    fontSize: 14,
+    fontWeight: "700",
   },
   tagline: {
-    fontSize: 14,
+    fontSize: 12,
     marginTop: 8,
   },
   iconContainer: {
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 5,
   },
   verifySection: {
     width: "100%",
@@ -293,18 +343,18 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   title: {
-    fontSize: 15,
-    fontWeight: "bold",
+    fontSize: 13,
+    fontWeight: "700",
     textAlign: "center",
     marginBottom: 6,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 12,
     textAlign: "center",
-    marginBottom: 4,
+    marginBottom: 8,
   },
   email: {
-    fontSize: 15,
+    fontSize: 11,
     fontWeight: "600",
     textAlign: "center",
     marginBottom: 12,
@@ -313,21 +363,34 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   label: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 12,
+    fontWeight: "700",
+    textAlign: "center",
     marginBottom: 8,
   },
-  input: {
-    height: 45,
+  digitContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 4,
+  },
+  digitBox: {
+    width: 40,
+    height: 40,
     borderRadius: 8,
     borderWidth: 1,
-    paddingHorizontal: 16,
-    fontSize: 18,
-    letterSpacing: 2,
+    fontSize: 20,
+    fontWeight: "600",
     textAlign: "center",
+    textAlignVertical: "center",
+    paddingTop: 0,
+    paddingBottom: 0,
+    paddingHorizontal: 0,
+    includeFontPadding: false,
   },
   verifyButton: {
-    height: 50,
+    backgroundColor: "#FFFFFF",
+    height: 35,
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
@@ -337,24 +400,38 @@ const styles = StyleSheet.create({
   verifyButtonDisabled: {
     opacity: 0.5,
   },
+  hyphen: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginHorizontal: 4,
+  },
   verifyButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
+    color: "#000000",
+    fontSize: 12,
+    fontWeight: "700",
   },
   resendContainer: {
     alignItems: "center",
     marginTop: 10,
   },
   resendText: {
-    fontSize: 15,
-    fontWeight: "600",
+    fontSize: 11,
+    fontWeight: "700",
+    marginBottom: 10,
   },
   changeEmailContainer: {
     alignItems: "center",
     marginTop: 8,
   },
   changeEmailText: {
-    fontSize: 14,
+    fontSize: 12,
+    marginBottom: 5,
+    fontWeight: "700",
+  },
+  spam: {
+    fontSize: 9,
+    textAlign: "center",
+    marginTop: 10,
   },
 });
 
