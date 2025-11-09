@@ -1,6 +1,6 @@
 import { useTheme } from "@/app/contexts/ThemeContext";
 import { Text } from "@/components/Themedtext";
-import { Ionicons } from "@expo/vector-icons";
+import { Sparkles, Lock } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import {
@@ -53,7 +53,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
       backgroundColor: isDark ? "rgba(0,0,0,0.85)" : "rgba(0,0,0,0.6)",
     },
     modal: {
-      backgroundColor: isDark ? "#1a1a1a" : "#FFFFFF",
+      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     text: {
@@ -61,9 +61,6 @@ const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
     },
     subText: {
       color: isDark ? "#B0B0B0" : "#666666",
-    },
-    iconContainer: {
-      backgroundColor: isDark ? "#333333" : "#F0F0F0",
     },
     primaryButton: {
       backgroundColor: isDark ? "#FFFFFF" : "#000000",
@@ -119,18 +116,19 @@ const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
                   },
                 ]}
               >
+            {/* Icon and Lock */}
             <View style={styles.iconSection}>
-              <View style={[styles.iconContainer, dynamicStyles.iconContainer]}>
-                <Ionicons
-                  name="sparkles"
+              <View style={[styles.iconContainer]}>
+                <Sparkles
                   size={24}
                   color={isDark ? "#FFFFFF" : "#000000"}
+                  strokeWidth={2}
                 />
               </View>
-              <Ionicons
-                name="lock-closed"
+              <Lock
                 size={20}
                 color={isDark ? "#FFFFFF" : "#000000"}
+                strokeWidth={2.5}
                 style={styles.lockIcon}
               />
             </View>
@@ -180,16 +178,18 @@ const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
 };
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-  },
+    overlay: {
+        flex: 1,
+        justifyContent: "center",   
+        alignItems: "center",        
+      },
   overlayPressable: {
     flex: 1,
   },
   container: {
     flex: 1,
-    justifyContent: "flex-end",
+    justifyContent: "center",    
+    alignItems: "center",        
     paddingHorizontal: 20,
   },
   modal: {
@@ -207,9 +207,11 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   iconSection: {
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     marginBottom: 20,
-    position: "relative",
+    gap: 8,
   },
   iconContainer: {
     width: 48,
@@ -219,9 +221,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   lockIcon: {
-    position: "absolute",
-    bottom: -8,
-    right: -8,
   },
   title: {
     fontSize: 20,
