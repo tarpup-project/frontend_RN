@@ -38,7 +38,7 @@ const WelcomeScreenOne = () => {
     <SafeAreaView style={[styles.container, dynamicStyles.container]}>
       <Pressable
         style={styles.skipButton}
-        onPress={() => router.push("/onboarding/carousel")}
+        onPress={() => router.push("/(tabs)")}
       >
         <Text style={[styles.skipText, dynamicStyles.skipText]}>Skip</Text>
       </Pressable>

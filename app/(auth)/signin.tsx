@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   TextInput,
   View,
@@ -38,13 +39,6 @@ const SignIn = () => {
       backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
       color: isDark ? "#FFFFFF" : "#000000",
-    },
-    emailInputContainer: {
-      borderColor: isDark ? "#666666" : "#999999",
-      backgroundColor: isDark ? "#0a0a0a" : "#F5F5F5",
-    },
-    placeholderText: {
-      color: isDark ? "#828282" : "#000000",
     },
     continueButton: {
       backgroundColor: isDark ? "#FFFFFF" : "#000000",
@@ -106,50 +100,46 @@ const SignIn = () => {
     <KeyboardAvoidingView
       style={[styles.container, dynamicStyles.container]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
     >
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <View style={styles.titleRow}>
-            <Image
-              source={
-                isDark
-                  ? require("@/assets/images/tarpup-plain-dark.png")
-                  : require("@/assets/images/tarpup-plain.png")
-              }
-              style={styles.logo}
-              resizeMode="contain"
-            />
-            <Text style={[styles.appTitle, dynamicStyles.text]}>
-              TarpAI Connect
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <View style={styles.titleRow}>
+              <Image
+                source={
+                  isDark
+                    ? require("@/assets/images/tarpup-plain-dark.png")
+                    : require("@/assets/images/tarpup-plain.png")
+                }
+                style={styles.logo}
+                resizeMode="contain"
+              />
+              <Text style={[styles.appTitle, dynamicStyles.text]}>
+                TarpAI Connect
+              </Text>
+            </View>
+            <Text style={[styles.tagline, dynamicStyles.subtitle]}>
+              Smart campus connections powered by AI
             </Text>
           </View>
-          <Text style={[styles.tagline, dynamicStyles.subtitle]}>
-            Smart campus connections powered by AI
-          </Text>
-        </View>
 
-        <View
-          style={[styles.signInSection, styles.signInBox, dynamicStyles.input]}
-        >
-          <Text style={[styles.title, dynamicStyles.text]}>Welcome Back</Text>
-          <Text style={[styles.subtitle, dynamicStyles.subtitle]}>
-            Enter your email to sign in securely
-          </Text>
-
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, dynamicStyles.text]}>
-              University Email
+          <View
+            style={[styles.signInSection, styles.signInBox, dynamicStyles.input]}
+          >
+            <Text style={[styles.title, dynamicStyles.text]}>Welcome Back</Text>
+            <Text style={[styles.subtitle, dynamicStyles.subtitle]}>
+              Enter your email to sign in securely
             </Text>
-            <View
-              style={[
-                styles.emailInputContainer,
-                dynamicStyles.emailInputContainer,
-              ]}
-            >
-              <Text
-                style={[styles.emailDisplay, dynamicStyles.placeholderText]}
-              >
-                {email || "name@university.edu"}
+
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, dynamicStyles.text]}>
+                University Email
               </Text>
               <TextInput
                 style={[styles.input, dynamicStyles.input]}
@@ -160,78 +150,82 @@ const SignIn = () => {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 editable={!isLoading}
+                returnKeyType="done"
+                onSubmitEditing={handleContinue}
+                autoCorrect={false}
+                autoComplete="email"
               />
-            </View>
-            <Text style={[styles.hint, dynamicStyles.subtitle]}>
-              We will send a verification code to confirm it is you
-            </Text>
-          </View>
-
-          {!isLoading ? (
-            <Pressable
-              style={[
-                styles.continueButton,
-                dynamicStyles.continueButton,
-                !email && styles.continueButtonDisabled,
-              ]}
-              onPress={handleContinue}
-              disabled={!email}
-            >
-              <Text
-                style={[
-                  styles.continueButtonText,
-                  dynamicStyles.continueButtonText,
-                ]}
-              >
-                Continue
+              <Text style={[styles.hint, dynamicStyles.subtitle]}>
+                We will send a verification code to confirm it is you
               </Text>
+            </View>
+
+            {!isLoading ? (
+              <Pressable
+                style={[
+                  styles.continueButton,
+                  dynamicStyles.continueButton,
+                  !email && styles.continueButtonDisabled,
+                ]}
+                onPress={handleContinue}
+                disabled={!email}
+              >
+                <Text
+                  style={[
+                    styles.continueButtonText,
+                    dynamicStyles.continueButtonText,
+                  ]}
+                >
+                  Continue
+                </Text>
+                <Ionicons
+                  name="arrow-forward"
+                  size={18}
+                  color={dynamicStyles.continueButtonText.color}
+                />
+              </Pressable>
+            ) : (
+              <View style={[styles.continueButton, dynamicStyles.continueButton]}>
+                <ActivityIndicator
+                  color={dynamicStyles.continueButtonText.color}
+                  size="small"
+                />
+                <Text
+                  style={[
+                    styles.continueButtonText,
+                    dynamicStyles.continueButtonText,
+                  ]}
+                >
+                  {" "}
+                  Sending...
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.securityNote}>
               <Ionicons
-                name="arrow-forward"
-                size={18}
-                color={dynamicStyles.continueButtonText.color}
+                name="shield-checkmark-outline"
+                size={16}
+                color={isDark ? "#4A90E2" : "#5B9BD5"}
               />
-            </Pressable>
-          ) : (
-            <View style={[styles.continueButton, dynamicStyles.continueButton]}>
-              <ActivityIndicator
-                color={dynamicStyles.continueButtonText.color}
-                size="small"
-              />
-              <Text
-                style={[
-                  styles.continueButtonText,
-                  dynamicStyles.continueButtonText,
-                ]}
-              >
-                {" "}
-                Sending...
+              <Text style={[styles.securityText, dynamicStyles.subtitle]}>
+                Your email is kept secure and never shared
               </Text>
             </View>
-          )}
 
-          <View style={styles.securityNote}>
-            <Ionicons
-              name="shield-checkmark-outline"
-              size={16}
-              color={isDark ? "#4A90E2" : "#5B9BD5"}
-            />
-            <Text style={[styles.securityText, dynamicStyles.subtitle]}>
-              Your email is kept secure and never shared
-            </Text>
-          </View>
-
-          <View style={styles.signUpContainer}>
-            <Text style={[styles.signUpText, dynamicStyles.subtitle]}>
-              Don't have an account?{" "}
-            </Text>
-            <Pressable onPress={() => router.back()}>
-              <Text style={[styles.signUpLink, dynamicStyles.signUpLink]}>
-                Sign Up
+            <View style={styles.signUpContainer}>
+              <Text style={[styles.signUpText, dynamicStyles.subtitle]}>
+                Don't have an account?{" "}
               </Text>
-            </Pressable>
+              <Pressable onPress={() => router.back()}>
+                <Text style={[styles.signUpLink, dynamicStyles.signUpLink]}>
+                  Sign Up
+                </Text>
+              </Pressable>
+            </View>
           </View>
         </View>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 };
@@ -240,14 +234,30 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
   content: {
     flex: 1,
     paddingHorizontal: 24,
     paddingTop: 200,
+    paddingBottom: 40,
   },
   header: {
     alignItems: "center",
     marginBottom: 20,
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  logo: {
+    width: 24,
+    height: 24,
   },
   appTitle: {
     fontSize: 13,
@@ -286,27 +296,13 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginBottom: 8,
   },
-  emailDisplay: {
-    fontSize: 15,
-    fontWeight: "600",
-    marginBottom: 8,
-  },
-  logo: {
-    width: 24,
-    height: 24,
-  },
   input: {
     height: 45,
-    borderWidth: 0,
+    borderWidth: 1,
+    borderRadius: 8,
     paddingHorizontal: 16,
     fontSize: 15,
-    textAlign: "center",
-    position: "absolute",
-    opacity: 0,
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    marginBottom: 4,
   },
   hint: {
     fontSize: 12,
@@ -320,11 +316,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     gap: 8,
-  },
-  titleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+    marginTop: 8,
   },
   continueButtonDisabled: {
     opacity: 0.5,
@@ -345,13 +337,6 @@ const styles = StyleSheet.create({
   },
   securityText: {
     fontSize: 10,
-  },
-  emailInputContainer: {
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingVertical: 2,
-    paddingHorizontal: 12,
-    marginBottom: 4,
   },
   signUpContainer: {
     flexDirection: "row",
