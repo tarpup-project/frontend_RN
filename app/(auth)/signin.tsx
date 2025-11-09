@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    height: 45,
+    height: 40,
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 16,
