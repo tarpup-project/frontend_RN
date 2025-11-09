@@ -5,7 +5,7 @@ import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Lock } from "lucide-react-native";
+
 import { useEffect, useRef, useState } from "react";
 import { Animated, Image, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -67,13 +67,6 @@ const Header = () => {
     chatText: {
       color: isDark ? "#000000" : "#FFFFFF",
     },
-    lockContainer: {
-      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
-      borderColor: isDark ? "#333333" : "#E0E0E0",
-    },
-    lockIcon: {
-      color: isDark ? "#FF6B6B" : "#FF4444",
-    },
   };
 
   return (
@@ -116,27 +109,11 @@ const Header = () => {
               onPress={handleChatPress}
             >
               <View style={styles.chatContent}>
-                <View style={styles.chatIconContainer}>
-                  <Ionicons
-                    name="chatbubble-outline"
-                    size={18}
-                    color={dynamicStyles.chatText.color}
-                  />
-                  {!isAuthenticated && (
-                    <View
-                      style={[
-                        styles.lockContainer,
-                        dynamicStyles.lockContainer,
-                      ]}
-                    >
-                      <Lock
-                        size={10}
-                        color={dynamicStyles.lockIcon.color}
-                        strokeWidth={2.5}
-                      />
-                    </View>
-                  )}
-                </View>
+                <Ionicons
+                  name="chatbubble-outline"
+                  size={18}
+                  color={dynamicStyles.chatText.color}
+                />
                 <Text style={[styles.chatText, dynamicStyles.chatText]}>
                   Chat
                 </Text>
@@ -158,7 +135,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 12,
     borderBottomWidth: 1,
   },
@@ -167,31 +144,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-  chatIconContainer: {
-    position: "relative",
-  },
-  lockContainer: {
-    position: "absolute",
-    bottom: -2,
-    right: -2,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 3,
-  },
   logo: {
     width: 35,
     height: 35,
   },
   title: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "bold",
   },
   iconsContainer: {

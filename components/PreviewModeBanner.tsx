@@ -133,11 +133,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   title: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "700",
   },
   subtitle: {
-    fontSize: 11,
+    fontSize: 12,
     lineHeight: 18,
   },
   button: {
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
     borderWidth: 0,
   },
   buttonText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "600",
   },
 });

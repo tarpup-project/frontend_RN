@@ -7,6 +7,7 @@ import {
   Animated,
   Image,
   ImageSourcePropType,
+  Platform,
   Pressable,
   StyleSheet,
   View,
@@ -268,12 +269,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   buttonContainer: {
-    marginBottom: 30,
+    marginBottom: Platform.OS === 'ios' ? 18 : 30, 
   },
   button: {
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: "center",
+
   },
   buttonText: {
     fontSize: 16,

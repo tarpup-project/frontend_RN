@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Tarpup",
-    "slug": "Tarpup",
+    "name": "TarpUp",
+    "slug": "TarpUp",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/tarpup-light.png",
@@ -12,7 +12,7 @@
     "ios": {
       "supportsTablet": true,
       "backgroundColor": "#000000",
-      "bundleIdentifier": "com.vector10.Tarpup",
+      "bundleIdentifier": "com.vector10.TarpUp",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }

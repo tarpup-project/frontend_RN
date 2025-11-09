@@ -2,6 +2,7 @@ import { useTheme } from "@/app/contexts/ThemeContext";
 import { Loader } from "@/components/Loader";
 import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
+import AuthModal from "@/components/AuthModal";
 import { useCampus } from "@/hooks/useCampus";
 import { usePrompts } from "@/hooks/usePrompts";
 import { useAuthStore } from "@/state/authStore";
@@ -82,6 +83,7 @@ const SkeletonCard = ({ isDark }: { isDark: boolean }) => {
 const Prompts = () => {
   const { isDark } = useTheme();
   const { user, isAuthenticated } = useAuthStore();
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>(
     {}
   );
@@ -144,8 +146,7 @@ const Prompts = () => {
     publicGroupId?: string
   ) => {
     if (!isAuthenticated) {
-      toast.error("Please sign in to request access to groups");
-      router.push("/(auth)/signin");
+      setShowAuthModal(true);
       return;
     }
 
@@ -448,6 +449,11 @@ const Prompts = () => {
             ))}
         </View>
       </ScrollView>
+
+      <AuthModal 
+        visible={showAuthModal} 
+        onClose={() => setShowAuthModal(false)} 
+      />
     </View>
   );
 };
