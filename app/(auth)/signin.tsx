@@ -45,7 +45,7 @@ const SignIn = () => {
       backgroundColor: isDark ? "#0a0a0a" : "#F5F5F5",
     },
     placeholderText: {
-      color: isDark ? "#CCCCCC" : "#000000",
+      color: isDark ? "#828282" : "#000000",
     },
     continueButton: {
       backgroundColor: isDark ? "#FFFFFF" : "#000000",
@@ -146,7 +146,7 @@ const SignIn = () => {
               <Text
                 style={[styles.emailDisplay, dynamicStyles.placeholderText]}
               >
-                {email || "your.email@university.edu"}
+                {email || "name@university.edu"}
               </Text>
               <TextInput
                 style={[styles.input, dynamicStyles.input]}
@@ -247,11 +247,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   appTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 13,
+    fontWeight: "700",
   },
   tagline: {
-    fontSize: 14,
+    fontSize: 12,
+    fontWeight: "700",
     marginTop: 8,
   },
   signInSection: {
@@ -263,33 +264,32 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   title: {
-    fontSize: 18,
+    fontSize: 12,
     fontWeight: "bold",
     textAlign: "center",
     marginBottom: 6,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 11,
     textAlign: "center",
+    fontWeight: "700",
     marginBottom: 12,
   },
   inputGroup: {
     marginBottom: 12,
   },
   label: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 11,
+    fontWeight: "700",
     marginBottom: 8,
   },
   emailDisplay: {
     fontSize: 15,
     fontWeight: "600",
-    textAlign: "center",
     marginBottom: 8,
   },
   input: {
     height: 45,
-    borderRadius: 8,
     borderWidth: 0,
     paddingHorizontal: 16,
     fontSize: 15,
@@ -343,7 +343,6 @@ const styles = StyleSheet.create({
   emailInputContainer: {
     borderWidth: 1,
     borderRadius: 8,
-    paddingVertical: 12,
     paddingHorizontal: 16,
     marginBottom: 8,
   },
