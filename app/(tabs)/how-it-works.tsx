@@ -148,10 +148,10 @@ const HowItWorks = () => {
         {/* Welcome Section */}
         <View style={[styles.section, dynamicStyles.card]}>
           <Text style={[styles.welcomeTitle, dynamicStyles.text]}>
-            Welcome to Tarpup AI
+            Welcome to TarpUp AI
           </Text>
           <Text style={[styles.welcomeDescription, dynamicStyles.subtitle]}>
-            Tarpup AI is an AI-powered platform that automatically matches
+            TarpUp AI is an AI-powered platform that automatically matches
             students within the same university for various needs including
             rides, roommates, marketplace items, sports activities, dating, and
             study groups.

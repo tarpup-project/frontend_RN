@@ -656,7 +656,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   filterTitle: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: "700",
     flex: 1,
   },
@@ -668,7 +668,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   realTimeText: {
-    fontSize: 8,
+    fontSize: 10,
     fontWeight: "500",
   },
   innerCard: {
@@ -678,7 +678,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   universityLabel: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "700",
   },
   campusSelector: {
@@ -723,22 +723,22 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   resetText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "700",
   },
   resetSubtext: {
-    fontSize: 9,
+    fontSize:10,
   },
   matchesSection: {
     marginBottom: 30,
   },
   sectionTitle: {
-    fontSize: 12,
-    fontWeight: "800",
+    fontSize: 14,
+    fontWeight: "900",
     marginBottom: 4,
   },
   sectionSubtitle: {
-    fontSize: 10,
+    fontSize: 12,
     marginBottom: 16,
   },
   cardsGrid: {

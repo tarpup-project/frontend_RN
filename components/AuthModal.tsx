@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   lockIcon: {
   },
   title: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "700",
     marginBottom: 8,
     textAlign: "center",
