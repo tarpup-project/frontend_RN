@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Text } from 'react-native';
 import { Lock } from 'lucide-react-native';
 import { useTheme } from "@/app/contexts/ThemeContext";
 
@@ -10,6 +10,7 @@ interface ProtectedTabIconProps {
   strokeWidth?: number;
   focused?: boolean;
   isProtected: boolean;
+  notificationCount?: number;
 }
 
 const ProtectedTabIcon: React.FC<ProtectedTabIconProps> = ({
@@ -19,6 +20,7 @@ const ProtectedTabIcon: React.FC<ProtectedTabIconProps> = ({
   strokeWidth = 2,
   focused = false,
   isProtected,
+  notificationCount = 0,
 }) => {
   const { isDark } = useTheme();
 
@@ -30,6 +32,9 @@ const ProtectedTabIcon: React.FC<ProtectedTabIconProps> = ({
     lockIcon: {
       color: isDark ? '#FF6B6B' : '#FF4444',
     },
+    notificationBadge: {
+      backgroundColor: '#FF3B30',
+    },
   };
 
   return (
@@ -39,6 +44,17 @@ const ProtectedTabIcon: React.FC<ProtectedTabIconProps> = ({
         color={color} 
         strokeWidth={focused ? 2.5 : strokeWidth}
       />
+      
+      {/* Notification Badge */}
+      {notificationCount > 0 && !isProtected && (
+        <View style={[styles.notificationBadge, dynamicStyles.notificationBadge]}>
+          <Text style={styles.notificationText}>
+            {notificationCount > 99 ? '99+' : notificationCount.toString()}
+          </Text>
+        </View>
+      )}
+
+      {/* Lock Icon for Protected Tabs */}
       {isProtected && (
         <View style={[styles.lockContainer, dynamicStyles.lockContainer]}>
           <Lock 
@@ -76,6 +92,23 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 2,
     elevation: 3,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  notificationText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+    textAlign: 'center',
   },
 });
 

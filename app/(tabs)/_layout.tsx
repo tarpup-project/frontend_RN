@@ -5,11 +5,13 @@ import { Home, Activity, Users, User } from 'lucide-react-native';
 import { useState } from 'react';
 import ProtectedTabIcon from '@/components/ProtectedTabIcon';
 import AuthModal from '@/components/AuthModal';
+import { useNotifications } from '@/hooks/useNotification';
 
 export default function TabLayout() {
     const { isDark } = useTheme();
     const { isAuthenticated } = useAuthStore(); 
     const [showAuthModal, setShowAuthModal] = useState(false);
+    const { groupNotifications, personalNotifications } = useNotifications();
         
     return (
         <>
@@ -77,6 +79,7 @@ export default function TabLayout() {
                                 strokeWidth={2}
                                 focused={focused}
                                 isProtected={!isAuthenticated}
+                                notificationCount={isAuthenticated ? groupNotifications : 0}
                             />
                         ),
                     }}
@@ -101,6 +104,7 @@ export default function TabLayout() {
                                 strokeWidth={2}
                                 focused={focused}
                                 isProtected={!isAuthenticated}
+                                notificationCount={isAuthenticated ? personalNotifications : 0}
                             />
                         ),
                     }}
