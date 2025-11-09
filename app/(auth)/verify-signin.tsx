@@ -15,6 +15,7 @@ import {
   StyleSheet,
   TextInput,
   View,
+  Image
 } from "react-native";
 import { toast } from "sonner-native";
 
@@ -151,10 +152,22 @@ const VerifySignIn = () => {
     >
       <View style={styles.content}>
         <View style={styles.header}>
-          <View style={styles.logoSpace}></View>
-          <Text style={[styles.appTitle, dynamicStyles.text]}>
-            TarpAI Connect
-          </Text>
+          <View style={styles.titleContainer}>
+            <View style={styles.logoSpace}>
+              <Image
+                source={
+                  isDark
+                    ? require("@/assets/images/tarpup-plain-dark.png")
+                    : require("@/assets/images/tarpup-plain.png")
+                }
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            </View>
+            <Text style={[styles.appTitle, dynamicStyles.text]}>
+              TarpAI Connect
+            </Text>
+          </View>
           <Text style={[styles.tagline, dynamicStyles.subtitle]}>
             Smart campus connections powered by AI
           </Text>
@@ -248,8 +261,8 @@ const VerifySignIn = () => {
             </View>
           )}
           <Text style={[styles.spam, dynamicStyles.subtitle]}>
-              Didn't Receive it? Please check your spam or junk folder.
-            </Text>
+            Didn't Receive it? Please check your spam or junk folder.
+          </Text>
 
           <Pressable
             style={styles.resendContainer}
@@ -330,6 +343,10 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 6,
   },
+  logo: {
+    width: 35,
+    height: 35,
+  },
   subtitle: {
     fontSize: 12,
     textAlign: "center",
@@ -354,16 +371,21 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 8,
+    gap: 4,
   },
   digitBox: {
-    width: 40,  
+    width: 40,
     height: 40,
     borderRadius: 8,
     borderWidth: 1,
     fontSize: 20,
     fontWeight: "600",
     textAlign: "center",
+    textAlignVertical: "center", 
+    paddingTop: 0, 
+    paddingBottom: 0, 
+    paddingHorizontal: 0, 
+    includeFontPadding: false,
   },
   verifyButton: {
     backgroundColor: "#FFFFFF",
@@ -380,7 +402,7 @@ const styles = StyleSheet.create({
   hyphen: {
     fontSize: 24,
     fontWeight: "bold",
-    marginHorizontal: 8,
+    marginHorizontal: 4,
   },
   verifyButtonText: {
     color: "#000000",
@@ -408,8 +430,8 @@ const styles = StyleSheet.create({
   spam: {
     fontSize: 9,
     textAlign: "center",
-    marginTop: 10
-  }
+    marginTop: 10,
+  },
 });
 
 export default VerifySignIn;
