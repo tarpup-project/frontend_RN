@@ -1,21 +1,21 @@
 import { useTheme } from "@/app/contexts/ThemeContext";
 import { Text } from "@/components/Themedtext";
+import { UrlConstants } from "@/constants/apiUrls";
 import { useAuth } from "@/hooks/useAuth";
 import { Ionicons } from "@expo/vector-icons";
+import axios from "axios";
 import { useRouter } from "expo-router";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
   TextInput,
   View,
-  Image,
 } from "react-native";
 import { toast } from "sonner-native";
-import axios from "axios";
-import { UrlConstants } from "@/constants/apiUrls";
 
 interface University {
   id: string;
@@ -67,13 +67,13 @@ const Signup = () => {
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     signInLink: {
-      color: isDark ? "#FFFFFF" : "#000000"
+      color: isDark ? "#FFFFFF" : "#000000",
     },
     sendButton: {
-      backgroundColor: isDark ? "#FFFFFF" : "#000000"
+      backgroundColor: isDark ? "#FFFFFF" : "#000000",
     },
     sendButtonText: {
-      color: isDark ? "#000000" : "#FFFFFF"
+      color: isDark ? "#000000" : "#FFFFFF",
     },
     checkbox: {
       borderColor: isDark ? "#333333" : "#E0E0E0",
@@ -82,22 +82,22 @@ const Signup = () => {
     checkedBox: {
       backgroundColor: "#00D084",
       borderColor: "#00D084",
-    }
+    },
   };
 
   const fetchUniversities = async () => {
     try {
       setIsLoadingUniversities(true);
-  
+
       const response = await axios.get<{
         status: string;
         data: UniversityGroup[];
       }>(`${UrlConstants.baseUrl}${UrlConstants.fetchAllUniversities}`);
-  
+
       const allUniversities: University[] = response.data.data.flatMap(
         (group) => group.universities
       );
-  
+
       setUniversities(allUniversities);
     } catch (error: any) {
       toast.error("Failed to load universities", {
@@ -228,9 +228,7 @@ const Signup = () => {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, dynamicStyles.text]}>
-              School Email
-            </Text>
+            <Text style={[styles.label, dynamicStyles.text]}>School Email</Text>
             <TextInput
               style={[styles.input, dynamicStyles.input]}
               placeholder="name@school.edu"
@@ -265,7 +263,10 @@ const Signup = () => {
                   : university || "Select your university"}
               </Text>
               {isLoadingUniversities ? (
-                <ActivityIndicator size="small" color={dynamicStyles.text.color} />
+                <ActivityIndicator
+                  size="small"
+                  color={dynamicStyles.text.color}
+                />
               ) : (
                 <Ionicons
                   name={showUniversityDropdown ? "chevron-up" : "chevron-down"}
@@ -294,7 +295,9 @@ const Signup = () => {
                       key={uni.id}
                       style={[
                         styles.dropdownItem,
-                        { borderBottomColor: dynamicStyles.dropdown.borderColor }
+                        {
+                          borderBottomColor: dynamicStyles.dropdown.borderColor,
+                        },
                       ]}
                       onPress={() => {
                         setUniversity(uni.name);
@@ -303,10 +306,17 @@ const Signup = () => {
                       }}
                     >
                       <View style={styles.dropdownItemContent}>
-                        <Text style={[styles.dropdownItemText, dynamicStyles.text]}>
+                        <Text
+                          style={[styles.dropdownItemText, dynamicStyles.text]}
+                        >
                           {uni.name}
                         </Text>
-                        <Text style={[styles.dropdownItemSubtext, dynamicStyles.subtitle]}>
+                        <Text
+                          style={[
+                            styles.dropdownItemSubtext,
+                            dynamicStyles.subtitle,
+                          ]}
+                        >
                           {uni.city}, {uni.state}
                         </Text>
                       </View>
@@ -326,11 +336,13 @@ const Signup = () => {
               style={[styles.checkboxRow]}
               onPress={() => setIsAdult(!isAdult)}
             >
-              <View style={[
-                styles.checkbox, 
-                dynamicStyles.checkbox,
-                isAdult && dynamicStyles.checkedBox
-              ]}>
+              <View
+                style={[
+                  styles.checkbox,
+                  dynamicStyles.checkbox,
+                  isAdult && dynamicStyles.checkedBox,
+                ]}
+              >
                 {isAdult && (
                   <Ionicons name="checkmark" size={10} color="#FFFFFF" />
                 )}
@@ -344,17 +356,20 @@ const Signup = () => {
               style={[styles.checkboxRow]}
               onPress={() => setAcceptsResponsibility(!acceptsResponsibility)}
             >
-              <View style={[
-                styles.checkbox, 
-                dynamicStyles.checkbox,
-                acceptsResponsibility && dynamicStyles.checkedBox
-              ]}>
+              <View
+                style={[
+                  styles.checkbox,
+                  dynamicStyles.checkbox,
+                  acceptsResponsibility && dynamicStyles.checkedBox,
+                ]}
+              >
                 {acceptsResponsibility && (
                   <Ionicons name="checkmark" size={10} color="#FFFFFF" />
                 )}
               </View>
               <Text style={[styles.checkboxText, dynamicStyles.text]}>
-                I accept responsibility for my safety when meeting or chatting with others.
+                I accept responsibility for my safety when meeting or chatting
+                with others.
               </Text>
             </Pressable>
           </View>
@@ -364,23 +379,43 @@ const Signup = () => {
               style={[
                 styles.sendButton,
                 dynamicStyles.sendButton,
-                (!fullName || !email || !university || !isAdult || !acceptsResponsibility || isLoadingUniversities) &&
+                (!fullName ||
+                  !email ||
+                  !university ||
+                  !isAdult ||
+                  !acceptsResponsibility ||
+                  isLoadingUniversities) &&
                   styles.sendButtonDisabled,
               ]}
               onPress={handleSendVerification}
-              disabled={!fullName || !email || !university || !isAdult || !acceptsResponsibility || isLoadingUniversities}
+              disabled={
+                !fullName ||
+                !email ||
+                !university ||
+                !isAdult ||
+                !acceptsResponsibility ||
+                isLoadingUniversities
+              }
             >
-              <Text style={[styles.sendButtonText, dynamicStyles.sendButtonText]}>
+              <Text
+                style={[styles.sendButtonText, dynamicStyles.sendButtonText]}
+              >
                 Send Verification Code
               </Text>
             </Pressable>
           ) : (
             <View style={[styles.sendButton, dynamicStyles.sendButton]}>
-              <ActivityIndicator color={isDark ? "#000000" : "#FFFFFF"} size="small" />
-              <Text style={[styles.sendButtonText, dynamicStyles.sendButtonText]}>
-                {" "}Sending...
+              <ActivityIndicator
+                color={isDark ? "#000000" : "#FFFFFF"}
+                size="small"
+              />
+              <Text
+                style={[styles.sendButtonText, dynamicStyles.sendButtonText]}
+              >
+                {" "}
+                Sending...
               </Text>
-            </View>        
+            </View>
           )}
 
           <View style={styles.signInContainer}>
@@ -388,7 +423,9 @@ const Signup = () => {
               Already have an account?{" "}
             </Text>
             <Pressable onPress={() => router.push("/(auth)/signin")}>
-              <Text style={[styles.signInLink, dynamicStyles.signInLink]}>Sign in</Text>
+              <Text style={[styles.signInLink, dynamicStyles.signInLink]}>
+                Sign in
+              </Text>
             </Pressable>
           </View>
         </View>
@@ -425,11 +462,11 @@ const styles = StyleSheet.create({
     height: 30,
   },
   appTitle: {
-    fontSize: 16, 
+    fontSize: 16,
     fontWeight: "bold",
   },
   tagline: {
-    fontSize: 10, 
+    fontSize: 10,
     marginTop: 8,
   },
   formSection: {
@@ -439,12 +476,12 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   sectionTitle: {
-    fontSize: 13, 
+    fontSize: 13,
     fontWeight: "bold",
     textAlign: "center",
   },
   sectionSubtitle: {
-    fontSize: 11, 
+    fontSize: 11,
     marginBottom: 12,
     textAlign: "center",
   },
@@ -452,7 +489,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   label: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "700",
     marginBottom: 8,
   },
@@ -461,10 +498,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     paddingHorizontal: 16,
-    fontSize: 12, 
+    fontSize: 12,
   },
   dropdown: {
-    height: 40, 
+    height: 40,
     borderRadius: 8,
     borderWidth: 1,
     paddingHorizontal: 16,
@@ -474,7 +511,7 @@ const styles = StyleSheet.create({
   },
   dropdownAbsolute: {
     position: "absolute",
-    top: 48, 
+    top: 48,
     left: 0,
     right: 0,
     zIndex: 1000,
@@ -504,11 +541,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dropdownItemText: {
-    fontSize: 9, 
+    fontSize: 9,
     fontWeight: "500",
   },
   dropdownItemSubtext: {
-    fontSize: 7, 
+    fontSize: 7,
     marginTop: 2,
   },
   checkboxContainer: {
@@ -530,13 +567,13 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   checkboxText: {
-    fontSize: 10, 
+    fontSize: 10,
     flex: 1,
     lineHeight: 16,
     fontWeight: "700",
   },
   sendButton: {
-    height: 35, 
+    height: 35,
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
@@ -548,7 +585,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   sendButtonText: {
-    fontSize: 11, 
+    fontSize: 11,
     fontWeight: "700",
   },
   signInContainer: {
@@ -558,11 +595,11 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   signInText: {
-    fontSize: 10, // Reduced from 14 (40% reduction = 8.4 ≈ 8)
+    fontSize: 11, 
     fontWeight: "700",
   },
   signInLink: {
-    fontSize: 10, // Reduced from 14 (40% reduction = 8.4 ≈ 8)
+    fontSize: 11, 
     fontWeight: "700",
   },
 });
