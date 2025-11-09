@@ -33,12 +33,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
-          duration: 1500,
+          duration: 500,
           useNativeDriver: true,
         }),
         Animated.timing(scaleAnim, {
           toValue: 1,
-          duration: 1500,
+          duration: 500,
           useNativeDriver: true,
         }),
       ]).start();
@@ -113,6 +113,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
                     marginBottom: insets.bottom + 20,
                     transform: [{ scale: scaleAnim }],
                     opacity: fadeAnim,
+                    marginTop: 70,
                   },
                 ]}
               >
@@ -195,7 +196,7 @@ const styles = StyleSheet.create({
   modal: {
     borderRadius: 16,
     padding: 24,
-    borderWidth: 1,
+    borderWidth: 0.5,
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: {
@@ -210,12 +211,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 20,
+    marginBottom: 10,
     gap: 8,
   },
   iconContainer: {
-    width: 48,
-    height: 48,
+    width: 40,
+    height: 40,
     borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
@@ -223,14 +224,15 @@ const styles = StyleSheet.create({
   lockIcon: {
   },
   title: {
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: 12,
+    fontWeight: "700",
     marginBottom: 8,
     textAlign: "center",
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 10,
     textAlign: "center",
+    fontWeight: "700",
     marginBottom: 24,
     lineHeight: 20,
     paddingHorizontal: 10,
@@ -242,24 +244,24 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     width: "100%",
-    paddingVertical: 16,
-    borderRadius: 12,
+    paddingVertical: 9,
+    borderRadius: 10,
     alignItems: "center",
   },
   primaryButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 12,
+    fontWeight: "700",
   },
   secondaryButton: {
     width: "100%",
-    paddingVertical: 16,
-    borderRadius: 12,
+    paddingVertical: 9,
+    borderRadius: 10,
     alignItems: "center",
     borderWidth: 1,
   },
   secondaryButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 12,
+    fontWeight: "700",
   },
   footerText: {
     fontSize: 12,
