@@ -254,8 +254,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   logo: {
-    width: 24,
-    height: 24,
+    width: 40,
+    height: 40,
   },
   primaryButtonText: {
     fontSize: 12,
