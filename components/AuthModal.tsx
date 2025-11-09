@@ -25,14 +25,11 @@ const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
-  // Animation effects
   useEffect(() => {
     if (visible) {
-      // Fade in animation
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
@@ -46,7 +43,6 @@ const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
         }),
       ]).start();
     } else {
-      // Reset animations when modal closes
       fadeAnim.setValue(0);
       scaleAnim.setValue(0.8);
     }
@@ -123,7 +119,6 @@ const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
                   },
                 ]}
               >
-            {/* Icon and Lock */}
             <View style={styles.iconSection}>
               <View style={[styles.iconContainer, dynamicStyles.iconContainer]}>
                 <Ionicons
