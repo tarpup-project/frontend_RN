@@ -1,10 +1,7 @@
 import { useTheme } from "@/app/contexts/ThemeContext";
 import Header from "@/components/Header";
-import {toast} from "sonner-native"
 import { Text } from "@/components/Themedtext";
 import { Skeleton } from "@/components/Skeleton";
-import { useAuthStore } from "@/state/authStore";
-import { useEffect } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View, RefreshControl, Image } from "react-native";
@@ -73,15 +70,7 @@ const getGroupIconByCategory = (categoryName: string) => {
 const Groups = () => {
   const { isDark } = useTheme();
   const { data: groups, isLoading, isError, refetch, isRefetching } = useGroups();
-  const { isAuthenticated } = useAuthStore();
   const { selectedUniversity } = useCampus();
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      toast.error("Please sign in to access groups");
-      router.push("/(auth)/signin");
-    }
-  }, [isAuthenticated]);
 
   const dynamicStyles = {
     container: {
