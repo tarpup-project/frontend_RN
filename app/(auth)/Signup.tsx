@@ -400,19 +400,20 @@ const Signup = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: "center"
+    justifyContent: "center",
   },
   content: {
     flex: 1,
   },
   contentContainer: {
     paddingHorizontal: 24,
-    paddingTop: 60,
+    paddingTop: 120,
     paddingBottom: 40,
   },
   header: {
     alignItems: "center",
     marginBottom: 20,
+    marginTop: 40,
   },
   titleContainer: {
     flexDirection: "row",
@@ -424,7 +425,7 @@ const styles = StyleSheet.create({
     height: 30,
   },
   appTitle: {
-    fontSize: 14, 
+    fontSize: 16, 
     fontWeight: "bold",
   },
   tagline: {
