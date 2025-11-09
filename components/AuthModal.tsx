@@ -1,6 +1,6 @@
 import { useTheme } from "@/app/contexts/ThemeContext";
 import { Text } from "@/components/Themedtext";
-import { Sparkles, Lock } from "lucide-react-native";
+import {  Lock } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import {
@@ -10,6 +10,7 @@ import {
   StyleSheet,
   View,
   Dimensions,
+  Image
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -120,11 +121,15 @@ const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
             {/* Icon and Lock */}
             <View style={styles.iconSection}>
               <View style={[styles.iconContainer]}>
-                <Sparkles
-                  size={24}
-                  color={isDark ? "#FFFFFF" : "#000000"}
-                  strokeWidth={2}
-                />
+              <Image
+      source={
+        isDark
+          ? require("@/assets/images/tarpup-plain-dark.png")
+          : require("@/assets/images/tarpup-plain.png")
+      }
+      style={styles.logo}
+      resizeMode="contain"
+    />
               </View>
               <Lock
                 size={20}
@@ -247,6 +252,10 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     borderRadius: 10,
     alignItems: "center",
+  },
+  logo: {
+    width: 24,
+    height: 24,
   },
   primaryButtonText: {
     fontSize: 12,
