@@ -1,6 +1,8 @@
 import { useTheme } from "@/app/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { Sparkle } from "lucide-react-native";
+import { useState } from "react"; 
+import AuthModal from "@/components/AuthModal"; 
 import { useRouter } from "expo-router";
 import { Text } from "@/components/Themedtext";
 import { Pressable, StyleSheet, View } from "react-native";
@@ -8,6 +10,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 const PreviewModeBanner = () => {
   const { isDark } = useTheme();
   const router = useRouter();
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const dynamicStyles = {
     container: {
@@ -40,10 +43,11 @@ const PreviewModeBanner = () => {
   };
 
   const handleGetStartedPress = () => {
-    router.push("/(auth)/Signup");
+    setShowAuthModal(true);
   };
 
   return (
+    <>
     <View style={[styles.container, dynamicStyles.container]}>
       <View style={styles.headerSection}>
         <Ionicons
@@ -92,6 +96,11 @@ const PreviewModeBanner = () => {
         />
       </Pressable>
     </View>
+    <AuthModal 
+      visible={showAuthModal} 
+      onClose={() => setShowAuthModal(false)} 
+    />
+    </>
   );
 };
 
