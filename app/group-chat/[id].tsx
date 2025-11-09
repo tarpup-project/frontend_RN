@@ -408,7 +408,6 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
               >
                 {!msg.isMe && (
                   <View style={styles.messageAvatarContainer}>
-                    {/* This is the original logic */}
                     {typeof msg.avatar === "string" &&
                     msg.avatar.startsWith("http") ? (
                       <Image
