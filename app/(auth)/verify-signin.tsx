@@ -2,7 +2,7 @@ import { useTheme } from "@/app/contexts/ThemeContext";
 import { Text } from "@/components/Themedtext";
 import { UrlConstants } from "@/constants/apiUrls";
 import { useAuthStore } from "@/state/authStore";
-import { saveTokens, saveUserData } from "@/utils/storage";
+import { saveUserData } from "@/utils/storage";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -89,17 +89,15 @@ const VerifySignIn = () => {
         const userData = response.data.data;
         await saveUserData(userData);
         useAuthStore.getState().setUser(userData);
-      
+
         toast.success("Welcome back!", {
           description: "You've been signed in successfully",
         });
-      
+
         setTimeout(() => {
           router.replace("/(tabs)");
         }, 800);
       }
-
-
     } catch (error: any) {
       const errorMessage =
         error?.response?.data?.message || "Invalid code. Please try again.";
@@ -153,6 +151,7 @@ const VerifySignIn = () => {
     >
       <View style={styles.content}>
         <View style={styles.header}>
+          <View style={styles.logoSpace}></View>
           <Text style={[styles.appTitle, dynamicStyles.text]}>
             TarpAI Connect
           </Text>
@@ -185,7 +184,7 @@ const VerifySignIn = () => {
               Verification Code
             </Text>
             <View style={styles.digitContainer}>
-              {code.map((digit, index) => (
+              {code.slice(0, 3).map((digit, index) => (
                 <TextInput
                   key={index}
                   ref={(ref) => {
@@ -199,6 +198,29 @@ const VerifySignIn = () => {
                   value={digit}
                   onChangeText={(text) => handleCodeChange(text, index)}
                   onKeyPress={(e) => handleKeyPress(e, index)}
+                  keyboardType="number-pad"
+                  maxLength={1}
+                  editable={!isVerifying}
+                  selectTextOnFocus
+                />
+              ))}
+
+              <Text style={[styles.hyphen, dynamicStyles.text]}>—</Text>
+
+              {code.slice(3, 6).map((digit, index) => (
+                <TextInput
+                  key={index + 3}
+                  ref={(ref) => {
+                    inputRefs.current[index + 3] = ref;
+                  }}
+                  style={[
+                    styles.digitBox,
+                    dynamicStyles.digitBox,
+                    dynamicStyles.text,
+                  ]}
+                  value={digit}
+                  onChangeText={(text) => handleCodeChange(text, index + 3)}
+                  onKeyPress={(e) => handleKeyPress(e, index + 3)}
                   keyboardType="number-pad"
                   maxLength={1}
                   editable={!isVerifying}
@@ -264,18 +286,27 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 120,
+    paddingTop: 180,
   },
   header: {
     alignItems: "center",
     marginBottom: 20,
   },
+  titleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  logoSpace: {
+    width: 35,
+    height: 35,
+  },
   appTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
+    fontSize: 14,
+    fontWeight: "700",
   },
   tagline: {
-    fontSize: 14,
+    fontSize: 12,
     marginTop: 8,
   },
   iconContainer: {
@@ -291,18 +322,18 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   title: {
-    fontSize: 15,
-    fontWeight: "bold",
+    fontSize: 13,
+    fontWeight: "700",
     textAlign: "center",
     marginBottom: 6,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 12,
     textAlign: "center",
     marginBottom: 4,
   },
   email: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: "600",
     textAlign: "center",
     marginBottom: 12,
@@ -317,12 +348,13 @@ const styles = StyleSheet.create({
   },
   digitContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
+    alignItems: "center",
     gap: 8,
   },
   digitBox: {
-    flex: 1,
-    height: 50,
+    width: 30,  
+    height: 30,
     borderRadius: 8,
     borderWidth: 1,
     fontSize: 20,
@@ -331,7 +363,7 @@ const styles = StyleSheet.create({
   },
   verifyButton: {
     backgroundColor: "#FFFFFF",
-    height: 50,
+    height: 35,
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
@@ -341,25 +373,33 @@ const styles = StyleSheet.create({
   verifyButtonDisabled: {
     opacity: 0.5,
   },
+  hyphen: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginHorizontal: 8,
+  },
   verifyButtonText: {
     color: "#000000",
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 12,
+    fontWeight: "700",
   },
   resendContainer: {
     alignItems: "center",
     marginTop: 10,
   },
   resendText: {
-    fontSize: 15,
-    fontWeight: "600",
+    fontSize: 11,
+    fontWeight: "700",
+    marginBottom: 10,
   },
   changeEmailContainer: {
     alignItems: "center",
     marginTop: 8,
   },
   changeEmailText: {
-    fontSize: 14,
+    fontSize: 12,
+    marginBottom: 5,
+    fontWeight: "700",
   },
 });
 
