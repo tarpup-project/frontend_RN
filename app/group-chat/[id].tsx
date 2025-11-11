@@ -3,6 +3,7 @@ import {
   useGroupSocket,
 } from "@/app/contexts/SocketProvider";
 import { useTheme } from "@/app/contexts/ThemeContext";
+import Header from "@/components/Header";
 import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
 import { useFileUpload } from "@/hooks/useFileUpload";
@@ -10,7 +11,6 @@ import { useGroupMessages, useMessageReply } from "@/hooks/useGroupMessages";
 import { useGroupActions, useGroupDetails } from "@/hooks/useGroups";
 import { useAuthStore } from "@/state/authStore";
 import { MessageType, UserMessage } from "@/types/groups";
-import Header from "@/components/Header";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -155,7 +155,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
       avatar: userMsg.sender.bgUrl || memberColors[index % memberColors.length],
       file: userMsg.file,
       replyingTo: userMsg.replyingTo,
-      rawMessage: userMsg, 
+      rawMessage: userMsg,
     };
   });
 
@@ -175,7 +175,6 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     }
   };
 
-  // Handle attachment selection
   const handleAttachment = () => {
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
@@ -216,6 +215,10 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     console.log("Open group info");
   };
 
+  const navigateToProfile = (userId: string) => {
+    router.push(`/profile/${userId}` as any);
+  };
+
   const MessageSkeleton = ({ isMe }: { isMe: boolean }) => (
     <View style={[styles.messageRow, isMe && styles.myMessageRow]}>
       {!isMe && <Skeleton width={32} height={32} borderRadius={16} />}
@@ -236,7 +239,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   if (groupLoading || isLoading) {
     return (
       <View style={[styles.container, dynamicStyles.container]}>
-        {/* Header Skeleton */}
+        <Header />
         <View style={[styles.header, dynamicStyles.header]}>
           <Skeleton width={24} height={24} borderRadius={12} />
           <View style={styles.headerInfo}>
@@ -257,7 +260,6 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
           <Skeleton width={24} height={24} borderRadius={12} />
         </View>
 
-        {/* Messages Skeleton */}
         <View style={styles.messagesContainer}>
           <View style={styles.messagesContent}>
             {Array(6)
@@ -268,7 +270,6 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
           </View>
         </View>
 
-        {/* Input Skeleton */}
         <View style={styles.inputSection}>
           <Skeleton width={24} height={24} borderRadius={12} />
           <Skeleton height={44} borderRadius={22} style={{ flex: 1 }} />
@@ -287,6 +288,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
           styles.centerContainer,
         ]}
       >
+        <Header />
         <ActivityIndicator size="large" color={dynamicStyles.text.color} />
         <Text style={[{ marginTop: 12, fontSize: 16 }, dynamicStyles.text]}>
           Connecting...
@@ -313,8 +315,8 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={0}
     >
-       <Header />
-      {/* Header with Real Group Data */}
+      <Header />
+      
       <View style={[styles.header, dynamicStyles.header]}>
         <Pressable onPress={handleBack} style={styles.backButton}>
           <Ionicons
@@ -329,30 +331,35 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
             {groupDetails.members.slice(0, 3).map((member, index) => {
               const colors = ["#FF6B9D", "#4A90E2", "#9C27B0", "#00D084"];
               return (
-                <View
+                <Pressable
                   key={member.id}
-                  style={[
-                    styles.headerAvatar,
-                    {
-                      backgroundColor: member.bgUrl
-                        ? "transparent"
-                        : colors[index % colors.length],
-                    },
-                    index > 0 && { marginLeft: -8 },
-                  ]}
+                  onPress={() => navigateToProfile(member.id)}
                 >
-                  {member.bgUrl ? (
-                    <Image
-                      source={{ uri: member.bgUrl }}
-                      style={styles.avatarImage}
-                    />
-                  ) : (
-                    <Text style={styles.avatarText}>{member.fname[0]}</Text>
-                  )}
-                </View>
+                  <View
+                    style={[
+                      styles.headerAvatar,
+                      {
+                        backgroundColor: member.bgUrl
+                          ? "transparent"
+                          : colors[index % colors.length],
+                      },
+                      index > 0 && { marginLeft: -8 },
+                    ]}
+                  >
+                    {member.bgUrl ? (
+                      <Image
+                        source={{ uri: member.bgUrl }}
+                        style={styles.avatarImage}
+                      />
+                    ) : (
+                      <Text style={styles.avatarText}>{member.fname[0]}</Text>
+                    )}
+                  </View>
+                </Pressable>
               );
             })}
           </View>
+          
           <View style={styles.headerText}>
             <Text style={[styles.groupName, dynamicStyles.text]}>
               {groupDetails.name}
@@ -381,7 +388,6 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
         </Pressable>
       </View>
 
-      {/* Real-time Messages */}
       <ScrollView
         ref={scrollViewRef}
         style={styles.messagesContainer}
@@ -404,7 +410,14 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
                 }
               >
                 {!msg.isMe && (
-                  <View style={styles.messageAvatarContainer}>
+                  <Pressable
+                    onPress={() => {
+                      if (msg.rawMessage?.sender?.id) {
+                        navigateToProfile(msg.rawMessage.sender.id);
+                      }
+                    }}
+                    style={styles.messageAvatarContainer}
+                  >
                     {typeof msg.avatar === "string" &&
                     msg.avatar.startsWith("http") ? (
                       <Image
@@ -421,8 +434,9 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
                         <Text style={styles.avatarText}>{msg.sender[0]}</Text>
                       </View>
                     )}
-                  </View>
+                  </Pressable>
                 )}
+                
                 <View
                   style={[
                     styles.messageBubble,
@@ -431,7 +445,6 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
                       : dynamicStyles.theirMessage,
                   ]}
                 >
-                  {/* Reply reference */}
                   {msg.replyingTo && (
                     <View style={styles.replyReference}>
                       <View style={styles.replyBar} />
@@ -451,7 +464,6 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
                     </Text>
                   )}
 
-                  {/* File attachment */}
                   {msg.file && (
                     <Image
                       source={{ uri: msg.file.data }}
@@ -462,6 +474,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
                   {msg.text && (
                     <View>
                       <Hyperlink
+                        key={`hyperlink-${msg.id}`}
                         linkDefault={true}
                         linkStyle={{
                           color: msg.isMe ? "#87CEEB" : "#007AFF",
@@ -487,10 +500,12 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
                       </Hyperlink>
                     </View>
                   )}
+                  
                   <Text style={[styles.messageTime, dynamicStyles.subtitle]}>
                     {msg.time}
                   </Text>
                 </View>
+                
                 {!msg.isMe && msg.rawMessage && (
                   <Pressable
                     onPress={() => startReply(msg.rawMessage)}
@@ -509,7 +524,6 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
         ))}
       </ScrollView>
 
-      {/* Reply Preview */}
       {replyingTo && (
         <View style={[styles.replyPreview, dynamicStyles.replyPreview]}>
           <View style={styles.replyBar} />
@@ -540,7 +554,6 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
         </View>
       )}
 
-      {/* File Preview */}
       {selectedFile && (
         <View style={[styles.filePreview, dynamicStyles.replyPreview]}>
           <Image
@@ -564,7 +577,6 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
         </View>
       )}
 
-      {/* Input Section */}
       <View style={styles.inputSection}>
         <Pressable style={styles.attachButton} onPress={handleAttachment}>
           <Ionicons
@@ -627,7 +639,6 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   );
 };
 
-// Error Screen Component
 const ErrorScreen = ({ message }: { message: string }) => {
   const { isDark } = useTheme();
   const router = useRouter();
@@ -659,7 +670,6 @@ const ErrorScreen = ({ message }: { message: string }) => {
   );
 };
 
-// Utility function
 const formatTimeAgo = (dateString: string): string => {
   const now = new Date();
   const date = new Date(dateString);
@@ -848,7 +858,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     flex: 1,
   },
-  // Reply preview styles
   replyPreview: {
     flexDirection: "row",
     alignItems: "center",
@@ -875,7 +884,6 @@ const styles = StyleSheet.create({
   cancelReply: {
     padding: 4,
   },
-  // File preview styles
   filePreview: {
     flexDirection: "row",
     alignItems: "center",
@@ -902,7 +910,6 @@ const styles = StyleSheet.create({
   removeFile: {
     padding: 4,
   },
-  // Alert message styles
   alertContainer: {
     alignItems: "center",
     marginVertical: 8,
