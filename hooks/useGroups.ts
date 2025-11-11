@@ -27,8 +27,6 @@ export const useGroups = () => {
     queryFn: () => fetchGroups(selectedUniversity?.id),
     enabled: true,
     staleTime: 1000 * 60 * 5,
-    refetchInterval: 1000 * 15,
-    refetchOnWindowFocus: true,
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });

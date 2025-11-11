@@ -10,6 +10,7 @@ import { useGroupMessages, useMessageReply } from "@/hooks/useGroupMessages";
 import { useGroupActions, useGroupDetails } from "@/hooks/useGroups";
 import { useAuthStore } from "@/state/authStore";
 import { MessageType, UserMessage } from "@/types/groups";
+import Header from "@/components/Header";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -111,12 +112,10 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     },
   };
 
-  // Mark messages as read when entering
   useEffect(() => {
     markAsRead();
   }, []);
 
-  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (messages.length > 0) {
       setTimeout(() => {
@@ -125,7 +124,6 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     }
   }, [messages.length]);
 
-  // Transform real messages to match your UI format
   const transformedMessages = messages.map((msg, index) => {
     if (msg.messageType === MessageType.ALERT) {
       return {
@@ -157,11 +155,10 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
       avatar: userMsg.sender.bgUrl || memberColors[index % memberColors.length],
       file: userMsg.file,
       replyingTo: userMsg.replyingTo,
-      rawMessage: userMsg, // Keep original for reply functionality
+      rawMessage: userMsg, 
     };
   });
 
-  // Handle sending message
   const handleSend = async () => {
     if (!message.trim() && !selectedFile) return;
 
@@ -200,7 +197,6 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     }
   };
 
-  // Handle join group
   const handleJoinGroup = async () => {
     setIsJoining(true);
     try {
@@ -317,6 +313,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={0}
     >
+       <Header />
       {/* Header with Real Group Data */}
       <View style={[styles.header, dynamicStyles.header]}>
         <Pressable onPress={handleBack} style={styles.backButton}>
@@ -696,11 +693,11 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingTop: 50,
+    paddingTop: 20,
     paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingBottom: 10,
     borderBottomWidth: 1,
-    gap: 12,
+    gap: 10,
   },
   backButton: {
     padding: 4,
