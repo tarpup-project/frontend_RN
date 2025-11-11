@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   content: {
-    flexDirection: 'column',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   risingStarBadge: {
-    flexDirection: 'column',
+    flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     paddingHorizontal: 8,

@@ -98,8 +98,7 @@ const Profile = () => {
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
   };
-
-  // Generate referral link
+  
   const referralLink = `https://tarpup.com/?ref=${user?.id}`;
 
   // Handle refresh
