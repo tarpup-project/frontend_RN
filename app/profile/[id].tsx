@@ -371,8 +371,14 @@ const UserProfile = () => {
 
         {/* Footer */}
         <View style={[styles.footerCard, dynamicStyles.card]}>
-          <Text style={[styles.footerText, dynamicStyles.subtitle]}>
-            Connect through shared interests and campus activities
+          <Text style={[styles.footerTitle, dynamicStyles.text]}>
+            TarpAI Connect
+          </Text>
+          <Text style={[styles.footerSubtitle, dynamicStyles.subtitle]}>
+            Smart campus connections powered by AI
+          </Text>
+          <Text style={[styles.footerVersion, dynamicStyles.subtitle]}>
+            Version 1.0.0
           </Text>
         </View>
       </ScrollView>
@@ -592,6 +598,20 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     marginBottom: 24,
+  },
+  footerTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  footerSubtitle: {
+    fontSize: 12,
+    textAlign: "center",
+    marginBottom: 4,
+  },
+  footerVersion: {
+    fontSize: 11,
+    textAlign: "center",
   },
   interestsGrid: {
     flexDirection: "row",

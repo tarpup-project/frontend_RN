@@ -10,6 +10,7 @@ import { useFileUpload } from "@/hooks/useFileUpload";
 import { useGroupMessages, useMessageReply } from "@/hooks/useGroupMessages";
 import { useGroupActions, useGroupDetails } from "@/hooks/useGroups";
 import { useAuthStore } from "@/state/authStore";
+import { GestureHandlerRootView, PanGestureHandler, State } from "react-native-gesture-handler";
 import { MessageType, UserMessage } from "@/types/groups";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -26,7 +27,12 @@ import {
   StyleSheet,
   TextInput,
   View,
+  Modal,
+  Animated,
+  Linking,
 } from "react-native";
+import { Reply, X, Paperclip, Send, Share2 } from "lucide-react-native";
+import { timeAgo, formatFileSize } from "@/utils/timeUtils";
 import Hyperlink from "react-native-hyperlink";
 
 const GroupChat = () => {
@@ -37,9 +43,11 @@ const GroupChat = () => {
   }
 
   return (
-    <GroupSocketProvider groupId={id as string}>
-      <GroupChatContent groupId={id as string} />
-    </GroupSocketProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <GroupSocketProvider groupId={id as string}>
+        <GroupChatContent groupId={id as string} />
+      </GroupSocketProvider>
+    </GestureHandlerRootView>
   );
 };
 
@@ -49,6 +57,8 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   const { user } = useAuthStore();
   const { socket } = useGroupSocket();
   const scrollViewRef = useRef<ScrollView>(null);
+  const textInputRef = useRef<TextInput>(null);
+  const messageRefs = useRef<Map<string, any>>(new Map());
 
   const {
     data: groupDetails,
@@ -60,14 +70,13 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     useGroupMessages({ groupId, socket: socket && user ? socket : undefined });
 
   const { replyingTo, startReply, cancelReply } = useMessageReply();
-
-  const { selectedFile, selectImage, selectImageFromCamera, removeFile } =
-    useFileUpload();
-
+  const { selectedFile, selectImage, selectImageFromCamera, removeFile, selectFile } = useFileUpload();
   const { joinGroup } = useGroupActions();
 
   const [message, setMessage] = useState("");
   const [isJoining, setIsJoining] = useState(false);
+  const [showImageModal, setShowImageModal] = useState<string | null>(null);
+  const [linkToConfirm, setLinkToConfirm] = useState<string | null>(null);
 
   const dynamicStyles = {
     container: {
@@ -124,13 +133,22 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     }
   }, [messages.length]);
 
+  const scrollToMessage = (messageId: string) => {
+    const messageRef = messageRefs.current.get(messageId);
+    if (messageRef) {
+      messageRef.measure((x: number, y: number, width: number, height: number, pageX: number, pageY: number) => {
+        scrollViewRef.current?.scrollTo({ y: pageY - 200, animated: true });
+      });
+    }
+  };
+
   const transformedMessages = messages.map((msg, index) => {
     if (msg.messageType === MessageType.ALERT) {
       return {
         id: msg.content.id,
         sender: "System",
         text: msg.content.message,
-        time: msg.createdAt ? formatTimeAgo(msg.createdAt) : "",
+        time: msg.createdAt ? timeAgo(msg.createdAt) : "",
         isMe: false,
         isAlert: true,
         avatar: "#666666",
@@ -140,7 +158,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     const userMsg = msg as UserMessage;
     const memberColors = [
       "#FF6B9D",
-      "#4A90E2",
+      "#4A90E2", 
       "#9C27B0",
       "#00D084",
       "#FFB347",
@@ -150,7 +168,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
       id: msg.content.id,
       sender: userMsg.sender.fname,
       text: userMsg.content.message,
-      time: userMsg.createdAt ? formatTimeAgo(userMsg.createdAt) : "Sending...",
+      time: userMsg.createdAt ? timeAgo(userMsg.createdAt) : "Sending...",
       isMe: userMsg.sender.id === user?.id,
       avatar: userMsg.sender.bgUrl || memberColors[index % memberColors.length],
       file: userMsg.file,
@@ -179,19 +197,21 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ["Cancel", "Take Photo", "Choose from Library"],
+          options: ["Cancel", "Take Photo", "Choose from Library", "Choose File"],
           cancelButtonIndex: 0,
         },
         (buttonIndex) => {
           if (buttonIndex === 1) selectImageFromCamera();
           if (buttonIndex === 2) selectImage();
+          if (buttonIndex === 3) selectFile();
         }
       );
     } else {
-      Alert.alert("Select Image", "Choose an option", [
+      Alert.alert("Select File", "Choose an option", [
         { text: "Cancel", style: "cancel" },
         { text: "Take Photo", onPress: selectImageFromCamera },
         { text: "Choose from Library", onPress: selectImage },
+        { text: "Choose File", onPress: selectFile },
       ]);
     }
   };
@@ -219,6 +239,21 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     router.push(`/profile/${userId}` as any);
   };
 
+  const handleLinkPress = (url: string) => {
+    setLinkToConfirm(url);
+  };
+
+  const confirmOpenLink = async () => {
+    if (linkToConfirm) {
+      try {
+        await Linking.openURL(linkToConfirm);
+      } catch (error) {
+        Alert.alert("Error", "Cannot open this link");
+      }
+      setLinkToConfirm(null);
+    }
+  };
+
   const MessageSkeleton = ({ isMe }: { isMe: boolean }) => (
     <View style={[styles.messageRow, isMe && styles.myMessageRow]}>
       {!isMe && <Skeleton width={32} height={32} borderRadius={16} />}
@@ -236,6 +271,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     </View>
   );
 
+  // Loading State
   if (groupLoading || isLoading) {
     return (
       <View style={[styles.container, dynamicStyles.container]}>
@@ -395,135 +431,21 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
         showsVerticalScrollIndicator={false}
       >
         {transformedMessages.map((msg) => (
-          <View key={msg.id}>
-            {msg.isAlert ? (
-              <View style={styles.alertContainer}>
-                <Text style={[styles.alertText, dynamicStyles.subtitle]}>
-                  {msg.text}
-                </Text>
-              </View>
-            ) : (
-              <Pressable
-                style={[styles.messageRow, msg.isMe && styles.myMessageRow]}
-                onLongPress={() =>
-                  !msg.isMe && msg.rawMessage && startReply(msg.rawMessage)
-                }
-              >
-                {!msg.isMe && (
-                  <Pressable
-                    onPress={() => {
-                      if (msg.rawMessage?.sender?.id) {
-                        navigateToProfile(msg.rawMessage.sender.id);
-                      }
-                    }}
-                    style={styles.messageAvatarContainer}
-                  >
-                    {typeof msg.avatar === "string" &&
-                    msg.avatar.startsWith("http") ? (
-                      <Image
-                        source={{ uri: msg.avatar }}
-                        style={styles.messageAvatarImage}
-                      />
-                    ) : (
-                      <View
-                        style={[
-                          styles.messageAvatar,
-                          { backgroundColor: msg.avatar },
-                        ]}
-                      >
-                        <Text style={styles.avatarText}>{msg.sender[0]}</Text>
-                      </View>
-                    )}
-                  </Pressable>
-                )}
-                
-                <View
-                  style={[
-                    styles.messageBubble,
-                    msg.isMe
-                      ? dynamicStyles.myMessage
-                      : dynamicStyles.theirMessage,
-                  ]}
-                >
-                  {msg.replyingTo && (
-                    <View style={styles.replyReference}>
-                      <View style={styles.replyBar} />
-                      <Text
-                        style={[styles.replyRefText, dynamicStyles.subtitle]}
-                        numberOfLines={1}
-                      >
-                        {msg.replyingTo.sender.fname}:{" "}
-                        {msg.replyingTo.content.message}
-                      </Text>
-                    </View>
-                  )}
-
-                  {!msg.isMe && (
-                    <Text style={[styles.senderName, dynamicStyles.subtitle]}>
-                      {msg.sender}
-                    </Text>
-                  )}
-
-                  {msg.file && (
-                    <Image
-                      source={{ uri: msg.file.data }}
-                      style={styles.messageImage}
-                    />
-                  )}
-
-                  {msg.text && (
-                    <View>
-                      <Hyperlink
-                        key={`hyperlink-${msg.id}`}
-                        linkDefault={true}
-                        linkStyle={{
-                          color: msg.isMe ? "#87CEEB" : "#007AFF",
-                          textDecorationLine: "underline",
-                        }}
-                        linkText={(url) => {
-                          if (url.length > 30) {
-                            return url.substring(0, 30) + "...";
-                          }
-                          return url;
-                        }}
-                      >
-                        <Text
-                          style={[
-                            styles.messageText,
-                            msg.isMe
-                              ? dynamicStyles.myMessageText
-                              : dynamicStyles.theirMessageText,
-                          ]}
-                        >
-                          {msg.text}
-                        </Text>
-                      </Hyperlink>
-                    </View>
-                  )}
-                  
-                  <Text style={[styles.messageTime, dynamicStyles.subtitle]}>
-                    {msg.time}
-                  </Text>
-                </View>
-                
-                {!msg.isMe && msg.rawMessage && (
-                  <Pressable
-                    onPress={() => startReply(msg.rawMessage)}
-                    style={styles.replyButton}
-                  >
-                    <Ionicons
-                      name="arrow-undo"
-                      size={18}
-                      color={dynamicStyles.subtitle.color}
-                    />
-                  </Pressable>
-                )}
-              </Pressable>
-            )}
-          </View>
+          <MessageItem
+            key={msg.id}
+            msg={msg}
+            onReply={startReply}
+            onImagePress={setShowImageModal}
+            onLinkPress={handleLinkPress}
+            scrollToMessage={scrollToMessage}
+            messageRefs={messageRefs}
+            dynamicStyles={dynamicStyles}
+            navigateToProfile={navigateToProfile}
+          />
         ))}
       </ScrollView>
 
+      {/* Reply Preview */}
       {replyingTo && (
         <View style={[styles.replyPreview, dynamicStyles.replyPreview]}>
           <View style={styles.replyBar} />
@@ -545,15 +467,12 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
             />
           )}
           <Pressable onPress={cancelReply} style={styles.cancelReply}>
-            <Ionicons
-              name="close"
-              size={20}
-              color={dynamicStyles.subtitle.color}
-            />
+            <X size={20} color={dynamicStyles.subtitle.color} />
           </Pressable>
         </View>
       )}
 
+      {/* File Preview */}
       {selectedFile && (
         <View style={[styles.filePreview, dynamicStyles.replyPreview]}>
           <Image
@@ -572,20 +491,18 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
             </Text>
           </View>
           <Pressable onPress={removeFile} style={styles.removeFile}>
-            <Ionicons name="close-circle" size={24} color="#FF3B30" />
+            <X size={24} color="#FF3B30" />
           </Pressable>
         </View>
       )}
 
+      {/* Input Section */}
       <View style={styles.inputSection}>
         <Pressable style={styles.attachButton} onPress={handleAttachment}>
-          <Ionicons
-            name="camera-outline"
-            size={24}
-            color={dynamicStyles.text.color}
-          />
+          <Paperclip size={24} color={dynamicStyles.text.color} />
         </Pressable>
         <TextInput
+          ref={textInputRef}
           style={[styles.input, dynamicStyles.input]}
           placeholder="Type a message..."
           placeholderTextColor={isDark ? "#666666" : "#999999"}
@@ -627,18 +544,245 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
             onPress={handleSend}
             disabled={!message.trim() && !selectedFile}
           >
-            <Ionicons
-              name="send"
-              size={20}
-              color={dynamicStyles.sendIcon.color}
-            />
+            <Send size={20} color={dynamicStyles.sendIcon.color} />
           </Pressable>
         )}
       </View>
+
+      {/* Image Modal */}
+      <Modal
+        visible={!!showImageModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowImageModal(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable
+            style={styles.modalBackground}
+            onPress={() => setShowImageModal(null)}
+          >
+            <View style={styles.modalContent}>
+              <Pressable
+                style={styles.closeButton}
+                onPress={() => setShowImageModal(null)}
+              >
+                <X size={28} color="#FFFFFF" />
+              </Pressable>
+              
+              {showImageModal && (
+                <Image
+                  source={{ uri: showImageModal }}
+                  style={styles.fullImage}
+                  resizeMode="contain"
+                />
+              )}
+            </View>
+          </Pressable>
+        </View>
+      </Modal>
+
+      {/* Link Confirmation Modal */}
+      <Modal
+        visible={!!linkToConfirm}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setLinkToConfirm(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.linkModal}>
+            <Text style={[styles.linkModalTitle, dynamicStyles.text]}>
+              Open Link?
+            </Text>
+            <Text style={[styles.linkModalUrl, dynamicStyles.subtitle]} numberOfLines={2}>
+              {linkToConfirm}
+            </Text>
+            <View style={styles.linkModalButtons}>
+              <Pressable 
+                style={[styles.linkModalButton, styles.linkModalCancel]}
+                onPress={() => setLinkToConfirm(null)}
+              >
+                <Text style={styles.linkModalCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable 
+                style={[styles.linkModalButton, styles.linkModalOpen]}
+                onPress={confirmOpenLink}
+              >
+                <Text style={styles.linkModalOpenText}>Open</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 };
 
+// Message Item Component with swipe gesture
+const MessageItem = ({ msg, onReply, onImagePress, onLinkPress, scrollToMessage, messageRefs, dynamicStyles, navigateToProfile }: any) => {
+  const translateX = useRef(new Animated.Value(0)).current;
+  const [isReplying, setIsReplying] = useState(false);
+
+  const onGestureEvent = Animated.event(
+    [{ nativeEvent: { translationX: translateX } }],
+    { useNativeDriver: true }
+  );
+
+  const onHandlerStateChange = (event: any) => {
+    if (event.nativeEvent.state === State.END) {
+      const { translationX } = event.nativeEvent;
+      
+      if (translationX > 50 && !msg.isMe) {
+        // Trigger reply
+        setIsReplying(true);
+        onReply(msg.rawMessage);
+        setTimeout(() => setIsReplying(false), 200);
+      }
+      
+      // Reset position
+      Animated.spring(translateX, {
+        toValue: 0,
+        useNativeDriver: true,
+      }).start();
+    }
+  };
+
+  return (
+    <View
+      key={msg.id}
+      ref={(ref) => messageRefs.current.set(msg.id, ref)}
+      style={styles.messageWrapper}
+    >
+      {msg.isAlert ? (
+        <View style={styles.alertContainer}>
+          <Text style={[styles.alertText, dynamicStyles.subtitle]}>
+            {msg.text}
+          </Text>
+        </View>
+      ) : (
+        <PanGestureHandler
+          onGestureEvent={onGestureEvent}
+          onHandlerStateChange={onHandlerStateChange}
+          enabled={!msg.isMe}
+        >
+          <Animated.View
+            style={[
+              styles.messageRow,
+              msg.isMe && styles.myMessageRow,
+              { transform: [{ translateX }] }
+            ]}
+          >
+            {!msg.isMe && (
+              <Pressable
+                onPress={() => {
+                  if (msg.rawMessage?.sender?.id) {
+                    navigateToProfile(msg.rawMessage.sender.id);
+                  }
+                }}
+                style={styles.messageAvatarContainer}
+              >
+                {typeof msg.avatar === "string" && msg.avatar.startsWith("http") ? (
+                  <Image
+                    source={{ uri: msg.avatar }}
+                    style={styles.messageAvatarImage}
+                  />
+                ) : (
+                  <View
+                    style={[
+                      styles.messageAvatar,
+                      { backgroundColor: msg.avatar },
+                    ]}
+                  >
+                    <Text style={styles.avatarText}>{msg.sender[0]}</Text>
+                  </View>
+                )}
+              </Pressable>
+            )}
+            
+            <View
+              style={[
+                styles.messageBubble,
+                msg.isMe ? dynamicStyles.myMessage : dynamicStyles.theirMessage,
+              ]}
+            >
+              {/* Reply reference */}
+              {msg.replyingTo && (
+                <Pressable 
+                  style={styles.replyReference}
+                  onPress={() => scrollToMessage(msg.replyingTo.content.id)}
+                >
+                  <View style={styles.replyBar} />
+                  <Text
+                    style={[styles.replyRefText, dynamicStyles.subtitle]}
+                    numberOfLines={1}
+                  >
+                    {msg.replyingTo.sender.fname}: {msg.replyingTo.content.message}
+                  </Text>
+                </Pressable>
+              )}
+
+              {!msg.isMe && (
+                <Text style={[styles.senderName, dynamicStyles.subtitle]}>
+                  {msg.sender}
+                </Text>
+              )}
+
+              {/* File attachment */}
+              {msg.file && (
+                <Pressable onPress={() => onImagePress(msg.file.data)}>
+                  <Image
+                    source={{ uri: msg.file.data }}
+                    style={styles.messageImage}
+                  />
+                </Pressable>
+              )}
+
+              {msg.text && (
+                <View>
+                  <Hyperlink
+                    linkDefault={false}
+                    onPress={(url) => onLinkPress(url)}
+                    linkStyle={{
+                      color: msg.isMe ? "#87CEEB" : "#007AFF",
+                      textDecorationLine: "underline",
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.messageText,
+                        msg.isMe
+                          ? dynamicStyles.myMessageText
+                          : dynamicStyles.theirMessageText,
+                      ]}
+                    >
+                      {msg.text}
+                    </Text>
+                  </Hyperlink>
+                </View>
+              )}
+              
+              <Text style={[styles.messageTime, dynamicStyles.subtitle]}>
+                {msg.time}
+              </Text>
+            </View>
+            
+            <Pressable
+              onPress={() => onReply(msg.rawMessage)}
+              style={styles.replyButton}
+            >
+              <Reply
+                size={18}
+                color={dynamicStyles.subtitle.color}
+                style={isReplying ? { opacity: 0.3 } : { opacity: 0.8 }}
+              />
+            </Pressable>
+          </Animated.View>
+        </PanGestureHandler>
+      )}
+    </View>
+  );
+};
+
+// Error Screen Component
 const ErrorScreen = ({ message }: { message: string }) => {
   const { isDark } = useTheme();
   const router = useRouter();
@@ -668,28 +812,6 @@ const ErrorScreen = ({ message }: { message: string }) => {
       </Pressable>
     </View>
   );
-};
-
-const formatTimeAgo = (dateString: string): string => {
-  const now = new Date();
-  const date = new Date(dateString);
-  const diffInMs = now.getTime() - date.getTime();
-
-  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-
-  if (diffInMinutes < 1) return "Just now";
-  if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-  if (diffInHours < 24) return `${diffInHours}h ago`;
-  return date.toLocaleDateString();
-};
-
-const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 };
 
 const styles = StyleSheet.create({
@@ -782,10 +904,13 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 12,
   },
+  messageWrapper: {
+    marginVertical: 4,
+  },
   messageRow: {
     flexDirection: "row",
     gap: 8,
-    maxWidth: "80%",
+    maxWidth: "85%",
     alignItems: "flex-end",
   },
   myMessageRow: {
@@ -803,12 +928,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  replyButton: {
-    justifyContent: "flex-end",
-    alignItems: "center",
-    paddingHorizontal: 4,
-    paddingBottom: 12,
-  },
   messageAvatarImage: {
     width: 32,
     height: 32,
@@ -818,6 +937,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 16,
     maxWidth: "100%",
+    flex: 1,
   },
   senderName: {
     fontSize: 12,
@@ -857,6 +977,12 @@ const styles = StyleSheet.create({
   replyRefText: {
     fontSize: 12,
     flex: 1,
+  },
+  replyButton: {
+    justifyContent: "flex-end",
+    alignItems: "center",
+    paddingHorizontal: 4,
+    paddingBottom: 12,
   },
   replyPreview: {
     flexDirection: "row",
@@ -948,6 +1074,79 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.9)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalBackground: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    width: "100%",
+  },
+  closeButton: {
+    position: "absolute",
+    top: 50,
+    right: 20,
+    zIndex: 1,
+    padding: 8,
+  },
+  fullImage: {
+    width: "90%",
+    height: "90%",
+    maxWidth: 500,
+    maxHeight: 500,
+  },
+  linkModal: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 20,
+    margin: 20,
+    minWidth: 280,
+  },
+  linkModalTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  linkModalUrl: {
+    fontSize: 14,
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  linkModalButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  linkModalButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  linkModalCancel: {
+    backgroundColor: "#F5F5F5",
+  },
+  linkModalOpen: {
+    backgroundColor: "#007AFF",
+  },
+  linkModalCancelText: {
+    color: "#000000",
+    fontWeight: "500",
+  },
+  linkModalOpenText: {
+    color: "#FFFFFF",
+    fontWeight: "500",
   },
 });
 

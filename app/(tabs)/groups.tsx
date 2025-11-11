@@ -3,6 +3,7 @@ import Header from "@/components/Header";
 import { Text } from "@/components/Themedtext";
 import { Skeleton } from "@/components/Skeleton";
 import { Ionicons } from "@expo/vector-icons";
+import { useState } from "react";
 import { router } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View, RefreshControl, Image } from "react-native";
 import { useGroups, transformGroupForUI } from "@/hooks/useGroups";
@@ -70,7 +71,14 @@ const getGroupIconByCategory = (categoryName: string) => {
 const Groups = () => {
   const { isDark } = useTheme();
   const { data: groups, isLoading, isError, refetch, isRefetching } = useGroups();
+  const [dropdownVisible, setDropdownVisible] = useState<string | null>(null);
   const { selectedUniversity } = useCampus();
+
+
+const toggleDropdown = (groupId: string) => {
+  setDropdownVisible(dropdownVisible === groupId ? null : groupId);
+};
+
 
   const dynamicStyles = {
     container: {
@@ -118,7 +126,20 @@ const Groups = () => {
     },
     retryButtonText: {
       color: isDark ? "#000000" : "#FFFFFF",
-    }
+    },
+    dropdown: {
+      backgroundColor: isDark ? "#1a1a1a" : "#FFFFFF",
+      borderColor: isDark ? "#333333" : "#E0E0E0",
+    },
+    dropdownItem: {
+      backgroundColor: isDark ? "#1a1a1a" : "#FFFFFF",
+    },
+    dropdownText: {
+      color: isDark ? "#FFFFFF" : "#000000",
+    },
+    dropdownDanger: {
+      color: isDark ? "#FF6B6B" : "#E74C3C",
+    },
   };
 
   return (
