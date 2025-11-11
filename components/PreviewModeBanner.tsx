@@ -73,12 +73,12 @@ const PreviewModeBanner = () => {
         onPress={handleHowItWorksPress}
       >
         <Text style={[styles.buttonText, dynamicStyles.secondaryButtonText]}>
-          How it works
+          Create Account
         </Text>
         <Ionicons
-          name="help-circle-outline"
+          name="arrow-forward"
           size={18}
-          color={dynamicStyles.secondaryButtonText.color}
+          color={dynamicStyles.primaryButtonText.color}
         />
       </Pressable>
 
@@ -87,7 +87,7 @@ const PreviewModeBanner = () => {
         onPress={handleGetStartedPress}
       >
         <Text style={[styles.buttonText, dynamicStyles.primaryButtonText]}>
-          Get Started
+          Login
         </Text>
         <Ionicons
           name="arrow-forward"
