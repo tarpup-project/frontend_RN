@@ -1184,8 +1184,6 @@
 // export default GroupChat;
 
 
-
-
 import {
   GroupSocketProvider,
   useGroupSocket,
@@ -1916,7 +1914,12 @@ const MessageItem = ({ msg, onReply, onImagePress, onLinkPress, scrollToMessage,
 
   const handleSwipeOpen = (direction: 'left' | 'right') => {
     if (direction === 'left') {
-      onReply(msg.rawMessage);
+      // Pass the complete message object directly to onReply (like web version)
+      if (msg.rawMessage && onReply) {
+        onReply(msg.rawMessage);
+      }
+      
+      // Close swipe after short delay
       setTimeout(() => {
         swipeableRef.current?.close();
       }, 100);
@@ -1939,7 +1942,7 @@ const MessageItem = ({ msg, onReply, onImagePress, onLinkPress, scrollToMessage,
         <ReanimatedSwipeable
           ref={swipeableRef}
           friction={2}
-          leftThreshold={40}
+          leftThreshold={60}
           renderLeftActions={renderLeftAction}
           onSwipeableOpen={handleSwipeOpen}
           containerStyle={styles.swipeableContainer}
