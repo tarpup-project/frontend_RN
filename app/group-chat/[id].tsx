@@ -10,15 +10,8 @@
 // import { useGroupMessages, useMessageReply } from "@/hooks/useGroupMessages";
 // import { useGroupActions, useGroupDetails } from "@/hooks/useGroups";
 // import { useAuthStore } from "@/state/authStore";
-// import { GestureHandlerRootView } from "react-native-gesture-handler";
-// import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
-// import Reanimated, { 
-//   SharedValue, 
-//   useAnimatedStyle,
-//   useSharedValue,
-//   withSpring,
-//   interpolate,
-// } from "react-native-reanimated";
+// import { GestureHandlerRootView, Gesture, GestureDetector } from "react-native-gesture-handler";
+// import { runOnJS } from "react-native-reanimated";
 // import { MessageType, UserMessage } from "@/types/groups";
 // import { Ionicons } from "@expo/vector-icons";
 // import { useLocalSearchParams, useRouter } from "expo-router";
@@ -38,7 +31,7 @@
 //   Modal,
 //   Linking,
 // } from "react-native";
-// import { Reply, X, Paperclip, Send, Share2 } from "lucide-react-native";
+// import { Reply, X, Paperclip, Send, Share2, Users, Star } from "lucide-react-native";
 // import { timeAgo, formatFileSize } from "@/utils/timeUtils";
 // import Hyperlink from "react-native-hyperlink";
 
@@ -84,6 +77,7 @@
 //   const [isJoining, setIsJoining] = useState(false);
 //   const [showImageModal, setShowImageModal] = useState<string | null>(null);
 //   const [linkToConfirm, setLinkToConfirm] = useState<string | null>(null);
+//   const [showDropdown, setShowDropdown] = useState(false);
 
 //   const dynamicStyles = {
 //     container: {
@@ -124,6 +118,10 @@
 //     },
 //     replyPreview: {
 //       backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
+//       borderColor: isDark ? "#333333" : "#E0E0E0",
+//     },
+//     dropdown: {
+//       backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF",
 //       borderColor: isDark ? "#333333" : "#E0E0E0",
 //     },
 //   };
@@ -239,7 +237,7 @@
 //   };
 
 //   const handleGroupInfo = () => {
-//     console.log("Open group info");
+//     setShowDropdown(!showDropdown);
 //   };
 
 //   const navigateToProfile = (userId: string) => {
@@ -259,6 +257,36 @@
 //       }
 //       setLinkToConfirm(null);
 //     }
+//   };
+
+//   const handleShareGroup = async () => {
+//     if (groupDetails?.shareLink) {
+//       try {
+//         await navigator.clipboard.writeText(groupDetails.shareLink);
+//         Alert.alert("Success", "Group link copied to clipboard!");
+//       } catch (error) {
+//         Alert.alert("Error", "Could not copy link");
+//       }
+//     }
+//     setShowDropdown(false);
+//   };
+
+//   const handleLeaveGroup = () => {
+//     Alert.alert(
+//       "Leave Group",
+//       "Are you sure you want to leave this group?",
+//       [
+//         { text: "Cancel", style: "cancel" },
+//         { 
+//           text: "Leave", 
+//           style: "destructive",
+//           onPress: () => {
+//             // Handle leave group logic here
+//             setShowDropdown(false);
+//           }
+//         }
+//       ]
+//     );
 //   };
 
 //   const MessageSkeleton = ({ isMe }: { isMe: boolean }) => (
@@ -422,13 +450,43 @@
 //           </View>
 //         </Pressable>
 
-//         <Pressable style={styles.infoButton} onPress={handleGroupInfo}>
-//           <Ionicons
-//             name="information-circle-outline"
-//             size={24}
-//             color={dynamicStyles.text.color}
-//           />
-//         </Pressable>
+//         <View style={styles.infoButtonContainer}>
+//           <Pressable style={styles.infoButton} onPress={handleGroupInfo}>
+//             {!showDropdown ? (
+//               <View style={[styles.infoIconCircle, { borderColor: dynamicStyles.text.color }]}>
+//                 <Text style={[styles.infoIconText, dynamicStyles.text]}>i</Text>
+//               </View>
+//             ) : (
+//               <X size={20} color="#FF3B30" />
+//             )}
+//           </Pressable>
+          
+//           {/* Dropdown Menu */}
+//           {showDropdown && (
+//             <View style={[styles.dropdown, dynamicStyles.dropdown]}>
+//               <View style={styles.dropdownItem}>
+//                 <Users size={16} color={dynamicStyles.text.color} />
+//                 <Text style={[styles.dropdownText, dynamicStyles.text]}>Group Info</Text>
+//               </View>
+              
+//               <Pressable 
+//                 style={styles.dropdownItem} 
+//                 onPress={handleShareGroup}
+//               >
+//                 <Share2 size={16} color={dynamicStyles.text.color} />
+//                 <Text style={[styles.dropdownText, dynamicStyles.text]}>Share Group</Text>
+//               </Pressable>
+              
+//               <Pressable 
+//                 style={styles.dropdownItem} 
+//                 onPress={handleLeaveGroup}
+//               >
+//                 <X size={16} color="#FF3B30" />
+//                 <Text style={[styles.dropdownText, { color: "#FF3B30" }]}>Leave Group</Text>
+//               </Pressable>
+//             </View>
+//           )}
+//         </View>
 //       </View>
 
 //       <ScrollView
@@ -596,7 +654,7 @@
 //         onRequestClose={() => setLinkToConfirm(null)}
 //       >
 //         <View style={styles.modalOverlay}>
-//           <View style={styles.linkModal}>
+//           <View style={[styles.linkModal, dynamicStyles.dropdown]}>
 //             <Text style={[styles.linkModalTitle, dynamicStyles.text]}>
 //               Open Link?
 //             </Text>
@@ -620,45 +678,32 @@
 //           </View>
 //         </View>
 //       </Modal>
+
+//       {/* Overlay to close dropdown when clicking outside */}
+//       {showDropdown && (
+//         <Pressable 
+//           style={styles.overlay} 
+//           onPress={() => setShowDropdown(false)} 
+//         />
+//       )}
 //     </KeyboardAvoidingView>
 //   );
 // };
 
-
 // const MessageItem = ({ msg, onReply, onImagePress, onLinkPress, scrollToMessage, messageRefs, dynamicStyles, navigateToProfile }: any) => {
-//   const swipeableRef = useRef<any>(null);
-
-//   const renderRightAction = (progress: SharedValue<number>, translation: SharedValue<number>) => {
-//     const animatedStyle = useAnimatedStyle(() => {
-//       const scale = interpolate(progress.value, [0, 1], [0.8, 1]);
-//       const opacity = interpolate(progress.value, [0, 1], [0, 1]);
+  
+//   // Create the swipe gesture using the modern Gesture.Pan() API
+//   const swipeGesture = Gesture.Pan()
+//     .onEnd((event) => {
+//       console.log('Swipe detected, translationX:', event.translationX); // Debug log
       
-//       return {
-//         opacity,
-//         transform: [
-//           { scale },
-//           { translateX: translation.value + 60 }
-//         ],
-//       };
+//       // Detect right swipe (positive translationX > 50 pixels)
+//       if (event.translationX > 50 && msg.rawMessage && onReply) {
+//         console.log('Right swipe - triggering reply'); // Debug log
+//         // Use runOnJS to call the reply function from the UI thread
+//         runOnJS(onReply)(msg.rawMessage);
+//       }
 //     });
-
-//     return (
-//       <Reanimated.View style={[styles.swipeAction, animatedStyle]}>
-//         <View style={styles.replyActionContainer}>
-//           <Reply size={24} color="#007AFF" />
-//         </View>
-//       </Reanimated.View>
-//     );
-//   };
-
-//   const handleSwipeOpen = (direction: 'left' | 'right') => {
-//     if (direction === 'right' && !msg.isMe) {
-//       onReply(msg.rawMessage);
-//       setTimeout(() => {
-//         swipeableRef.current?.close();
-//       }, 100);
-//     }
-//   };
 
 //   return (
 //     <View
@@ -673,14 +718,7 @@
 //           </Text>
 //         </View>
 //       ) : (
-//         <ReanimatedSwipeable
-//           ref={swipeableRef}
-//           friction={2}
-//           rightThreshold={40}
-//           renderRightActions={!msg.isMe ? renderRightAction : undefined}
-//           onSwipeableOpen={handleSwipeOpen}
-//           containerStyle={styles.swipeableContainer}
-//         >
+//         <GestureDetector gesture={swipeGesture}>
 //           <View
 //             style={[
 //               styles.messageRow,
@@ -780,7 +818,8 @@
 //                 {msg.time}
 //               </Text>
 //             </View>
-            
+
+//             {/* Reply button - like the web version */}
 //             <Pressable
 //               onPress={() => onReply(msg.rawMessage)}
 //               style={styles.replyButton}
@@ -792,7 +831,7 @@
 //               />
 //             </Pressable>
 //           </View>
-//         </ReanimatedSwipeable>
+//         </GestureDetector>
 //       )}
 //     </View>
 //   );
@@ -909,8 +948,56 @@
 //   ratingText: {
 //     fontSize: 12,
 //   },
+//   infoButtonContainer: {
+//     position: "relative",
+//   },
 //   infoButton: {
 //     padding: 4,
+//   },
+//   infoIconCircle: {
+//     width: 20,
+//     height: 20,
+//     borderRadius: 10,
+//     borderWidth: 1.5,
+//     justifyContent: "center",
+//     alignItems: "center",
+//   },
+//   infoIconText: {
+//     fontSize: 8,
+//     fontWeight: "600",
+//   },
+//   dropdown: {
+//     position: "absolute",
+//     top: 35,
+//     right: 0,
+//     width: 150,
+//     borderWidth: 1,
+//     borderRadius: 8,
+//     padding: 8,
+//     shadowColor: "#000",
+//     shadowOffset: { width: 0, height: 2 },
+//     shadowOpacity: 0.25,
+//     shadowRadius: 4,
+//     elevation: 5,
+//     zIndex: 1000,
+//   },
+//   dropdownItem: {
+//     flexDirection: "row",
+//     alignItems: "center",
+//     paddingVertical: 8,
+//     paddingHorizontal: 4,
+//     gap: 8,
+//   },
+//   dropdownText: {
+//     fontSize: 14,
+//   },
+//   overlay: {
+//     position: "absolute",
+//     top: 0,
+//     left: 0,
+//     right: 0,
+//     bottom: 0,
+//     zIndex: 999,
 //   },
 //   messagesContainer: {
 //     flex: 1,
@@ -921,22 +1008,6 @@
 //   },
 //   messageWrapper: {
 //     marginVertical: 4,
-//   },
-//   swipeableContainer: {
-//   },
-//   swipeAction: {
-//     justifyContent: "center",
-//     alignItems: "center",
-//     width: 80,
-//     marginVertical: 4,
-//   },
-//   replyActionContainer: {
-//     backgroundColor: "#E8F4FD",
-//     borderRadius: 20,
-//     width: 40,
-//     height: 40,
-//     justifyContent: "center",
-//     alignItems: "center",
 //   },
 //   messageRow: {
 //     flexDirection: "row",
@@ -1137,7 +1208,6 @@
 //     maxHeight: 500,
 //   },
 //   linkModal: {
-//     backgroundColor: "#FFFFFF",
 //     borderRadius: 12,
 //     padding: 20,
 //     margin: 20,
@@ -1184,6 +1254,14 @@
 // export default GroupChat;
 
 
+
+
+
+
+
+
+
+
 import {
   GroupSocketProvider,
   useGroupSocket,
@@ -1196,12 +1274,13 @@ import { useFileUpload } from "@/hooks/useFileUpload";
 import { useGroupMessages, useMessageReply } from "@/hooks/useGroupMessages";
 import { useGroupActions, useGroupDetails } from "@/hooks/useGroups";
 import { useAuthStore } from "@/state/authStore";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
-import Reanimated, { 
-  SharedValue, 
-  useAnimatedStyle,
-  interpolate,
+import { GestureHandlerRootView, Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withSpring,
+  runOnJS,
+  interpolate
 } from "react-native-reanimated";
 import { MessageType, UserMessage } from "@/types/groups";
 import { Ionicons } from "@expo/vector-icons";
@@ -1881,50 +1960,48 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   );
 };
 
-// Reply Action Component for proper hook usage
-const ReplyAction = ({ progress, translation }: { progress: SharedValue<number>, translation: SharedValue<number> }) => {
-  const animatedStyle = useAnimatedStyle(() => {
-    const scale = interpolate(progress.value, [0, 1], [0.8, 1]);
-    const opacity = interpolate(progress.value, [0, 1], [0, 1]);
-    
+const MessageItem = ({ msg, onReply, onImagePress, onLinkPress, scrollToMessage, messageRefs, dynamicStyles, navigateToProfile }: any) => {
+  const translateX = useSharedValue(0);
+  const replyIconOpacity = useSharedValue(0);
+  
+  const swipeGesture = Gesture.Pan()
+    .onUpdate((event) => {
+      // Only allow rightward movement, cap at 80px
+      const movement = Math.max(0, Math.min(event.translationX, 80));
+      translateX.value = movement;
+      
+      // Show reply icon when swiping past 30px
+      replyIconOpacity.value = movement > 30 ? 1 : 0;
+    })
+    .onEnd((event) => {
+      // Trigger reply if swiped more than 50px
+      if (event.translationX > 50 && msg.rawMessage && onReply) {
+        console.log('Right swipe - triggering reply'); // Debug log
+        runOnJS(onReply)(msg.rawMessage);
+      }
+      
+      // Always return to original position
+      translateX.value = withSpring(0, {
+        damping: 20,
+        stiffness: 100,
+      });
+      replyIconOpacity.value = withSpring(0);
+    });
+
+  const messageAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+
+  const replyIconAnimatedStyle = useAnimatedStyle(() => {
+    const scale = interpolate(translateX.value, [30, 80], [0.8, 1.2]);
     return {
-      opacity,
+      opacity: replyIconOpacity.value,
       transform: [
-        { scale },
-        { translateX: translation.value - 60 }
+        { translateX: translateX.value - 60 },
+        { scale: Math.max(0.8, scale) }
       ],
     };
   });
-
-  return (
-    <Reanimated.View style={[styles.swipeAction, animatedStyle]}>
-      <View style={styles.replyActionContainer}>
-        <Reply size={24} color="#007AFF" />
-      </View>
-    </Reanimated.View>
-  );
-};
-
-const MessageItem = ({ msg, onReply, onImagePress, onLinkPress, scrollToMessage, messageRefs, dynamicStyles, navigateToProfile }: any) => {
-  const swipeableRef = useRef<any>(null);
-
-  const renderLeftAction = (progress: SharedValue<number>, translation: SharedValue<number>) => {
-    return <ReplyAction progress={progress} translation={translation} />;
-  };
-
-  const handleSwipeOpen = (direction: 'left' | 'right') => {
-    if (direction === 'left') {
-      // Pass the complete message object directly to onReply (like web version)
-      if (msg.rawMessage && onReply) {
-        onReply(msg.rawMessage);
-      }
-      
-      // Close swipe after short delay
-      setTimeout(() => {
-        swipeableRef.current?.close();
-      }, 100);
-    }
-  };
 
   return (
     <View
@@ -1939,115 +2016,129 @@ const MessageItem = ({ msg, onReply, onImagePress, onLinkPress, scrollToMessage,
           </Text>
         </View>
       ) : (
-        <ReanimatedSwipeable
-          ref={swipeableRef}
-          friction={2}
-          leftThreshold={60}
-          renderLeftActions={renderLeftAction}
-          onSwipeableOpen={handleSwipeOpen}
-          containerStyle={styles.swipeableContainer}
-        >
-          <View
-            style={[
-              styles.messageRow,
-              msg.isMe && styles.myMessageRow,
-            ]}
-          >
-            {!msg.isMe && (
-              <Pressable
-                onPress={() => {
-                  if (msg.rawMessage?.sender?.id) {
-                    navigateToProfile(msg.rawMessage.sender.id);
-                  }
-                }}
-                style={styles.messageAvatarContainer}
+        <View style={styles.messageContainer}>
+          {/* Reply Icon - appears during swipe */}
+          <Animated.View style={[styles.replyIconContainer, replyIconAnimatedStyle]}>
+            <Reply size={24} color="#007AFF" />
+          </Animated.View>
+
+          <GestureDetector gesture={swipeGesture}>
+            <Animated.View style={[messageAnimatedStyle]}>
+              <View
+                style={[
+                  styles.messageRow,
+                  msg.isMe && styles.myMessageRow,
+                ]}
               >
-                {typeof msg.avatar === "string" && msg.avatar.startsWith("http") ? (
-                  <Image
-                    source={{ uri: msg.avatar }}
-                    style={styles.messageAvatarImage}
-                  />
-                ) : (
-                  <View
-                    style={[
-                      styles.messageAvatar,
-                      { backgroundColor: msg.avatar },
-                    ]}
-                  >
-                    <Text style={styles.avatarText}>{msg.sender[0]}</Text>
-                  </View>
-                )}
-              </Pressable>
-            )}
-            
-            <View
-              style={[
-                styles.messageBubble,
-                msg.isMe ? dynamicStyles.myMessage : dynamicStyles.theirMessage,
-              ]}
-            >
-              {/* Reply reference */}
-              {msg.replyingTo && (
-                <Pressable 
-                  style={styles.replyReference}
-                  onPress={() => scrollToMessage(msg.replyingTo.content.id)}
-                >
-                  <View style={styles.replyBar} />
-                  <Text
-                    style={[styles.replyRefText, dynamicStyles.subtitle]}
-                    numberOfLines={1}
-                  >
-                    {msg.replyingTo.sender.fname}: {msg.replyingTo.content.message}
-                  </Text>
-                </Pressable>
-              )}
-
-              {!msg.isMe && (
-                <Text style={[styles.senderName, dynamicStyles.subtitle]}>
-                  {msg.sender}
-                </Text>
-              )}
-
-              {/* File attachment */}
-              {msg.file && (
-                <Pressable onPress={() => onImagePress(msg.file.data)}>
-                  <Image
-                    source={{ uri: msg.file.data }}
-                    style={styles.messageImage}
-                  />
-                </Pressable>
-              )}
-
-              {msg.text && (
-                <View>
-                  <Hyperlink
-                    linkDefault={false}
-                    onPress={(url) => onLinkPress(url)}
-                    linkStyle={{
-                      color: msg.isMe ? "#87CEEB" : "#007AFF",
-                      textDecorationLine: "underline",
+                {!msg.isMe && (
+                  <Pressable
+                    onPress={() => {
+                      if (msg.rawMessage?.sender?.id) {
+                        navigateToProfile(msg.rawMessage.sender.id);
+                      }
                     }}
+                    style={styles.messageAvatarContainer}
                   >
-                    <Text
-                      style={[
-                        styles.messageText,
-                        msg.isMe
-                          ? dynamicStyles.myMessageText
-                          : dynamicStyles.theirMessageText,
-                      ]}
+                    {typeof msg.avatar === "string" && msg.avatar.startsWith("http") ? (
+                      <Image
+                        source={{ uri: msg.avatar }}
+                        style={styles.messageAvatarImage}
+                      />
+                    ) : (
+                      <View
+                        style={[
+                          styles.messageAvatar,
+                          { backgroundColor: msg.avatar },
+                        ]}
+                      >
+                        <Text style={styles.avatarText}>{msg.sender[0]}</Text>
+                      </View>
+                    )}
+                  </Pressable>
+                )}
+                
+                <View
+                  style={[
+                    styles.messageBubble,
+                    msg.isMe ? dynamicStyles.myMessage : dynamicStyles.theirMessage,
+                  ]}
+                >
+                  {/* Reply reference */}
+                  {msg.replyingTo && (
+                    <Pressable 
+                      style={styles.replyReference}
+                      onPress={() => scrollToMessage(msg.replyingTo.content.id)}
                     >
-                      {msg.text}
+                      <View style={styles.replyBar} />
+                      <Text
+                        style={[styles.replyRefText, dynamicStyles.subtitle]}
+                        numberOfLines={1}
+                      >
+                        {msg.replyingTo.sender.fname}: {msg.replyingTo.content.message}
+                      </Text>
+                    </Pressable>
+                  )}
+
+                  {!msg.isMe && (
+                    <Text style={[styles.senderName, dynamicStyles.subtitle]}>
+                      {msg.sender}
                     </Text>
-                  </Hyperlink>
+                  )}
+
+                  {/* File attachment */}
+                  {msg.file && (
+                    <Pressable onPress={() => onImagePress(msg.file.data)}>
+                      <Image
+                        source={{ uri: msg.file.data }}
+                        style={styles.messageImage}
+                      />
+                    </Pressable>
+                  )}
+
+                  {msg.text && (
+                    <View>
+                      <Hyperlink
+                        linkDefault={false}
+                        onPress={(url) => onLinkPress(url)}
+                        linkStyle={{
+                          color: msg.isMe ? "#87CEEB" : "#007AFF",
+                          textDecorationLine: "underline",
+                        }}
+                      >
+                        <Text
+                          style={[
+                            styles.messageText,
+                            msg.isMe
+                              ? dynamicStyles.myMessageText
+                              : dynamicStyles.theirMessageText,
+                          ]}
+                        >
+                          {msg.text}
+                        </Text>
+                      </Hyperlink>
+                    </View>
+                  )}
+                  
+                  <Text style={[styles.messageTime, dynamicStyles.subtitle]}>
+                    {msg.time}
+                  </Text>
                 </View>
-              )}
-              
-              <Text style={[styles.messageTime, dynamicStyles.subtitle]}>
-                {msg.time}
-              </Text>
-            </View>
-          </View>
-        </ReanimatedSwipeable>
+
+                {/* Reply button - like the web version */}
+                <Pressable
+                  onPress={() => onReply(msg.rawMessage)}
+                  style={styles.replyButton}
+                >
+                  <Reply
+                    size={18}
+                    color={dynamicStyles.subtitle.color}
+                    style={{ opacity: 0.8 }}
+                  />
+                </Pressable>
+              </View>
+            </Animated.View>
+          </GestureDetector>
+        </View>
       )}
     </View>
   );
@@ -2225,16 +2316,15 @@ const styles = StyleSheet.create({
   messageWrapper: {
     marginVertical: 4,
   },
-  swipeableContainer: {
-    // Container style for the swipeable
+  messageContainer: {
+    position: "relative",
   },
-  swipeAction: {
-    justifyContent: "center",
-    alignItems: "center",
-    width: 80,
-    marginVertical: 4,
-  },
-  replyActionContainer: {
+  replyIconContainer: {
+    position: "absolute",
+    left: 20,
+    top: "50%",
+    marginTop: -12,
+    zIndex: 1,
     backgroundColor: "#E8F4FD",
     borderRadius: 20,
     width: 40,
@@ -2312,6 +2402,12 @@ const styles = StyleSheet.create({
   replyRefText: {
     fontSize: 12,
     flex: 1,
+  },
+  replyButton: {
+    justifyContent: "flex-end",
+    alignItems: "center",
+    paddingHorizontal: 4,
+    paddingBottom: 12,
   },
   replyPreview: {
     flexDirection: "row",
