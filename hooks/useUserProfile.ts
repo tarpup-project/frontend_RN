@@ -3,18 +3,27 @@ import { api } from '@/api/client';
 import { UrlConstants } from '@/constants/apiUrls';
 
 interface UserProfile {
-  id: string;
-  fname: string;
-  lname: string;
-  email: string;
-  bgUrl?: string;
-  universityID: string;
-  stateID: string;
-  university?: {
+  userDetails: {
     id: string;
-    name: string;
+    fname: string;
+    lname: string;
+    email: string;
+    bgUrl?: string;
+    bio?: string;
+    universityID: string;
+    stateID: string;
+    university?: {
+      id: string;
+      name: string;
+    };
+    createdAt: string;
   };
-  memberSince: string;
+  stats: {
+    totalMatches: number;
+    totalGroups: number;
+    avgComp: number;
+    interests: string[];
+  };
 }
 
 const fetchUserProfile = async (userId: string): Promise<UserProfile> => {
@@ -27,7 +36,7 @@ export const useUserProfile = (userId: string) => {
     queryKey: ['userProfile', userId],
     queryFn: () => fetchUserProfile(userId),
     enabled: !!userId,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5,
     retry: 3,
   });
 };
