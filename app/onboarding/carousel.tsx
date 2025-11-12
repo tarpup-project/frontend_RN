@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import { useTheme } from "@/app/contexts/ThemeContext";
+import { Sparkles } from "lucide-react-native";
 import {
   Dimensions,
   FlatList,
@@ -38,8 +39,8 @@ const carouselData: CarouselItem[] = [
   },
   {
     id: 2,
-    icon: require("@/assets/images/logo-dark.png"),
-    iconDark: require("@/assets/images/logo-dark.png"),
+    icon: Sparkles, 
+  iconDark: Sparkles,
     iconBgColor: ["#FF00FF", "#CC00CC"],
     title: "Get Matched Instantly",
     subtitle:
@@ -47,7 +48,6 @@ const carouselData: CarouselItem[] = [
     buttonText: "Continue",
     hasChips: false,
   },
-
   {
     id: 3,
     icon: "UsersRound",
@@ -65,7 +65,7 @@ const OnboardingCarousel = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
-    const { isDark } = useTheme();
+  const { isDark } = useTheme();
 
 
   const handleContinue = () => {
