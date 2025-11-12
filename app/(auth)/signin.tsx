@@ -49,6 +49,9 @@ const SignIn = () => {
     signUpLink: {
       color: isDark ? "#FFFFFF" : "#000000",
     },
+    email: {
+      color: isDark? "#FFFFFF" : "#",
+    }
   };
 
   const validateEmail = (email: string): boolean => {
@@ -143,7 +146,7 @@ const SignIn = () => {
               </Text>
               <TextInput
                 style={[styles.input, dynamicStyles.input]}
-                placeholder="your.email@university.edu"
+                placeholder="name@university.edu"
                 placeholderTextColor={isDark ? "#666666" : "#999999"}
                 value={email}
                 onChangeText={setEmail}
@@ -208,7 +211,7 @@ const SignIn = () => {
                 size={16}
                 color={isDark ? "#4A90E2" : "#5B9BD5"}
               />
-              <Text style={[styles.securityText, dynamicStyles.subtitle]}>
+              <Text style={[styles.securityText, dynamicStyles.email]}>
                 Your email is kept secure and never shared
               </Text>
             </View>
@@ -253,14 +256,13 @@ const styles = StyleSheet.create({
   titleRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
   },
   logo: {
-    width: 24,
-    height: 24,
+    width: 30,
+    height: 30,
   },
   appTitle: {
-    fontSize: 13,
+    fontSize: 18,
     fontWeight: "700",
   },
   tagline: {
@@ -277,16 +279,16 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   title: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "bold",
     textAlign: "center",
     marginBottom: 6,
   },
   subtitle: {
-    fontSize: 11,
+    fontSize: 12,
     textAlign: "center",
     fontWeight: "700",
-    marginBottom: 12,
+    marginBottom: 14,
   },
   inputGroup: {
     marginBottom: 12,
@@ -301,7 +303,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 16,
-    fontSize: 15,
+    fontSize: 16,
     marginBottom: 4,
   },
   hint: {
@@ -332,7 +334,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingVertical: 8,
     paddingHorizontal: 12,
-    backgroundColor: "rgba(74, 144, 226, 0.1)",
+    backgroundColor: "#364153",
     borderRadius: 6,
   },
   securityText: {

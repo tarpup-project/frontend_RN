@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
   },
   skipButton: {
     alignSelf: "flex-end",
-    paddingVertical: 8,
+    paddingVertical: Platform.OS === 'ios'? -7 : 8,
     paddingHorizontal: 16,
     marginTop: 16, 
   },

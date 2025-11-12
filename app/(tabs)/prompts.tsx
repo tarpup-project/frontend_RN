@@ -18,7 +18,7 @@ import {
   Gift,
   PartyPopper,
   ShoppingBag,
-  Users,
+  UsersRound,
   Volleyball,
 } from "lucide-react-native";
 import moment from "moment";
@@ -36,7 +36,7 @@ import PreviewModeBanner from "@/components/PreviewModeBanner";
 
 const iconMap: Record<string, any> = {
   "briefcase-business": Briefcase,
-  "users-round": Users,
+  "users-round": UsersRound ,
   "gamepad-2": Gamepad2,
   "gift": Gift,
   "shopping-bag": ShoppingBag,
@@ -492,7 +492,7 @@ const styles = StyleSheet.create({
   liveText: { color: "#00FF00", fontSize: 10, fontWeight: "bold" },
   feedSubtitle: { fontSize: 14, marginBottom: 12, fontWeight: "600" },
   statItem: { flexDirection: "row", alignItems: "center", gap: 6 },
-  statText: { fontSize: 12 },
+  statText: { fontSize: 10 },
   filterSection: { paddingVertical: 16 },
   headerRight: {
     display: "flex",
