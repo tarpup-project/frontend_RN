@@ -664,7 +664,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#333333",
-    paddingHorizontal: 10,
+    paddingHorizontal: 5,
     paddingVertical: 4,
   },
   realTimeText: {
@@ -679,7 +679,7 @@ const styles = StyleSheet.create({
   },
   universityLabel: {
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: "600",
   },
   campusSelector: {
     padding: 12,
@@ -700,7 +700,7 @@ const styles = StyleSheet.create({
   campusText: {
     flex: 1,
     fontSize: 14,
-    fontWeight: "700",
+    fontWeight: "600",
   },
   resetSection: {
     flexDirection: "row",
