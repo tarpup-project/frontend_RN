@@ -217,7 +217,7 @@ const Index = () => {
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     matchesBadge: {
-      backgroundColor: isDark ? "#444953" : "#E0E0E0",
+      backgroundColor: isDark ? "#575d6a" : "#E0E0E0",
     },
     avatarBorder: {
       borderColor: isDark ? "#000000" : "#FFFFFF",
@@ -447,7 +447,7 @@ const Index = () => {
               </Text>
               <Pressable onPress={() => setShowAllRecent(!showAllRecent)}>
                 <Text style={[styles.viewAllText, dynamicStyles.subtitle]}>
-                  {showAllRecent ? "Show Less" : "Show All"}
+                  {showAllRecent ? "Show less" : "Show all"}
                 </Text>
               </Pressable>
             </View>
@@ -517,7 +517,7 @@ const Index = () => {
                                 dynamicStyles.avatarBorder,
                                 {
                                   position: "absolute",
-                                  left: index * 19,
+                                  left: index * 22,
                                   zIndex: 3 - index,
                                 },
                               ]}
@@ -558,10 +558,10 @@ const Index = () => {
                             styles.matchPercent,
                             {
                               color: "#FFFFFF",
-                              backgroundColor: isDark ? "#b7bbc2" : "#b7bbc2",
+                              backgroundColor: isDark ? "#24282f" : "#b7bbc2",
                               borderRadius: 8,
                               paddingHorizontal: 7,
-                              paddingVertical: 5,
+                              paddingVertical: 2,
                             },
                           ]}
                         >
@@ -734,11 +734,12 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 14,
-    fontWeight: "900",
+    fontWeight: "700",
     marginBottom: 4,
   },
   sectionSubtitle: {
     fontSize: 12,
+    fontWeight: "400",
     marginBottom: 16,
   },
   cardsGrid: {
@@ -766,7 +767,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "700",
     textAlign: "center",
     marginBottom: 10,
   },
@@ -777,7 +778,7 @@ const styles = StyleSheet.create({
   },
   matchesText: {
     fontSize: 10,
-    fontWeight: "500",
+    fontWeight: "700",
   },
   recentSection: {
     marginTop: 24,
@@ -790,7 +791,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   viewAllText: {
-    fontSize: 10,
+    fontSize: 12,
   },
   recentCard: {
     flexDirection: "row",
@@ -822,17 +823,17 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   userAvatar: {
-    width: 30,
-    height: 30,
+    width: 26,
+    height: 26,
     borderRadius: 20,
-    backgroundColor: "#00D084",
-    borderWidth: 2,
+    backgroundColor: "#57a840",
+    borderWidth: 1,
     justifyContent: "center",
     alignItems: "center",
   },
   avatarText: {
     color: "#FFFFFF",
-    fontSize: 8,
+    fontSize: 12,
     fontWeight: "700",
   },
   grayHeart: {
@@ -842,7 +843,7 @@ const styles = StyleSheet.create({
   usersText: {
     fontSize: 10,
     fontWeight: "700",
-    marginLeft: 4,
+    marginLeft: 12,
     color: "#939393",
   },
   recentRight: {
@@ -853,7 +854,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   matchPercent: {
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: "700",
   },
   compatibilityCard: {
@@ -898,8 +899,8 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   matchesBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     borderRadius: 8,
     alignSelf: "center",
   },
