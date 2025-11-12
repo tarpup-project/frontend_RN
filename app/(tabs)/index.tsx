@@ -682,8 +682,8 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   campusSelector: {
-    padding: 12,
-    borderRadius: 8,
+    padding: 8,
+    borderRadius: 14,
     borderWidth: 1,
   },
   campusRow: {
@@ -695,7 +695,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 6,
-    backgroundColor: "#FFFFFF",
+
   },
   campusText: {
     flex: 1,

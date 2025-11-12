@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   subtitle: {
-    fontSize: 12,
+    fontSize: 11,
     lineHeight: 18,
   },
   button: {
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    paddingVertical: 5,
+    paddingVertical: 6,
     paddingHorizontal: 16,
     borderRadius: 8,
   },
