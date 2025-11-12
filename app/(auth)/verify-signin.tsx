@@ -50,6 +50,12 @@ const VerifySignIn = () => {
       backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
+    verifyButton: {
+      backgroundColor: isDark? "#FFFFFF" : "#000000",
+    },
+    verifyButtonText: {
+      color: isDark? "#000000" : "#FFFFFF",
+    }
   };
 
   const handleCodeChange = (text: string, index: number) => {
@@ -255,9 +261,9 @@ const VerifySignIn = () => {
               <Text style={styles.verifyButtonText}>Verify Email</Text>
             </Pressable>
           ) : (
-            <View style={styles.verifyButton}>
+            <View style={[styles.verifyButton, dynamicStyles.verifyButton]}>
               <ActivityIndicator color="#000000" size="small" />
-              <Text style={styles.verifyButtonText}> Verifying...</Text>
+              <Text style={[styles.verifyButtonText, dynamicStyles.verifyButtonText]}> Verifying...</Text>
             </View>
           )}
           <Text style={[styles.spam, dynamicStyles.subtitle]}>
@@ -388,7 +394,6 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   verifyButton: {
-    backgroundColor: "#FFFFFF",
     height: 35,
     borderRadius: 8,
     justifyContent: "center",
@@ -405,7 +410,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   verifyButtonText: {
-    color: "#000000",
     fontSize: 12,
     fontWeight: "700",
   },

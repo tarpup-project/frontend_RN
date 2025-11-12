@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   buttonContainer: {
-    marginBottom: Platform.OS === 'ios' ? 18 : 30, 
+    marginBottom: Platform.OS === 'ios' ? 15 : 30, 
   },
   button: {
     paddingVertical: 14,

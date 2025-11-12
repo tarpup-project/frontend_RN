@@ -49,8 +49,8 @@ const SignIn = () => {
     signUpLink: {
       color: isDark ? "#FFFFFF" : "#000000",
     },
-    email: {
-      color: isDark? "#FFFFFF" : "#",
+    emailOne: {
+      color: isDark? "#FFFFFF" : "#FFFFFF",
     }
   };
 
@@ -211,7 +211,7 @@ const SignIn = () => {
                 size={16}
                 color={isDark ? "#4A90E2" : "#5B9BD5"}
               />
-              <Text style={[styles.securityText, dynamicStyles.email]}>
+              <Text style={[styles.securityText, dynamicStyles.emailOne]}>
                 Your email is kept secure and never shared
               </Text>
             </View>
