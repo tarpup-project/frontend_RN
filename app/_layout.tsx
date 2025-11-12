@@ -71,9 +71,9 @@ function RootLayoutContent() {
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
-    "Geist-Regular": require("@/assets/fonts/Geist-Regular.otf"),
-    "Geist-Medium": require("@/assets/fonts/Geist-Medium.otf"),
-    "Geist-Bold": require("@/assets/fonts/Geist-Bold.otf"),
+    "Geist-Regular": require("@/assets/fonts/Geist-Regular.ttf"),
+    "Geist-Medium": require("@/assets/fonts/Geist-Medium.ttf"),
+    "Geist-Bold": require("@/assets/fonts/Geist-Bold.ttf"),
   });
 
   useEffect(() => {
