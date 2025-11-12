@@ -48,7 +48,6 @@ const iconMap: Record<string, any> = {
 };
 
 const getIconComponent = (iconName: string) => {
-  console.log("Icon from API:", iconName); 
   const normalizedName = iconName.toLowerCase();
   return iconMap[normalizedName] || Filter;
 };
@@ -509,9 +508,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 20,
   },
-  filterTitle: { fontSize: 12, fontWeight: "700" },
+  filterTitle: { fontSize: 14, fontWeight: "700" },
   categoriesScroll: {
-    paddingLeft: 16,
+    paddingLeft: 2,
     paddingRight: 16,
     gap: 8,
     alignItems: "center",
