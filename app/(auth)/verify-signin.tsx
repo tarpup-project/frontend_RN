@@ -9,13 +9,13 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   StyleSheet,
   TextInput,
   View,
-  Image
 } from "react-native";
 import { toast } from "sonner-native";
 
@@ -51,11 +51,11 @@ const VerifySignIn = () => {
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     verifyButton: {
-      backgroundColor: isDark? "#FFFFFF" : "#000000",
+      backgroundColor: isDark ? "#FFFFFF" : "#000000",
     },
     verifyButtonText: {
-      color: isDark? "#000000" : "#FFFFFF",
-    }
+      color: isDark ? "#000000" : "#FFFFFF",
+    },
   };
 
   const handleCodeChange = (text: string, index: number) => {
@@ -258,12 +258,30 @@ const VerifySignIn = () => {
               onPress={handleVerifySignIn}
               disabled={code.join("").length !== 6}
             >
-              <Text style={styles.verifyButtonText}>Verify Email</Text>
+              <Text
+                style={[
+                  styles.verifyButtonText,
+                  dynamicStyles.verifyButtonText,
+                ]}
+              >
+                Verify Email
+              </Text>
             </Pressable>
           ) : (
             <View style={[styles.verifyButton, dynamicStyles.verifyButton]}>
-              <ActivityIndicator color="#000000" size="small" />
-              <Text style={[styles.verifyButtonText, dynamicStyles.verifyButtonText]}> Verifying...</Text>
+              <ActivityIndicator
+                color={dynamicStyles.verifyButtonText.color}
+                size="small"
+              />
+              <Text
+                style={[
+                  styles.verifyButtonText,
+                  dynamicStyles.verifyButtonText,
+                ]}
+              >
+                {" "}
+                Verifying...
+              </Text>
             </View>
           )}
           <Text style={[styles.spam, dynamicStyles.subtitle]}>
@@ -387,10 +405,10 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "600",
     textAlign: "center",
-    textAlignVertical: "center", 
-    paddingTop: 0, 
-    paddingBottom: 0, 
-    paddingHorizontal: 0, 
+    textAlignVertical: "center",
+    paddingTop: 0,
+    paddingBottom: 0,
+    paddingHorizontal: 0,
     includeFontPadding: false,
   },
   verifyButton: {
