@@ -2,10 +2,10 @@ import { useTheme } from "@/app/contexts/ThemeContext";
 import AuthModal from "@/components/AuthModal";
 import { Text } from "@/components/Themedtext";
 import { useAuthStore } from "@/state/authStore";
+import { Moon, Sun } from "lucide-react-native"
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-
 import { useEffect, useRef, useState } from "react";
 import { Animated, Image, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -96,11 +96,11 @@ const Header = () => {
 
         <View style={styles.iconsContainer}>
           <Pressable style={styles.iconButton} onPress={handleThemeToggle}>
-            <Ionicons
-              name={isDark ? "moon-outline" : "sunny-outline"}
-              size={20}
-              color={dynamicStyles.icon.color}
-            />
+            {isDark? (
+                <Moon size={20} color={dynamicStyles.icon.color} />
+            ):(
+              <Sun size={20} color={dynamicStyles.icon.color} />
+            )}
           </Pressable>
 
           <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
