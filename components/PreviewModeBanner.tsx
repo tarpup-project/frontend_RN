@@ -1,8 +1,8 @@
 import { useTheme } from "@/app/contexts/ThemeContext";
-import { Ionicons } from "@expo/vector-icons";
-import { Sparkle } from "lucide-react-native";
-import { useRouter } from "expo-router";
 import { Text } from "@/components/Themedtext";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { MoveRight, Sparkle } from "lucide-react-native";
 import { Pressable, StyleSheet, View } from "react-native";
 
 const PreviewModeBanner = () => {
@@ -45,54 +45,57 @@ const PreviewModeBanner = () => {
 
   return (
     <>
-    <View style={[styles.container, dynamicStyles.container]}>
-      <View style={styles.headerSection}>
-        <Ionicons
-          name="eye-outline"
-          size={24}
-          color={dynamicStyles.text.color}
-          style={styles.eyeIcon}
-        />
-        <View style={styles.contentColumn}>
-          <View style={styles.titleRow}>
-            <Text style={styles.emoji}>👀</Text>
-            <Text style={[styles.title, dynamicStyles.text]}>Preview Mode</Text>
-            <Sparkle size={16} color="#FFD700" />
+      <View style={[styles.container, dynamicStyles.container]}>
+        <View style={styles.headerSection}>
+          <Ionicons
+            name="eye-outline"
+            size={24}
+            color={dynamicStyles.text.color}
+            style={styles.eyeIcon}
+          />
+          <View style={styles.contentColumn}>
+            <View style={styles.titleRow}>
+              <Text style={styles.emoji}>👀</Text>
+              <Text style={[styles.title, dynamicStyles.text]}>
+                Preview Mode
+              </Text>
+              <Sparkle size={16} color="#FFD700" />
+            </View>
+            <Text style={[styles.subtitle, dynamicStyles.subtitle]}>
+              You're exploring TarpAI! Sign up to request matches and join
+              groups.
+            </Text>
           </View>
-          <Text style={[styles.subtitle, dynamicStyles.subtitle]}>
-            You're exploring TarpAI! Sign up to request matches and join groups.
-          </Text>
         </View>
+
+        <Pressable
+          style={[
+            styles.button,
+            styles.secondaryButton,
+            dynamicStyles.secondaryButton,
+          ]}
+          onPress={handleHowItWorksPress}
+        >
+          <Text style={[styles.buttonText, dynamicStyles.secondaryButtonText]}>
+            Create Account
+          </Text>
+          <MoveRight size={18} color={dynamicStyles.primaryButtonText.color} />
+        </Pressable>
+
+        <Pressable
+          style={[
+            styles.button,
+            styles.primaryButton,
+            dynamicStyles.primaryButton,
+          ]}
+          onPress={handleGetStartedPress}
+        >
+          <Text style={[styles.buttonText, dynamicStyles.primaryButtonText]}>
+            Login
+          </Text>
+          <MoveRight size={18} color={dynamicStyles.primaryButtonText.color} />
+        </Pressable>
       </View>
-
-      <Pressable
-        style={[styles.button, styles.secondaryButton, dynamicStyles.secondaryButton]}
-        onPress={handleHowItWorksPress}
-      >
-        <Text style={[styles.buttonText, dynamicStyles.secondaryButtonText]}>
-          Create Account
-        </Text>
-        <Ionicons
-          name="arrow-forward"
-          size={18}
-          color={dynamicStyles.primaryButtonText.color}
-        />
-      </Pressable>
-
-      <Pressable
-        style={[styles.button, styles.primaryButton, dynamicStyles.primaryButton]}
-        onPress={handleGetStartedPress}
-      >
-        <Text style={[styles.buttonText, dynamicStyles.primaryButtonText]}>
-          Login
-        </Text>
-        <Ionicons
-          name="arrow-forward"
-          size={18}
-          color={dynamicStyles.primaryButtonText.color}
-        />
-      </Pressable>
-    </View>
     </>
   );
 };
@@ -150,7 +153,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "400",
   },
 });
 

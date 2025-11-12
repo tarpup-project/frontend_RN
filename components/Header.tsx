@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   titleContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 2,
+    gap: -8,
   },
   logo: {
     width: 35,
