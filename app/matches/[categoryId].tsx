@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   backText: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: "500",
   },
   titleSection: {

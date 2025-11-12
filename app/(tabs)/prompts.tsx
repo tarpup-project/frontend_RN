@@ -9,16 +9,17 @@ import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import {
-  BookOpen,
-  Calendar,
+  BookOpenText,
+  Briefcase,
   Car,
-  Dumbbell,
+  Bed,
   Filter,
+  Gamepad2,
   Gift,
-  Heart,
-  Home,
-  Music,
+  PartyPopper,
   ShoppingBag,
+  Users,
+  Volleyball,
 } from "lucide-react-native";
 import moment from "moment";
 import React, { useMemo, useState } from "react";
@@ -30,23 +31,24 @@ import {
   View,
 } from "react-native";
 import { toast } from "sonner-native";
-
 import Header from "@/components/Header";
 import PreviewModeBanner from "@/components/PreviewModeBanner";
 
 const iconMap: Record<string, any> = {
-  car: Car,
-  calendar: Calendar,
-  music: Music,
+  "briefcase-business": Briefcase,
+  "users-round": Users,
+  "gamepad-2": Gamepad2,
+  "gift": Gift,
   "shopping-bag": ShoppingBag,
-  book: BookOpen,
-  dumbbell: Dumbbell,
-  home: Home,
-  heart: Heart,
-  gift: Gift,
+  "party-popper": PartyPopper,
+  "car": Car,
+  "bed-double": Bed,
+  "volleyball": Volleyball,
+  "book-open-text": BookOpenText,
 };
 
 const getIconComponent = (iconName: string) => {
+  console.log("Icon from API:", iconName); 
   const normalizedName = iconName.toLowerCase();
   return iconMap[normalizedName] || Filter;
 };
@@ -113,7 +115,7 @@ const Prompts = () => {
     container: { backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF" },
     text: { color: isDark ? "#FFFFFF" : "#000000" },
     subtitle: { color: isDark ? "#9a9a9a" : "#666666" },
-    sectionBg: { backgroundColor: isDark ? "#0a0a0a" : "#F9F9F9" },
+    sectionBg: { backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF" },
     categoryChip: {
       backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
@@ -478,7 +480,7 @@ const styles = StyleSheet.create({
   },
   requestButtonDisabled: { opacity: 0.5 },
   requestButtonText: { fontSize: 10, fontWeight: "600" },
-  feedTitle: { fontSize: 12, fontWeight: "700" },
+  feedTitle: { fontSize: 14, fontWeight: "700" },
   liveBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -489,7 +491,7 @@ const styles = StyleSheet.create({
   },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#00FF00" },
   liveText: { color: "#00FF00", fontSize: 10, fontWeight: "bold" },
-  feedSubtitle: { fontSize: 11, marginBottom: 12, fontWeight: "700" },
+  feedSubtitle: { fontSize: 14, marginBottom: 12, fontWeight: "600" },
   statItem: { flexDirection: "row", alignItems: "center", gap: 6 },
   statText: { fontSize: 12 },
   filterSection: { paddingVertical: 16 },

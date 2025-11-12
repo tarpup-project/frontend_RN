@@ -91,7 +91,7 @@ const PreviewModeBanner = () => {
           onPress={handleGetStartedPress}
         >
           <Text style={[styles.buttonText, dynamicStyles.primaryButtonText]}>
-            Login
+            Log in
           </Text>
           <MoveRight size={18} color={dynamicStyles.primaryButtonText.color} />
         </Pressable>
