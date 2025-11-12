@@ -7,6 +7,7 @@ import {
   Pressable,
   StyleSheet,
   View,
+  Platform,
 } from "react-native";
 
 const WelcomeScreenOne = () => {
@@ -88,7 +89,7 @@ const styles = StyleSheet.create({
   },
   skipButton: {
     alignSelf: "flex-end",
-    paddingVertical: 8,
+    paddingVertical: Platform.OS === 'ios'? -7 : 8,
     paddingHorizontal: 16,
   },
   skipText: {
