@@ -1,22 +1,21 @@
 import { useTheme } from "@/app/contexts/ThemeContext";
 import { Text } from "@/components/Themedtext";
+import { UrlConstants } from "@/constants/apiUrls";
+import { saveUserData } from "@/utils/storage";
 import { Ionicons } from "@expo/vector-icons";
+import axios from "axios";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
+  Image,
   Pressable,
   StyleSheet,
   TextInput,
   View,
-  Image,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { toast } from "sonner-native";
-import axios from "axios";
-import { UrlConstants } from "@/constants/apiUrls";
-import { saveUserData } from "@/utils/storage";
 
 const VerifyEmail = () => {
   const { isDark } = useTheme();
@@ -80,13 +79,10 @@ const VerifyEmail = () => {
 
     setIsVerifying(true);
     try {
-      const response = await axios.post(
-        `${UrlConstants.baseUrl}/user/verify`,
-        {
-          email: email,
-          token: verificationCode,
-        }
-      );
+      const response = await axios.post(`${UrlConstants.baseUrl}/user/verify`, {
+        email: email,
+        token: verificationCode,
+      });
 
       if (response.data.status === "success") {
         const userData = response.data.data;
@@ -131,8 +127,7 @@ const VerifyEmail = () => {
         });
       }
     } catch (error: any) {
-      const errorMessage =
-        error?.response?.data?.message || "Please try again";
+      const errorMessage = error?.response?.data?.message || "Please try again";
 
       toast.error("Failed to resend code", {
         description: errorMessage,
@@ -147,11 +142,17 @@ const VerifyEmail = () => {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, dynamicStyles.container]}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
-      <View style={styles.content}>
+    <View style={[styles.container, dynamicStyles.container]}>
+      <KeyboardAwareScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        enableOnAndroid={true}
+        extraScrollHeight={50}
+        enableAutomaticScroll={true}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
         <View style={styles.header}>
           <View style={styles.titleContainer}>
             <View style={styles.logoSpace}>
@@ -291,8 +292,8 @@ const VerifyEmail = () => {
             </Text>
           </Pressable>
         </View>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
+    </View>
   );
 };
 
@@ -304,6 +305,10 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     paddingTop: 180,
+    minHeight: '100%',
+  },
+  scrollContainer: {
+    flex: 1,
   },
   header: {
     alignItems: "center",
