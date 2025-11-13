@@ -3,11 +3,37 @@ import Header from "@/components/Header";
 import { Text } from "@/components/Themedtext";
 import { Skeleton } from "@/components/Skeleton";
 import { Ionicons } from "@expo/vector-icons";
+import {
+  BookOpenText,
+  Briefcase,
+  Car,
+  Bed,
+  Filter,
+  Gamepad2,
+  Gift,
+  PartyPopper,
+  ShoppingBag,
+  Users,
+  Volleyball,
+} from "lucide-react-native";
 import { useState } from "react";
 import { router } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View, RefreshControl, Image } from "react-native";
 import { useGroups, transformGroupForUI } from "@/hooks/useGroups";
 import { useCampus } from "@/hooks/useCampus";
+
+const iconMap: Record<string, any> = {
+  "briefcase-business": Briefcase,
+  "users-round": Users,
+  "gamepad-2": Gamepad2,
+  "gift": Gift,
+  "shopping-bag": ShoppingBag,
+  "party-popper": PartyPopper,
+  "car": Car,
+  "bed-double": Bed,
+  "volleyball": Volleyball,
+  "book-open-text": BookOpenText,
+};
 
 const GroupSkeletonCard = ({ isDark }: { isDark: boolean }) => {
   return (
@@ -51,6 +77,7 @@ const GroupSkeletonCard = ({ isDark }: { isDark: boolean }) => {
 };
 
 const getGroupIconByCategory = (categoryName: string) => {
+  console.log("Input category name:", categoryName); 
   const categoryIconMap: Record<string, string> = {
     'giveaway': 'gift-outline',
     'sports': 'football-outline',
@@ -65,7 +92,18 @@ const getGroupIconByCategory = (categoryName: string) => {
   };
   
   const normalized = categoryName.toLowerCase().trim();
-  return categoryIconMap[normalized] || 'pricetag-outline';
+  console.log("Normalized category:", normalized); 
+  
+  const result = categoryIconMap[normalized] || 'pricetag-outline';
+  console.log("Selected icon:", result); 
+  
+  return result;
+
+};
+
+const getIconComponent = (iconName: string) => {
+  const normalizedName = iconName.toLowerCase();
+  return iconMap[normalizedName] || Filter;
 };
 
 const Groups = () => {
@@ -110,7 +148,7 @@ const toggleDropdown = (groupId: string) => {
       color: isDark ? "#000000" : "#FFFFFF",
     },
     matchBadge: {
-      backgroundColor: isDark? "#0A4D2E" : "#c3f3d5",
+      backgroundColor: isDark? "#234a29" : "#c3f3d5",
     },
     matchText: {
       color: isDark ? "#FFFFFF" : "#000000",
@@ -212,16 +250,24 @@ const toggleDropdown = (groupId: string) => {
           {/* Groups List */}
           {!isLoading && !isError && groups && groups.length > 0 && 
             groups.map(transformGroupForUI).map((group) => {
+
+              console.log("Group category:", group.category); 
+              console.log("Icon name:", getGroupIconByCategory(group.category));            
               
               return (
                 <View key={group.id} style={[styles.groupCard, dynamicStyles.card]}>
                   <View style={styles.topRow}>
                     <View style={[styles.categoryBadge, dynamicStyles.categoryBadge]}>
-                      <Ionicons 
-                        name={getGroupIconByCategory(group.category) as any}
-                        size={12} 
-                        color="#d26925"
-                      />
+                    {(() => {
+  const IconComponent = getIconComponent(group.rawGroup.category[0].icon);
+  return (
+    <IconComponent
+      size={12}
+      color={group.rawGroup.category[0].colorHex} 
+      strokeWidth={2}
+    />
+  );
+})()}
                       <Text style={[styles.categoryText, dynamicStyles.categoryBadgeText]}>
                         {group.category}
                       </Text>
@@ -379,8 +425,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
     borderRadius: 12,
   },
   matchText: {
@@ -388,12 +434,12 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   groupTitle: {
-    fontSize: 14,
-    fontWeight: "bold",
+    fontSize: 16,
+    fontWeight: "700",
   },
   groupDescription: {
-    fontSize: 10,
-    lineHeight: 20,
+    fontSize: 12,
+    lineHeight: 18,
   },
   membersRow: {
     flexDirection: "row",
@@ -445,7 +491,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   unreadText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "600",
   },
   openButton: {

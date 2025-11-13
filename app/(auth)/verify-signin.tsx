@@ -51,10 +51,14 @@ const VerifySignIn = () => {
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     verifyButton: {
-      backgroundColor: isDark ? "#FFFFFF" : "#000000",
+      backgroundColor: code.join("").length === 6 
+        ? (isDark ? "#FFFFFF" : "#000000")  
+        : (isDark ? "#828282" : "#848484")  
     },
     verifyButtonText: {
-      color: isDark ? "#000000" : "#FFFFFF",
+      color: code.join("").length === 6 
+        ? "#000000"  
+        : (isDark ? "#000000" : "#FFFFFF")  
     },
   };
 
@@ -253,6 +257,7 @@ const VerifySignIn = () => {
             <Pressable
               style={[
                 styles.verifyButton,
+                dynamicStyles.verifyButton,
                 code.join("").length !== 6 && styles.verifyButtonDisabled,
               ]}
               onPress={handleVerifySignIn}

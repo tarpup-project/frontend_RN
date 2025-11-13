@@ -128,7 +128,7 @@ export const useGroupMessages = ({ groupId, socket }: UseGroupMessagesProps) => 
     file, 
     replyingTo 
   }: SendMessageOptions): Promise<boolean> => {
-    if (!socket || !user || !message.trim()) {
+    if (!socket || !user || (!message.trim() && !file)) {
       return false;
     }
 
@@ -141,7 +141,7 @@ export const useGroupMessages = ({ groupId, socket }: UseGroupMessagesProps) => 
         messageType: MessageType.USER,
         content: {
           id: messageId,
-          message: message.trim(),
+          message: message.trim() || '',
         },
         file,
         sender: {

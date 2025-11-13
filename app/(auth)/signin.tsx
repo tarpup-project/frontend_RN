@@ -8,14 +8,13 @@ import { useState } from "react";
 import {
   ActivityIndicator,
   Image,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   TextInput,
   View,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { toast } from "sonner-native";
 
 const SignIn = () => {
@@ -50,8 +49,8 @@ const SignIn = () => {
       color: isDark ? "#FFFFFF" : "#000000",
     },
     emailOne: {
-      color: isDark? "#FFFFFF" : "#FFFFFF",
-    }
+      color: isDark ? "#FFFFFF" : "#FFFFFF",
+    },
   };
 
   const validateEmail = (email: string): boolean => {
@@ -100,17 +99,14 @@ const SignIn = () => {
   };
 
   return (
-    <KeyboardAvoidingView
+    <KeyboardAwareScrollView
       style={[styles.container, dynamicStyles.container]}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+      enableOnAndroid={true}
+      extraScrollHeight={20}
+      contentContainerStyle={styles.scrollContent}
+      keyboardShouldPersistTaps="handled"
     >
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
+      
         <View style={styles.content}>
           <View style={styles.header}>
             <View style={styles.titleRow}>
@@ -133,7 +129,11 @@ const SignIn = () => {
           </View>
 
           <View
-            style={[styles.signInSection, styles.signInBox, dynamicStyles.input]}
+            style={[
+              styles.signInSection,
+              styles.signInBox,
+              dynamicStyles.input,
+            ]}
           >
             <Text style={[styles.title, dynamicStyles.text]}>Welcome Back</Text>
             <Text style={[styles.subtitle, dynamicStyles.subtitle]}>
@@ -188,7 +188,9 @@ const SignIn = () => {
                 />
               </Pressable>
             ) : (
-              <View style={[styles.continueButton, dynamicStyles.continueButton]}>
+              <View
+                style={[styles.continueButton, dynamicStyles.continueButton]}
+              >
                 <ActivityIndicator
                   color={dynamicStyles.continueButtonText.color}
                   size="small"
@@ -228,8 +230,7 @@ const SignIn = () => {
             </View>
           </View>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardAwareScrollView>
   );
 };
 
