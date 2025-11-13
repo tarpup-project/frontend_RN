@@ -19,6 +19,7 @@ export default function TabLayout() {
         key={isDark ? "dark" : "light"}
         screenOptions={{
           headerShown: false,
+          unmountOnBlur: false,
           tabBarActiveTintColor: isDark ? "#FFFFFF" : "#000000",
           tabBarInactiveTintColor: isDark ? "#666666" : "#999999",
           tabBarStyle: {

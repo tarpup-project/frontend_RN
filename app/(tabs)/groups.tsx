@@ -92,11 +92,8 @@ const getGroupIconByCategory = (categoryName: string) => {
   };
   
   const normalized = categoryName.toLowerCase().trim();
-  console.log("Normalized category:", normalized); 
   
-  const result = categoryIconMap[normalized] || 'pricetag-outline';
-  console.log("Selected icon:", result); 
-  
+  const result = categoryIconMap[normalized] || 'pricetag-outline';  
   return result;
 
 };
@@ -251,9 +248,6 @@ const toggleDropdown = (groupId: string) => {
           {!isLoading && !isError && groups && groups.length > 0 && 
             groups.map(transformGroupForUI).map((group) => {
 
-              console.log("Group category:", group.category); 
-              console.log("Icon name:", getGroupIconByCategory(group.category));            
-              
               return (
                 <View key={group.id} style={[styles.groupCard, dynamicStyles.card]}>
                   <View style={styles.topRow}>
