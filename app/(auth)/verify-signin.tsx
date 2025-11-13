@@ -7,10 +7,10 @@ import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useRef, useState } from "react";
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import {
   ActivityIndicator,
   Image,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
   StyleSheet,
@@ -156,11 +156,17 @@ const VerifySignIn = () => {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, dynamicStyles.container]}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    <View style={[styles.container, dynamicStyles.container]}>
+    <KeyboardAwareScrollView
+      style={styles.scrollContainer}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+      enableOnAndroid={true}
+      extraScrollHeight={50}
+      enableAutomaticScroll={true}
+      showsVerticalScrollIndicator={false}
+      bounces={false}
     >
-      <View style={styles.content}>
         <View style={styles.header}>
           <View style={styles.titleContainer}>
             <View style={styles.logoSpace}>
@@ -319,8 +325,8 @@ const VerifySignIn = () => {
             </Text>
           </Pressable>
         </View>
-      </View>
-    </KeyboardAvoidingView>
+        </KeyboardAwareScrollView>
+        </View>
   );
 };
 
@@ -329,9 +335,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    flex: 1,
     paddingHorizontal: 24,
     paddingTop: 180,
+    minHeight: '100%',
   },
   header: {
     alignItems: "center",
@@ -401,6 +407,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     gap: 4,
+  },
+  scrollContainer: {
+    flex: 1,
   },
   digitBox: {
     width: 40,
