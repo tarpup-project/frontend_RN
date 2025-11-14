@@ -1,22 +1,21 @@
-import { useTheme } from "@/app/contexts/ThemeContext";
 import { Text } from "@/components/Themedtext";
 import { UrlConstants } from "@/constants/apiUrls";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthStore } from "@/state/authStore";
 import { saveUserData } from "@/utils/storage";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useRef, useState } from "react";
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import {
   ActivityIndicator,
   Image,
-  Platform,
   Pressable,
   StyleSheet,
   TextInput,
   View,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { toast } from "sonner-native";
 
 const VerifySignIn = () => {
@@ -51,14 +50,18 @@ const VerifySignIn = () => {
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     verifyButton: {
-      backgroundColor: code.join("").length === 6 
-        ? (isDark ? "#FFFFFF" : "#000000")  
-        : (isDark ? "#828282" : "#848484")  
+      backgroundColor:
+        code.join("").length === 6
+          ? isDark
+            ? "#FFFFFF"
+            : "#000000"
+          : isDark
+          ? "#828282"
+          : "#848484",
     },
     verifyButtonText: {
-      color: code.join("").length === 6 
-        ? "#000000"  
-        : (isDark ? "#000000" : "#FFFFFF")  
+      color:
+        code.join("").length === 6 ? "#000000" : isDark ? "#000000" : "#FFFFFF",
     },
   };
 
@@ -157,16 +160,16 @@ const VerifySignIn = () => {
 
   return (
     <View style={[styles.container, dynamicStyles.container]}>
-    <KeyboardAwareScrollView
-      style={styles.scrollContainer}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled"
-      enableOnAndroid={true}
-      extraScrollHeight={50}
-      enableAutomaticScroll={true}
-      showsVerticalScrollIndicator={false}
-      bounces={false}
-    >
+      <KeyboardAwareScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        enableOnAndroid={true}
+        extraScrollHeight={50}
+        enableAutomaticScroll={true}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
         <View style={styles.header}>
           <View style={styles.titleContainer}>
             <View style={styles.logoSpace}>
@@ -325,8 +328,8 @@ const VerifySignIn = () => {
             </Text>
           </Pressable>
         </View>
-        </KeyboardAwareScrollView>
-        </View>
+      </KeyboardAwareScrollView>
+    </View>
   );
 };
 
@@ -337,7 +340,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 24,
     paddingTop: 180,
-    minHeight: '100%',
+    minHeight: "100%",
   },
   header: {
     alignItems: "center",

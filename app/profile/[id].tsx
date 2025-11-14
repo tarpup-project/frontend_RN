@@ -1,7 +1,7 @@
-import { useTheme } from "@/app/contexts/ThemeContext";
 import Header from "@/components/Header";
 import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
@@ -89,10 +89,10 @@ const UserProfile = () => {
         <Header />
         <ScrollView style={styles.content}>
           <View style={[styles.profileCard, dynamicStyles.card]}>
-          <View style={styles.backSection}>
-  <Skeleton width={24} height={24} borderRadius={12} />
-  <Skeleton width={60} height={16} borderRadius={4} />
-</View>
+            <View style={styles.backSection}>
+              <Skeleton width={24} height={24} borderRadius={12} />
+              <Skeleton width={60} height={16} borderRadius={4} />
+            </View>
 
             <View style={styles.profileHeader}>
               <Skeleton width={100} height={100} borderRadius={50} />

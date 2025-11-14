@@ -1,5 +1,5 @@
-import { useTheme } from "@/app/contexts/ThemeContext";
 import { Text } from "@/components/Themedtext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { LinearGradient } from "expo-linear-gradient";
 import { MessageSquare, UsersRound } from "lucide-react-native";
 import { useEffect, useRef } from "react";
@@ -210,9 +210,9 @@ const styles = StyleSheet.create({
   },
   skipButton: {
     alignSelf: "flex-end",
-    paddingVertical: Platform.OS === 'ios'? -7 : 8,
+    paddingVertical: Platform.OS === "ios" ? -7 : 8,
     paddingHorizontal: 16,
-    marginTop: 16, 
+    marginTop: 16,
   },
   skipText: {
     fontSize: 16,
@@ -269,13 +269,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   buttonContainer: {
-    marginBottom: Platform.OS === 'ios' ? 15 : 30, 
+    marginBottom: Platform.OS === "ios" ? 15 : 30,
   },
   button: {
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: "center",
-
   },
   buttonText: {
     fontSize: 16,

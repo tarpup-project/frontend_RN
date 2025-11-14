@@ -1,18 +1,23 @@
-import React from 'react';
-import { View, Pressable, StyleSheet } from 'react-native';
-import { Text } from '@/components/Themedtext';
-import { Skeleton } from '@/components/Skeleton';
-import { useTheme } from '@/app/contexts/ThemeContext';
-import { useLeaderboard } from '@/hooks/useLeaderboard';
-import { UserLeaderboardInterface } from '@/types/leaderboard';
-import { Trophy, TrendingUp, Sparkles, ChevronRight } from 'lucide-react-native';
+import { Skeleton } from "@/components/Skeleton";
+import { Text } from "@/components/Themedtext";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useLeaderboard } from "@/hooks/useLeaderboard";
+import { UserLeaderboardInterface } from "@/types/leaderboard";
+import {
+  ChevronRight,
+  Sparkles,
+  TrendingUp,
+  Trophy,
+} from "lucide-react-native";
+import React from "react";
+import { Pressable, StyleSheet, View } from "react-native";
 
 const numberToSocial = (num: number): string => {
   if (num >= 1000000) {
-    return (num / 1000000).toFixed(1) + 'M';
+    return (num / 1000000).toFixed(1) + "M";
   }
   if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'K';
+    return (num / 1000).toFixed(1) + "K";
   }
   return num.toString();
 };
@@ -20,7 +25,6 @@ const numberToSocial = (num: number): string => {
 const numberToStandard = (num: number): string => {
   return num.toLocaleString();
 };
-
 
 const LeaderBoard = () => {
   const { isDark } = useTheme();
@@ -43,7 +47,7 @@ const LeaderBoard = () => {
   };
 
   const handlePress = () => {
-    console.log('Leaderboard pressed - detailed view not yet implemented');
+    console.log("Leaderboard pressed - detailed view not yet implemented");
   };
 
   if (isLoading) {
@@ -51,7 +55,7 @@ const LeaderBoard = () => {
       <View style={[styles.container, dynamicStyles.container]}>
         <View style={styles.content}>
           <View style={styles.leftSection}>
-            <View style={[styles.trophyIcon, { backgroundColor: '#FF7B00' }]}>
+            <View style={[styles.trophyIcon, { backgroundColor: "#FF7B00" }]}>
               <Trophy size={20} color="#FFFFFF" />
             </View>
             <View style={styles.rankingInfo}>
@@ -75,19 +79,19 @@ const LeaderBoard = () => {
   }
 
   if (error || !data) {
-    return null; 
+    return null;
   }
 
   const leaderboardData = data as UserLeaderboardInterface;
 
   return (
-    <Pressable 
+    <Pressable
       style={[styles.container, dynamicStyles.container]}
       onPress={handlePress}
     >
       <View style={styles.content}>
         <View style={styles.leftSection}>
-          <View style={[styles.trophyIcon, { backgroundColor: '#FF7B00' }]}>
+          <View style={[styles.trophyIcon, { backgroundColor: "#FF7B00" }]}>
             <Trophy size={20} color="#FFFFFF" />
           </View>
           <View style={styles.rankingInfo}>
@@ -95,7 +99,8 @@ const LeaderBoard = () => {
               <Text style={[styles.rankText, dynamicStyles.text]}>
                 #{numberToStandard(leaderboardData.position.rank)}
                 <Text style={[styles.rankTotal, dynamicStyles.subtitle]}>
-                  {' '}/ {numberToStandard(leaderboardData.position.totalUsers)}
+                  {" "}
+                  / {numberToStandard(leaderboardData.position.totalUsers)}
                 </Text>
               </Text>
               <View style={[styles.risingStarBadge, dynamicStyles.badge]}>
@@ -110,7 +115,7 @@ const LeaderBoard = () => {
             </Text>
           </View>
         </View>
-        
+
         <View style={styles.rightSection}>
           <View style={styles.pointsContainer}>
             <View style={styles.pointsRow}>
@@ -140,13 +145,13 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   content: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   leftSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
     gap: 12,
   },
@@ -154,29 +159,29 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   rankingInfo: {
     flex: 1,
   },
   rankRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
-    flexWrap: 'wrap',
+    flexWrap: "wrap",
   },
   rankText: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   rankTotal: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   risingStarBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -184,29 +189,29 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   rankingSubtitle: {
     fontSize: 10,
     marginTop: 2,
-    marginBottom:20,
+    marginBottom: 20,
   },
   rightSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   pointsContainer: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   pointsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
   },
   pointsText: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   pointsLabel: {
     fontSize: 10,

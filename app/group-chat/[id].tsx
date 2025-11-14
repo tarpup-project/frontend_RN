@@ -1,11 +1,8 @@
-import {
-  GroupSocketProvider,
-  useGroupSocket,
-} from "@/app/contexts/SocketProvider";
-import { useTheme } from "@/app/contexts/ThemeContext";
 import Header from "@/components/Header";
 import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
+import { GroupSocketProvider, useGroupSocket } from "@/contexts/SocketProvider";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { useGroupMessages, useMessageReply } from "@/hooks/useGroupMessages";
 import { useGroupActions, useGroupDetails } from "@/hooks/useGroups";

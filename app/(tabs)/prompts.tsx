@@ -1,18 +1,20 @@
-import { useTheme } from "@/app/contexts/ThemeContext";
+import AuthModal from "@/components/AuthModal";
+import Header from "@/components/Header";
 import { Loader } from "@/components/Loader";
+import PreviewModeBanner from "@/components/PreviewModeBanner";
 import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
-import AuthModal from "@/components/AuthModal";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useCampus } from "@/hooks/useCampus";
 import { usePrompts } from "@/hooks/usePrompts";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import {
+  Bed,
   BookOpenText,
   Briefcase,
   Car,
-  Bed,
   Filter,
   Gamepad2,
   Gift,
@@ -31,19 +33,17 @@ import {
   View,
 } from "react-native";
 import { toast } from "sonner-native";
-import Header from "@/components/Header";
-import PreviewModeBanner from "@/components/PreviewModeBanner";
 
 const iconMap: Record<string, any> = {
   "briefcase-business": Briefcase,
-  "users-round": UsersRound ,
+  "users-round": UsersRound,
   "gamepad-2": Gamepad2,
-  "gift": Gift,
+  gift: Gift,
   "shopping-bag": ShoppingBag,
   "party-popper": PartyPopper,
-  "car": Car,
+  car: Car,
   "bed-double": Bed,
-  "volleyball": Volleyball,
+  volleyball: Volleyball,
   "book-open-text": BookOpenText,
 };
 
@@ -451,9 +451,9 @@ const Prompts = () => {
         </View>
       </ScrollView>
 
-      <AuthModal 
-        visible={showAuthModal} 
-        onClose={() => setShowAuthModal(false)} 
+      <AuthModal
+        visible={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
       />
     </View>
   );

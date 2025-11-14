@@ -1,14 +1,8 @@
 import { Text } from "@/components/Themedtext";
-import { useTheme } from "@/app/contexts/ThemeContext";
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from "@/contexts/ThemeContext";
 import { useRouter } from "expo-router";
-import {
-  Image,
-  Pressable,
-  StyleSheet,
-  View,
-  Platform,
-} from "react-native";
+import { Image, Platform, Pressable, StyleSheet, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const WelcomeScreenOne = () => {
   const { isDark } = useTheme();
@@ -87,7 +81,7 @@ const WelcomeScreenOne = () => {
           </View>
         </Pressable>
       </View>
-      </SafeAreaView>
+    </SafeAreaView>
   );
 };
 
@@ -99,7 +93,7 @@ const styles = StyleSheet.create({
   },
   skipButton: {
     alignSelf: "flex-end",
-    paddingVertical: Platform.OS === 'ios'? -7 : 8,
+    paddingVertical: Platform.OS === "ios" ? -7 : 8,
     paddingHorizontal: 16,
   },
   skipText: {

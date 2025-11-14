@@ -1,7 +1,7 @@
-import { useTheme } from "@/app/contexts/ThemeContext";
 import Header from "@/components/Header";
 import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useProfileStats } from "@/hooks/useProfileStats";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
@@ -98,7 +98,7 @@ const Profile = () => {
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
   };
-  
+
   const referralLink = `https://tarpup.com/?ref=${user?.id}`;
 
   // Handle refresh

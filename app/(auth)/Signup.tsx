@@ -1,23 +1,21 @@
-
-import { useTheme } from "@/app/contexts/ThemeContext";
 import { Text } from "@/components/Themedtext";
 import { UrlConstants } from "@/constants/apiUrls";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/hooks/useAuth";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import { useRouter } from "expo-router";
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   TextInput,
   View,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { toast } from "sonner-native";
 
 interface University {
@@ -186,15 +184,15 @@ const Signup = () => {
 
   return (
     <View style={[styles.container, dynamicStyles.container]}>
-  <KeyboardAwareScrollView
-    style={styles.content}
-    contentContainerStyle={styles.contentContainer}
-    keyboardShouldPersistTaps="handled"
-    enableOnAndroid={true}
-    extraScrollHeight={20}
-    enableAutomaticScroll={true}
-    showsVerticalScrollIndicator={false}
-  >
+      <KeyboardAwareScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        keyboardShouldPersistTaps="handled"
+        enableOnAndroid={true}
+        extraScrollHeight={20}
+        enableAutomaticScroll={true}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.header}>
           <View style={styles.titleContainer}>
             <Image
@@ -437,8 +435,8 @@ const Signup = () => {
             </Pressable>
           </View>
         </View>
-        </KeyboardAwareScrollView>
-        </View>
+      </KeyboardAwareScrollView>
+    </View>
   );
 };
 
@@ -603,11 +601,11 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   signInText: {
-    fontSize: 11, 
+    fontSize: 11,
     fontWeight: "700",
   },
   signInLink: {
-    fontSize: 11, 
+    fontSize: 11,
     fontWeight: "700",
   },
 });

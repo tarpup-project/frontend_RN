@@ -1,6 +1,6 @@
-import { useTheme } from "@/app/contexts/ThemeContext";
 import AuthModal from "@/components/AuthModal";
 import ProtectedTabIcon from "@/components/ProtectedTabIcon";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useNotifications } from "@/hooks/useNotification";
 import { useAuthStore } from "@/state/authStore";
 import { Tabs } from "expo-router";

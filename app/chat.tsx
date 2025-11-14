@@ -1,5 +1,5 @@
-import { useTheme } from "@/app/contexts/ThemeContext";
 import { Text } from "@/components/Themedtext";
+import { useTheme } from "@/contexts/ThemeContext";
 
 import { Skeleton } from "@/components/Skeleton";
 import { useMatchActions } from "@/hooks/useMatchActions";
@@ -94,7 +94,9 @@ const Chat = () => {
 
   // Skeleton Loading Components
   const MessageSkeleton = ({ isUser }: { isUser: boolean }) => (
-    <View style={[styles.messageContainer, isUser && styles.userMessageContainer]}>
+    <View
+      style={[styles.messageContainer, isUser && styles.userMessageContainer]}
+    >
       {!isUser && (
         <View style={styles.avatarContainer}>
           <Skeleton width={32} height={32} borderRadius={16} />
@@ -125,14 +127,26 @@ const Chat = () => {
     <View style={styles.quickStartSection}>
       <Skeleton width={80} height={16} style={{ marginBottom: 8 }} />
       <View style={styles.quickStartGrid}>
-        {Array(5).fill(0).map((_, i) => (
-          <View key={i} style={[styles.quickStartButton, { borderWidth: 1, borderColor: '#333' }]}>
-            <Skeleton width={14} height={14} borderRadius={7} />
-            <Skeleton width={Math.random() * 60 + 80} height={12} style={{ flex: 1, marginLeft: 6 }} />
-          </View>
-        ))}
+        {Array(5)
+          .fill(0)
+          .map((_, i) => (
+            <View
+              key={i}
+              style={[
+                styles.quickStartButton,
+                { borderWidth: 1, borderColor: "#333" },
+              ]}
+            >
+              <Skeleton width={14} height={14} borderRadius={7} />
+              <Skeleton
+                width={Math.random() * 60 + 80}
+                height={12}
+                style={{ flex: 1, marginLeft: 6 }}
+              />
+            </View>
+          ))}
       </View>
-      
+
       {/* Initial AI Message Skeleton */}
       <View style={styles.initialAiMessageSection}>
         <Skeleton width={32} height={32} borderRadius={16} />
@@ -250,10 +264,7 @@ const Chat = () => {
     return (
       <View
         key={msg.id || index}
-        style={[
-          styles.messageContainer,
-          isUser && styles.userMessageContainer,
-        ]}
+        style={[styles.messageContainer, isUser && styles.userMessageContainer]}
       >
         {/* AI Avatar - Left side */}
         {!isUser && (
@@ -290,7 +301,7 @@ const Chat = () => {
         {isUser && (
           <View style={styles.avatarContainer}>
             <View style={styles.userAvatar}>
-            <UserRound size={16} color="#FFFFFF" />
+              <UserRound size={16} color="#FFFFFF" />
             </View>
           </View>
         )}
@@ -323,13 +334,18 @@ const Chat = () => {
         </View>
 
         {/* Content Skeleton */}
-        <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.contentContainer}
+        >
           <QuickStartSkeleton />
-          
+
           {/* Messages Skeleton */}
-          {Array(4).fill(0).map((_, i) => (
-            <MessageSkeleton key={i} isUser={i % 3 === 0} />
-          ))}
+          {Array(4)
+            .fill(0)
+            .map((_, i) => (
+              <MessageSkeleton key={i} isUser={i % 3 === 0} />
+            ))}
         </ScrollView>
 
         {/* Input Skeleton */}
@@ -372,11 +388,7 @@ const Chat = () => {
               );
             }}
           >
-            <Ionicons
-              name="trash-outline"
-              size={20}
-              color="#EF4444"
-            />
+            <Ionicons name="trash-outline" size={20} color="#EF4444" />
           </Pressable>
           <Pressable style={styles.closeButton} onPress={handleClose}>
             <Ionicons name="close" size={24} color={dynamicStyles.text.color} />

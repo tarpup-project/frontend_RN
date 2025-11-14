@@ -1,9 +1,12 @@
-import { useTheme } from "@/app/contexts/ThemeContext";
+import { api } from "@/api/client";
 import Header from "@/components/Header";
 import { Loader } from "@/components/Loader";
 import { Text } from "@/components/Themedtext";
+import { UrlConstants } from "@/constants/apiUrls";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -15,10 +18,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import * as ImagePicker from "expo-image-picker";
 import { toast } from "sonner-native";
-import { api } from "@/api/client";
-import { UrlConstants } from "@/constants/apiUrls";
 
 interface FormData {
   fullName: string;
@@ -32,13 +32,13 @@ interface FormData {
 const EditProfile = () => {
   const { isDark } = useTheme();
   const { user, setUser } = useAuthStore();
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [showYearDropdown, setShowYearDropdown] = useState(false);
   const [newInterest, setNewInterest] = useState("");
   const interestInputRef = useRef<TextInput>(null);
-  
+
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
     bio: "",
@@ -93,7 +93,7 @@ const EditProfile = () => {
 
   const lookingForOptions = [
     "Study Partners",
-    "Roommates", 
+    "Roommates",
     "Ride Shares",
     "Sports Partners",
     "Event Buddies",
@@ -112,7 +112,7 @@ const EditProfile = () => {
         interests: user.interests || [],
         prefs: user.prefs || [],
       });
-      
+
       if (user.bgUrl) {
         setImageUri(user.bgUrl);
       }
@@ -121,8 +121,9 @@ const EditProfile = () => {
 
   const handleImagePicker = async () => {
     try {
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
+      const permissionResult =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
       if (!permissionResult.granted) {
         toast.error("Permission to access camera roll is required!");
         return;
@@ -145,13 +146,13 @@ const EditProfile = () => {
   };
 
   const updateFormData = (field: keyof FormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const removeInterest = (interestToRemove: string) => {
     updateFormData(
       "interests",
-      formData.interests.filter(interest => interest !== interestToRemove)
+      formData.interests.filter((interest) => interest !== interestToRemove)
     );
   };
 
@@ -172,27 +173,31 @@ const EditProfile = () => {
 
   const toggleLookingFor = (option: string) => {
     const currentPrefs = [...formData.prefs];
-    const existingIndex = currentPrefs.findIndex(pref => pref.category === option);
-    
+    const existingIndex = currentPrefs.findIndex(
+      (pref) => pref.category === option
+    );
+
     if (existingIndex >= 0) {
       currentPrefs[existingIndex].isPref = !currentPrefs[existingIndex].isPref;
     } else {
       currentPrefs.push({ category: option, isPref: true });
     }
-    
+
     updateFormData("prefs", currentPrefs);
   };
 
   const isLookingForSelected = (option: string) => {
-    return formData.prefs.some(pref => pref.category === option && pref.isPref);
+    return formData.prefs.some(
+      (pref) => pref.category === option && pref.isPref
+    );
   };
 
   const handleSave = async () => {
     try {
       setIsLoading(true);
-      
+
       const uploadFormData = new FormData();
-      
+
       if (formData.fullName) {
         uploadFormData.append("fullName", formData.fullName);
       }
@@ -211,32 +216,35 @@ const EditProfile = () => {
       if (formData.prefs.length > 0) {
         uploadFormData.append("prefs", JSON.stringify(formData.prefs));
       }
-      
+
       // Handle image upload if there's a new image
       if (imageUri && imageUri !== user?.bgUrl) {
-        const filename = imageUri.split('/').pop();
-        const match = /\.(\w+)$/.exec(filename || '');
-        const type = match ? `image/${match[1]}` : 'image/jpeg';
-        
-        uploadFormData.append('image', {
+        const filename = imageUri.split("/").pop();
+        const match = /\.(\w+)$/.exec(filename || "");
+        const type = match ? `image/${match[1]}` : "image/jpeg";
+
+        uploadFormData.append("image", {
           uri: imageUri,
-          name: filename || 'profile.jpg',
+          name: filename || "profile.jpg",
           type,
         } as any);
       }
 
-      const response = await api.post(UrlConstants.editProfile, uploadFormData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const response = await api.post(
+        UrlConstants.editProfile,
+        uploadFormData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
       // Update user in auth store
       setUser(response.data.data);
-      
+
       toast.success("Profile updated successfully!");
       router.back();
-      
     } catch (error: any) {
       console.error("Profile update error:", error);
       toast.error(error?.response?.data?.message || "Failed to update profile");
@@ -332,7 +340,6 @@ const EditProfile = () => {
               placeholder="Enter your full name"
               placeholderTextColor={dynamicStyles.subtitle.color}
             />
-            
           </View>
 
           <View style={styles.inputGroup}>
@@ -464,11 +471,12 @@ const EditProfile = () => {
               placeholderTextColor={dynamicStyles.subtitle.color}
               onSubmitEditing={handleAddInterest}
             />
-            <Pressable
-              style={styles.addButton}
-              onPress={handleAddInterest}
-            >
-              <Ionicons name="add" size={24} color={dynamicStyles.addButtonIcon.color} />
+            <Pressable style={styles.addButton} onPress={handleAddInterest}>
+              <Ionicons
+                name="add"
+                size={24}
+                color={dynamicStyles.addButtonIcon.color}
+              />
             </Pressable>
           </View>
 
@@ -522,24 +530,19 @@ const EditProfile = () => {
 
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
-          <Pressable 
+          <Pressable
             style={[styles.cancelButton, dynamicStyles.card]}
             onPress={handleCancel}
           >
-            <Text style={[styles.cancelText, dynamicStyles.text]}>
-              Cancel
-            </Text>
+            <Text style={[styles.cancelText, dynamicStyles.text]}>Cancel</Text>
           </Pressable>
-          <Pressable 
-            style={[
-              styles.saveButton,
-              isLoading && styles.saveButtonDisabled
-            ]}
+          <Pressable
+            style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}
             onPress={handleSave}
             disabled={isLoading}
           >
             {isLoading ? (
-              <Loader 
+              <Loader
                 color="#000000"
                 text="Saving..."
                 textStyle={styles.saveText}

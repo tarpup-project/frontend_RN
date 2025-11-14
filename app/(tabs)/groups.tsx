@@ -1,13 +1,16 @@
-import { useTheme } from "@/app/contexts/ThemeContext";
 import Header from "@/components/Header";
-import { Text } from "@/components/Themedtext";
 import { Skeleton } from "@/components/Skeleton";
+import { Text } from "@/components/Themedtext";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useCampus } from "@/hooks/useCampus";
+import { transformGroupForUI, useGroups } from "@/hooks/useGroups";
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import {
+  Bed,
   BookOpenText,
   Briefcase,
   Car,
-  Bed,
   Filter,
   Gamepad2,
   Gift,
@@ -17,21 +20,25 @@ import {
   Volleyball,
 } from "lucide-react-native";
 import { useState } from "react";
-import { router } from "expo-router";
-import { Pressable, ScrollView, StyleSheet, View, RefreshControl, Image } from "react-native";
-import { useGroups, transformGroupForUI } from "@/hooks/useGroups";
-import { useCampus } from "@/hooks/useCampus";
+import {
+  Image,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 
 const iconMap: Record<string, any> = {
   "briefcase-business": Briefcase,
   "users-round": Users,
   "gamepad-2": Gamepad2,
-  "gift": Gift,
+  gift: Gift,
   "shopping-bag": ShoppingBag,
   "party-popper": PartyPopper,
-  "car": Car,
+  car: Car,
   "bed-double": Bed,
-  "volleyball": Volleyball,
+  volleyball: Volleyball,
   "book-open-text": BookOpenText,
 };
 
@@ -47,55 +54,84 @@ const GroupSkeletonCard = ({ isDark }: { isDark: boolean }) => {
       ]}
     >
       <View style={styles.topRow}>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
+        <View style={{ flexDirection: "row", gap: 8 }}>
           <Skeleton width={60} height={24} borderRadius={6} />
           <Skeleton width={60} height={24} borderRadius={6} />
         </View>
         <Skeleton width={70} height={24} borderRadius={12} />
       </View>
-      
-      <Skeleton width="100%" height={16} borderRadius={4} style={{ marginBottom: 8 }} />
-      <Skeleton width="80%" height={12} borderRadius={4} style={{ marginBottom: 12 }} />
-      
+
+      <Skeleton
+        width="100%"
+        height={16}
+        borderRadius={4}
+        style={{ marginBottom: 8 }}
+      />
+      <Skeleton
+        width="80%"
+        height={12}
+        borderRadius={4}
+        style={{ marginBottom: 12 }}
+      />
+
       <View style={styles.membersRow}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
           <Skeleton width={28} height={28} borderRadius={14} />
-          <Skeleton width={28} height={28} borderRadius={14} style={{ marginLeft: -8 }} />
-          <Skeleton width={28} height={28} borderRadius={14} style={{ marginLeft: -8 }} />
-          <Skeleton width={80} height={12} borderRadius={4} style={{ marginLeft: 8 }} />
+          <Skeleton
+            width={28}
+            height={28}
+            borderRadius={14}
+            style={{ marginLeft: -8 }}
+          />
+          <Skeleton
+            width={28}
+            height={28}
+            borderRadius={14}
+            style={{ marginLeft: -8 }}
+          />
+          <Skeleton
+            width={80}
+            height={12}
+            borderRadius={4}
+            style={{ marginLeft: 8 }}
+          />
         </View>
       </View>
-      
+
       <View style={styles.footerRow}>
         <Skeleton width={100} height={12} borderRadius={4} />
         <Skeleton width={90} height={20} borderRadius={10} />
       </View>
-      
-      <Skeleton width="100%" height={36} borderRadius={18} style={{ marginTop: 8 }} />
+
+      <Skeleton
+        width="100%"
+        height={36}
+        borderRadius={18}
+        style={{ marginTop: 8 }}
+      />
     </View>
   );
 };
 
 const getGroupIconByCategory = (categoryName: string) => {
-  console.log("Input category name:", categoryName); 
+  console.log("Input category name:", categoryName);
   const categoryIconMap: Record<string, string> = {
-    'giveaway': 'gift-outline',
-    'sports': 'football-outline',
-    'games': 'game-controller-outline', 
-    'friends': 'people-outline',
-    'market': 'storefront-outline',
-    'party': 'wine-outline',
-    'rides': 'car-outline',
-    'roommates': 'home-outline',
-    'dating': 'heart-outline',
-    'study group': 'book-outline',
+    giveaway: "gift-outline",
+    sports: "football-outline",
+    games: "game-controller-outline",
+    friends: "people-outline",
+    market: "storefront-outline",
+    party: "wine-outline",
+    rides: "car-outline",
+    roommates: "home-outline",
+    dating: "heart-outline",
+    "study group": "book-outline",
   };
-  
-  const normalized = categoryName.toLowerCase().trim();
-  
-  const result = categoryIconMap[normalized] || 'pricetag-outline';  
-  return result;
 
+  const normalized = categoryName.toLowerCase().trim();
+
+  const result = categoryIconMap[normalized] || "pricetag-outline";
+  return result;
 };
 
 const getIconComponent = (iconName: string) => {
@@ -105,15 +141,19 @@ const getIconComponent = (iconName: string) => {
 
 const Groups = () => {
   const { isDark } = useTheme();
-  const { data: groups, isLoading, isError, refetch, isRefetching } = useGroups();
+  const {
+    data: groups,
+    isLoading,
+    isError,
+    refetch,
+    isRefetching,
+  } = useGroups();
   const [dropdownVisible, setDropdownVisible] = useState<string | null>(null);
   const { selectedUniversity } = useCampus();
 
-
-const toggleDropdown = (groupId: string) => {
-  setDropdownVisible(dropdownVisible === groupId ? null : groupId);
-};
-
+  const toggleDropdown = (groupId: string) => {
+    setDropdownVisible(dropdownVisible === groupId ? null : groupId);
+  };
 
   const dynamicStyles = {
     container: {
@@ -145,16 +185,16 @@ const toggleDropdown = (groupId: string) => {
       color: isDark ? "#000000" : "#FFFFFF",
     },
     matchBadge: {
-      backgroundColor: isDark? "#234a29" : "#c3f3d5",
+      backgroundColor: isDark ? "#234a29" : "#c3f3d5",
     },
     matchText: {
       color: isDark ? "#FFFFFF" : "#000000",
     },
     unreadBadge: {
-      backgroundColor: isDark? "#532325" : "#f7cacf",
+      backgroundColor: isDark ? "#532325" : "#f7cacf",
     },
     unreadText: {
-      color: isDark? "#FFFFFF" : "#000000"
+      color: isDark ? "#FFFFFF" : "#000000",
     },
     retryButton: {
       backgroundColor: isDark ? "#FFFFFF" : "#000000",
@@ -181,14 +221,16 @@ const toggleDropdown = (groupId: string) => {
     <View style={[styles.container, dynamicStyles.container]}>
       <Header />
 
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         refreshControl={
           <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
         }
       >
         <View style={styles.headerSection}>
-          <Text style={[styles.pageTitle, dynamicStyles.text]}>Your Groups</Text>
+          <Text style={[styles.pageTitle, dynamicStyles.text]}>
+            Your Groups
+          </Text>
           <Text style={[styles.pageSubtitle, dynamicStyles.subtitle]}>
             AI-matched groups you've joined
             {selectedUniversity && ` • ${selectedUniversity.name}`}
@@ -209,20 +251,27 @@ const toggleDropdown = (groupId: string) => {
           {/* Error State */}
           {!isLoading && isError && (
             <View style={styles.centerContainer}>
-              <Ionicons 
-                name="alert-circle-outline" 
-                size={48} 
-                color={isDark ? "#FF6B6B" : "#E74C3C"} 
+              <Ionicons
+                name="alert-circle-outline"
+                size={48}
+                color={isDark ? "#FF6B6B" : "#E74C3C"}
               />
-              <Text style={[styles.errorText, dynamicStyles.text]}>Failed to load groups</Text>
+              <Text style={[styles.errorText, dynamicStyles.text]}>
+                Failed to load groups
+              </Text>
               <Text style={[styles.errorSubtext, dynamicStyles.subtitle]}>
                 Check your connection and try again
               </Text>
-              <Pressable 
+              <Pressable
                 style={[styles.retryButton, dynamicStyles.retryButton]}
                 onPress={() => refetch()}
               >
-                <Text style={[styles.retryButtonText, dynamicStyles.retryButtonText]}>
+                <Text
+                  style={[
+                    styles.retryButtonText,
+                    dynamicStyles.retryButtonText,
+                  ]}
+                >
                   Try Again
                 </Text>
               </Pressable>
@@ -232,12 +281,14 @@ const toggleDropdown = (groupId: string) => {
           {/* Empty State */}
           {!isLoading && !isError && (!groups || groups.length === 0) && (
             <View style={styles.centerContainer}>
-              <Ionicons 
-                name="people-outline" 
-                size={48} 
-                color={dynamicStyles.subtitle.color} 
+              <Ionicons
+                name="people-outline"
+                size={48}
+                color={dynamicStyles.subtitle.color}
               />
-              <Text style={[styles.emptyText, dynamicStyles.text]}>No groups yet</Text>
+              <Text style={[styles.emptyText, dynamicStyles.text]}>
+                No groups yet
+              </Text>
               <Text style={[styles.emptySubtext, dynamicStyles.subtitle]}>
                 Join or create a group to get started
               </Text>
@@ -245,30 +296,51 @@ const toggleDropdown = (groupId: string) => {
           )}
 
           {/* Groups List */}
-          {!isLoading && !isError && groups && groups.length > 0 && 
+          {!isLoading &&
+            !isError &&
+            groups &&
+            groups.length > 0 &&
             groups.map(transformGroupForUI).map((group) => {
-
               return (
-                <View key={group.id} style={[styles.groupCard, dynamicStyles.card]}>
+                <View
+                  key={group.id}
+                  style={[styles.groupCard, dynamicStyles.card]}
+                >
                   <View style={styles.topRow}>
-                    <View style={[styles.categoryBadge, dynamicStyles.categoryBadge]}>
-                    {(() => {
-  const IconComponent = getIconComponent(group.rawGroup.category[0].icon);
-  return (
-    <IconComponent
-      size={12}
-      color={group.rawGroup.category[0].colorHex} 
-      strokeWidth={2}
-    />
-  );
-})()}
-                      <Text style={[styles.categoryText, dynamicStyles.categoryBadgeText]}>
+                    <View
+                      style={[
+                        styles.categoryBadge,
+                        dynamicStyles.categoryBadge,
+                      ]}
+                    >
+                      {(() => {
+                        const IconComponent = getIconComponent(
+                          group.rawGroup.category[0].icon
+                        );
+                        return (
+                          <IconComponent
+                            size={12}
+                            color={group.rawGroup.category[0].colorHex}
+                            strokeWidth={2}
+                          />
+                        );
+                      })()}
+                      <Text
+                        style={[
+                          styles.categoryText,
+                          dynamicStyles.categoryBadgeText,
+                        ]}
+                      >
                         {group.category}
                       </Text>
                     </View>
 
                     <View style={[styles.matchBadge, dynamicStyles.matchBadge]}>
-                      <Ionicons name="star-outline" size={12} color={dynamicStyles.matchText.color} />
+                      <Ionicons
+                        name="star-outline"
+                        size={12}
+                        color={dynamicStyles.matchText.color}
+                      />
                       <Text style={[styles.matchText, dynamicStyles.matchText]}>
                         {group.matchPercentage} match
                       </Text>
@@ -278,36 +350,47 @@ const toggleDropdown = (groupId: string) => {
                   <Text style={[styles.groupTitle, dynamicStyles.text]}>
                     {group.title}
                   </Text>
-                  <Text style={[styles.groupDescription, dynamicStyles.subtitle]}>
+                  <Text
+                    style={[styles.groupDescription, dynamicStyles.subtitle]}
+                  >
                     {group.description}
                   </Text>
 
                   <View style={styles.membersRow}>
                     <View style={styles.avatarsContainer}>
-                      {group.rawGroup.members.slice(0, 3).map((member, index) => (
-                        <View
-                          key={member.id}
-                          style={[
-                            styles.avatar,
-                            { backgroundColor: member.bgUrl ? 'transparent' : group.avatarColors[index] },
-                            dynamicStyles.avatarBorder,
-                            index > 0 && { marginLeft: -8 },
-                          ]}
-                        >
-                          {member.bgUrl ? (
-                            <Image 
-                              source={{ uri: member.bgUrl }} 
-                              style={styles.avatarImage}
-                            />
-                          ) : (
-                            <Text style={styles.avatarText}>
-                              {member.fname[0].toUpperCase()}
-                            </Text>
-                          )}
-                        </View>
-                      ))}
-                      <Text style={[styles.membersText, dynamicStyles.subtitle]}>
-                        {group.members} {group.members === 1 ? 'member' : 'members'}
+                      {group.rawGroup.members
+                        .slice(0, 3)
+                        .map((member, index) => (
+                          <View
+                            key={member.id}
+                            style={[
+                              styles.avatar,
+                              {
+                                backgroundColor: member.bgUrl
+                                  ? "transparent"
+                                  : group.avatarColors[index],
+                              },
+                              dynamicStyles.avatarBorder,
+                              index > 0 && { marginLeft: -8 },
+                            ]}
+                          >
+                            {member.bgUrl ? (
+                              <Image
+                                source={{ uri: member.bgUrl }}
+                                style={styles.avatarImage}
+                              />
+                            ) : (
+                              <Text style={styles.avatarText}>
+                                {member.fname[0].toUpperCase()}
+                              </Text>
+                            )}
+                          </View>
+                        ))}
+                      <Text
+                        style={[styles.membersText, dynamicStyles.subtitle]}
+                      >
+                        {group.members}{" "}
+                        {group.members === 1 ? "member" : "members"}
                       </Text>
                     </View>
                   </View>
@@ -324,8 +407,12 @@ const toggleDropdown = (groupId: string) => {
                       </Text>
                     </View>
 
-                    <View style={[styles.unreadBadge, dynamicStyles.unreadBadge]}>
-                      <Text style={[styles.unreadText, dynamicStyles.unreadText]}>
+                    <View
+                      style={[styles.unreadBadge, dynamicStyles.unreadBadge]}
+                    >
+                      <Text
+                        style={[styles.unreadText, dynamicStyles.unreadText]}
+                      >
                         {group.unreadCount} new messages
                       </Text>
                     </View>
@@ -333,7 +420,7 @@ const toggleDropdown = (groupId: string) => {
 
                   <Pressable
                     style={[styles.openButton, dynamicStyles.openButton]}
-                    onPress={() => {                      
+                    onPress={() => {
                       router.push(`/group-chat/${group.id}`);
                     }}
                   >
@@ -353,8 +440,7 @@ const toggleDropdown = (groupId: string) => {
                   </Pressable>
                 </View>
               );
-            })
-          }
+            })}
         </View>
       </ScrollView>
     </View>
@@ -371,8 +457,8 @@ const styles = StyleSheet.create({
   },
   centerContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: 60,
     gap: 12,
   },
@@ -450,11 +536,11 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     justifyContent: "center",
     alignItems: "center",
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   avatarImage: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
     borderRadius: 12,
   },
   avatarText: {
@@ -504,12 +590,12 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     marginTop: 12,
   },
   errorSubtext: {
     fontSize: 14,
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: 4,
   },
   retryButton: {
@@ -520,16 +606,16 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   emptyText: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     marginTop: 12,
   },
   emptySubtext: {
     fontSize: 14,
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: 4,
   },
 });

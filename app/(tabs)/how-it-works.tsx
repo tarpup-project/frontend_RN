@@ -1,6 +1,6 @@
-import { useTheme } from "@/app/contexts/ThemeContext";
 import Header from "@/components/Header";
 import { Text } from "@/components/Themedtext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";

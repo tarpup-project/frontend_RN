@@ -1,6 +1,6 @@
-import { useTheme } from "@/app/contexts/ThemeContext";
 import { Text } from "@/components/Themedtext";
 import { UrlConstants } from "@/constants/apiUrls";
+import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import { useRouter } from "expo-router";
@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   Image,
   Pressable,
-  ScrollView,
   StyleSheet,
   TextInput,
   View,
@@ -106,130 +105,123 @@ const SignIn = () => {
       contentContainerStyle={styles.scrollContent}
       keyboardShouldPersistTaps="handled"
     >
-      
-        <View style={styles.content}>
-          <View style={styles.header}>
-            <View style={styles.titleRow}>
-              <Image
-                source={
-                  isDark
-                    ? require("@/assets/images/tarpup-plain-dark.png")
-                    : require("@/assets/images/tarpup-plain.png")
-                }
-                style={styles.logo}
-                resizeMode="contain"
-              />
-              <Text style={[styles.appTitle, dynamicStyles.text]}>
-                TarpAI Connect
-              </Text>
-            </View>
-            <Text style={[styles.tagline, dynamicStyles.subtitle]}>
-              Smart campus connections powered by AI
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <View style={styles.titleRow}>
+            <Image
+              source={
+                isDark
+                  ? require("@/assets/images/tarpup-plain-dark.png")
+                  : require("@/assets/images/tarpup-plain.png")
+              }
+              style={styles.logo}
+              resizeMode="contain"
+            />
+            <Text style={[styles.appTitle, dynamicStyles.text]}>
+              TarpAI Connect
+            </Text>
+          </View>
+          <Text style={[styles.tagline, dynamicStyles.subtitle]}>
+            Smart campus connections powered by AI
+          </Text>
+        </View>
+
+        <View
+          style={[styles.signInSection, styles.signInBox, dynamicStyles.input]}
+        >
+          <Text style={[styles.title, dynamicStyles.text]}>Welcome Back</Text>
+          <Text style={[styles.subtitle, dynamicStyles.subtitle]}>
+            Enter your email to sign in securely
+          </Text>
+
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, dynamicStyles.text]}>
+              University Email
+            </Text>
+            <TextInput
+              style={[styles.input, dynamicStyles.input]}
+              placeholder="name@university.edu"
+              placeholderTextColor={isDark ? "#666666" : "#999999"}
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              editable={!isLoading}
+              returnKeyType="done"
+              onSubmitEditing={handleContinue}
+              autoCorrect={false}
+              autoComplete="email"
+            />
+            <Text style={[styles.hint, dynamicStyles.subtitle]}>
+              We will send a verification code to confirm it is you
             </Text>
           </View>
 
-          <View
-            style={[
-              styles.signInSection,
-              styles.signInBox,
-              dynamicStyles.input,
-            ]}
-          >
-            <Text style={[styles.title, dynamicStyles.text]}>Welcome Back</Text>
-            <Text style={[styles.subtitle, dynamicStyles.subtitle]}>
-              Enter your email to sign in securely
-            </Text>
-
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, dynamicStyles.text]}>
-                University Email
-              </Text>
-              <TextInput
-                style={[styles.input, dynamicStyles.input]}
-                placeholder="name@university.edu"
-                placeholderTextColor={isDark ? "#666666" : "#999999"}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                editable={!isLoading}
-                returnKeyType="done"
-                onSubmitEditing={handleContinue}
-                autoCorrect={false}
-                autoComplete="email"
-              />
-              <Text style={[styles.hint, dynamicStyles.subtitle]}>
-                We will send a verification code to confirm it is you
-              </Text>
-            </View>
-
-            {!isLoading ? (
-              <Pressable
+          {!isLoading ? (
+            <Pressable
+              style={[
+                styles.continueButton,
+                dynamicStyles.continueButton,
+                !email && styles.continueButtonDisabled,
+              ]}
+              onPress={handleContinue}
+              disabled={!email}
+            >
+              <Text
                 style={[
-                  styles.continueButton,
-                  dynamicStyles.continueButton,
-                  !email && styles.continueButtonDisabled,
+                  styles.continueButtonText,
+                  dynamicStyles.continueButtonText,
                 ]}
-                onPress={handleContinue}
-                disabled={!email}
               >
-                <Text
-                  style={[
-                    styles.continueButtonText,
-                    dynamicStyles.continueButtonText,
-                  ]}
-                >
-                  Continue
-                </Text>
-                <Ionicons
-                  name="arrow-forward"
-                  size={18}
-                  color={dynamicStyles.continueButtonText.color}
-                />
-              </Pressable>
-            ) : (
-              <View
-                style={[styles.continueButton, dynamicStyles.continueButton]}
-              >
-                <ActivityIndicator
-                  color={dynamicStyles.continueButtonText.color}
-                  size="small"
-                />
-                <Text
-                  style={[
-                    styles.continueButtonText,
-                    dynamicStyles.continueButtonText,
-                  ]}
-                >
-                  {" "}
-                  Sending...
-                </Text>
-              </View>
-            )}
-
-            <View style={styles.securityNote}>
+                Continue
+              </Text>
               <Ionicons
-                name="shield-checkmark-outline"
-                size={16}
-                color={isDark ? "#4A90E2" : "#5B9BD5"}
+                name="arrow-forward"
+                size={18}
+                color={dynamicStyles.continueButtonText.color}
               />
-              <Text style={[styles.securityText, dynamicStyles.emailOne]}>
-                Your email is kept secure and never shared
+            </Pressable>
+          ) : (
+            <View style={[styles.continueButton, dynamicStyles.continueButton]}>
+              <ActivityIndicator
+                color={dynamicStyles.continueButtonText.color}
+                size="small"
+              />
+              <Text
+                style={[
+                  styles.continueButtonText,
+                  dynamicStyles.continueButtonText,
+                ]}
+              >
+                {" "}
+                Sending...
               </Text>
             </View>
+          )}
 
-            <View style={styles.signUpContainer}>
-              <Text style={[styles.signUpText, dynamicStyles.subtitle]}>
-                Don't have an account?{" "}
+          <View style={styles.securityNote}>
+            <Ionicons
+              name="shield-checkmark-outline"
+              size={16}
+              color={isDark ? "#4A90E2" : "#5B9BD5"}
+            />
+            <Text style={[styles.securityText, dynamicStyles.emailOne]}>
+              Your email is kept secure and never shared
+            </Text>
+          </View>
+
+          <View style={styles.signUpContainer}>
+            <Text style={[styles.signUpText, dynamicStyles.subtitle]}>
+              Don't have an account?{" "}
+            </Text>
+            <Pressable onPress={() => router.back()}>
+              <Text style={[styles.signUpLink, dynamicStyles.signUpLink]}>
+                Sign Up
               </Text>
-              <Pressable onPress={() => router.back()}>
-                <Text style={[styles.signUpLink, dynamicStyles.signUpLink]}>
-                  Sign Up
-                </Text>
-              </Pressable>
-            </View>
+            </Pressable>
           </View>
         </View>
+      </View>
     </KeyboardAwareScrollView>
   );
 };
