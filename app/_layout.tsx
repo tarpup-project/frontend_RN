@@ -1,5 +1,4 @@
 import { ThemeProvider, useTheme } from "@/app/contexts/ThemeContext";
-import { useFonts } from "expo-font";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { AuthProvider } from "./contexts/Authprovider";
 import * as SplashScreen from "expo-splash-screen";
@@ -9,7 +8,7 @@ import React, { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { Text, View, ActivityIndicator } from "react-native";
+import {  View, ActivityIndicator } from "react-native";
 import { useAuthStore } from "@/state/authStore";
 
 SplashScreen.preventAutoHideAsync();
@@ -70,26 +69,6 @@ function RootLayoutContent() {
 }
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
-    "Geist-Regular": require("@/assets/fonts/Geist-Regular.ttf"),
-    "Geist-Medium": require("@/assets/fonts/Geist-Medium.ttf"),
-    "Geist-Bold": require("@/assets/fonts/Geist-Bold.ttf"),
-  });
-
-  useEffect(() => {
-    if (fontsLoaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded]);
-
-  if (!fontsLoaded) {
-    return null;
-  }
-
-  // @ts-ignore
-  Text.defaultProps = Text.defaultProps || {};
-  // @ts-ignore
-  Text.defaultProps.style = { fontFamily: "Geist-Regular" };
 
   return (
     <QueryClientProvider client={queryClient}>
