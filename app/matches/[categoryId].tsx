@@ -1,29 +1,25 @@
-
-import { useTheme } from "@/app/contexts/ThemeContext";
 import Header from "@/components/Header";
 import PreviewModeBanner from "@/components/PreviewModeBanner";
 import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
+import { UrlConstants } from "@/constants/apiUrls";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useCampus } from "@/hooks/useCampus";
 import { useCategories } from "@/hooks/useCategories";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
 import { router, useLocalSearchParams } from "expo-router";
-import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
-import { UrlConstants } from '@/constants/apiUrls';
-import {
-  Clock,
-  Zap,
-} from "lucide-react-native";
+import { Clock, Zap } from "lucide-react-native";
 import moment from "moment";
 import { useEffect, useRef } from "react";
-import { 
+import {
   Animated,
-  Pressable, 
-  ScrollView, 
-  StyleSheet, 
-  View 
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
 } from "react-native";
 
 interface CategoryMatch {
@@ -46,13 +42,18 @@ interface CategoryMatch {
 
 const useCategoryMatches = (categoryId: string, campusId?: string) => {
   return useQuery({
-    queryKey: ['categoryMatches', categoryId, campusId],
+    queryKey: ["categoryMatches", categoryId, campusId],
     queryFn: async () => {
       const response = await axios.get<{
         status: string;
         data: CategoryMatch[];
-      }>(`${UrlConstants.baseUrl}${UrlConstants.fetchCategoryMatches(categoryId, campusId || '')}`);
-      
+      }>(
+        `${UrlConstants.baseUrl}${UrlConstants.fetchCategoryMatches(
+          categoryId,
+          campusId || ""
+        )}`
+      );
+
       return response.data.data;
     },
     enabled: !!categoryId && !!campusId,
@@ -90,11 +91,9 @@ const AnimatedZap = ({ color, size }: { color: string; size: number }) => {
   );
 };
 
-
-
 const MatchCardSkeleton = () => {
   const { isDark } = useTheme();
-  
+
   return (
     <View
       style={[
@@ -108,7 +107,12 @@ const MatchCardSkeleton = () => {
       <View style={styles.matchHeader}>
         <View style={styles.namesRow}>
           <Skeleton width={60} height={16} style={{ marginRight: 8 }} />
-          <Skeleton width={12} height={12} borderRadius={6} style={{ marginRight: 8 }} />
+          <Skeleton
+            width={12}
+            height={12}
+            borderRadius={6}
+            style={{ marginRight: 8 }}
+          />
           <Skeleton width={60} height={16} />
         </View>
       </View>
@@ -120,8 +124,12 @@ const MatchCardSkeleton = () => {
   );
 };
 
-const AnimatedMatchCard = ({ match, index, dynamicStyles }: { 
-  match: CategoryMatch; 
+const AnimatedMatchCard = ({
+  match,
+  index,
+  dynamicStyles,
+}: {
+  match: CategoryMatch;
   index: number;
   dynamicStyles: any;
 }) => {
@@ -157,23 +165,26 @@ const AnimatedMatchCard = ({ match, index, dynamicStyles }: {
         onPress={() => console.log(`Navigate to match ${match.id}`)}
       >
         <View style={styles.matchContent}>
-          <Text style={[styles.matchText, dynamicStyles.text]} numberOfLines={0}>
+          <Text
+            style={[styles.matchText, dynamicStyles.text]}
+            numberOfLines={0}
+          >
             <Text style={styles.matchName}>
               {match.members[0]?.user.fname || "User"}
             </Text>
             <Text> </Text>
             <View style={styles.zapContainer}>
-            <AnimatedZap color="#00D084" size={12} />
-          </View>
+              <AnimatedZap color="#00D084" size={12} />
+            </View>
             <Text> </Text>
             <Text style={styles.matchName}>
               {match.members[1]?.user.fname || "Partner"}
             </Text>
             <Text style={styles.matchDescription}>
-              {" "}for {match.request?.title || match.group?.name || "Connection"}
+              {" "}
+              for {match.request?.title || match.group?.name || "Connection"}
             </Text>
           </Text>
-         
         </View>
 
         <View style={styles.matchFooter}>
@@ -193,17 +204,14 @@ const CategoryMatches = () => {
   const { selectedUniversity } = useCampus();
   const { data: categories } = useCategories(selectedUniversity?.id);
   const { isAuthenticated } = useAuthStore();
-  
+
   const category = categories?.find((cat: any) => cat.id === categoryId);
-  
-  const { 
-    data: matches, 
+
+  const {
+    data: matches,
     isLoading: isLoadingMatches,
-    error 
-  } = useCategoryMatches(
-    categoryId as string, 
-    selectedUniversity?.id
-  );
+    error,
+  } = useCategoryMatches(categoryId as string, selectedUniversity?.id);
 
   const dynamicStyles = {
     container: {
@@ -223,7 +231,7 @@ const CategoryMatches = () => {
 
   return (
     <View style={[styles.container, dynamicStyles.container]}>
-      <ScrollView 
+      <ScrollView
         style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
       >
@@ -309,7 +317,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(128, 128, 128, 0.2)',
+    borderBottomColor: "rgba(128, 128, 128, 0.2)",
   },
   backButton: {
     flexDirection: "row",
@@ -359,7 +367,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     flex: 1,
-    flexWrap: 'wrap',
+    flexWrap: "wrap",
   },
   zapContainer: {
     marginTop: 2,

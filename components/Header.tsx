@@ -1,11 +1,11 @@
-import { useTheme } from "@/app/contexts/ThemeContext";
 import AuthModal from "@/components/AuthModal";
 import { Text } from "@/components/Themedtext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthStore } from "@/state/authStore";
-import { Moon, Sun } from "lucide-react-native"
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { Moon, Sun } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { Animated, Image, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -96,9 +96,9 @@ const Header = () => {
 
         <View style={styles.iconsContainer}>
           <Pressable style={styles.iconButton} onPress={handleThemeToggle}>
-            {isDark? (
-                <Moon size={20} color={dynamicStyles.icon.color} />
-            ):(
+            {isDark ? (
+              <Moon size={20} color={dynamicStyles.icon.color} />
+            ) : (
               <Sun size={20} color={dynamicStyles.icon.color} />
             )}
           </Pressable>

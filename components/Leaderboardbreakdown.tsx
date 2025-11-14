@@ -1,25 +1,25 @@
-import React from 'react';
-import { View, Pressable, StyleSheet, Modal, ScrollView } from 'react-native';
-import { Text } from '@/components/Themedtext';
-import { useTheme } from '@/app/contexts/ThemeContext';
-import { 
-  Trophy, 
-  TrendingUp, 
-  X, 
-  Award, 
-  MessageSquare, 
-  Target, 
-  Users, 
+import { Text } from "@/components/Themedtext";
+import { useTheme } from "@/contexts/ThemeContext";
+import {
+  Award,
+  MessageSquare,
+  Sparkles,
+  Target,
+  TrendingUp,
+  Trophy,
   UserPlus,
-  Sparkles 
-} from 'lucide-react-native';
+  Users,
+  X,
+} from "lucide-react-native";
+import React from "react";
+import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 const numberToSocial = (num: number): string => {
   if (num >= 1000000) {
-    return (num / 1000000).toFixed(1) + 'M';
+    return (num / 1000000).toFixed(1) + "M";
   }
   if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'K';
+    return (num / 1000).toFixed(1) + "K";
   }
   return num.toString();
 };
@@ -104,7 +104,7 @@ const LeaderBoardBreakDown: React.FC<LeaderBoardBreakDownProps> = ({
       <View style={[styles.container, dynamicStyles.modal]}>
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <View style={[styles.trophyIcon, { backgroundColor: '#FF7B00' }]}>
+            <View style={[styles.trophyIcon, { backgroundColor: "#FF7B00" }]}>
               <Trophy size={20} color="#FFFFFF" />
             </View>
             <Text style={[styles.headerTitle, dynamicStyles.text]}>
@@ -124,11 +124,14 @@ const LeaderBoardBreakDown: React.FC<LeaderBoardBreakDownProps> = ({
           <View style={[styles.statCard, dynamicStyles.card]}>
             <Award color="#FF7B00" size={20} />
             <View style={styles.statInfo}>
-              <Text style={[styles.statLabel, dynamicStyles.subtitle]}>Rank</Text>
+              <Text style={[styles.statLabel, dynamicStyles.subtitle]}>
+                Rank
+              </Text>
               <Text style={[styles.statValue, dynamicStyles.text]}>
                 #{numberToStandard(data.position.rank)}
                 <Text style={[styles.statTotal, dynamicStyles.subtitle]}>
-                  {' '}/ {numberToStandard(data.position.totalUsers)}
+                  {" "}
+                  / {numberToStandard(data.position.totalUsers)}
                 </Text>
               </Text>
             </View>
@@ -137,7 +140,9 @@ const LeaderBoardBreakDown: React.FC<LeaderBoardBreakDownProps> = ({
           <View style={[styles.statCard, dynamicStyles.card]}>
             <TrendingUp color={dynamicStyles.text.color} size={20} />
             <View style={styles.statInfo}>
-              <Text style={[styles.statLabel, dynamicStyles.subtitle]}>Points</Text>
+              <Text style={[styles.statLabel, dynamicStyles.subtitle]}>
+                Points
+              </Text>
               <Text style={[styles.statValue, dynamicStyles.text]}>
                 {numberToSocial(data.totalPoints)}
               </Text>
@@ -147,7 +152,10 @@ const LeaderBoardBreakDown: React.FC<LeaderBoardBreakDownProps> = ({
 
         <View style={styles.divider} />
 
-        <ScrollView style={styles.breakdown} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.breakdown}
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.breakdownHeader}>
             <Text style={[styles.breakdownTitle, dynamicStyles.subtitle]}>
               Points Breakdown
@@ -206,7 +214,8 @@ const LeaderBoardBreakDown: React.FC<LeaderBoardBreakDownProps> = ({
                     </View>
                   </View>
                   <Text style={[styles.activityWeight, dynamicStyles.subtitle]}>
-                    {numberToStandard(data.createdPrompts.weight)} pts per action
+                    {numberToStandard(data.createdPrompts.weight)} pts per
+                    action
                   </Text>
                   <Text style={[styles.activityDesc, dynamicStyles.subtitle]}>
                     AI matching requests you submitted
@@ -235,7 +244,8 @@ const LeaderBoardBreakDown: React.FC<LeaderBoardBreakDownProps> = ({
                     </View>
                   </View>
                   <Text style={[styles.activityWeight, dynamicStyles.subtitle]}>
-                    {numberToStandard(data.successfulMatches.weight)} pts per action
+                    {numberToStandard(data.successfulMatches.weight)} pts per
+                    action
                   </Text>
                   <Text style={[styles.activityDesc, dynamicStyles.subtitle]}>
                     Groups where matches were confirmed
@@ -313,26 +323,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 8,
   },
   headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   trophyIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   closeButton: {
     padding: 8,
@@ -342,14 +352,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   statsRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
     marginBottom: 16,
   },
   statCard: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
     padding: 12,
     borderWidth: 1,
@@ -364,23 +374,23 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   statTotal: {
-    fontWeight: '400',
+    fontWeight: "400",
   },
   divider: {
     height: 1,
-    backgroundColor: '#404040',
+    backgroundColor: "#404040",
     marginBottom: 16,
   },
   breakdown: {
     flex: 1,
   },
   breakdownHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 16,
   },
   breakdownTitle: {
@@ -394,22 +404,22 @@ const styles = StyleSheet.create({
   },
   activitiesText: {
     fontSize: 10,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   activityList: {
     gap: 12,
   },
   activityCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     padding: 12,
     borderWidth: 1,
     borderRadius: 8,
   },
   activityLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
     flex: 1,
   },
@@ -417,21 +427,21 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   activityInfo: {
     flex: 1,
   },
   activityTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
     marginBottom: 2,
   },
   activityTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   countBadge: {
     paddingHorizontal: 6,
@@ -440,7 +450,7 @@ const styles = StyleSheet.create({
   },
   countText: {
     fontSize: 11,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   activityWeight: {
     fontSize: 11,
@@ -451,16 +461,16 @@ const styles = StyleSheet.create({
   },
   activityPoints: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   totalCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 16,
     borderWidth: 1,
     borderRadius: 8,
-    borderStyle: 'dashed',
+    borderStyle: "dashed",
     marginTop: 16,
     marginBottom: 40,
   },
@@ -468,24 +478,24 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   totalTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
     marginBottom: 4,
   },
   totalTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   monthProgress: {
     fontSize: 12,
   },
   totalRight: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   totalPoints: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   totalLabel: {
     fontSize: 10,

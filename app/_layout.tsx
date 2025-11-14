@@ -1,15 +1,15 @@
-import { ThemeProvider, useTheme } from "@/app/contexts/ThemeContext";
+import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
+import { useAuthStore } from "@/state/authStore";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments } from "expo-router";
-import { AuthProvider } from "./contexts/Authprovider";
 import * as SplashScreen from "expo-splash-screen";
-import { Toaster } from "sonner-native";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ActivityIndicator, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import {  View, ActivityIndicator } from "react-native";
-import { useAuthStore } from "@/state/authStore";
+import { Toaster } from "sonner-native";
+import { AuthProvider } from "@/contexts/Authprovider";
 
 SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient();
@@ -19,6 +19,12 @@ function RootLayoutContent() {
   const { isAuthenticated, isLoading } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading) {
+      SplashScreen.hideAsync();
+    }
+  }, [isLoading]);
 
   useEffect(() => {
     if (isLoading) {
@@ -32,6 +38,7 @@ function RootLayoutContent() {
     }
   }, [isAuthenticated, isLoading, segments, router]);
 
+
   if (isLoading) {
     return (
       <View
@@ -42,7 +49,10 @@ function RootLayoutContent() {
           backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
         }}
       >
-        <ActivityIndicator size="large" color={isDark ? "#FFFFFF" : "#000000"} />
+        <ActivityIndicator
+          size="large"
+          color={isDark ? "#FFFFFF" : "#000000"}
+        />
       </View>
     );
   }
@@ -69,19 +79,17 @@ function RootLayoutContent() {
 }
 
 export default function RootLayout() {
-
   return (
     <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <SafeAreaProvider>
-          <ThemeProvider>
-            <RootLayoutContent />
-          </ThemeProvider>
-        </SafeAreaProvider>
-      </GestureHandlerRootView>
-    </AuthProvider>
+      <AuthProvider>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <SafeAreaProvider>
+            <ThemeProvider>
+              <RootLayoutContent />
+            </ThemeProvider>
+          </SafeAreaProvider>
+        </GestureHandlerRootView>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
-

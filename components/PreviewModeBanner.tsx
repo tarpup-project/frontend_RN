@@ -1,5 +1,5 @@
-import { useTheme } from "@/app/contexts/ThemeContext";
 import { Text } from "@/components/Themedtext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { MoveRight, Sparkle } from "lucide-react-native";

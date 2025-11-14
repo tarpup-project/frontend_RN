@@ -1,16 +1,16 @@
-import { useTheme } from "@/app/contexts/ThemeContext";
 import { Text } from "@/components/Themedtext";
-import {  Lock } from "lucide-react-native";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useRouter } from "expo-router";
+import { Lock } from "lucide-react-native";
 import React, { useEffect, useRef } from "react";
 import {
   Animated,
+  Dimensions,
+  Image,
   Modal,
   Pressable,
   StyleSheet,
   View,
-  Dimensions,
-  Image
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -96,12 +96,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
       statusBarTranslucent
       onRequestClose={onClose}
     >
-      <Animated.View 
-        style={[
-          styles.overlay, 
-          dynamicStyles.overlay,
-          { opacity: fadeAnim }
-        ]}
+      <Animated.View
+        style={[styles.overlay, dynamicStyles.overlay, { opacity: fadeAnim }]}
       >
         <Pressable style={styles.overlayPressable} onPress={onClose}>
           <View style={styles.container}>
@@ -110,7 +106,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
                 style={[
                   styles.modal,
                   dynamicStyles.modal,
-                  { 
+                  {
                     marginBottom: insets.bottom + 20,
                     transform: [{ scale: scaleAnim }],
                     opacity: fadeAnim,
@@ -118,62 +114,75 @@ const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
                   },
                 ]}
               >
-            {/* Icon and Lock */}
-            <View style={styles.iconSection}>
-              <View style={[styles.iconContainer]}>
-              <Image
-      source={
-        isDark
-          ? require("@/assets/images/tarpup-plain-dark.png")
-          : require("@/assets/images/tarpup-plain.png")
-      }
-      style={styles.logo}
-      resizeMode="contain"
-    />
-              </View>
-              <Lock
-                size={20}
-                color={isDark ? "#FFFFFF" : "#000000"}
-                strokeWidth={2.5}
-                style={styles.lockIcon}
-              />
-            </View>
+                {/* Icon and Lock */}
+                <View style={styles.iconSection}>
+                  <View style={[styles.iconContainer]}>
+                    <Image
+                      source={
+                        isDark
+                          ? require("@/assets/images/tarpup-plain-dark.png")
+                          : require("@/assets/images/tarpup-plain.png")
+                      }
+                      style={styles.logo}
+                      resizeMode="contain"
+                    />
+                  </View>
+                  <Lock
+                    size={20}
+                    color={isDark ? "#FFFFFF" : "#000000"}
+                    strokeWidth={2.5}
+                    style={styles.lockIcon}
+                  />
+                </View>
 
-            {/* Title */}
-            <Text style={[styles.title, dynamicStyles.text]}>
-              Sign in to Continue
-            </Text>
-
-            {/* Subtitle */}
-            <Text style={[styles.subtitle, dynamicStyles.subText]}>
-              Join TarpAI Connect to find your perfect campus matches
-            </Text>
-
-            {/* Buttons */}
-            <View style={styles.buttonContainer}>
-              <Pressable
-                style={[styles.primaryButton, dynamicStyles.primaryButton]}
-                onPress={handleSignIn}
-              >
-                <Text style={[styles.primaryButtonText, dynamicStyles.primaryButtonText]}>
-                  Sign in
+                {/* Title */}
+                <Text style={[styles.title, dynamicStyles.text]}>
+                  Sign in to Continue
                 </Text>
-              </Pressable>
 
-              <Pressable
-                style={[styles.secondaryButton, dynamicStyles.secondaryButton]}
-                onPress={handleCreateAccount}
-              >
-                <Text style={[styles.secondaryButtonText, dynamicStyles.secondaryButtonText]}>
-                  Create Account
+                {/* Subtitle */}
+                <Text style={[styles.subtitle, dynamicStyles.subText]}>
+                  Join TarpAI Connect to find your perfect campus matches
                 </Text>
-              </Pressable>
-            </View>
 
-            {/* Footer text */}
-            <Text style={[styles.footerText, dynamicStyles.subText]}>
-              Connect with students at your university.
-            </Text>
+                {/* Buttons */}
+                <View style={styles.buttonContainer}>
+                  <Pressable
+                    style={[styles.primaryButton, dynamicStyles.primaryButton]}
+                    onPress={handleSignIn}
+                  >
+                    <Text
+                      style={[
+                        styles.primaryButtonText,
+                        dynamicStyles.primaryButtonText,
+                      ]}
+                    >
+                      Sign in
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={[
+                      styles.secondaryButton,
+                      dynamicStyles.secondaryButton,
+                    ]}
+                    onPress={handleCreateAccount}
+                  >
+                    <Text
+                      style={[
+                        styles.secondaryButtonText,
+                        dynamicStyles.secondaryButtonText,
+                      ]}
+                    >
+                      Create Account
+                    </Text>
+                  </Pressable>
+                </View>
+
+                {/* Footer text */}
+                <Text style={[styles.footerText, dynamicStyles.subText]}>
+                  Connect with students at your university.
+                </Text>
               </Animated.View>
             </Pressable>
           </View>
@@ -184,18 +193,18 @@ const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
 };
 
 const styles = StyleSheet.create({
-    overlay: {
-        flex: 1,
-        justifyContent: "center",   
-        alignItems: "center",        
-      },
+  overlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   overlayPressable: {
     flex: 1,
   },
   container: {
     flex: 1,
-    justifyContent: "center",    
-    alignItems: "center",        
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 20,
   },
   modal: {
@@ -226,8 +235,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  lockIcon: {
-  },
+  lockIcon: {},
   title: {
     fontSize: 14,
     fontWeight: "700",

@@ -1,13 +1,8 @@
+import { useTheme } from "@/contexts/ThemeContext";
 import { useRouter } from "expo-router";
-import { useRef, useState } from "react";
-import { useTheme } from "@/app/contexts/ThemeContext";
 import { Sparkles } from "lucide-react-native";
-import {
-  Dimensions,
-  FlatList,
-  StyleSheet,
-  View,
-} from "react-native";
+import { useRef, useState } from "react";
+import { Dimensions, FlatList, StyleSheet, View } from "react-native";
 import CustomPagination from "./CustomPagination";
 import OnboardingScreen from "./OnboardingScreen";
 
@@ -17,12 +12,12 @@ interface CarouselItem {
   id: number;
   icon: any;
   iconDark: any;
-  iconBgColor: string | string[]; 
+  iconBgColor: string | string[];
   title: string;
   subtitle: string;
   buttonText: string;
   hasChips: boolean;
-  isLucideIcon?: boolean; 
+  isLucideIcon?: boolean;
 }
 
 const carouselData: CarouselItem[] = [
@@ -30,17 +25,17 @@ const carouselData: CarouselItem[] = [
     id: 1,
     icon: "MessageSquare",
     iconDark: "MessageSquare",
-    iconBgColor:["#87CEEB", "#4A90E2"],
+    iconBgColor: ["#87CEEB", "#4A90E2"],
     title: "Just state your need",
     subtitle: "Simply type what you're looking for in natural\nlanguage.",
     buttonText: "Continue",
     hasChips: true,
-    isLucideIcon: true
+    isLucideIcon: true,
   },
   {
     id: 2,
-    icon: Sparkles, 
-  iconDark: Sparkles,
+    icon: Sparkles,
+    iconDark: Sparkles,
     iconBgColor: ["#FF00FF", "#CC00CC"],
     title: "Get Matched Instantly",
     subtitle:
@@ -66,7 +61,6 @@ const OnboardingCarousel = () => {
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
   const { isDark } = useTheme();
-
 
   const handleContinue = () => {
     if (currentIndex < carouselData.length - 1) {

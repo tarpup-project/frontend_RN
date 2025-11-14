@@ -1,6 +1,6 @@
-import { useTheme } from "@/app/contexts/ThemeContext";
 import Header from "@/components/Header";
 import { Text } from "@/components/Themedtext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { AlertTriangle, Lock, Shield, User } from "lucide-react-native";
@@ -72,7 +72,7 @@ const AccountSettings = () => {
     },
     saveButtonText: {
       color: isDark ? "#000000" : "#FFFFFF",
-    }
+    },
   };
 
   return (

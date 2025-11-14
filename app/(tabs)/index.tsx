@@ -1,9 +1,9 @@
-import { useTheme } from "@/app/contexts/ThemeContext";
 import Header from "@/components/Header";
 import LeaderBoard from "@/components/Leaderboard";
 import PreviewModeBanner from "@/components/PreviewModeBanner";
 import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useCampus } from "@/hooks/useCampus";
 
 import { useCategories } from "@/hooks/useCategories";
@@ -36,35 +36,32 @@ import {
   View,
 } from "react-native";
 
-
 const getIconComponent = (iconName: any, categoryName?: string) => {
-  if (typeof iconName === 'object' && iconName.$$typeof) {
+  if (typeof iconName === "object" && iconName.$$typeof) {
     if (categoryName) {
- 
       const nameMap: Record<string, any> = {
-        'giveaway': Gift,
-        'sports': Trophy,
-        'friends': Heart,
-        'market': ShoppingBag,
-        'games': Gamepad2,
-        'party': PartyPopper,
-        'rides': Car,
-        'roommates': Home,
-        'dating': Heart,
-        'study group': BookOpen,
+        giveaway: Gift,
+        sports: Trophy,
+        friends: Heart,
+        market: ShoppingBag,
+        games: Gamepad2,
+        party: PartyPopper,
+        rides: Car,
+        roommates: Home,
+        dating: Heart,
+        "study group": BookOpen,
       };
-      
+
       const normalized = categoryName.toLowerCase().trim();
       return nameMap[normalized] || Car;
     }
     return Car;
   }
-  
 
   if (typeof iconName !== "string") return Car;
-  
-  const normalized = iconName.trim().toLowerCase().replace(/-/g, '');
-  
+
+  const normalized = iconName.trim().toLowerCase().replace(/-/g, "");
+
   const iconMap: Record<string, any> = {
     car: Car,
     home: Home,
@@ -403,7 +400,10 @@ const Index = () => {
                       ]}
                     >
                       {(() => {
-                        const IconComponent = getIconComponent(category.icon, category.name);
+                        const IconComponent = getIconComponent(
+                          category.icon,
+                          category.name
+                        );
                         return (
                           <IconComponent
                             size={24}
@@ -695,7 +695,6 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 6,
-
   },
   campusText: {
     flex: 1,
@@ -727,7 +726,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   resetSubtext: {
-    fontSize:10,
+    fontSize: 10,
   },
   matchesSection: {
     marginBottom: 30,

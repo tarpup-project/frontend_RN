@@ -1,6 +1,6 @@
-import { useTheme } from "@/app/contexts/ThemeContext";
 import { Text } from "@/components/Themedtext";
 import { UrlConstants } from "@/constants/apiUrls";
+import { useTheme } from "@/contexts/ThemeContext";
 import { saveUserData } from "@/utils/storage";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     paddingTop: 180,
-    minHeight: '100%',
+    minHeight: "100%",
   },
   scrollContainer: {
     flex: 1,

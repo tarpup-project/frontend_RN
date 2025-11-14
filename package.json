@@ -38,6 +38,7 @@
     "expo-symbols": "~1.0.7",
     "expo-system-ui": "~6.0.8",
     "expo-web-browser": "~15.0.8",
+    "fix": "^0.0.6",
     "lucide-react-native": "^0.548.0",
     "moment-timezone": "^0.6.0",
     "react": "19.1.0",

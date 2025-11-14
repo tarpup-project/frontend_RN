@@ -1,17 +1,16 @@
-
-import { useTheme } from "@/app/contexts/ThemeContext";
+import { api } from "@/api/client";
 import Header from "@/components/Header";
 import { Loader } from "@/components/Loader";
 import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
+import { UrlConstants } from "@/constants/apiUrls";
+import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
-import { Bell } from "lucide-react-native";
 import { router } from "expo-router";
+import { Bell } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { toast } from "sonner-native";
-import { api } from "@/api/client";
-import { UrlConstants } from "@/constants/apiUrls";
 
 interface NotificationSettings {
   emailNotification?: boolean;
@@ -26,10 +25,10 @@ interface NotificationSettings {
 
 const Notifications = () => {
   const { isDark } = useTheme();
-  
+
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  
+
   const [settings, setSettings] = useState<NotificationSettings>({
     emailNotification: true,
     weeklyDigest: true,
@@ -94,7 +93,7 @@ const Notifications = () => {
         setIsLoading(true);
         const response = await api.get(UrlConstants.notificationSettings);
         const data = response.data.data;
-        
+
         setSettings({
           emailNotification: data.emailNotification ?? true,
           weeklyDigest: data.weeklyDigest ?? true,
@@ -102,7 +101,6 @@ const Notifications = () => {
           newFeature: data.newFeature ?? false,
           categoryPref: data.categoryPref || [],
         });
-        
       } catch (error) {
         console.error("Failed to load notification settings:", error);
         toast.error("Failed to load notification settings");
@@ -118,26 +116,31 @@ const Notifications = () => {
     key: K,
     value: NotificationSettings[K]
   ) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
+    setSettings((prev) => ({ ...prev, [key]: value }));
   };
 
   const updateCategoryPref = (category: string, isPref: boolean) => {
-    setSettings(prev => {
+    setSettings((prev) => {
       const newCategoryPref = [...prev.categoryPref];
-      const existingIndex = newCategoryPref.findIndex(item => item.category === category);
-      
+      const existingIndex = newCategoryPref.findIndex(
+        (item) => item.category === category
+      );
+
       if (existingIndex >= 0) {
         newCategoryPref[existingIndex].isPref = isPref;
       } else {
         newCategoryPref.push({ category, isPref });
       }
-      
+
       return { ...prev, categoryPref: newCategoryPref };
     });
   };
 
   const getCategoryPref = (category: string): boolean => {
-    return settings.categoryPref.find(item => item.category === category)?.isPref ?? false;
+    return (
+      settings.categoryPref.find((item) => item.category === category)
+        ?.isPref ?? false
+    );
   };
 
   const enableAll = () => {
@@ -145,15 +148,22 @@ const Notifications = () => {
     setNewMatches(true);
     setGroupMessages(true);
     setEmergencyAlerts(true);
-    
-    updateSetting('emailNotification', true);
-    updateSetting('weeklyDigest', true);
-    updateSetting('importantUpdates', true);
-    updateSetting('newFeature', true);
-    
+
+    updateSetting("emailNotification", true);
+    updateSetting("weeklyDigest", true);
+    updateSetting("importantUpdates", true);
+    updateSetting("newFeature", true);
+
     // Enable all categories
-    const allCategories = ['Rides', 'Roommates', 'Marketplace', 'Sports', 'Dating', 'Study'];
-    allCategories.forEach(category => {
+    const allCategories = [
+      "Rides",
+      "Roommates",
+      "Marketplace",
+      "Sports",
+      "Dating",
+      "Study",
+    ];
+    allCategories.forEach((category) => {
       updateCategoryPref(category, true);
     });
   };
@@ -163,15 +173,22 @@ const Notifications = () => {
     setNewMatches(false);
     setGroupMessages(false);
     setEmergencyAlerts(false);
-    
-    updateSetting('emailNotification', false);
-    updateSetting('weeklyDigest', false);
-    updateSetting('importantUpdates', false);
-    updateSetting('newFeature', false);
-    
+
+    updateSetting("emailNotification", false);
+    updateSetting("weeklyDigest", false);
+    updateSetting("importantUpdates", false);
+    updateSetting("newFeature", false);
+
     // Disable all categories
-    const allCategories = ['Rides', 'Roommates', 'Marketplace', 'Sports', 'Dating', 'Study'];
-    allCategories.forEach(category => {
+    const allCategories = [
+      "Rides",
+      "Roommates",
+      "Marketplace",
+      "Sports",
+      "Dating",
+      "Study",
+    ];
+    allCategories.forEach((category) => {
       updateCategoryPref(category, false);
     });
   };
@@ -179,7 +196,7 @@ const Notifications = () => {
   const handleSave = async () => {
     try {
       setIsSaving(true);
-      
+
       await api.post(UrlConstants.notificationSettings, {
         emailNotification: settings.emailNotification,
         weeklyDigest: settings.weeklyDigest,
@@ -190,7 +207,6 @@ const Notifications = () => {
 
       toast.success("Notification settings saved!");
       router.back();
-      
     } catch (error: any) {
       console.error("Failed to save notification settings:", error);
       toast.error(error?.response?.data?.message || "Failed to save settings");
@@ -199,14 +215,14 @@ const Notifications = () => {
     }
   };
 
-  const ToggleSwitch = ({ 
-    value, 
-    onValueChange, 
-    label, 
+  const ToggleSwitch = ({
+    value,
+    onValueChange,
+    label,
     description,
-    icon 
-  }: { 
-    value: boolean; 
+    icon,
+  }: {
+    value: boolean;
     onValueChange: (value: boolean) => void;
     label: string;
     description: string;
@@ -222,9 +238,7 @@ const Notifications = () => {
             </Text>
           </View>
         ) : (
-          <Text style={[styles.toggleLabel, dynamicStyles.text]}>
-            {label}
-          </Text>
+          <Text style={[styles.toggleLabel, dynamicStyles.text]}>{label}</Text>
         )}
         <Text style={[styles.toggleDescription, dynamicStyles.subtitle]}>
           {description}
@@ -234,7 +248,9 @@ const Notifications = () => {
         style={[
           styles.customToggle,
           { backgroundColor: dynamicStyles.customToggle.backgroundColor },
-          value && { backgroundColor: dynamicStyles.customToggleActive.backgroundColor },
+          value && {
+            backgroundColor: dynamicStyles.customToggleActive.backgroundColor,
+          },
           value && styles.customToggleActive,
         ]}
       >
@@ -242,34 +258,37 @@ const Notifications = () => {
           style={[
             styles.customToggleDot,
             { backgroundColor: dynamicStyles.customToggleDot.backgroundColor },
-            value && { backgroundColor: dynamicStyles.customToggleDotActive.backgroundColor },
+            value && {
+              backgroundColor:
+                dynamicStyles.customToggleDotActive.backgroundColor,
+            },
           ]}
         />
       </View>
     </Pressable>
   );
 
-  const CategoryCard = ({ 
-    category, 
-    value, 
-    onValueChange 
-  }: { 
-    category: string; 
-    value: boolean; 
+  const CategoryCard = ({
+    category,
+    value,
+    onValueChange,
+  }: {
+    category: string;
+    value: boolean;
     onValueChange: (value: boolean) => void;
   }) => (
     <Pressable
       style={[styles.categoryCard, dynamicStyles.card]}
       onPress={() => onValueChange(!value)}
     >
-      <Text style={[styles.categoryLabel, dynamicStyles.text]}>
-        {category}
-      </Text>
+      <Text style={[styles.categoryLabel, dynamicStyles.text]}>{category}</Text>
       <View
         style={[
           styles.categoryToggle,
           { backgroundColor: dynamicStyles.customToggle.backgroundColor },
-          value && { backgroundColor: dynamicStyles.customToggleActive.backgroundColor },
+          value && {
+            backgroundColor: dynamicStyles.customToggleActive.backgroundColor,
+          },
           value && styles.categoryToggleActive,
         ]}
       >
@@ -277,7 +296,10 @@ const Notifications = () => {
           style={[
             styles.categoryToggleDot,
             { backgroundColor: dynamicStyles.customToggleDot.backgroundColor },
-            value && { backgroundColor: dynamicStyles.customToggleDotActive.backgroundColor },
+            value && {
+              backgroundColor:
+                dynamicStyles.customToggleDotActive.backgroundColor,
+            },
           ]}
         />
       </View>
@@ -289,7 +311,12 @@ const Notifications = () => {
     return (
       <View style={styles.toggleRow}>
         <View style={styles.toggleInfo}>
-          <Skeleton width={120} height={16} borderRadius={4} style={{ marginBottom: 4 }} />
+          <Skeleton
+            width={120}
+            height={16}
+            borderRadius={4}
+            style={{ marginBottom: 4 }}
+          />
           <Skeleton width={180} height={12} borderRadius={4} />
         </View>
         <Skeleton width={40} height={20} borderRadius={10} />
@@ -341,8 +368,14 @@ const Notifications = () => {
             </View>
             <View style={[styles.onBadge, dynamicStyles.onBadge]}>
               <Text style={[styles.onBadgeText, dynamicStyles.onBadgeText]}>
-                {isLoading ? "..." : (settings.emailNotification && settings.importantUpdates && 
-                  settings.weeklyDigest && settings.newFeature) ? "ON" : "OFF"}
+                {isLoading
+                  ? "..."
+                  : settings.emailNotification &&
+                    settings.importantUpdates &&
+                    settings.weeklyDigest &&
+                    settings.newFeature
+                  ? "ON"
+                  : "OFF"}
               </Text>
             </View>
           </View>
@@ -396,7 +429,13 @@ const Notifications = () => {
             onValueChange={setNewMatches}
             label="New Matches"
             description="Get notified when you have new matches"
-            icon={<Bell size={16} color={dynamicStyles.text.color} strokeWidth={2} />}
+            icon={
+              <Bell
+                size={16}
+                color={dynamicStyles.text.color}
+                strokeWidth={2}
+              />
+            }
           />
 
           <ToggleSwitch
@@ -438,28 +477,32 @@ const Notifications = () => {
             <>
               <ToggleSwitch
                 value={settings.emailNotification ?? true}
-                onValueChange={(value) => updateSetting('emailNotification', value)}
+                onValueChange={(value) =>
+                  updateSetting("emailNotification", value)
+                }
                 label="Enable Email Notifications"
                 description="Receive notifications via email"
               />
 
               <ToggleSwitch
                 value={settings.weeklyDigest ?? true}
-                onValueChange={(value) => updateSetting('weeklyDigest', value)}
+                onValueChange={(value) => updateSetting("weeklyDigest", value)}
                 label="Weekly Digest"
                 description="Summary of your weekly activity"
               />
 
               <ToggleSwitch
                 value={settings.importantUpdates ?? true}
-                onValueChange={(value) => updateSetting('importantUpdates', value)}
+                onValueChange={(value) =>
+                  updateSetting("importantUpdates", value)
+                }
                 label="Important Updates"
                 description="Account and security notifications"
               />
 
               <ToggleSwitch
                 value={settings.newFeature ?? false}
-                onValueChange={(value) => updateSetting('newFeature', value)}
+                onValueChange={(value) => updateSetting("newFeature", value)}
                 label="New Features"
                 description="Updates about new app features"
               />
@@ -487,7 +530,14 @@ const Notifications = () => {
                 <SkeletonCategory />
               </>
             ) : (
-              ['Rides', 'Roommates', 'Marketplace', 'Sports', 'Dating', 'Study'].map((category) => (
+              [
+                "Rides",
+                "Roommates",
+                "Marketplace",
+                "Sports",
+                "Dating",
+                "Study",
+              ].map((category) => (
                 <CategoryCard
                   key={category}
                   category={category}
@@ -501,23 +551,28 @@ const Notifications = () => {
 
         {/* Save Button */}
         <View style={styles.saveButtonContainer}>
-          <Pressable 
+          <Pressable
             style={[
-              styles.saveButton, 
+              styles.saveButton,
               dynamicStyles.saveNotificationButton,
-              (isSaving || isLoading) && styles.saveButtonDisabled
+              (isSaving || isLoading) && styles.saveButtonDisabled,
             ]}
             onPress={handleSave}
             disabled={isSaving || isLoading}
           >
             {isSaving ? (
-              <Loader 
+              <Loader
                 color={dynamicStyles.saveNotificationButtonText.color}
                 text="Saving..."
                 textStyle={dynamicStyles.saveNotificationButtonText}
               />
             ) : (
-              <Text style={[styles.saveButtonText, dynamicStyles.saveNotificationButtonText]}>
+              <Text
+                style={[
+                  styles.saveButtonText,
+                  dynamicStyles.saveNotificationButtonText,
+                ]}
+              >
                 Save Notification Settings
               </Text>
             )}

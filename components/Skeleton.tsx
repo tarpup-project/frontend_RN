@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from 'react';
-import { View, ViewStyle, Animated, DimensionValue } from 'react-native';
-import { useTheme } from '@/app/contexts/ThemeContext';
+import { useTheme } from "@/contexts/ThemeContext";
+import React, { useEffect, useRef } from "react";
+import { Animated, DimensionValue, View, ViewStyle } from "react-native";
 
 interface SkeletonProps {
   width?: DimensionValue;
@@ -10,7 +10,7 @@ interface SkeletonProps {
 }
 
 export const Skeleton: React.FC<SkeletonProps> = ({
-  width = '100%',
+  width = "100%",
   height = 20,
   borderRadius = 4,
   style,
@@ -54,20 +54,20 @@ export const Skeleton: React.FC<SkeletonProps> = ({
           width,
           height,
           borderRadius,
-          backgroundColor: isDark ? '#2A2A2A' : '#E5E5E5',
-          overflow: 'hidden',
+          backgroundColor: isDark ? "#2A2A2A" : "#E5E5E5",
+          overflow: "hidden",
         } as ViewStyle,
         style,
       ]}
     >
       <Animated.View
         style={{
-          position: 'absolute',
+          position: "absolute",
           top: 0,
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: isDark ? '#404040' : '#F5F5F5',
+          backgroundColor: isDark ? "#404040" : "#F5F5F5",
           transform: [{ translateX }],
           opacity,
         }}

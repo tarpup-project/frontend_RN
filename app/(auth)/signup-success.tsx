@@ -1,15 +1,12 @@
-import { useEffect } from "react";
-import { useTheme } from "@/app/contexts/ThemeContext";
-import {
-  View,
-  StyleSheet,
-} from "react-native";
 import { Text } from "@/components/Themedtext";
-import { useRouter } from "expo-router";
+import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useEffect } from "react";
+import { StyleSheet, View } from "react-native";
 
 const SignupSuccess = () => {
-    const { isDark } = useTheme();
+  const { isDark } = useTheme();
   const router = useRouter();
 
   const dynamicStyles = {
@@ -43,9 +40,7 @@ const SignupSuccess = () => {
         </View>
 
         {/* Success Message */}
-        <Text style={[styles.title, dynamicStyles.text]}>
-          Email verified
-        </Text>
+        <Text style={[styles.title, dynamicStyles.text]}>Email verified</Text>
         <Text style={[styles.subtitle, dynamicStyles.subtitle]}>
           User account created
         </Text>

@@ -1,12 +1,14 @@
+import { api } from "@/api/client";
 import Header from "@/components/Header";
 import { Loader } from "@/components/Loader";
 import { Text } from "@/components/Themedtext";
+import { UrlConstants } from "@/constants/apiUrls";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
-import { useTheme } from "@/app/contexts/ThemeContext";
 import { router } from "expo-router";
+import { AlertTriangle, Lock, Shield, User } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import { User, Lock, Shield, AlertTriangle } from "lucide-react-native";
 import {
   Alert,
   Pressable,
@@ -16,8 +18,6 @@ import {
   View,
 } from "react-native";
 import { toast } from "sonner-native";
-import { api } from "@/api/client";
-import { UrlConstants } from "@/constants/apiUrls";
 
 interface NotificationSettings {
   emailVisibile?: boolean;
@@ -28,10 +28,10 @@ interface NotificationSettings {
 const AccountSettings = () => {
   const { isDark } = useTheme();
   const { user, logout } = useAuthStore();
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [isPasswordLoading, setIsPasswordLoading] = useState(false);
-  
+
   // Password fields
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -39,19 +39,20 @@ const AccountSettings = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
+
   // Settings
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [emailVisible, setEmailVisible] = useState(true);
   const [profileVisible, setProfileVisible] = useState(true);
   const [autoJoinGroups, setAutoJoinGroups] = useState(true);
   const [dataSharing, setDataSharing] = useState(false);
-  
-  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
-    emailVisibile: true,
-    profileVisibile: true,
-    dataSharing: false,
-  });
+
+  const [notificationSettings, setNotificationSettings] =
+    useState<NotificationSettings>({
+      emailVisibile: true,
+      profileVisibile: true,
+      dataSharing: false,
+    });
 
   const dynamicStyles = {
     container: {
@@ -134,7 +135,7 @@ const AccountSettings = () => {
 
     try {
       setIsPasswordLoading(true);
-      
+
       await api.post("/user/change-password", {
         currentPassword,
         newPassword,
@@ -144,9 +145,10 @@ const AccountSettings = () => {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Failed to update password");
+      toast.error(
+        error?.response?.data?.message || "Failed to update password"
+      );
     } finally {
       setIsPasswordLoading(false);
     }
@@ -183,7 +185,7 @@ const AccountSettings = () => {
   const handleSaveSettings = async () => {
     try {
       setIsLoading(true);
-      
+
       await api.post(UrlConstants.notificationSettings, {
         emailVisibile: emailVisible,
         profileVisibile: profileVisible,
@@ -191,7 +193,6 @@ const AccountSettings = () => {
       });
 
       toast.success("Settings saved successfully!");
-      
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Failed to save settings");
     } finally {
@@ -199,22 +200,20 @@ const AccountSettings = () => {
     }
   };
 
-  const ToggleSwitch = ({ 
-    value, 
-    onValueChange, 
-    label, 
-    description 
-  }: { 
-    value: boolean; 
+  const ToggleSwitch = ({
+    value,
+    onValueChange,
+    label,
+    description,
+  }: {
+    value: boolean;
     onValueChange: (value: boolean) => void;
     label: string;
     description: string;
   }) => (
     <View style={styles.toggleRow}>
       <View style={styles.toggleInfo}>
-        <Text style={[styles.toggleLabel, dynamicStyles.text]}>
-          {label}
-        </Text>
+        <Text style={[styles.toggleLabel, dynamicStyles.text]}>{label}</Text>
         <Text style={[styles.toggleDescription, dynamicStyles.subtitle]}>
           {description}
         </Text>
@@ -224,15 +223,22 @@ const AccountSettings = () => {
           style={[
             styles.customToggle,
             { backgroundColor: dynamicStyles.customToggle.backgroundColor },
-            value && { backgroundColor: dynamicStyles.customToggleActive.backgroundColor },
+            value && {
+              backgroundColor: dynamicStyles.customToggleActive.backgroundColor,
+            },
             value && styles.customToggleActive,
           ]}
         >
           <View
             style={[
               styles.customToggleDot,
-              { backgroundColor: dynamicStyles.customToggleDot.backgroundColor },
-              value && { backgroundColor: dynamicStyles.customToggleDotActive.backgroundColor },
+              {
+                backgroundColor: dynamicStyles.customToggleDot.backgroundColor,
+              },
+              value && {
+                backgroundColor:
+                  dynamicStyles.customToggleDotActive.backgroundColor,
+              },
             ]}
           />
         </View>
@@ -399,21 +405,26 @@ const AccountSettings = () => {
 
           <Pressable
             style={[
-              styles.updateButton, 
+              styles.updateButton,
               dynamicStyles.updateButton,
-              isPasswordLoading && styles.updateButtonDisabled
+              isPasswordLoading && styles.updateButtonDisabled,
             ]}
             onPress={handlePasswordUpdate}
             disabled={isPasswordLoading}
           >
             {isPasswordLoading ? (
-              <Loader 
+              <Loader
                 color={dynamicStyles.updateButtonText.color}
                 text="Updating..."
                 textStyle={dynamicStyles.updateButtonText}
               />
             ) : (
-              <Text style={[styles.updateButtonText, dynamicStyles.updateButtonText]}>
+              <Text
+                style={[
+                  styles.updateButtonText,
+                  dynamicStyles.updateButtonText,
+                ]}
+              >
                 Update Password
               </Text>
             )}
@@ -431,7 +442,11 @@ const AccountSettings = () => {
         {/* Privacy Settings */}
         <View style={[styles.section, dynamicStyles.card]}>
           <View style={styles.sectionTitleRow}>
-            <Shield size={20} color={dynamicStyles.text.color} strokeWidth={2} />
+            <Shield
+              size={20}
+              color={dynamicStyles.text.color}
+              strokeWidth={2}
+            />
             <Text style={[styles.sectionTitle, dynamicStyles.text]}>
               Privacy Settings
             </Text>
@@ -469,13 +484,17 @@ const AccountSettings = () => {
         {/* Data & Account Management */}
         <View style={[styles.section, dynamicStyles.card]}>
           <View style={styles.sectionTitleRow}>
-            <AlertTriangle size={20} color={dynamicStyles.text.color} strokeWidth={2} />
+            <AlertTriangle
+              size={20}
+              color={dynamicStyles.text.color}
+              strokeWidth={2}
+            />
             <Text style={[styles.sectionTitle, dynamicStyles.text]}>
               Data & Account Management
             </Text>
           </View>
 
-          <Pressable 
+          <Pressable
             style={[styles.actionButton, dynamicStyles.card]}
             onPress={handleTransferUniversity}
           >
@@ -496,7 +515,7 @@ const AccountSettings = () => {
               <Text style={styles.dangerTitle}>Danger Zone</Text>
             </View>
 
-            <Pressable 
+            <Pressable
               style={styles.deleteButton}
               onPress={handleDeleteAccount}
             >
@@ -512,23 +531,25 @@ const AccountSettings = () => {
 
         {/* Save Settings Button */}
         <View style={styles.saveButtonContainer}>
-          <Pressable 
+          <Pressable
             style={[
-              styles.saveButton, 
+              styles.saveButton,
               dynamicStyles.saveButton,
-              isLoading && styles.saveButtonDisabled
+              isLoading && styles.saveButtonDisabled,
             ]}
             onPress={handleSaveSettings}
             disabled={isLoading}
           >
             {isLoading ? (
-              <Loader 
+              <Loader
                 color={dynamicStyles.saveButtonText.color}
                 text="Saving..."
                 textStyle={dynamicStyles.saveButtonText}
               />
             ) : (
-              <Text style={[styles.saveButtonText, dynamicStyles.saveButtonText]}>
+              <Text
+                style={[styles.saveButtonText, dynamicStyles.saveButtonText]}
+              >
                 Save Settings
               </Text>
             )}
