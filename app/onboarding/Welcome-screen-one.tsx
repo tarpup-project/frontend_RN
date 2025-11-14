@@ -14,6 +14,16 @@ const WelcomeScreenOne = () => {
   const { isDark } = useTheme();
   const router = useRouter();
 
+  const handleLetSGo = () => {
+    console.log("Let's go button pressed");
+    try {
+      console.log("Attempting to navigate to /onboarding/carousel");
+      router.push("/onboarding/carousel");
+    } catch (error) {
+      console.error("Navigation error:", error);
+    }
+  };
+
   const dynamicStyles = {
     container: {
       backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
@@ -67,7 +77,7 @@ const WelcomeScreenOne = () => {
       <View style={styles.buttonContainer}>
         <Pressable
           style={[styles.button, dynamicStyles.button]}
-          onPress={() => router.push("/onboarding/carousel")}
+          onPress={handleLetSGo}
         >
           <View style={styles.buttonContent}>
             <Text style={[styles.buttonText, dynamicStyles.buttonText]}>
