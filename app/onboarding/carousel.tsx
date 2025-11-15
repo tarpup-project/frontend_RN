@@ -1,6 +1,6 @@
 import { useTheme } from "@/contexts/ThemeContext";
 import { useRouter } from "expo-router";
-import { Sparkles } from "lucide-react-native";
+import { MessageSquare, UsersRound, Sparkles } from "lucide-react-native";
 import { useRef, useState } from "react";
 import { Dimensions, FlatList, StyleSheet, View } from "react-native";
 import CustomPagination from "./CustomPagination";
@@ -24,7 +24,7 @@ const carouselData: CarouselItem[] = [
   {
     id: 1,
     icon: "MessageSquare",
-    iconDark: "MessageSquare",
+    iconDark: MessageSquare,
     iconBgColor: ["#87CEEB", "#4A90E2"],
     title: "Just state your need",
     subtitle: "Simply type what you're looking for in natural\nlanguage.",
@@ -34,7 +34,7 @@ const carouselData: CarouselItem[] = [
   },
   {
     id: 2,
-    icon: Sparkles,
+    icon: "Sparkles",
     iconDark: Sparkles,
     iconBgColor: ["#FF00FF", "#CC00CC"],
     title: "Get Matched Instantly",
@@ -46,7 +46,7 @@ const carouselData: CarouselItem[] = [
   {
     id: 3,
     icon: "UsersRound",
-    iconDark: "UsersRound",
+    iconDark: UsersRound,
     iconBgColor: "#FF4500",
     title: "Connect and Coordinate",
     subtitle:
@@ -83,7 +83,6 @@ const OnboardingCarousel = () => {
     <View style={styles.screenContainer}>
       <OnboardingScreen
         icon={item.icon}
-        iconDark={item.iconDark}
         iconBgColor={item.iconBgColor}
         title={item.title}
         subtitle={item.subtitle}
@@ -91,7 +90,6 @@ const OnboardingCarousel = () => {
         onContinue={handleContinue}
         onSkip={handleSkip}
         hasChips={item.hasChips}
-        isLucideIcon={item.isLucideIcon}
       />
     </View>
   );
@@ -142,3 +140,7 @@ const styles = StyleSheet.create({
 });
 
 export default OnboardingCarousel;
+
+
+
+

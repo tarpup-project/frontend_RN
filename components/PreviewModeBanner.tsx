@@ -133,7 +133,8 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   subtitle: {
-    fontSize: 11,
+    fontSize: 12,
+    fontWeight: "400",
     lineHeight: 18,
   },
   button: {
