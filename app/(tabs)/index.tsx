@@ -149,7 +149,6 @@ const RecentMatchSkeleton = () => {
 const Index = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showAllRecent, setShowAllRecent] = useState(false);
-
   const { isDark } = useTheme();
   const { isAuthenticated } = useAuthStore();
 
@@ -159,7 +158,7 @@ const Index = () => {
     const pulse = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 0.4,
+          toValue: 0.6,
           duration: 1500,
           useNativeDriver: true,
         }),
@@ -214,7 +213,10 @@ const Index = () => {
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     matchesBadge: {
-      backgroundColor: isDark ? "#575d6a" : "#E0E0E0",
+      backgroundColor: "#6B7280", 
+    },
+    matchesBadgeText: {
+      color: "#FFFFFF", 
     },
     avatarBorder: {
       borderColor: isDark ? "#000000" : "#FFFFFF",
@@ -424,12 +426,12 @@ const Index = () => {
                         styles.matchesBadge,
                         dynamicStyles.matchesBadge,
                         {
-                          opacity: category.matches > 0 ? pulseAnim : 1,
+                          opacity: category.matches > 0 ? pulseAnim : 0.6,
                         },
                       ]}
                     >
                       <Text
-                        style={[styles.matchesText, dynamicStyles.subtitle]}
+                        style={[styles.matchesText, dynamicStyles.matchesBadgeText]}
                       >
                         {category.matches} matches
                       </Text>
@@ -898,9 +900,9 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   matchesBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
+    paddingHorizontal: 5,
+    paddingVertical: 4,
+    borderRadius: 6,
     alignSelf: "center",
   },
   dropdownText: {
