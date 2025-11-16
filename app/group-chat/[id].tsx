@@ -10,6 +10,7 @@ import { useAuthStore } from "@/state/authStore";
 import { MessageType, UserMessage } from "@/types/groups";
 import { formatFileSize, timeAgo } from "@/utils/timeUtils";
 import { Ionicons } from "@expo/vector-icons";
+import * as Clipboard from "expo-clipboard";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Paperclip, Reply, Send, Share2, Users, X } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
@@ -17,6 +18,7 @@ import {
   ActionSheetIOS,
   ActivityIndicator,
   Alert,
+  Animated,
   Image,
   KeyboardAvoidingView,
   Linking,
@@ -35,6 +37,7 @@ import {
 } from "react-native-gesture-handler";
 import Hyperlink from "react-native-hyperlink";
 import { runOnJS } from "react-native-reanimated";
+import { toast } from "sonner-native";
 
 const GroupChat = () => {
   const { id } = useLocalSearchParams();
@@ -60,6 +63,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   const scrollViewRef = useRef<ScrollView>(null);
   const textInputRef = useRef<TextInput>(null);
   const messageRefs = useRef<Map<string, any>>(new Map());
+  const slideAnim = useRef(new Animated.Value(300)).current;
   const {
     leaveGroup,
     reportGroup,
@@ -110,7 +114,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
       borderBottomColor: isDark ? "#333333" : "#E0E0E0",
     },
     text: {
-      color: isDark ? "#FFFFFF" : "#0a0a0a",
+      color: isDark ? "#FFFFFF" : "#000000",
     },
     subtitle: {
       color: isDark ? "#CCCCCC" : "#666666",
@@ -119,24 +123,24 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
       backgroundColor: isDark ? "#FFFFFF" : "#000000",
     },
     myMessageText: {
-      color: isDark ? "#0a0a0a" : "#FFFFFF",
+      color: isDark ? "#000000" : "#FFFFFF",
     },
     theirMessage: {
       backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
     },
     theirMessageText: {
-      color: isDark ? "#FFFFFF" : "#0a0a0a",
+      color: isDark ? "#FFFFFF" : "#000000",
     },
     input: {
       backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
       borderColor: isDark ? "#333333" : "#E0E0E0",
-      color: isDark ? "#FFFFFF" : "#0a0a0a",
+      color: isDark ? "#FFFFFF" : "#000000",
     },
     sendButton: {
       backgroundColor: isDark ? "#FFFFFF" : "#000000",
     },
     sendIcon: {
-      color: isDark ? "#0a0a0a" : "#FFFFFF",
+      color: isDark ? "#000000" : "#FFFFFF",
     },
     replyPreview: {
       backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
@@ -145,6 +149,9 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     dropdown: {
       backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
+    },
+    modal: {
+      backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF",
     },
   };
 
@@ -159,6 +166,22 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
       }, 100);
     }
   }, [messages.length]);
+
+  useEffect(() => {
+    if (showGroupInfo) {
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(slideAnim, {
+        toValue: 300,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [showGroupInfo]);
 
   const scrollToMessage = (messageId: string) => {
     const messageRef = messageRefs.current.get(messageId);
@@ -315,6 +338,21 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
         Alert.alert("Error", "Cannot open this link");
       }
       setLinkToConfirm(null);
+    }
+  };
+
+  const handleShareGroup = async () => {
+    setShowDropdown(false);
+    if (!groupDetails?.shareLink) {
+      toast.error("No share link available");
+      return;
+    }
+
+    try {
+      await Clipboard.setStringAsync(groupDetails.shareLink);
+      toast.success("Group link copied to clipboard!");
+    } catch {
+      toast.error("Failed to copy link");
     }
   };
 
@@ -496,6 +534,11 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
 
           {showDropdown && (
             <View style={[styles.dropdown, dynamicStyles.dropdown]}>
+              {console.log("=== DEBUGGING SHARE LINK ===")}
+              {console.log("groupDetails:", groupDetails)}
+              {console.log("shareLink exists:", !!groupDetails?.shareLink)}
+              {console.log("shareLink value:", groupDetails?.shareLink)}
+              {console.log("=== END DEBUG ===")}
               <Pressable
                 style={styles.dropdownItem}
                 onPress={() => {
@@ -531,10 +574,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
               {groupDetails.shareLink && (
                 <Pressable
                   style={styles.dropdownItem}
-                  onPress={async () => {
-                    setShowDropdown(false);
-                    await shareGroup(groupDetails);
-                  }}
+                  onPress={handleShareGroup}
                 >
                   <Share2 size={16} color={dynamicStyles.text.color} />
                   <Text style={[styles.dropdownText, dynamicStyles.text]}>
@@ -592,11 +632,12 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
                         {
                           text: "Leave",
                           style: "destructive",
-                          onPress: async () => {
-                            const success = await leaveGroup(groupDetails.id);
-                            if (success) {
-                              router.back();
-                            }
+                          onPress: () => {
+                            leaveGroup(groupDetails.id).then((success) => {
+                              if (success) {
+                                router.back();
+                              }
+                            });
                           },
                         },
                       ]
@@ -740,110 +781,131 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
         )}
       </View>
 
-      <Modal
-        visible={showGroupInfo}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowGroupInfo(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.groupInfoModal, dynamicStyles.dropdown]}>
-            <View style={styles.groupInfoHeader}>
-              <Text style={[styles.groupInfoTitle, dynamicStyles.text]}>
-                Group Info
-              </Text>
-              <Pressable onPress={() => setShowGroupInfo(false)}>
-                <X size={24} color={dynamicStyles.text.color} />
-              </Pressable>
-            </View>
+      {showGroupInfo && (
+        <Animated.View
+          style={[
+            styles.groupInfoSlideModal,
+            dynamicStyles.modal,
+            {
+              transform: [{ translateX: slideAnim }],
+            },
+          ]}
+        >
+          <View style={styles.groupInfoHeader}>
+            <Text style={[styles.groupInfoTitle, dynamicStyles.text]}>
+              Group Info
+            </Text>
+            <Pressable onPress={() => setShowGroupInfo(false)}>
+              <X size={24} color={dynamicStyles.text.color} />
+            </Pressable>
+          </View>
 
-            <ScrollView style={styles.groupInfoContent}>
-              <View style={styles.groupInfoSection}>
-                <View style={styles.groupInfoTop}>
-                  <View style={[styles.groupCategoryIcon, { backgroundColor: groupDetails.category?.[0]?.bgColorHex || "#007AFF" }]}>
-                    <Ionicons name="star" size={20} color="#FFFFFF" />
-                  </View>
-                  <Text style={[styles.groupInfoName, dynamicStyles.text]}>
-                    {groupDetails.name}
+          <ScrollView style={styles.groupInfoContent}>
+            <View style={styles.groupInfoSection}>
+              <View style={styles.groupInfoTop}>
+                <View
+                  style={[
+                    styles.groupCategoryIcon,
+                    {
+                      backgroundColor:
+                        groupDetails.category?.[0]?.bgColorHex || "#007AFF",
+                    },
+                  ]}
+                >
+                  <Ionicons name="star" size={20} color="#FFFFFF" />
+                </View>
+                <Text style={[styles.groupInfoName, dynamicStyles.text]}>
+                  {groupDetails.name}
+                </Text>
+                <View style={styles.compatibilityBadge}>
+                  <Ionicons name="star" size={16} color="#FFD700" />
+                  <Text style={styles.compatibilityText}>
+                    {groupDetails.score}% compatibility
                   </Text>
-                  <View style={styles.compatibilityBadge}>
-                    <Ionicons name="star" size={16} color="#FFD700" />
-                    <Text style={styles.compatibilityText}>
-                      {groupDetails.score}% compatibility
-                    </Text>
-                  </View>
                 </View>
               </View>
+            </View>
 
-              <View style={styles.groupInfoSection}>
-                <Text style={[styles.groupInfoLabel, dynamicStyles.text]}>Description</Text>
-                <Text style={[styles.groupInfoValue, dynamicStyles.subtitle]}>
-                  {groupDetails.description || "No description available"}
-                </Text>
-              </View>
+            <View style={styles.groupInfoSection}>
+              <Text style={[styles.groupInfoLabel, dynamicStyles.text]}>
+                Description
+              </Text>
+              <Text style={[styles.groupInfoValue, dynamicStyles.subtitle]}>
+                {groupDetails.description || "No description available"}
+              </Text>
+            </View>
 
-              <View style={styles.groupInfoSection}>
-                <Text style={[styles.groupInfoLabel, dynamicStyles.text]}>
-                  Members ({groupDetails.members.length})
-                </Text>
-                {groupDetails.members.map((member, index) => {
-                  const colors = ["#FF6B9D", "#4A90E2", "#9C27B0", "#00D084", "#FFB347"];
-                  return (
-                    <Pressable
-                      key={member.id}
-                      style={styles.memberItem}
-                      onPress={() => {
-                        setShowGroupInfo(false);
-                        navigateToProfile(member.id);
-                      }}
+            <View style={styles.groupInfoSection}>
+              <Text style={[styles.groupInfoLabel, dynamicStyles.text]}>
+                Members ({groupDetails.members.length})
+              </Text>
+              {groupDetails.members.map((member, index) => {
+                const colors = [
+                  "#FF6B9D",
+                  "#4A90E2",
+                  "#9C27B0",
+                  "#00D084",
+                  "#FFB347",
+                ];
+                return (
+                  <Pressable
+                    key={member.id}
+                    style={styles.memberItem}
+                    onPress={() => {
+                      setShowGroupInfo(false);
+                      navigateToProfile(member.id);
+                    }}
+                  >
+                    <View
+                      style={[
+                        styles.memberAvatar,
+                        {
+                          backgroundColor: member.bgUrl
+                            ? "transparent"
+                            : colors[index % colors.length],
+                        },
+                      ]}
                     >
-                      <View
-                        style={[
-                          styles.memberAvatar,
-                          {
-                            backgroundColor: member.bgUrl
-                              ? "transparent"
-                              : colors[index % colors.length],
-                          },
-                        ]}
-                      >
-                        {member.bgUrl ? (
-                          <Image
-                            source={{ uri: member.bgUrl }}
-                            style={styles.memberAvatarImage}
-                          />
-                        ) : (
-                          <Text style={styles.memberAvatarText}>{member.fname[0]}</Text>
-                        )}
-                      </View>
-                      <View style={styles.memberInfo}>
-                        <Text style={[styles.memberName, dynamicStyles.text]}>
-                          {member.fname}
-                          {member.id === user?.id && " (You)"}
+                      {member.bgUrl ? (
+                        <Image
+                          source={{ uri: member.bgUrl }}
+                          style={styles.memberAvatarImage}
+                        />
+                      ) : (
+                        <Text style={styles.memberAvatarText}>
+                          {member.fname[0]}
                         </Text>
-                        {index === 0 && (
-                          <Text style={[styles.memberRole, dynamicStyles.subtitle]}>
-                            Admin
-                          </Text>
-                        )}
-                      </View>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+                      )}
+                    </View>
+                    <View style={styles.memberInfo}>
+                      <Text style={[styles.memberName, dynamicStyles.text]}>
+                        {member.fname}
+                        {member.id === user?.id && " (You)"}
+                      </Text>
+                      {index === 0 && (
+                        <Text
+                          style={[styles.memberRole, dynamicStyles.subtitle]}
+                        >
+                          Admin
+                        </Text>
+                      )}
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </ScrollView>
+        </Animated.View>
+      )}
 
       <Modal
         visible={showReportModal}
         transparent={true}
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setShowReportModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.reportModal, dynamicStyles.dropdown]}>
+        <View style={styles.centeredModalContainer}>
+          <View style={[styles.reportModal, dynamicStyles.modal]}>
             <View style={styles.reportHeader}>
               <Text style={[styles.reportTitle, dynamicStyles.text]}>
                 Report Group
@@ -938,12 +1000,12 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
         animationType="fade"
         onRequestClose={() => setShowImageModal(null)}
       >
-        <View style={styles.modalOverlay}>
+        <View style={styles.imageModalOverlay}>
           <Pressable
-            style={styles.modalBackground}
+            style={styles.imageModalBackground}
             onPress={() => setShowImageModal(null)}
           >
-            <View style={styles.modalContent}>
+            <View style={styles.imageModalContent}>
               <Pressable
                 style={styles.closeButton}
                 onPress={() => setShowImageModal(null)}
@@ -969,8 +1031,8 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
         animationType="fade"
         onRequestClose={() => setLinkToConfirm(null)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.linkModal, dynamicStyles.dropdown]}>
+        <View style={styles.centeredModalContainer}>
+          <View style={[styles.linkModal, dynamicStyles.modal]}>
             <Text style={[styles.linkModalTitle, dynamicStyles.text]}>
               Open Link?
             </Text>
@@ -1179,7 +1241,7 @@ const ErrorScreen = ({ message }: { message: string }) => {
         style={[
           {
             fontSize: 16,
-            color: isDark ? "#FFFFFF" : "#0a0a0a",
+            color: isDark ? "#FFFFFF" : "#000000",
             marginTop: 12,
           },
         ]}
@@ -1228,7 +1290,7 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: "#0a0a0a",
+    borderColor: "#000000",
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
@@ -1503,18 +1565,24 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  modalOverlay: {
+  centeredModalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  imageModalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.9)",
     justifyContent: "center",
     alignItems: "center",
   },
-  modalBackground: {
+  imageModalBackground: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-  modalContent: {
+  imageModalContent: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
@@ -1536,8 +1604,8 @@ const styles = StyleSheet.create({
   linkModal: {
     borderRadius: 12,
     padding: 20,
-    margin: 20,
     minWidth: 280,
+    maxWidth: "90%",
   },
   linkModalTitle: {
     fontSize: 16,
@@ -1568,23 +1636,20 @@ const styles = StyleSheet.create({
     backgroundColor: "#007AFF",
   },
   linkModalCancelText: {
-    color: "#0a0a0a",
+    color: "#000000",
     fontWeight: "500",
   },
   linkModalOpenText: {
     color: "#FFFFFF",
     fontWeight: "500",
   },
-  groupInfoModal: {
-    backgroundColor: "white",
-    borderRadius: 12,
-    margin: 20,
-    maxHeight: "80%",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+  groupInfoSlideModal: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    width: 300,
+    height: "100%",
+    zIndex: 1000,
   },
   groupInfoHeader: {
     flexDirection: "row",
@@ -1599,6 +1664,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   groupInfoContent: {
+    flex: 1,
     padding: 20,
   },
   groupInfoSection: {
@@ -1676,15 +1742,10 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   reportModal: {
-    backgroundColor: "white",
     borderRadius: 12,
-    margin: 20,
     padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    maxWidth: "90%",
+    width: 320,
   },
   reportHeader: {
     flexDirection: "row",
@@ -1745,7 +1806,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   reportCancelText: {
-    color: "#0a0a0a",
+    color: "#000000",
     fontWeight: "500",
   },
 });
