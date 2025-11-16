@@ -1,18 +1,18 @@
 import Header from "@/components/Header";
 import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
+import { GroupOptionsDropdown } from "@/components/GroupOptionsDropdown";
 import { GroupSocketProvider, useGroupSocket } from "@/contexts/SocketProvider";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { useGroupMessages, useMessageReply } from "@/hooks/useGroupMessages";
-import { useGroupActions, useGroupDetails } from "@/hooks/useGroups";
+import { useGroupDetails } from "@/hooks/useGroups";
 import { useAuthStore } from "@/state/authStore";
 import { MessageType, UserMessage } from "@/types/groups";
 import { formatFileSize, timeAgo } from "@/utils/timeUtils";
 import { Ionicons } from "@expo/vector-icons";
-import * as Clipboard from "expo-clipboard";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Paperclip, Reply, Send, Share2, Users, X } from "lucide-react-native";
+import { Paperclip, Reply, Send, X } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import {
   ActionSheetIOS,
@@ -37,7 +37,8 @@ import {
 } from "react-native-gesture-handler";
 import Hyperlink from "react-native-hyperlink";
 import { runOnJS } from "react-native-reanimated";
-import { toast } from "sonner-native";
+import { api } from "@/api/client";
+import { UrlConstants } from "@/constants/apiUrls";
 
 const GroupChat = () => {
   const { id } = useLocalSearchParams();
@@ -64,15 +65,6 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   const textInputRef = useRef<TextInput>(null);
   const messageRefs = useRef<Map<string, any>>(new Map());
   const slideAnim = useRef(new Animated.Value(300)).current;
-  const {
-    leaveGroup,
-    reportGroup,
-    markAsCompleted,
-    shareGroup,
-    isLeaving,
-    isReporting,
-    isMarkingComplete,
-  } = useGroupActions();
 
   const {
     data: groupDetails,
@@ -91,14 +83,10 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     removeFile,
     selectFile,
   } = useFileUpload();
-  const { joinGroup } = useGroupActions();
 
   const [message, setMessage] = useState("");
   const [isJoining, setIsJoining] = useState(false);
-  const [showReportModal, setShowReportModal] = useState(false);
   const [showGroupInfo, setShowGroupInfo] = useState(false);
-  const [reportReason, setReportReason] = useState("spam");
-  const [reportDetails, setReportDetails] = useState("");
   const [showImageModal, setShowImageModal] = useState<string | null>(null);
   const [linkToConfirm, setLinkToConfirm] = useState<string | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -146,14 +134,21 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
       backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
-    dropdown: {
-      backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF",
-      borderColor: isDark ? "#333333" : "#E0E0E0",
-    },
     modal: {
       backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF",
     },
   };
+
+  const joinGroup = async () => {
+    setIsJoining(true);
+    try {
+        await api.post(UrlConstants.fetchInviteGroupDetails(groupId), {});
+    } catch (err) {
+        Alert.alert("Error", "Failed to join group");
+    } finally {
+        setIsJoining(false);
+    }
+};
 
   useEffect(() => {
     markAsRead();
@@ -306,7 +301,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   const handleJoinGroup = async () => {
     setIsJoining(true);
     try {
-      await joinGroup(groupId);
+      await joinGroup();
     } catch (err) {
       Alert.alert("Error", "Failed to join group");
     } finally {
@@ -318,7 +313,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     router.back();
   };
 
-  const handleGroupInfo = () => {
+  const handleToggleDropdown = () => {
     setShowDropdown(!showDropdown);
   };
 
@@ -338,21 +333,6 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
         Alert.alert("Error", "Cannot open this link");
       }
       setLinkToConfirm(null);
-    }
-  };
-
-  const handleShareGroup = async () => {
-    setShowDropdown(false);
-    if (!groupDetails?.shareLink) {
-      toast.error("No share link available");
-      return;
-    }
-
-    try {
-      await Clipboard.setStringAsync(groupDetails.shareLink);
-      toast.success("Group link copied to clipboard!");
-    } catch {
-      toast.error("Failed to copy link");
     }
   };
 
@@ -463,7 +443,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
           />
         </Pressable>
 
-        <Pressable style={styles.headerInfo} onPress={handleGroupInfo}>
+        <Pressable style={styles.headerInfo} onPress={handleToggleDropdown}>
           <View style={styles.avatarsContainer}>
             {groupDetails.members.slice(0, 3).map((member, index) => {
               const colors = ["#FF6B9D", "#4A90E2", "#9C27B0", "#00D084"];
@@ -517,142 +497,20 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
         </Pressable>
 
         <View style={styles.infoButtonContainer}>
-          <Pressable style={styles.infoButton} onPress={handleGroupInfo}>
-            {!showDropdown ? (
-              <View
-                style={[
-                  styles.infoIconCircle,
-                  { borderColor: dynamicStyles.text.color },
-                ]}
-              >
-                <Text style={[styles.infoIconText, dynamicStyles.text]}>i</Text>
-              </View>
-            ) : (
-              <X size={20} color="#FF3B30" />
-            )}
-          </Pressable>
-
-          {showDropdown && (
-            <View style={[styles.dropdown, dynamicStyles.dropdown]}>
-              {console.log("=== DEBUGGING SHARE LINK ===")}
-              {console.log("groupDetails:", groupDetails)}
-              {console.log("shareLink exists:", !!groupDetails?.shareLink)}
-              {console.log("shareLink value:", groupDetails?.shareLink)}
-              {console.log("=== END DEBUG ===")}
-              <Pressable
-                style={styles.dropdownItem}
-                onPress={() => {
-                  setShowDropdown(false);
-                  setShowGroupInfo(true);
-                }}
-              >
-                <Users size={16} color={dynamicStyles.text.color} />
-                <Text style={[styles.dropdownText, dynamicStyles.text]}>
-                  More Info
-                </Text>
-              </Pressable>
-
-              {groupDetails.isJoined !== false && (
-                <Pressable
-                  style={styles.dropdownItem}
-                  onPress={() => {
-                    setShowDropdown(false);
-                    setShowReportModal(true);
-                  }}
-                >
-                  <Ionicons
-                    name="flag-outline"
-                    size={16}
-                    color={dynamicStyles.text.color}
-                  />
-                  <Text style={[styles.dropdownText, dynamicStyles.text]}>
-                    Report
-                  </Text>
-                </Pressable>
-              )}
-
-              {groupDetails.shareLink && (
-                <Pressable
-                  style={styles.dropdownItem}
-                  onPress={handleShareGroup}
-                >
-                  <Share2 size={16} color={dynamicStyles.text.color} />
-                  <Text style={[styles.dropdownText, dynamicStyles.text]}>
-                    Share Group
-                  </Text>
-                </Pressable>
-              )}
-
-              {groupDetails.isAdmin && !groupDetails.isComplete && (
-                <Pressable
-                  style={styles.dropdownItem}
-                  onPress={() => {
-                    setShowDropdown(false);
-                    Alert.alert(
-                      "Mark as Completed",
-                      `Are you sure you want to mark "${groupDetails.name}" as completed?`,
-                      [
-                        { text: "Cancel", style: "cancel" },
-                        {
-                          text: "Mark Complete",
-                          onPress: async () => {
-                            const success = await markAsCompleted(
-                              groupDetails.id
-                            );
-                            if (success) {
-                              router.back();
-                            }
-                          },
-                        },
-                      ]
-                    );
-                  }}
-                >
-                  <Ionicons
-                    name="checkmark-circle-outline"
-                    size={16}
-                    color="#4ADE80"
-                  />
-                  <Text style={[styles.dropdownText, { color: "#4ADE80" }]}>
-                    Mark as Completed
-                  </Text>
-                </Pressable>
-              )}
-
-              {groupDetails.isJoined !== false && (
-                <Pressable
-                  style={styles.dropdownItem}
-                  onPress={() => {
-                    setShowDropdown(false);
-                    Alert.alert(
-                      "Leave Group",
-                      `Are you sure you want to leave "${groupDetails.name}"?`,
-                      [
-                        { text: "Cancel", style: "cancel" },
-                        {
-                          text: "Leave",
-                          style: "destructive",
-                          onPress: () => {
-                            leaveGroup(groupDetails.id).then((success) => {
-                              if (success) {
-                                router.back();
-                              }
-                            });
-                          },
-                        },
-                      ]
-                    );
-                  }}
-                  disabled={isLeaving}
-                >
-                  <X size={16} color="#FF3B30" />
-                  <Text style={[styles.dropdownText, { color: "#FF3B30" }]}>
-                    {isLeaving ? "Leaving..." : "Leave Group"}
-                  </Text>
-                </Pressable>
-              )}
-            </View>
-          )}
+          <GroupOptionsDropdown
+            groupDetails={{
+              id: groupDetails.id,
+              name: groupDetails.name,
+              shareLink: groupDetails.shareLink,
+              isJoined: groupDetails.isJoined,
+              isAdmin: groupDetails.isAdmin,
+              isComplete: groupDetails.isComplete,
+            }}
+            showDropdown={showDropdown}
+            onToggleDropdown={handleToggleDropdown}
+            onShowGroupInfo={() => setShowGroupInfo(true)}
+            onLeaveSuccess={() => router.back()}
+          />
         </View>
       </View>
 
@@ -897,102 +755,6 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
           </ScrollView>
         </Animated.View>
       )}
-
-      <Modal
-        visible={showReportModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowReportModal(false)}
-      >
-        <View style={styles.centeredModalContainer}>
-          <View style={[styles.reportModal, dynamicStyles.modal]}>
-            <View style={styles.reportHeader}>
-              <Text style={[styles.reportTitle, dynamicStyles.text]}>
-                Report Group
-              </Text>
-              <Pressable onPress={() => setShowReportModal(false)}>
-                <X size={24} color={dynamicStyles.text.color} />
-              </Pressable>
-            </View>
-
-            <Text style={[styles.reportSubtitle, dynamicStyles.subtitle]}>
-              Please select a reason for reporting this group:
-            </Text>
-
-            <View style={[styles.pickerContainer, dynamicStyles.input]}>
-              <Pressable
-                style={styles.picker}
-                onPress={() => {
-                  const reasons = [
-                    "Spam",
-                    "Abusive Content",
-                    "Inappropriate Content",
-                    "Other",
-                  ];
-                  Alert.alert(
-                    "Select Reason",
-                    "",
-                    reasons.map((reason) => ({
-                      text: reason,
-                      onPress: () =>
-                        setReportReason(reason.toLowerCase().replace(" ", "")),
-                    }))
-                  );
-                }}
-              >
-                <Text style={[styles.pickerText, dynamicStyles.text]}>
-                  {reportReason.charAt(0).toUpperCase() + reportReason.slice(1)}
-                </Text>
-                <Ionicons
-                  name="chevron-down"
-                  size={20}
-                  color={dynamicStyles.text.color}
-                />
-              </Pressable>
-            </View>
-
-            <TextInput
-              style={[styles.reportTextInput, dynamicStyles.input]}
-              placeholder="Additional details (optional)"
-              placeholderTextColor={isDark ? "#666666" : "#999999"}
-              value={reportDetails}
-              onChangeText={setReportDetails}
-              multiline
-              maxLength={500}
-            />
-
-            <View style={styles.reportButtons}>
-              <Pressable
-                style={[styles.reportButton, styles.reportSubmit]}
-                onPress={async () => {
-                  const success = await reportGroup({
-                    groupID: groupDetails.id,
-                    reportReason,
-                    reportExplanation: reportDetails,
-                  });
-                  if (success) {
-                    setShowReportModal(false);
-                    setReportReason("spam");
-                    setReportDetails("");
-                  }
-                }}
-                disabled={isReporting}
-              >
-                <Text style={styles.reportSubmitText}>
-                  {isReporting ? "Submitting..." : "Submit Report"}
-                </Text>
-              </Pressable>
-
-              <Pressable
-                style={[styles.reportButton, styles.reportCancel]}
-                onPress={() => setShowReportModal(false)}
-              >
-                <Text style={styles.reportCancelText}>Cancel</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
 
       <Modal
         visible={!!showImageModal}
@@ -1337,46 +1099,6 @@ const styles = StyleSheet.create({
   },
   infoButtonContainer: {
     position: "relative",
-  },
-  infoButton: {
-    padding: 4,
-  },
-  infoIconCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  infoIconText: {
-    fontSize: 8,
-    fontWeight: "600",
-  },
-  dropdown: {
-    position: "absolute",
-    top: 35,
-    right: 0,
-    width: 150,
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-    zIndex: 1000,
-  },
-  dropdownItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-    gap: 8,
-  },
-  dropdownText: {
-    fontSize: 14,
   },
   overlay: {
     position: "absolute",
@@ -1740,74 +1462,6 @@ const styles = StyleSheet.create({
   memberRole: {
     fontSize: 12,
     marginTop: 2,
-  },
-  reportModal: {
-    borderRadius: 12,
-    padding: 20,
-    maxWidth: "90%",
-    width: 320,
-  },
-  reportHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  reportTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  reportSubtitle: {
-    fontSize: 14,
-    marginBottom: 16,
-    lineHeight: 20,
-  },
-  pickerContainer: {
-    borderWidth: 1,
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  picker: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 12,
-  },
-  pickerText: {
-    fontSize: 16,
-  },
-  reportTextInput: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    minHeight: 100,
-    textAlignVertical: "top",
-    marginBottom: 20,
-  },
-  reportButtons: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  reportButton: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  reportSubmit: {
-    backgroundColor: "#FF3B30",
-  },
-  reportCancel: {
-    backgroundColor: "#F5F5F5",
-  },
-  reportSubmitText: {
-    color: "#FFFFFF",
-    fontWeight: "600",
-  },
-  reportCancelText: {
-    color: "#000000",
-    fontWeight: "500",
   },
 });
 
