@@ -60,6 +60,15 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   const scrollViewRef = useRef<ScrollView>(null);
   const textInputRef = useRef<TextInput>(null);
   const messageRefs = useRef<Map<string, any>>(new Map());
+  const {
+    leaveGroup,
+    reportGroup,
+    markAsCompleted,
+    shareGroup,
+    isLeaving,
+    isReporting,
+    isMarkingComplete,
+  } = useGroupActions();
 
   const {
     data: groupDetails,
@@ -82,6 +91,9 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
 
   const [message, setMessage] = useState("");
   const [isJoining, setIsJoining] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState("spam");
+  const [reportDetails, setReportDetails] = useState("");
   const [showImageModal, setShowImageModal] = useState<string | null>(null);
   const [linkToConfirm, setLinkToConfirm] = useState<string | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -508,26 +520,120 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
 
           {showDropdown && (
             <View style={[styles.dropdown, dynamicStyles.dropdown]}>
-              <View style={styles.dropdownItem}>
+              <Pressable
+                style={styles.dropdownItem}
+                onPress={() => {
+                  setShowDropdown(false);
+                  setShowGroupInfo(true);
+                }}
+              >
                 <Users size={16} color={dynamicStyles.text.color} />
                 <Text style={[styles.dropdownText, dynamicStyles.text]}>
-                  Group Info
-                </Text>
-              </View>
-
-              <Pressable style={styles.dropdownItem} onPress={handleShareGroup}>
-                <Share2 size={16} color={dynamicStyles.text.color} />
-                <Text style={[styles.dropdownText, dynamicStyles.text]}>
-                  Share Group
+                  More Info
                 </Text>
               </Pressable>
 
-              <Pressable style={styles.dropdownItem} onPress={handleLeaveGroup}>
-                <X size={16} color="#FF3B30" />
-                <Text style={[styles.dropdownText, { color: "#FF3B30" }]}>
-                  Leave Group
-                </Text>
-              </Pressable>
+              {groupDetails.isJoined !== false && (
+                <Pressable
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    setShowDropdown(false);
+                    setShowReportModal(true);
+                  }}
+                >
+                  <Ionicons
+                    name="flag-outline"
+                    size={16}
+                    color={dynamicStyles.text.color}
+                  />
+                  <Text style={[styles.dropdownText, dynamicStyles.text]}>
+                    Report
+                  </Text>
+                </Pressable>
+              )}
+
+              {groupDetails.shareLink && (
+                <Pressable
+                  style={styles.dropdownItem}
+                  onPress={async () => {
+                    setShowDropdown(false);
+                    await shareGroup(groupDetails);
+                  }}
+                >
+                  <Share2 size={16} color={dynamicStyles.text.color} />
+                  <Text style={[styles.dropdownText, dynamicStyles.text]}>
+                    Share Group
+                  </Text>
+                </Pressable>
+              )}
+
+              {groupDetails.isAdmin && !groupDetails.isComplete && (
+                <Pressable
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    setShowDropdown(false);
+                    Alert.alert(
+                      "Mark as Completed",
+                      `Are you sure you want to mark "${groupDetails.name}" as completed?`,
+                      [
+                        { text: "Cancel", style: "cancel" },
+                        {
+                          text: "Mark Complete",
+                          onPress: async () => {
+                            const success = await markAsCompleted(
+                              groupDetails.id
+                            );
+                            if (success) {
+                              router.back();
+                            }
+                          },
+                        },
+                      ]
+                    );
+                  }}
+                >
+                  <Ionicons
+                    name="checkmark-circle-outline"
+                    size={16}
+                    color="#4ADE80"
+                  />
+                  <Text style={[styles.dropdownText, { color: "#4ADE80" }]}>
+                    Mark as Completed
+                  </Text>
+                </Pressable>
+              )}
+
+              {groupDetails.isJoined !== false && (
+                <Pressable
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    setShowDropdown(false);
+                    Alert.alert(
+                      "Leave Group",
+                      `Are you sure you want to leave "${groupDetails.name}"?`,
+                      [
+                        { text: "Cancel", style: "cancel" },
+                        {
+                          text: "Leave",
+                          style: "destructive",
+                          onPress: async () => {
+                            const success = await leaveGroup(groupDetails.id);
+                            if (success) {
+                              router.back();
+                            }
+                          },
+                        },
+                      ]
+                    );
+                  }}
+                  disabled={isLeaving}
+                >
+                  <X size={16} color="#FF3B30" />
+                  <Text style={[styles.dropdownText, { color: "#FF3B30" }]}>
+                    {isLeaving ? "Leaving..." : "Leave Group"}
+                  </Text>
+                </Pressable>
+              )}
             </View>
           )}
         </View>
@@ -657,6 +763,102 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
           </Pressable>
         )}
       </View>
+
+      <Modal
+        visible={showReportModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowReportModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.reportModal, dynamicStyles.dropdown]}>
+            <View style={styles.reportHeader}>
+              <Text style={[styles.reportTitle, dynamicStyles.text]}>
+                Report Group
+              </Text>
+              <Pressable onPress={() => setShowReportModal(false)}>
+                <X size={24} color={dynamicStyles.text.color} />
+              </Pressable>
+            </View>
+
+            <Text style={[styles.reportSubtitle, dynamicStyles.subtitle]}>
+              Please select a reason for reporting this group:
+            </Text>
+
+            <View style={[styles.pickerContainer, dynamicStyles.input]}>
+              <Pressable
+                style={styles.picker}
+                onPress={() => {
+                  const reasons = [
+                    "Spam",
+                    "Abusive Content",
+                    "Inappropriate Content",
+                    "Other",
+                  ];
+                  Alert.alert(
+                    "Select Reason",
+                    "",
+                    reasons.map((reason, index) => ({
+                      text: reason,
+                      onPress: () =>
+                        setReportReason(reason.toLowerCase().replace(" ", "")),
+                    }))
+                  );
+                }}
+              >
+                <Text style={[styles.pickerText, dynamicStyles.text]}>
+                  {reportReason.charAt(0).toUpperCase() + reportReason.slice(1)}
+                </Text>
+                <Ionicons
+                  name="chevron-down"
+                  size={20}
+                  color={dynamicStyles.text.color}
+                />
+              </Pressable>
+            </View>
+
+            <TextInput
+              style={[styles.reportTextInput, dynamicStyles.input]}
+              placeholder="Additional details (optional)"
+              placeholderTextColor={isDark ? "#666666" : "#999999"}
+              value={reportDetails}
+              onChangeText={setReportDetails}
+              multiline
+              maxLength={500}
+            />
+
+            <View style={styles.reportButtons}>
+              <Pressable
+                style={[styles.reportButton, styles.reportSubmit]}
+                onPress={async () => {
+                  const success = await reportGroup({
+                    groupID: groupDetails.id,
+                    reportReason,
+                    reportExplanation: reportDetails,
+                  });
+                  if (success) {
+                    setShowReportModal(false);
+                    setReportReason("spam");
+                    setReportDetails("");
+                  }
+                }}
+                disabled={isReporting}
+              >
+                <Text style={styles.reportSubmitText}>
+                  {isReporting ? "Submitting..." : "Submit Report"}
+                </Text>
+              </Pressable>
+
+              <Pressable
+                style={[styles.reportButton, styles.reportCancel]}
+                onPress={() => setShowReportModal(false)}
+              >
+                <Text style={styles.reportCancelText}>Cancel</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         visible={!!showImageModal}
@@ -1300,6 +1502,79 @@ const styles = StyleSheet.create({
   linkModalOpenText: {
     color: "#FFFFFF",
     fontWeight: "500",
+  },
+  reportModal: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    margin: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  reportHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  reportTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  reportSubtitle: {
+    fontSize: 14,
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  picker: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+  },
+  pickerText: {
+    fontSize: 16,
+  },
+  reportTextInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    minHeight: 100,
+    textAlignVertical: 'top',
+    marginBottom: 20,
+  },
+  reportButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  reportButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  reportSubmit: {
+    backgroundColor: '#FF3B30',
+  },
+  reportCancel: {
+    backgroundColor: '#F5F5F5',
+  },
+  reportSubmitText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  reportCancelText: {
+    color: '#000000',
+    fontWeight: '500',
   },
 });
 
