@@ -1,14 +1,9 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
-import { UrlConstants } from '@/constants/apiUrls';
-import { useAuthStore } from '@/state/authStore';
-import { Share } from 'react-native';
+import { useState } from 'react';
+import { Share, Alert } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { toast } from 'sonner-native';
-
-interface LeaveGroupData {
-  groupID: string;
-}
+import { api } from '@/api/client';
+import { UrlConstants } from '@/constants/apiUrls';
 
 interface ReportGroupData {
   groupID: string;
@@ -16,92 +11,57 @@ interface ReportGroupData {
   reportExplanation?: string;
 }
 
-interface MarkCompleteData {
-  groupID: string;
-}
-
 export const useGroupActions = () => {
-  const queryClient = useQueryClient();
-  const { user } = useAuthStore();
+  const [isLeaving, setIsLeaving] = useState(false);
+  const [isReporting, setIsReporting] = useState(false);
+  const [isMarkingComplete, setIsMarkingComplete] = useState(false);
 
-  const leaveGroupMutation = useMutation({
-    mutationFn: async (data: LeaveGroupData) => {
-      const response = await axios.post(
-        `${UrlConstants.baseUrl}${UrlConstants.leaveGroup}`,
-        data,
-        {
-          headers: {
-            Authorization: `Bearer ${user?.accessToken}`,
-          },
-        }
-      );
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['groups'] });
+  const leaveGroup = async (groupID: string): Promise<boolean> => {
+    setIsLeaving(true);
+    try {
+      await api.post(UrlConstants.leaveGroup, { groupID });
       toast.success("You have left the group");
-    },
-    onError: () => {
+      return true;
+    } catch (error) {
+      console.error('Leave group error:', error);
       toast.error("Failed to leave group");
-    },
-  });
+      return false;
+    } finally {
+      setIsLeaving(false);
+    }
+  };
 
-  const reportGroupMutation = useMutation({
-    mutationFn: async (data: ReportGroupData) => {
-      const response = await axios.post(
-        `${UrlConstants.baseUrl}${UrlConstants.reportGroup}`,
-        data,
-        {
-          headers: {
-            Authorization: `Bearer ${user?.accessToken}`,
-          },
-        }
-      );
-      return response.data;
-    },
-    onSuccess: () => {
+  const reportGroup = async (data: ReportGroupData): Promise<boolean> => {
+    setIsReporting(true);
+    try {
+      await api.post(UrlConstants.reportGroup, data);
       toast.success("Report submitted successfully");
-    },
-    onError: () => {
+      return true;
+    } catch (error) {
+      console.error('Report group error:', error);
       toast.error("Failed to submit report");
-    },
-  });
+      return false;
+    } finally {
+      setIsReporting(false);
+    }
+  };
 
-  const markCompleteMutation = useMutation({
-    mutationFn: async (data: MarkCompleteData) => {
-      const response = await axios.post(
-        `${UrlConstants.baseUrl}${UrlConstants.markGroupAsCompleted}`,
-        data,
-        {
-          headers: {
-            Authorization: `Bearer ${user?.accessToken}`,
-          },
-        }
-      );
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['groups'] });
+  const markAsCompleted = async (groupID: string): Promise<boolean> => {
+    setIsMarkingComplete(true);
+    try {
+      await api.post(UrlConstants.markGroupAsCompleted, { groupID });
       toast.success("Group marked as completed");
-    },
-    onError: () => {
+      return true;
+    } catch (error) {
+      console.error('Mark complete error:', error);
       toast.error("Failed to mark as completed");
-    },
-  });
-
-  const leaveGroup = async (groupID: string) => {
-    await leaveGroupMutation.mutateAsync({ groupID });
+      return false;
+    } finally {
+      setIsMarkingComplete(false);
+    }
   };
 
-  const reportGroup = async (groupID: string, reportReason: string, reportExplanation?: string) => {
-    await reportGroupMutation.mutateAsync({ groupID, reportReason, reportExplanation });
-  };
-
-  const markAsCompleted = async (groupID: string) => {
-    await markCompleteMutation.mutateAsync({ groupID });
-  };
-
-  const shareGroup = async (groupDetails: any) => {
+  const shareGroup = async (groupDetails: any): Promise<void> => {
     if (!groupDetails?.shareLink) {
       toast.error("No share link available");
       return;
@@ -128,8 +88,8 @@ export const useGroupActions = () => {
     reportGroup,
     markAsCompleted,
     shareGroup,
-    isLeaving: leaveGroupMutation.isPending,
-    isReporting: reportGroupMutation.isPending,
-    isMarkingComplete: markCompleteMutation.isPending,
+    isLeaving,
+    isReporting,
+    isMarkingComplete,
   };
 };
