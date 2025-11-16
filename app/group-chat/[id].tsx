@@ -1,14 +1,16 @@
+import { api } from "@/api/client";
+import { GroupOptionsDropdown } from "@/components/GroupOptionsDropdown";
 import Header from "@/components/Header";
 import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
-import { GroupOptionsDropdown } from "@/components/GroupOptionsDropdown";
+import { UrlConstants } from "@/constants/apiUrls";
 import { GroupSocketProvider, useGroupSocket } from "@/contexts/SocketProvider";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { useGroupMessages, useMessageReply } from "@/hooks/useGroupMessages";
 import { useGroupDetails } from "@/hooks/useGroups";
 import { useAuthStore } from "@/state/authStore";
-import { MessageType, UserMessage, GroupMember } from "@/types/groups";
+import { GroupMember, MessageType, UserMessage } from "@/types/groups";
 import { formatFileSize, timeAgo } from "@/utils/timeUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -19,6 +21,7 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  Dimensions,
   Image,
   KeyboardAvoidingView,
   Linking,
@@ -26,6 +29,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   TextInput,
   View,
@@ -37,8 +41,14 @@ import {
 } from "react-native-gesture-handler";
 import Hyperlink from "react-native-hyperlink";
 import { runOnJS } from "react-native-reanimated";
-import { api } from "@/api/client";
-import { UrlConstants } from "@/constants/apiUrls";
+
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+const STATUS_BAR_HEIGHT =
+  Platform.OS === "ios" ? 44 : StatusBar.currentHeight || 0;
+const MAIN_HEADER_HEIGHT = 44;
+const CHAT_HEADER_HEIGHT = 80;
+const AVAILABLE_HEIGHT =
+  SCREEN_HEIGHT - STATUS_BAR_HEIGHT - MAIN_HEADER_HEIGHT - CHAT_HEADER_HEIGHT;
 
 const GroupChat = () => {
   const { id } = useLocalSearchParams();
@@ -65,6 +75,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   const textInputRef = useRef<TextInput>(null);
   const messageRefs = useRef<Map<string, any>>(new Map());
   const slideAnim = useRef(new Animated.Value(300)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
   const { groupData } = useLocalSearchParams();
   const passedGroupData = groupData ? JSON.parse(groupData as string) : null;
 
@@ -145,13 +156,13 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   const joinGroup = async () => {
     setIsJoining(true);
     try {
-        await api.post(UrlConstants.fetchInviteGroupDetails(groupId), {});
+      await api.post(UrlConstants.fetchInviteGroupDetails(groupId), {});
     } catch (err) {
-        Alert.alert("Error", "Failed to join group");
+      Alert.alert("Error", "Failed to join group");
     } finally {
-        setIsJoining(false);
+      setIsJoining(false);
     }
-};
+  };
 
   useEffect(() => {
     markAsRead();
@@ -167,17 +178,31 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
 
   useEffect(() => {
     if (showGroupInfo) {
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
     } else {
-      Animated.timing(slideAnim, {
-        toValue: 300,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: 300,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start();
     }
   }, [showGroupInfo]);
 
@@ -448,36 +473,38 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
 
         <Pressable style={styles.headerInfo} onPress={handleToggleDropdown}>
           <View style={styles.avatarsContainer}>
-            {finalGroupDetails.members.slice(0, 3).map((member: GroupMember, index: number) => {
-              const colors = ["#FF6B9D", "#4A90E2", "#9C27B0", "#00D084"];
-              return (
-                <Pressable
-                  key={member.id}
-                  onPress={() => navigateToProfile(member.id)}
-                >
-                  <View
-                    style={[
-                      styles.headerAvatar,
-                      {
-                        backgroundColor: member.bgUrl
-                          ? "transparent"
-                          : colors[index % colors.length],
-                      },
-                      index > 0 && { marginLeft: -8 },
-                    ]}
+            {finalGroupDetails.members
+              .slice(0, 3)
+              .map((member: GroupMember, index: number) => {
+                const colors = ["#FF6B9D", "#4A90E2", "#9C27B0", "#00D084"];
+                return (
+                  <Pressable
+                    key={member.id}
+                    onPress={() => navigateToProfile(member.id)}
                   >
-                    {member.bgUrl ? (
-                      <Image
-                        source={{ uri: member.bgUrl }}
-                        style={styles.avatarImage}
-                      />
-                    ) : (
-                      <Text style={styles.avatarText}>{member.fname[0]}</Text>
-                    )}
-                  </View>
-                </Pressable>
-              );
-            })}
+                    <View
+                      style={[
+                        styles.headerAvatar,
+                        {
+                          backgroundColor: member.bgUrl
+                            ? "transparent"
+                            : colors[index % colors.length],
+                        },
+                        index > 0 && { marginLeft: -8 },
+                      ]}
+                    >
+                      {member.bgUrl ? (
+                        <Image
+                          source={{ uri: member.bgUrl }}
+                          style={styles.avatarImage}
+                        />
+                      ) : (
+                        <Text style={styles.avatarText}>{member.fname[0]}</Text>
+                      )}
+                    </View>
+                  </Pressable>
+                );
+              })}
           </View>
 
           <View style={styles.headerText}>
@@ -648,6 +675,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
             styles.groupInfoSlideModal,
             dynamicStyles.modal,
             {
+              opacity: fadeAnim,
               transform: [{ translateX: slideAnim }],
             },
           ]}
@@ -669,7 +697,8 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
                     styles.groupCategoryIcon,
                     {
                       backgroundColor:
-                      finalGroupDetails.category?.[0]?.bgColorHex || "#007AFF",
+                        finalGroupDetails.category?.[0]?.bgColorHex ||
+                        "#007AFF",
                     },
                   ]}
                 >
@@ -700,60 +729,62 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
               <Text style={[styles.groupInfoLabel, dynamicStyles.text]}>
                 Members ({finalGroupDetails.members.length})
               </Text>
-              {finalGroupDetails.members.map((member: GroupMember, index: number) => {
-                const colors = [
-                  "#FF6B9D",
-                  "#4A90E2",
-                  "#9C27B0",
-                  "#00D084",
-                  "#FFB347",
-                ];
-                return (
-                  <Pressable
-                    key={member.id}
-                    style={styles.memberItem}
-                    onPress={() => {
-                      setShowGroupInfo(false);
-                      navigateToProfile(member.id);
-                    }}
-                  >
-                    <View
-                      style={[
-                        styles.memberAvatar,
-                        {
-                          backgroundColor: member.bgUrl
-                            ? "transparent"
-                            : colors[index % colors.length],
-                        },
-                      ]}
+              {finalGroupDetails.members.map(
+                (member: GroupMember, index: number) => {
+                  const colors = [
+                    "#FF6B9D",
+                    "#4A90E2",
+                    "#9C27B0",
+                    "#00D084",
+                    "#FFB347",
+                  ];
+                  return (
+                    <Pressable
+                      key={member.id}
+                      style={styles.memberItem}
+                      onPress={() => {
+                        setShowGroupInfo(false);
+                        navigateToProfile(member.id);
+                      }}
                     >
-                      {member.bgUrl ? (
-                        <Image
-                          source={{ uri: member.bgUrl }}
-                          style={styles.memberAvatarImage}
-                        />
-                      ) : (
-                        <Text style={styles.memberAvatarText}>
-                          {member.fname[0]}
+                      <View
+                        style={[
+                          styles.memberAvatar,
+                          {
+                            backgroundColor: member.bgUrl
+                              ? "transparent"
+                              : colors[index % colors.length],
+                          },
+                        ]}
+                      >
+                        {member.bgUrl ? (
+                          <Image
+                            source={{ uri: member.bgUrl }}
+                            style={styles.memberAvatarImage}
+                          />
+                        ) : (
+                          <Text style={styles.memberAvatarText}>
+                            {member.fname[0]}
+                          </Text>
+                        )}
+                      </View>
+                      <View style={styles.memberInfo}>
+                        <Text style={[styles.memberName, dynamicStyles.text]}>
+                          {member.fname}
+                          {member.id === user?.id && " (You)"}
                         </Text>
-                      )}
-                    </View>
-                    <View style={styles.memberInfo}>
-                      <Text style={[styles.memberName, dynamicStyles.text]}>
-                        {member.fname}
-                        {member.id === user?.id && " (You)"}
-                      </Text>
-                      {index === 0 && (
-                        <Text
-                          style={[styles.memberRole, dynamicStyles.subtitle]}
-                        >
-                          Admin
-                        </Text>
-                      )}
-                    </View>
-                  </Pressable>
-                );
-              })}
+                        {index === 0 && (
+                          <Text
+                            style={[styles.memberRole, dynamicStyles.subtitle]}
+                          >
+                            Admin
+                          </Text>
+                        )}
+                      </View>
+                    </Pressable>
+                  );
+                }
+              )}
             </View>
           </ScrollView>
         </Animated.View>
@@ -1370,11 +1401,16 @@ const styles = StyleSheet.create({
   },
   groupInfoSlideModal: {
     position: "absolute",
-    top: 0,
+    top: CHAT_HEADER_HEIGHT,
     right: 0,
     width: 300,
-    height: "100%",
+    height: AVAILABLE_HEIGHT,
     zIndex: 1000,
+    shadowColor: "#000",
+    shadowOffset: { width: -2, height: 0 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 10,
   },
   groupInfoHeader: {
     flexDirection: "row",

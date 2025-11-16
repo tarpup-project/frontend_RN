@@ -11,6 +11,7 @@ import {
   Modal,
   Pressable,
   StyleSheet,
+  Dimensions, StatusBar, Platform,
   TextInput,
   View,
   Animated,
