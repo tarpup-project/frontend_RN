@@ -24,6 +24,7 @@ export interface GroupMember {
     shareLink?: string;
     isComplete: boolean;
     isJoined?: boolean;
+    isAdmin?: boolean;
     category: Category[];
     members: GroupMember[];
     lastMessageAt?: string;

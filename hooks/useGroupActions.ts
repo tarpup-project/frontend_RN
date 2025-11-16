@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Share, Alert } from 'react-native';
+import { Share } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { toast } from 'sonner-native';
 import { api } from '@/api/client';
