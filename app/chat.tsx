@@ -91,7 +91,6 @@ const Chat = () => {
     },
   };
 
-  // Skeleton Loading Components
   const MessageSkeleton = ({ isUser }: { isUser: boolean }) => (
     <View
       style={[styles.messageContainer, isUser && styles.userMessageContainer]}

@@ -31,9 +31,39 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
+api.interceptors.request.use(
+  (config) => {
+    console.log("🚀 API Request:");
+    console.log("Method:", config.method?.toUpperCase());
+    console.log("URL:", config.url);
+    console.log("Headers:", config.headers);
+    console.log("Data:", config.data);
+    console.log("Params:", config.params);
+    return config;
+  },
+  (error) => {
+    console.log("❌ Request Error:", error);
+    return Promise.reject(error);
+  }
+);
+
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log("✅ API Response:");
+    console.log("Status:", response.status);
+    console.log("Headers:", response.headers);
+    console.log("Data:", response.data);
+    return response;
+  },
+
   async (error: AxiosError) => {
+    console.log("❌ API Error:");
+    console.log("Status:", error.response?.status);
+    console.log("Status Text:", error.response?.statusText);
+    console.log("Error Data:", error.response?.data);
+    console.log("Error Headers:", error.response?.headers);
+    console.log("Request URL:", error.config?.url);
+    console.log("Request Method:", error.config?.method);
     const originalRequest = error.config as ExtendedAxiosRequestConfig;
     
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
