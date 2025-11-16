@@ -34,49 +34,14 @@ export const useGroups = () => {
 
 
 
-// const fetchGroupDetails = async (groupId: string): Promise<Group> => {
-//   console.log("🔍 Trying original endpoint first...");
-//   try {
-//     const response = await api.get<{ data: Group }>(
-//       UrlConstants.fetchGroupDetails(groupId)
-//     );
-//     console.log("✅ Original endpoint works, data:", response.data);
-//     return response.data.data;
-//   } catch (originalError) {
-//     console.log("❌ Original endpoint failed, trying invite endpoint...");
-//     const response = await api.get<{ data: Group }>(
-//       UrlConstants.fetchInviteGroupDetails(groupId) 
-//     );
-//     return response.data.data;
-//   }
-// };
-
-
-
-
 const fetchGroupDetails = async (groupId: string): Promise<Group> => {
-  console.log("🔍 Fetching group details for ID:", groupId);
-  console.log("🌐 API endpoint:", UrlConstants.fetchInviteGroupDetails(groupId));
-  
-  try {
-    const response = await api.get<{ data: Group }>(
-      UrlConstants.fetchInviteGroupDetails(groupId)    
-    );
-    console.log("✅ Full response:", response);
-    console.log("📊 Response data:", response.data);
-    console.log("🎯 Group data:", response.data.data);
-    return response.data.data;
-  } catch (error: any) {
-    console.log("❌ Error occurred:");
-    console.log("Error object:", error);
-    console.log("Error message:", error.message);
-    console.log("Error response:", error.response);
-    console.log("Error response data:", error.response?.data);
-    console.log("Error status:", error.response?.status);
-    console.log("Error headers:", error.response?.headers);
-    throw error; // Re-throw to maintain error handling
-  }
+  const response = await api.get<{ data: Group }>(
+    UrlConstants.fetchInviteGroupDetails(groupId)    
+  );
+  console.log("real response",response)
+  return response.data.data;
 };
+
 
 
 
