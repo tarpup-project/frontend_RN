@@ -19,7 +19,6 @@ class UrlConstants {
   static fetchAllStates = `/user/states`;
   static activityStats = `/user/stats`;
 
-  // Analytics Endpoint
   static getUserLeaderboard = (id: string) => `/analytics/user/${id}`;
 
   static allNotifications = `/user/notifications`;
