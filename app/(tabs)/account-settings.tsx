@@ -59,7 +59,7 @@ const AccountSettings = () => {
       backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     text: {
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     subtitle: {
       color: isDark ? "#CCCCCC" : "#666666",
@@ -71,13 +71,13 @@ const AccountSettings = () => {
     input: {
       backgroundColor: isDark ? "#0a0a0a" : "#F5F5F5",
       borderColor: isDark ? "#333333" : "#E0E0E0",
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     updateButton: {
       backgroundColor: isDark ? "#FFFFFF" : "#000000",
     },
     updateButtonText: {
-      color: isDark ? "#000000" : "#FFFFFF",
+      color: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     customToggle: {
       backgroundColor: isDark ? "#333333" : "#E0E0E0",
@@ -95,7 +95,7 @@ const AccountSettings = () => {
       backgroundColor: isDark ? "#FFFFFF" : "#000000",
     },
     saveButtonText: {
-      color: isDark ? "#000000" : "#FFFFFF",
+      color: isDark ? "#0a0a0a" : "#FFFFFF",
     },
   };
 

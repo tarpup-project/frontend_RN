@@ -34,7 +34,7 @@ const VerifyEmail = () => {
       backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     text: {
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     subtitle: {
       color: isDark ? "#CCCCCC" : "#666666",
@@ -42,7 +42,7 @@ const VerifyEmail = () => {
     input: {
       backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     digitBox: {
       backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
@@ -258,7 +258,7 @@ const VerifyEmail = () => {
             </Pressable>
           ) : (
             <View style={styles.verifyButton}>
-              <ActivityIndicator color="#000000" size="small" />
+              <ActivityIndicator color="#0a0a0a" size="small" />
               <Text style={styles.verifyButtonText}> Verifying...</Text>
             </View>
           )}
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   verifyButtonText: {
-    color: "#000000",
+    color: "#0a0a0a",
     fontSize: 12,
     fontWeight: "700",
   },

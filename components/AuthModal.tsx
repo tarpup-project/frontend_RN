@@ -58,7 +58,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     text: {
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     subText: {
       color: isDark ? "#B0B0B0" : "#666666",
@@ -67,14 +67,14 @@ const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
       backgroundColor: isDark ? "#FFFFFF" : "#000000",
     },
     primaryButtonText: {
-      color: isDark ? "#000000" : "#FFFFFF",
+      color: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     secondaryButton: {
       backgroundColor: "transparent",
       borderColor: isDark ? "#444444" : "#CCCCCC",
     },
     secondaryButtonText: {
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
   };
 
@@ -129,7 +129,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
                   </View>
                   <Lock
                     size={20}
-                    color={isDark ? "#FFFFFF" : "#000000"}
+                    color={isDark ? "#FFFFFF" : "#0a0a0a"}
                     strokeWidth={2.5}
                     style={styles.lockIcon}
                   />

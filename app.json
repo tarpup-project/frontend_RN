@@ -8,10 +8,10 @@
     "scheme": "rnfrontend",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "backgroundColor": "#000000",
+    "backgroundColor": "#0a0a0a",
     "ios": {
       "supportsTablet": true,
-      "backgroundColor": "#000000",
+      "backgroundColor": "#0a0a0a",
       "bundleIdentifier": "com.vector10.Tarpup",
       "buildNumber": "17",
       "infoPlist": {
@@ -20,12 +20,12 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#000000",
+        "backgroundColor": "#0a0a0a",
         "foregroundImage": "./assets/images/tarpup-light.png",
         "backgroundImage": "./assets/images/tarpup-light.png",
         "monochromeImage": "./assets/images/tarpup-light.png"
       },
-      "backgroundColor": "#000000",
+      "backgroundColor": "#0a0a0a",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.vector10.Tarpup"
@@ -42,10 +42,10 @@
           "image": "./assets/images/tarpup-light.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#000000",
+          "backgroundColor": "#0a0a0a",
           "dark": {
             "image": "./assets/images/tarpup-dark.png",
-            "backgroundColor": "#000000"
+            "backgroundColor": "#0a0a0a"
           }
         }
       ],

@@ -110,7 +110,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
       borderBottomColor: isDark ? "#333333" : "#E0E0E0",
     },
     text: {
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     subtitle: {
       color: isDark ? "#CCCCCC" : "#666666",
@@ -119,24 +119,24 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
       backgroundColor: isDark ? "#FFFFFF" : "#000000",
     },
     myMessageText: {
-      color: isDark ? "#000000" : "#FFFFFF",
+      color: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     theirMessage: {
       backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
     },
     theirMessageText: {
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     input: {
       backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
       borderColor: isDark ? "#333333" : "#E0E0E0",
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     sendButton: {
       backgroundColor: isDark ? "#FFFFFF" : "#000000",
     },
     sendIcon: {
-      color: isDark ? "#000000" : "#FFFFFF",
+      color: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     replyPreview: {
       backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
@@ -1179,7 +1179,7 @@ const ErrorScreen = ({ message }: { message: string }) => {
         style={[
           {
             fontSize: 16,
-            color: isDark ? "#FFFFFF" : "#000000",
+            color: isDark ? "#FFFFFF" : "#0a0a0a",
             marginTop: 12,
           },
         ]}
@@ -1228,7 +1228,7 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: "#000000",
+    borderColor: "#0a0a0a",
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
@@ -1568,7 +1568,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#007AFF",
   },
   linkModalCancelText: {
-    color: "#000000",
+    color: "#0a0a0a",
     fontWeight: "500",
   },
   linkModalOpenText: {
@@ -1745,7 +1745,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   reportCancelText: {
-    color: "#000000",
+    color: "#0a0a0a",
     fontWeight: "500",
   },
 });

@@ -35,7 +35,7 @@ const VerifySignIn = () => {
       backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     text: {
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     subtitle: {
       color: isDark ? "#CCCCCC" : "#666666",
@@ -43,7 +43,7 @@ const VerifySignIn = () => {
     input: {
       backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     digitBox: {
       backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
@@ -61,7 +61,7 @@ const VerifySignIn = () => {
     },
     verifyButtonText: {
       color:
-        code.join("").length === 6 ? "#000000" : isDark ? "#000000" : "#FFFFFF",
+        code.join("").length === 6 ? "#0a0a0a" : isDark ? "#0a0a0a" : "#FFFFFF",
     },
   };
 

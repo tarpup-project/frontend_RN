@@ -66,10 +66,10 @@ const OnboardingScreen = ({
       backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     skipText: {
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     title: {
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     subtitle: {
       color: isDark ? "#CCCCCC" : "#666666",
@@ -79,13 +79,13 @@ const OnboardingScreen = ({
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     chipText: {
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     button: {
       backgroundColor: isDark ? "#FFFFFF" : "#000000",
     },
     buttonText: {
-      color: isDark ? "#000000" : "#FFFFFF",
+      color: isDark ? "#0a0a0a" : "#FFFFFF",
     },
   };
 

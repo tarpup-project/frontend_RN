@@ -56,16 +56,16 @@ const Header = () => {
       borderBottomColor: isDark ? "#333333" : "#E0E0E0",
     },
     title: {
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     icon: {
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     chatButton: {
-      backgroundColor: isDark ? "#FFFFFF" : "#000000",
+      backgroundColor: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     chatText: {
-      color: isDark ? "#000000" : "#FFFFFF",
+      color: isDark ? "#0a0a0a" : "#FFFFFF",
     },
   };
 

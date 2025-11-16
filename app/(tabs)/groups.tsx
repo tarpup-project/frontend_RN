@@ -160,7 +160,7 @@ const Groups = () => {
       backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     text: {
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     subtitle: {
       color: isDark ? "#CCCCCC" : "#666666",
@@ -170,37 +170,37 @@ const Groups = () => {
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     avatarBorder: {
-      borderColor: isDark ? "#000000" : "#FFFFFF",
+      borderColor: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     openButton: {
       backgroundColor: isDark ? "#FFFFFF" : "#000000",
     },
     openButtonText: {
-      color: isDark ? "#000000" : "#FFFFFF",
+      color: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     categoryBadge: {
       backgroundColor: isDark ? "#FFFFFF" : "#000000",
     },
     categoryBadgeText: {
-      color: isDark ? "#000000" : "#FFFFFF",
+      color: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     matchBadge: {
       backgroundColor: isDark ? "#234a29" : "#c3f3d5",
     },
     matchText: {
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     unreadBadge: {
       backgroundColor: isDark ? "#532325" : "#f7cacf",
     },
     unreadText: {
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     retryButton: {
       backgroundColor: isDark ? "#FFFFFF" : "#000000",
     },
     retryButtonText: {
-      color: isDark ? "#000000" : "#FFFFFF",
+      color: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     dropdown: {
       backgroundColor: isDark ? "#1a1a1a" : "#FFFFFF",
@@ -210,7 +210,7 @@ const Groups = () => {
       backgroundColor: isDark ? "#1a1a1a" : "#FFFFFF",
     },
     dropdownText: {
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     dropdownDanger: {
       color: isDark ? "#FF6B6B" : "#E74C3C",

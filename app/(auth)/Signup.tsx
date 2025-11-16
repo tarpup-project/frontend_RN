@@ -53,7 +53,7 @@ const Signup = () => {
       backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     text: {
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     subtitle: {
       color: isDark ? "#CCCCCC" : "#666666",
@@ -61,20 +61,20 @@ const Signup = () => {
     input: {
       backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     dropdown: {
       backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     signInLink: {
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     sendButton: {
       backgroundColor: isDark ? "#FFFFFF" : "#000000",
     },
     sendButtonText: {
-      color: isDark ? "#000000" : "#FFFFFF",
+      color: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     checkbox: {
       borderColor: isDark ? "#333333" : "#E0E0E0",
@@ -412,7 +412,7 @@ const Signup = () => {
           ) : (
             <View style={[styles.sendButton, dynamicStyles.sendButton]}>
               <ActivityIndicator
-                color={isDark ? "#000000" : "#FFFFFF"}
+                color={isDark ? "#0a0a0a" : "#FFFFFF"}
                 size="small"
               />
               <Text

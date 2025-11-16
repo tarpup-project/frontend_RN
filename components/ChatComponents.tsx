@@ -33,12 +33,12 @@ export const MessageItem: React.FC<MessageItemProps> = ({
   isDark,
 }) => {
   const dynamicStyles = {
-    text: { color: isDark ? '#FFFFFF' : '#000000' },
+    text: { color: isDark ? '#FFFFFF' : '#0a0a0a' },
     subtitle: { color: isDark ? '#CCCCCC' : '#666666' },
     ownMessage: { backgroundColor: isDark ? '#007AFF' : '#007AFF' },
     otherMessage: { backgroundColor: isDark ? '#2C2C2E' : '#E5E5EA' },
     ownMessageText: { color: '#FFFFFF' },
-    otherMessageText: { color: isDark ? '#FFFFFF' : '#000000' },
+    otherMessageText: { color: isDark ? '#FFFFFF' : '#0a0a0a' },
   };
 
   if (message.messageType === MessageType.ALERT) {
@@ -133,7 +133,7 @@ interface ReplyPreviewProps {
 export const ReplyPreview: React.FC<ReplyPreviewProps> = ({ message, onCancel, isDark }) => {
   const dynamicStyles = {
     container: { backgroundColor: isDark ? '#1C1C1E' : '#F2F2F7' },
-    text: { color: isDark ? '#FFFFFF' : '#000000' },
+    text: { color: isDark ? '#FFFFFF' : '#0a0a0a' },
     subtitle: { color: isDark ? '#CCCCCC' : '#666666' },
     border: { borderColor: isDark ? '#333333' : '#E0E0E0' },
   };
@@ -169,7 +169,7 @@ interface FilePreviewProps {
 export const FilePreview: React.FC<FilePreviewProps> = ({ file, onRemove, isDark }) => {
   const dynamicStyles = {
     container: { backgroundColor: isDark ? '#1C1C1E' : '#F2F2F7' },
-    text: { color: isDark ? '#FFFFFF' : '#000000' },
+    text: { color: isDark ? '#FFFFFF' : '#0a0a0a' },
     subtitle: { color: isDark ? '#CCCCCC' : '#666666' },
   };
 
@@ -210,7 +210,7 @@ export const GroupInfoPanel: React.FC<GroupInfoPanelProps> = ({
   const dynamicStyles = {
     container: { backgroundColor: isDark ? '#000000' : '#FFFFFF' },
     panel: { backgroundColor: isDark ? '#1C1C1E' : '#F2F2F7' },
-    text: { color: isDark ? '#FFFFFF' : '#000000' },
+    text: { color: isDark ? '#FFFFFF' : '#0a0a0a' },
     subtitle: { color: isDark ? '#CCCCCC' : '#666666' },
     border: { borderColor: isDark ? '#333333' : '#E0E0E0' },
   };

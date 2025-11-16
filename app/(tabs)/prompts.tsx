@@ -112,7 +112,7 @@ const Prompts = () => {
 
   const dynamicStyles = {
     container: { backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF" },
-    text: { color: isDark ? "#FFFFFF" : "#000000" },
+    text: { color: isDark ? "#FFFFFF" : "#0a0a0a" },
     subtitle: { color: isDark ? "#9a9a9a" : "#666666" },
     sectionBg: { backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF" },
     categoryChip: {
@@ -126,14 +126,14 @@ const Prompts = () => {
       backgroundColor: isDark ? "#FFFFFF" : "#000000",
       borderColor: isDark ? "#FFFFFF" : "#000000",
     },
-    categoryChipText: { color: isDark ? "#FFFFFF" : "#000000" },
-    categoryChipTextActive: { color: isDark ? "#000000" : "#FFFFFF" },
-    promptTitle: { color: isDark ? "#FFFFFF" : "#000000" },
+    categoryChipText: { color: isDark ? "#FFFFFF" : "#0a0a0a" },
+    categoryChipTextActive: { color: isDark ? "#0a0a0a" : "#FFFFFF" },
+    promptTitle: { color: isDark ? "#FFFFFF" : "#0a0a0a" },
     promptCard: {
       backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
-    requestButton: { backgroundColor: isDark ? "#FFFFFF" : "#000000" },
+    requestButton: { backgroundColor: isDark ? "#FFFFFF" : "#0a0a0a" },
     requestButtonText: { color: isDark ? "#0a0a0a" : "#FFFFFF" },
   };
 

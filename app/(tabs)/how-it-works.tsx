@@ -14,7 +14,7 @@ const HowItWorks = () => {
       backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     text: {
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     subtitle: {
       color: isDark ? "#CCCCCC" : "#666666",
@@ -32,7 +32,7 @@ const HowItWorks = () => {
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     supportButtonText: {
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
   };
 

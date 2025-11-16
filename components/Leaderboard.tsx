@@ -36,7 +36,7 @@ const LeaderBoard = () => {
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     text: {
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     subtitle: {
       color: isDark ? "#CCCCCC" : "#666666",

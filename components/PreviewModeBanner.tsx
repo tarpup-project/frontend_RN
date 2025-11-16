@@ -15,7 +15,7 @@ const PreviewModeBanner = () => {
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     text: {
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     subtitle: {
       color: isDark ? "#CCCCCC" : "#666666",
@@ -24,14 +24,14 @@ const PreviewModeBanner = () => {
       backgroundColor: isDark ? "#FFFFFF" : "#000000",
     },
     primaryButtonText: {
-      color: isDark ? "#000000" : "#FFFFFF",
+      color: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     secondaryButton: {
       backgroundColor: isDark ? "#FFFFFF" : "#000000",
       borderColor: isDark ? "#FFFFFF" : "#000000",
     },
     secondaryButtonText: {
-      color: isDark ? "#000000" : "#FFFFFF",
+      color: isDark ? "#0a0a0a" : "#FFFFFF",
     },
   };
 
