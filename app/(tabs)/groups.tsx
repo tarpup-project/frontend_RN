@@ -421,7 +421,14 @@ const Groups = () => {
                   <Pressable
                     style={[styles.openButton, dynamicStyles.openButton]}
                     onPress={() => {
-                      router.push(`/group-chat/${group.id}`);
+                      // router.push(`/group-chat/${group.id}`);
+
+                      router.push({
+                        pathname: `/group-chat/${group.id}` as any,
+                        params: { 
+                          groupData: JSON.stringify(group.rawGroup) 
+                        }
+                      });
                     }}
                   >
                     <Ionicons

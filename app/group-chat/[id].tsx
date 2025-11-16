@@ -8,7 +8,7 @@ import { useFileUpload } from "@/hooks/useFileUpload";
 import { useGroupMessages, useMessageReply } from "@/hooks/useGroupMessages";
 import { useGroupDetails } from "@/hooks/useGroups";
 import { useAuthStore } from "@/state/authStore";
-import { MessageType, UserMessage } from "@/types/groups";
+import { MessageType, UserMessage, GroupMember } from "@/types/groups";
 import { formatFileSize, timeAgo } from "@/utils/timeUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -65,12 +65,15 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   const textInputRef = useRef<TextInput>(null);
   const messageRefs = useRef<Map<string, any>>(new Map());
   const slideAnim = useRef(new Animated.Value(300)).current;
+  const { groupData } = useLocalSearchParams();
+  const passedGroupData = groupData ? JSON.parse(groupData as string) : null;
 
   const {
     data: groupDetails,
     isLoading: groupLoading,
     error: groupError,
   } = useGroupDetails(groupId);
+  const finalGroupDetails = passedGroupData || groupDetails;
 
   const { messages, isLoading, error, sendMessage, markAsRead } =
     useGroupMessages({ groupId, socket: socket && user ? socket : undefined });
@@ -422,7 +425,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     );
   }
 
-  if (!groupDetails) {
+  if (!finalGroupDetails) {
     return <ErrorScreen message="Group not found" />;
   }
 
@@ -445,7 +448,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
 
         <Pressable style={styles.headerInfo} onPress={handleToggleDropdown}>
           <View style={styles.avatarsContainer}>
-            {groupDetails.members.slice(0, 3).map((member, index) => {
+            {finalGroupDetails.members.slice(0, 3).map((member: GroupMember, index: number) => {
               const colors = ["#FF6B9D", "#4A90E2", "#9C27B0", "#00D084"];
               return (
                 <Pressable
@@ -479,17 +482,17 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
 
           <View style={styles.headerText}>
             <Text style={[styles.groupName, dynamicStyles.text]}>
-              {groupDetails.name}
+              {finalGroupDetails.name}
             </Text>
             <View style={styles.headerSubtitle}>
               <Text style={[styles.membersCount, dynamicStyles.subtitle]}>
-                {groupDetails.members.length} members
+                {finalGroupDetails.members.length} members
               </Text>
               <View style={styles.dot} />
               <View style={styles.ratingContainer}>
                 <Ionicons name="star" size={12} color="#FFD700" />
                 <Text style={[styles.ratingText, dynamicStyles.subtitle]}>
-                  {groupDetails.score}%
+                  {finalGroupDetails.score}%
                 </Text>
               </View>
             </View>
@@ -499,12 +502,12 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
         <View style={styles.infoButtonContainer}>
           <GroupOptionsDropdown
             groupDetails={{
-              id: groupDetails.id,
-              name: groupDetails.name,
-              shareLink: groupDetails.shareLink,
-              isJoined: groupDetails.isJoined,
-              isAdmin: groupDetails.isAdmin,
-              isComplete: groupDetails.isComplete,
+              id: finalGroupDetails.id,
+              name: finalGroupDetails.name,
+              shareLink: finalGroupDetails.shareLink,
+              isJoined: finalGroupDetails.isJoined,
+              isAdmin: finalGroupDetails.isAdmin,
+              isComplete: finalGroupDetails.isComplete,
             }}
             showDropdown={showDropdown}
             onToggleDropdown={handleToggleDropdown}
@@ -602,7 +605,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
           maxLength={1000}
         />
 
-        {groupDetails.isJoined === false ? (
+        {finalGroupDetails.isJoined === false ? (
           <Pressable
             style={[styles.sendButton, dynamicStyles.sendButton]}
             onPress={handleJoinGroup}
@@ -666,19 +669,19 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
                     styles.groupCategoryIcon,
                     {
                       backgroundColor:
-                        groupDetails.category?.[0]?.bgColorHex || "#007AFF",
+                      finalGroupDetails.category?.[0]?.bgColorHex || "#007AFF",
                     },
                   ]}
                 >
                   <Ionicons name="star" size={20} color="#FFFFFF" />
                 </View>
                 <Text style={[styles.groupInfoName, dynamicStyles.text]}>
-                  {groupDetails.name}
+                  {finalGroupDetails.name}
                 </Text>
                 <View style={styles.compatibilityBadge}>
                   <Ionicons name="star" size={16} color="#FFD700" />
                   <Text style={styles.compatibilityText}>
-                    {groupDetails.score}% compatibility
+                    {finalGroupDetails.score}% compatibility
                   </Text>
                 </View>
               </View>
@@ -689,15 +692,15 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
                 Description
               </Text>
               <Text style={[styles.groupInfoValue, dynamicStyles.subtitle]}>
-                {groupDetails.description || "No description available"}
+                {finalGroupDetails.description || "No description available"}
               </Text>
             </View>
 
             <View style={styles.groupInfoSection}>
               <Text style={[styles.groupInfoLabel, dynamicStyles.text]}>
-                Members ({groupDetails.members.length})
+                Members ({finalGroupDetails.members.length})
               </Text>
-              {groupDetails.members.map((member, index) => {
+              {finalGroupDetails.members.map((member: GroupMember, index: number) => {
                 const colors = [
                   "#FF6B9D",
                   "#4A90E2",

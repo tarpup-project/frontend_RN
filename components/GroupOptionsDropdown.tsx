@@ -81,12 +81,6 @@ export const GroupOptionsDropdown = ({
     },
   };
 
-  console.log("=== DEBUGGING SHARE LINK ===");
-  console.log("groupDetails:", groupDetails);
-  console.log("shareLink exists:", !!groupDetails?.shareLink);
-  console.log("shareLink value:", groupDetails?.shareLink);
-  console.log("=== END DEBUG ===");
-
   const handleShareGroup = async () => {
     onToggleDropdown();
     if (!groupDetails?.shareLink) {
