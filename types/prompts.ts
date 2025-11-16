@@ -24,7 +24,9 @@
     id: string;
     title: string;
     description: string;
-    imageFile?: string;
+    imageFile?: {
+      url: string;
+    };
     startTime: string;
     endTime: string;
     isCompleted: boolean;

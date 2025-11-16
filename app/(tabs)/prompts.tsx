@@ -27,10 +27,10 @@ import {
 import moment from "moment";
 import React, { useMemo, useState } from "react";
 import {
+  Image,
   Modal,
   Pressable,
   RefreshControl,
-  Image,
   ScrollView,
   StyleSheet,
   View,
@@ -448,10 +448,10 @@ const Prompts = () => {
                 {prompt.imageFile && (
                   <Pressable
                     style={styles.imageContainer}
-                    onPress={() => setShowFullImage(prompt.imageFile!)}
+                    onPress={() => setShowFullImage(prompt.imageFile!.url)}
                   >
                     <Image
-                      source={{ uri: prompt.imageFile }}
+                      source={{ uri: prompt.imageFile.url }}
                       style={styles.promptImage}
                       resizeMode="cover"
                     />

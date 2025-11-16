@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 16,
-    fontSize: 16,
+    fontSize: 15,
     marginBottom: 4,
   },
   hint: {
