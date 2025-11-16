@@ -28,7 +28,7 @@ const SignIn = () => {
       backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     text: {
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     subtitle: {
       color: isDark ? "#CCCCCC" : "#666666",
@@ -36,7 +36,7 @@ const SignIn = () => {
     input: {
       backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
       borderColor: isDark ? "#333333" : "#E0E0E0",
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     continueButton: {
       backgroundColor: isDark ? "#FFFFFF" : "#000000",
@@ -45,7 +45,7 @@ const SignIn = () => {
       color: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     signUpLink: {
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     emailOne: {
       color: isDark ? "#FFFFFF" : "#FFFFFF",

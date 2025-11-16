@@ -20,7 +20,7 @@ export const Loader: React.FC<LoaderProps> = ({
 }) => {
   const { isDark } = useTheme();
 
-  const loaderColor = color || (isDark ? "#FFFFFF" : "#000000");
+  const loaderColor = color || (isDark ? "#FFFFFF" : "#0a0a0a");
 
   return (
     <View style={[styles.container, style]}>

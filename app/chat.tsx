@@ -1,6 +1,5 @@
 import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/contexts/ThemeContext";
-
 import { Skeleton } from "@/components/Skeleton";
 import { useMatchActions } from "@/hooks/useMatchActions";
 import { usePersonalChat } from "@/hooks/usePersonalChat";
@@ -57,7 +56,7 @@ const Chat = () => {
       borderBottomColor: isDark ? "#333333" : "#E0E0E0",
     },
     text: {
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     subtitle: {
       color: isDark ? "#CCCCCC" : "#666666",
@@ -67,10 +66,10 @@ const Chat = () => {
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     userMessage: {
-      backgroundColor: isDark ? "#FFFFFF" : "#000000",
+      backgroundColor: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     userMessageText: {
-      color: isDark ? "#000000" : "#FFFFFF",
+      color: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     aiMessageContainer: {
       backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
@@ -82,13 +81,13 @@ const Chat = () => {
     input: {
       backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
       borderColor: isDark ? "#333333" : "#E0E0E0",
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     sendButton: {
-      backgroundColor: isDark ? "#FFFFFF" : "#000000",
+      backgroundColor: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     sendIcon: {
-      color: isDark ? "#000000" : "#FFFFFF",
+      color: isDark ? "#0a0a0a" : "#FFFFFF",
     },
   };
 

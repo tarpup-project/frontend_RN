@@ -37,7 +37,6 @@ const Notifications = () => {
     categoryPref: [],
   });
 
-  // Push notification states (these might be local-only for now)
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [newMatches, setNewMatches] = useState(true);
   const [groupMessages, setGroupMessages] = useState(true);
@@ -48,7 +47,7 @@ const Notifications = () => {
       backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     text: {
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     subtitle: {
       color: isDark ? "#8c8c8c" : "#666666",
@@ -76,17 +75,17 @@ const Notifications = () => {
       backgroundColor: isDark ? "#FFFFFF" : "#000000",
     },
     onBadgeText: {
-      color: isDark ? "#000000" : "#FFFFFF",
+      color: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     saveNotificationButton: {
       backgroundColor: isDark ? "#FFFFFF" : "#000000",
     },
     saveNotificationButtonText: {
-      color: isDark ? "#000000" : "#FFFFFF",
+      color: isDark ? "#0a0a0a" : "#FFFFFF",
     },
   };
 
-  // Load notification settings on mount
+
   useEffect(() => {
     const loadSettings = async () => {
       try {

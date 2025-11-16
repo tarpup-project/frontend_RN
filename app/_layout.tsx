@@ -51,7 +51,7 @@ function RootLayoutContent() {
       >
         <ActivityIndicator
           size="large"
-          color={isDark ? "#FFFFFF" : "#000000"}
+          color={isDark ? "#FFFFFF" : "#0a0a0a"}
         />
       </View>
     );
@@ -61,7 +61,7 @@ function RootLayoutContent() {
     <>
       <StatusBar
         style={isDark ? "light" : "dark"}
-        backgroundColor={isDark ? "#000000" : "#FFFFFF"}
+        backgroundColor={isDark ? "#0a0a0a" : "#FFFFFF"}
         translucent={false}
       />
       <Stack

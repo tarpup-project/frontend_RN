@@ -5,7 +5,6 @@ import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useCampus } from "@/hooks/useCampus";
-
 import { useCategories } from "@/hooks/useCategories";
 import { useRecentMatches } from "@/hooks/useRecentMatches";
 import { useAuthStore } from "@/state/authStore";
@@ -195,7 +194,7 @@ const Index = () => {
       backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     text: {
-      color: isDark ? "#FFFFFF" : "#000000",
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     subtitle: {
       color: isDark ? "#CCCCCC" : "#666666",
@@ -219,7 +218,7 @@ const Index = () => {
       color: "#FFFFFF", 
     },
     avatarBorder: {
-      borderColor: isDark ? "#000000" : "#FFFFFF",
+      borderColor: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     compatibilityCard: {
       backgroundColor: isDark ? "#202123" : "#f0f1f3",
@@ -331,7 +330,7 @@ const Index = () => {
                           <Ionicons
                             name="checkmark"
                             size={18}
-                            color={isDark ? "#FFFFFF" : "#000000"}
+                            color={isDark ? "#FFFFFF" : "#0a0a0a"}
                           />
                         )}
                       </Pressable>
@@ -664,10 +663,10 @@ const styles = StyleSheet.create({
   },
   realTimeBadge: {
     borderRadius: 12,
-    borderWidth: 1,
+    borderWidth: 0.5,
     borderColor: "#333333",
     paddingHorizontal: 5,
-    paddingVertical: 4,
+    paddingVertical: 3,
   },
   realTimeText: {
     fontSize: 10,
