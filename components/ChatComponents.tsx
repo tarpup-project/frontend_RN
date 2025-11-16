@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { UserMessage, AlertMessage, MessageType, MessageFile, Group } from '@/types/groups';
-import {  formatFileSize } from '@/hooks/useFileUpload';
+import {  formatFileSize } from '@/utils/timeUtils';
 import { formatTimeAgo } from "@/hooks/useGroupMessages"
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
