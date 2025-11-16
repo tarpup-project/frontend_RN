@@ -18,7 +18,7 @@ function RootLayoutContent() {
   const { isDark } = useTheme();
   const { isAuthenticated, isLoading } = useAuthStore();
   const segments = useSegments();
-  const router = useRouter();
+  const router = useRouter(); 
 
   useEffect(() => {
     if (!isLoading) {

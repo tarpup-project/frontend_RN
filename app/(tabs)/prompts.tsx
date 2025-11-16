@@ -22,12 +22,15 @@ import {
   ShoppingBag,
   UsersRound,
   Volleyball,
+  X,
 } from "lucide-react-native";
 import moment from "moment";
 import React, { useMemo, useState } from "react";
 import {
+  Modal,
   Pressable,
   RefreshControl,
+  Image,
   ScrollView,
   StyleSheet,
   View,
@@ -85,6 +88,7 @@ const Prompts = () => {
   const { isDark } = useTheme();
   const { user, isAuthenticated } = useAuthStore();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showFullImage, setShowFullImage] = useState<string | null>(null);
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>(
     {}
   );
@@ -440,6 +444,19 @@ const Prompts = () => {
                 <Text style={[styles.promptTitle, dynamicStyles.promptTitle]}>
                   {prompt.description}
                 </Text>
+
+                {prompt.imageFile && (
+                  <Pressable
+                    style={styles.imageContainer}
+                    onPress={() => setShowFullImage(prompt.imageFile!)}
+                  >
+                    <Image
+                      source={{ uri: prompt.imageFile }}
+                      style={styles.promptImage}
+                      resizeMode="cover"
+                    />
+                  </Pressable>
+                )}
                 <Text style={[styles.authorText, dynamicStyles.subtitle]}>
                   by {prompt.owner.fname}
                   {prompt.owner.isStudent &&
@@ -455,6 +472,36 @@ const Prompts = () => {
         visible={showAuthModal}
         onClose={() => setShowAuthModal(false)}
       />
+      <Modal
+        visible={!!showFullImage}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowFullImage(null)}
+      >
+        <View style={styles.imageModalOverlay}>
+          <Pressable
+            style={styles.imageModalBackground}
+            onPress={() => setShowFullImage(null)}
+          >
+            <View style={styles.imageModalContent}>
+              <Pressable
+                style={styles.closeButton}
+                onPress={() => setShowFullImage(null)}
+              >
+                <X size={28} color="#FFFFFF" />
+              </Pressable>
+
+              {showFullImage && (
+                <Image
+                  source={{ uri: showFullImage }}
+                  style={styles.fullImage}
+                  resizeMode="contain"
+                />
+              )}
+            </View>
+          </Pressable>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -549,7 +596,7 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 11, fontWeight: "600" },
   timeText: { fontSize: 10, color: "#999999" },
   promptTitle: {
-    fontSize: 12,
+    fontSize: 11.5,
     marginBottom: 8,
     lineHeight: 20,
     fontWeight: "700",
@@ -559,6 +606,47 @@ const styles = StyleSheet.create({
     padding: 40,
     alignItems: "center",
     justifyContent: "center",
+  },
+  imageContainer: {
+    width: "100%",
+    height: 120,
+    borderRadius: 12,
+    overflow: "hidden",
+    marginVertical: 8,
+  },
+  promptImage: {
+    width: "100%",
+    height: "100%",
+  },
+  imageModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.9)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  imageModalBackground: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  imageModalContent: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    width: "100%",
+  },
+  closeButton: {
+    position: "absolute",
+    top: 50,
+    right: 20,
+    zIndex: 1,
+    padding: 8,
+  },
+  fullImage: {
+    width: "90%",
+    height: "90%",
+    maxWidth: 500,
+    maxHeight: 500,
   },
   emptyText: { fontSize: 14 },
 });
