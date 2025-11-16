@@ -19,6 +19,7 @@ import React, { useState } from "react";
 import {
   Alert,
   Image,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -68,6 +69,7 @@ const Profile = () => {
   const { stats, isLoading: isLoadingStats, refresh } = useProfileStats();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [copyLoading, setCopyLoading] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
 
   const dynamicStyles = {
     container: {
@@ -101,14 +103,12 @@ const Profile = () => {
 
   const referralLink = `https://tarpup.com/?ref=${user?.id}`;
 
-  // Handle refresh
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await refresh();
     setIsRefreshing(false);
   };
 
-  // Handle copy referral link
   const handleCopyReferralLink = async () => {
     try {
       setCopyLoading(true);
@@ -121,7 +121,6 @@ const Profile = () => {
     }
   };
 
-  // Handle share referral link
   const handleShareReferralLink = async () => {
     try {
       await Share.share({
@@ -236,18 +235,20 @@ const Profile = () => {
         <View style={[styles.profileCard, dynamicStyles.card]}>
           <View style={styles.profileHeader}>
             <View style={styles.avatarContainer}>
-              <View style={styles.avatar}>
-                {user.bgUrl ? (
-                  <Image
-                    source={{ uri: user.bgUrl }}
-                    style={styles.avatarImage}
-                  />
-                ) : (
-                  <Text style={styles.avatarText}>
-                    {user.fname?.[0]?.toUpperCase() || "U"}
-                  </Text>
-                )}
-              </View>
+              <Pressable onPress={() => user.bgUrl && setShowImageModal(true)}>
+                <View style={styles.avatar}>
+                  {user.bgUrl ? (
+                    <Image
+                      source={{ uri: user.bgUrl }}
+                      style={styles.avatarImage}
+                    />
+                  ) : (
+                    <Text style={styles.avatarText}>
+                      {user.fname?.[0]?.toUpperCase() || "U"}
+                    </Text>
+                  )}
+                </View>
+              </Pressable>
               <View style={styles.profileInfo}>
                 <Text style={[styles.profileName, dynamicStyles.text]}>
                   {user.fname} {user.lname}
@@ -529,6 +530,38 @@ const Profile = () => {
           </Text>
         </View>
       </ScrollView>
+
+      {/* Profile Image Modal */}
+      <Modal
+        visible={showImageModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowImageModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable
+            style={styles.modalBackground}
+            onPress={() => setShowImageModal(false)}
+          >
+            <View style={styles.modalContent}>
+              <Pressable
+                style={styles.closeButton}
+                onPress={() => setShowImageModal(false)}
+              >
+                <Ionicons name="close" size={28} color="#FFFFFF" />
+              </Pressable>
+
+              {user.bgUrl && (
+                <Image
+                  source={{ uri: user.bgUrl }}
+                  style={styles.fullImage}
+                  resizeMode="contain"
+                />
+              )}
+            </View>
+          </Pressable>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -778,6 +811,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "bold",
     marginBottom: 14,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.9)",
+  },
+  modalBackground: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    width: "100%",
+  },
+  closeButton: {
+    position: "absolute",
+    top: 50,
+    right: 20,
+    zIndex: 1,
+    padding: 8,
+  },
+  fullImage: {
+    width: "90%",
+    height: "90%",
+    maxWidth: 500,
+    maxHeight: 500,
   },
   iconBackground: {
     width: 35,
