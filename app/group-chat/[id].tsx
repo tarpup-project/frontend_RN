@@ -92,6 +92,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   const [message, setMessage] = useState("");
   const [isJoining, setIsJoining] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showGroupInfo, setShowGroupInfo] = useState(false);
   const [reportReason, setReportReason] = useState("spam");
   const [reportDetails, setReportDetails] = useState("");
   const [showImageModal, setShowImageModal] = useState<string | null>(null);
@@ -315,31 +316,6 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
       }
       setLinkToConfirm(null);
     }
-  };
-
-  const handleShareGroup = async () => {
-    if (groupDetails?.shareLink) {
-      try {
-        await navigator.clipboard.writeText(groupDetails.shareLink);
-        Alert.alert("Success", "Group link copied to clipboard!");
-      } catch (error) {
-        Alert.alert("Error", "Could not copy link");
-      }
-    }
-    setShowDropdown(false);
-  };
-
-  const handleLeaveGroup = () => {
-    Alert.alert("Leave Group", "Are you sure you want to leave this group?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Leave",
-        style: "destructive",
-        onPress: () => {
-          setShowDropdown(false);
-        },
-      },
-    ]);
   };
 
   const MessageSkeleton = ({ isMe }: { isMe: boolean }) => (
@@ -765,6 +741,102 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
       </View>
 
       <Modal
+        visible={showGroupInfo}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowGroupInfo(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.groupInfoModal, dynamicStyles.dropdown]}>
+            <View style={styles.groupInfoHeader}>
+              <Text style={[styles.groupInfoTitle, dynamicStyles.text]}>
+                Group Info
+              </Text>
+              <Pressable onPress={() => setShowGroupInfo(false)}>
+                <X size={24} color={dynamicStyles.text.color} />
+              </Pressable>
+            </View>
+
+            <ScrollView style={styles.groupInfoContent}>
+              <View style={styles.groupInfoSection}>
+                <View style={styles.groupInfoTop}>
+                  <View style={[styles.groupCategoryIcon, { backgroundColor: groupDetails.category?.[0]?.bgColorHex || "#007AFF" }]}>
+                    <Ionicons name="star" size={20} color="#FFFFFF" />
+                  </View>
+                  <Text style={[styles.groupInfoName, dynamicStyles.text]}>
+                    {groupDetails.name}
+                  </Text>
+                  <View style={styles.compatibilityBadge}>
+                    <Ionicons name="star" size={16} color="#FFD700" />
+                    <Text style={styles.compatibilityText}>
+                      {groupDetails.score}% compatibility
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.groupInfoSection}>
+                <Text style={[styles.groupInfoLabel, dynamicStyles.text]}>Description</Text>
+                <Text style={[styles.groupInfoValue, dynamicStyles.subtitle]}>
+                  {groupDetails.description || "No description available"}
+                </Text>
+              </View>
+
+              <View style={styles.groupInfoSection}>
+                <Text style={[styles.groupInfoLabel, dynamicStyles.text]}>
+                  Members ({groupDetails.members.length})
+                </Text>
+                {groupDetails.members.map((member, index) => {
+                  const colors = ["#FF6B9D", "#4A90E2", "#9C27B0", "#00D084", "#FFB347"];
+                  return (
+                    <Pressable
+                      key={member.id}
+                      style={styles.memberItem}
+                      onPress={() => {
+                        setShowGroupInfo(false);
+                        navigateToProfile(member.id);
+                      }}
+                    >
+                      <View
+                        style={[
+                          styles.memberAvatar,
+                          {
+                            backgroundColor: member.bgUrl
+                              ? "transparent"
+                              : colors[index % colors.length],
+                          },
+                        ]}
+                      >
+                        {member.bgUrl ? (
+                          <Image
+                            source={{ uri: member.bgUrl }}
+                            style={styles.memberAvatarImage}
+                          />
+                        ) : (
+                          <Text style={styles.memberAvatarText}>{member.fname[0]}</Text>
+                        )}
+                      </View>
+                      <View style={styles.memberInfo}>
+                        <Text style={[styles.memberName, dynamicStyles.text]}>
+                          {member.fname}
+                          {member.id === user?.id && " (You)"}
+                        </Text>
+                        {index === 0 && (
+                          <Text style={[styles.memberRole, dynamicStyles.subtitle]}>
+                            Admin
+                          </Text>
+                        )}
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
         visible={showReportModal}
         transparent={true}
         animationType="slide"
@@ -798,7 +870,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
                   Alert.alert(
                     "Select Reason",
                     "",
-                    reasons.map((reason, index) => ({
+                    reasons.map((reason) => ({
                       text: reason,
                       onPress: () =>
                         setReportReason(reason.toLowerCase().replace(" ", "")),
@@ -1503,26 +1575,126 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "500",
   },
+  groupInfoModal: {
+    backgroundColor: "white",
+    borderRadius: 12,
+    margin: 20,
+    maxHeight: "80%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  groupInfoHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
+  },
+  groupInfoTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  groupInfoContent: {
+    padding: 20,
+  },
+  groupInfoSection: {
+    marginBottom: 20,
+  },
+  groupInfoTop: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  groupCategoryIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  groupInfoName: {
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  compatibilityBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  compatibilityText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#FFD700",
+  },
+  groupInfoLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  groupInfoValue: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  memberItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  memberAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  memberAvatarImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  memberAvatarText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  memberInfo: {
+    flex: 1,
+  },
+  memberName: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  memberRole: {
+    fontSize: 12,
+    marginTop: 2,
+  },
   reportModal: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 12,
     margin: 20,
     padding: 20,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
   },
   reportHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 16,
   },
   reportTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   reportSubtitle: {
     fontSize: 14,
@@ -1535,9 +1707,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   picker: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 12,
   },
   pickerText: {
@@ -1549,32 +1721,32 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     minHeight: 100,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
     marginBottom: 20,
   },
   reportButtons: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
   },
   reportButton: {
     flex: 1,
     padding: 12,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   reportSubmit: {
-    backgroundColor: '#FF3B30',
+    backgroundColor: "#FF3B30",
   },
   reportCancel: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: "#F5F5F5",
   },
   reportSubmitText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
+    color: "#FFFFFF",
+    fontWeight: "600",
   },
   reportCancelText: {
-    color: '#000000',
-    fontWeight: '500',
+    color: "#000000",
+    fontWeight: "500",
   },
 });
 
