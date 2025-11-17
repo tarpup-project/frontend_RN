@@ -4,7 +4,7 @@ import { GroupMember } from "@/types/groups";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Star } from "lucide-react-native";
-import React, { useRef } from "react";
+import React from "react";
 import {
   Image,
   Pressable,
@@ -41,7 +41,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 }) => {
   const { isDark } = useTheme();
   const router = useRouter();
-  const infoButtonRef = useRef<View>(null);
 
   const dynamicStyles = {
     header: {
@@ -58,12 +57,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
   const handleBack = () => {
     router.back();
-  };
-
-  const handleShowGroupInfo = () => {
-    infoButtonRef.current?.measure((x, y, width, height, pageX, pageY) => {
-      onShowGroupInfo();
-    });
   };
 
   return (
@@ -131,12 +124,12 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         </View>
       </Pressable>
 
-      <View ref={infoButtonRef} style={styles.infoButtonContainer}>
+      <View style={styles.infoButtonContainer}>
         <GroupOptionsDropdown
           groupDetails={groupDetails}
           showDropdown={showDropdown}
           onToggleDropdown={onToggleDropdown}
-          onShowGroupInfo={handleShowGroupInfo}
+          onShowGroupInfo={onShowGroupInfo}
           onLeaveSuccess={onLeaveSuccess}
         />
       </View>

@@ -54,6 +54,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   const { user } = useAuthStore();
   const { socket } = useGroupSocket();
   const messageRefs = useRef<Map<string, any>>(new Map());
+  const infoButtonRef = useRef<View>(null); // Added back
   const slideAnim = useRef(new Animated.Value(300)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
@@ -128,6 +129,11 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   useEffect(() => {
     markAsRead();
   }, [markAsRead]);
+
+  // Debug effect to track showGroupInfo state
+  useEffect(() => {
+    console.log("🔍 showGroupInfo state changed:", showGroupInfo);
+  }, [showGroupInfo]);
 
   // Group info animation effect
   useEffect(() => {
@@ -251,8 +257,10 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   }, [linkToConfirm]);
 
   const handleShowGroupInfo = useCallback(() => {
-    setIconPosition({ x: 0, y: 100 }); // Simplified for now
+    console.log("🔍 handleShowGroupInfo called!"); // Debug log
+    setIconPosition({ x: 0, y: 100 }); // Simple fixed position
     setShowGroupInfo(true);
+    console.log("🔍 showGroupInfo set to true"); // Debug log
   }, []);
 
   // Loading state logic
