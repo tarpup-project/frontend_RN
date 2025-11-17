@@ -46,7 +46,7 @@ const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const STATUS_BAR_HEIGHT =
   Platform.OS === "ios" ? 44 : StatusBar.currentHeight || 0;
 const MAIN_HEADER_HEIGHT = 44;
-const CHAT_HEADER_HEIGHT = 80;
+const CHAT_HEADER_HEIGHT = 70;
 const AVAILABLE_HEIGHT =
   SCREEN_HEIGHT - STATUS_BAR_HEIGHT - MAIN_HEADER_HEIGHT - CHAT_HEADER_HEIGHT;
 
@@ -689,40 +689,31 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
             </Pressable>
           </View>
 
-          <ScrollView style={styles.groupInfoContent}>
-            <View style={styles.groupInfoSection}>
-              <View style={styles.groupInfoTop}>
-                <View
-                  style={[
-                    styles.groupCategoryIcon,
-                    {
-                      backgroundColor:
-                        finalGroupDetails.category?.[0]?.bgColorHex ||
-                        "#007AFF",
-                    },
-                  ]}
-                >
-                  <Ionicons name="star" size={20} color="#FFFFFF" />
-                </View>
-                <Text style={[styles.groupInfoName, dynamicStyles.text]}>
-                  {finalGroupDetails.name}
-                </Text>
-                <View style={styles.compatibilityBadge}>
-                  <Ionicons name="star" size={16} color="#FFD700" />
-                  <Text style={styles.compatibilityText}>
-                    {finalGroupDetails.score}% compatibility
+            <ScrollView style={styles.groupInfoContent}>
+              <View style={styles.groupInfoSection}>
+                <View style={styles.groupInfoTop}>
+                  <View
+                    style={[
+                      styles.groupCategoryIcon,
+                      {
+                        backgroundColor:
+                          finalGroupDetails.category?.[0]?.bgColorHex ||
+                          "#007AFF",
+                      },
+                    ]}
+                  >
+                    <Ionicons name="star" size={20} color="#FFFFFF" />
+                  </View>
+                  <Text style={[styles.groupInfoName, dynamicStyles.text]}>
+                    {finalGroupDetails.name}
                   </Text>
-                </View>
+                  <View style={styles.compatibilityBadge}>
+                    <Ionicons name="star" size={16} color="#FFD700" />
+                    <Text style={styles.compatibilityText}>
+                      {finalGroupDetails.score}% compatibility
+                    </Text>
+                  </View>
               </View>
-            </View>
-
-            <View style={styles.groupInfoSection}>
-              <Text style={[styles.groupInfoLabel, dynamicStyles.text]}>
-                Description
-              </Text>
-              <Text style={[styles.groupInfoValue, dynamicStyles.subtitle]}>
-                {finalGroupDetails.description || "No description available"}
-              </Text>
             </View>
 
             <View style={styles.groupInfoSection}>
@@ -1401,10 +1392,13 @@ const styles = StyleSheet.create({
   },
   groupInfoSlideModal: {
     position: "absolute",
-    top: CHAT_HEADER_HEIGHT,
+    top: 190, 
     right: 0,
-    width: 300,
-    height: AVAILABLE_HEIGHT,
+    width: 280,
+    height: 600,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#333333",
     zIndex: 1000,
     shadowColor: "#000",
     shadowOffset: { width: -2, height: 0 },
@@ -1416,20 +1410,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 20,
-    borderBottomWidth: 1,
+    padding: 12,
+    borderBottomWidth:0.5,
     borderBottomColor: "#E0E0E0",
   },
   groupInfoTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "600",
   },
   groupInfoContent: {
     flex: 1,
-    padding: 20,
+    padding: 12,
   },
   groupInfoSection: {
-    marginBottom: 20,
+    marginBottom: 12,
   },
   groupInfoTop: {
     alignItems: "center",
@@ -1444,7 +1438,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   groupInfoName: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
     textAlign: "center",
     marginBottom: 8,
@@ -1460,18 +1454,18 @@ const styles = StyleSheet.create({
     color: "#FFD700",
   },
   groupInfoLabel: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "600",
-    marginBottom: 8,
+    marginBottom: 6,
   },
   groupInfoValue: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 12,
+    lineHeight: 16  ,
   },
   memberItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 8,
+    paddingVertical: 6,
   },
   memberAvatar: {
     width: 40,
@@ -1495,11 +1489,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   memberName: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "500",
   },
   memberRole: {
-    fontSize: 12,
+    fontSize: 10,
     marginTop: 2,
   },
 });
