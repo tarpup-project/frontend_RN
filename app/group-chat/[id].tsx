@@ -40,6 +40,7 @@ import {
   StyleSheet,
   TextInput,
   View,
+  Keyboard, 
 } from "react-native";
 import {
   Gesture,
@@ -83,6 +84,9 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   const messageRefs = useRef<Map<string, any>>(new Map());
   const slideAnim = useRef(new Animated.Value(300)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const infoButtonRef = useRef<View>(null); 
+  const [iconPosition, setIconPosition] = useState({ x: 0, y: 0 });
   const { groupData } = useLocalSearchParams();
   const passedGroupData = groupData ? JSON.parse(groupData as string) : null;
 
@@ -111,6 +115,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   const [showImageModal, setShowImageModal] = useState<string | null>(null);
   const [linkToConfirm, setLinkToConfirm] = useState<string | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
   const nativeScrollGesture = Gesture.Native();
 
@@ -157,7 +162,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     },
     modal: {
       backgroundColor: isDark ? "#0A0A0A" : "#FFFFFF",
-      borderColor: isDark? "#43474c" : "#d6dadf"
+      borderColor: isDark ? "#43474c" : "#d6dadf",
     },
     compatibilityText: {
       color: isDark ? "#FFFFFF" : "#000000",
@@ -174,6 +179,27 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
       setIsJoining(false);
     }
   };
+
+
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+      setKeyboardVisible(true);
+    });
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardVisible(false);
+    });
+  
+    return () => {
+      keyboardDidShowListener?.remove();
+      keyboardDidHideListener?.remove();
+    };
+  }, []);
+  
+  useEffect(() => {
+    if (keyboardVisible && showGroupInfo) {
+      setShowGroupInfo(false);
+    }
+  }, [keyboardVisible]);
 
   useEffect(() => {
     markAsRead();
@@ -200,6 +226,12 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
           duration: 300,
           useNativeDriver: true,
         }),
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          tension: 100,
+          friction: 8,
+          useNativeDriver: true,
+        }),
       ]).start();
     } else {
       Animated.parallel([
@@ -210,6 +242,11 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
         }),
         Animated.timing(fadeAnim, {
           toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 0.8,
           duration: 250,
           useNativeDriver: true,
         }),
@@ -537,7 +574,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
           </View>
         </Pressable>
 
-        <View style={styles.infoButtonContainer}>
+        <View ref={infoButtonRef} style={styles.infoButtonContainer}>
           <GroupOptionsDropdown
             groupDetails={{
               id: finalGroupDetails.id,
@@ -549,7 +586,12 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
             }}
             showDropdown={showDropdown}
             onToggleDropdown={handleToggleDropdown}
-            onShowGroupInfo={() => setShowGroupInfo(true)}
+            onShowGroupInfo={() => {             
+              infoButtonRef.current?.measure((x, y, width, height, pageX, pageY) => {
+                setIconPosition({ x: pageX, y: pageY + height });
+                setShowGroupInfo(true);
+              });
+            }}
             onLeaveSuccess={() => router.back()}
           />
         </View>
@@ -681,186 +723,207 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
       </View>
 
       {showGroupInfo && (
-        <Animated.View
-          style={[
-            styles.groupInfoSlideModal,
-            dynamicStyles.modal,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateX: slideAnim }],
-            },
-          ]}
-        >
+  <>
+    <Pressable 
+      style={styles.modalOverlay}
+      onPress={() => setShowGroupInfo(false)}
+    />
 
-          <ScrollView style={styles.groupInfoContent}>
-            <View style={styles.groupInfoSection}>
-              <View style={styles.groupInfoTop}>
-                <View
-                  style={[
-                    styles.groupCategoryIcon,
-                    {
-                      backgroundColor:
-                        finalGroupDetails.category?.[0]?.bgColorHex ||
-                        "#007AFF",
-                    },
-                  ]}
-                >
-                  <UsersRound size={20} color="#ab653e" />
-                </View>
-                <Text style={[styles.groupInfoName, dynamicStyles.text]}>
-                  {finalGroupDetails.name}
-                </Text>
-                <View style={styles.compatibilityBadge}>
-                  <Star size={16} color="#FFD700" />
-                  <Text
-                    style={[
-                      styles.compatibilityText,
-                      dynamicStyles.compatibilityText,
-                    ]}
-                  >
-                    {finalGroupDetails.score}% compatibility
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            <View style={styles.groupInfoSection}>
-              <Text style={[styles.groupInfoLabel, dynamicStyles.text]}>
-                Members ({finalGroupDetails.members.length})
-              </Text>
-              {finalGroupDetails.members.map(
-                (member: GroupMember, index: number) => {
-                  const colors = [
-                    "#FF6B9D",
-                    "#4A90E2",
-                    "#9C27B0",
-                    "#00D084",
-                    "#FFB347",
-                  ];
-                  return (
-                    <Pressable
-                      key={member.id}
-                      style={styles.memberItem}
-                      onPress={() => {
-                        setShowGroupInfo(false);
-                        navigateToProfile(member.id);
-                      }}
-                    >
-                      <View
-                        style={[
-                          styles.memberAvatar,
-                          {
-                            backgroundColor: member.bgUrl
-                              ? "transparent"
-                              : colors[index % colors.length],
-                          },
-                        ]}
-                      >
-                        {member.bgUrl ? (
-                          <Image
-                            source={{ uri: member.bgUrl }}
-                            style={styles.memberAvatarImage}
-                          />
-                        ) : (
-                          <Text style={styles.memberAvatarText}>
-                            {member.fname[0]}
-                          </Text>
-                        )}
-                      </View>
-                      <View style={styles.memberInfo}>
-                        <Text style={[styles.memberName, dynamicStyles.text]}>
-                          {member.fname}
-                          {member.id === user?.id && " (You)"}
-                        </Text>
-                        {index === 0 && (
-                          <Text
-                            style={[styles.memberRole, dynamicStyles.subtitle]}
-                          >
-                            Admin
-                          </Text>
-                        )}
-                      </View>
-                    </Pressable>
-                  );
-                }
-              )}
-            </View>
-          </ScrollView>
-        </Animated.View>
-      )}
-
-      <Modal
-        visible={!!showImageModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowImageModal(null)}
-      >
-        <View style={styles.imageModalOverlay}>
-          <Pressable
-            style={styles.imageModalBackground}
-            onPress={() => setShowImageModal(null)}
-          >
-            <View style={styles.imageModalContent}>
-              <Pressable
-                style={styles.closeButton}
-                onPress={() => setShowImageModal(null)}
-              >
-                <X size={28} color="#FFFFFF" />
-              </Pressable>
-
-              {showImageModal && (
-                <Image
-                  source={{ uri: showImageModal }}
-                  style={styles.fullImage}
-                  resizeMode="contain"
-                />
-              )}
-            </View>
-          </Pressable>
-        </View>
-      </Modal>
-
-      <Modal
-        visible={!!linkToConfirm}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setLinkToConfirm(null)}
-      >
-        <View style={styles.centeredModalContainer}>
-          <View style={[styles.linkModal, dynamicStyles.modal]}>
-            <Text style={[styles.linkModalTitle, dynamicStyles.text]}>
-              Open Link?
-            </Text>
-            <Text
-              style={[styles.linkModalUrl, dynamicStyles.subtitle]}
-              numberOfLines={2}
+    <Animated.View
+      style={[
+        styles.groupInfoSlideModal,
+        dynamicStyles.modal,
+        {
+          top: iconPosition.y,
+          right: 16, 
+          opacity: fadeAnim,
+          transform: [
+            { translateX: slideAnim },
+            { scale: scaleAnim }
+          ],
+        },
+      ]}
+    >
+      <ScrollView style={styles.groupInfoContent}>
+        <View style={styles.groupInfoSection}>
+          <View style={styles.groupInfoTop}>
+            <View
+              style={[
+                styles.groupCategoryIcon,
+                {
+                  backgroundColor:
+                    finalGroupDetails.category?.[0]?.bgColorHex ||
+                    "#007AFF",
+                },
+              ]}
             >
-              {linkToConfirm}
-            </Text>
-            <View style={styles.linkModalButtons}>
-              <Pressable
-                style={[styles.linkModalButton, styles.linkModalCancel]}
-                onPress={() => setLinkToConfirm(null)}
-              >
-                <Text style={styles.linkModalCancelText}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.linkModalButton, styles.linkModalOpen]}
-                onPress={confirmOpenLink}
-              >
-                <Text style={styles.linkModalOpenText}>Open</Text>
-              </Pressable>
+              <UsersRound size={20} color="#ab653e" />
             </View>
+            <Text style={[styles.groupInfoName, dynamicStyles.text]}>
+              {finalGroupDetails.name}
+            </Text>
+            <View style={styles.compatibilityBadge}>
+              <Star size={16} color="#FFD700" />
+              <Text
+                style={[
+                  styles.compatibilityText,
+                  dynamicStyles.compatibilityText,
+                ]}
+              >
+                {finalGroupDetails.score}% compatibility
+              </Text>
+            </View>
+            <Text style={[styles.categorySubtext, dynamicStyles.subtitle]}>
+              {finalGroupDetails.category?.[0]?.name || "friends"} •{" "}
+              {finalGroupDetails.members.length} members
+            </Text>
           </View>
         </View>
-      </Modal>
 
-      {showDropdown && (
+        <View style={styles.groupInfoSection}>
+          <View style={styles.membersHeader}>
+            <UsersRound size={18} color={dynamicStyles.text.color} />
+            <Text style={[styles.groupInfoLabel, dynamicStyles.text]}>
+              Members ({finalGroupDetails.members.length})
+            </Text>
+          </View>
+
+          <ScrollView style={styles.membersScrollContainer}>
+          {finalGroupDetails.members.map(
+            (member: GroupMember, index: number) => {
+              const colors = [
+                "#FF6B9D",
+                "#4A90E2",
+                "#9C27B0",
+                "#00D084",
+                "#FFB347",
+              ];
+              return (
+                <Pressable
+                  key={member.id}
+                  style={styles.memberItem}
+                  onPress={() => {
+                    setShowGroupInfo(false);
+                    navigateToProfile(member.id);
+                  }}
+                >
+                  <View
+                    style={[
+                      styles.memberAvatar,
+                      {
+                        backgroundColor: member.bgUrl
+                          ? "transparent"
+                          : colors[index % colors.length],
+                      },
+                    ]}
+                  >
+                    {member.bgUrl ? (
+                      <Image
+                        source={{ uri: member.bgUrl }}
+                        style={styles.memberAvatarImage}
+                      />
+                    ) : (
+                      <Text style={styles.memberAvatarText}>
+                        {member.fname[0]}
+                      </Text>
+                    )}
+                  </View>
+                  <View style={styles.memberInfo}>
+                    <Text style={[styles.memberName, dynamicStyles.text]}>
+                      {member.fname}
+                      {member.id === user?.id && " (You)"}
+                    </Text>
+                    {index === 0 && (
+                      <Text
+                        style={[styles.memberRole, dynamicStyles.subtitle]}
+                      >
+                        Admin
+                      </Text>
+                    )}
+                  </View>
+                </Pressable>
+              );
+            }
+          )}
+          </ScrollView>
+        </View>
+      </ScrollView>
+    </Animated.View>
+  </>
+)}
+
+<Modal
+  visible={!!showImageModal}
+  transparent={true}
+  animationType="fade"
+  onRequestClose={() => setShowImageModal(null)}
+>
+  <View style={styles.imageModalOverlay}>
+    <Pressable
+      style={styles.imageModalBackground}
+      onPress={() => setShowImageModal(null)}
+    >
+      <View style={styles.imageModalContent}>
         <Pressable
-          style={styles.overlay}
-          onPress={() => setShowDropdown(false)}
-        />
-      )}
+          style={styles.closeButton}
+          onPress={() => setShowImageModal(null)}
+        >
+          <X size={28} color="#FFFFFF" />
+        </Pressable>
+
+        {showImageModal && (
+          <Image
+            source={{ uri: showImageModal }}
+            style={styles.fullImage}
+            resizeMode="contain"
+          />
+        )}
+      </View>
+    </Pressable>
+  </View>
+</Modal>
+
+<Modal
+  visible={!!linkToConfirm}
+  transparent={true}
+  animationType="fade"
+  onRequestClose={() => setLinkToConfirm(null)}
+>
+  <View style={styles.centeredModalContainer}>
+    <View style={[styles.linkModal, dynamicStyles.modal]}>
+      <Text style={[styles.linkModalTitle, dynamicStyles.text]}>
+        Open Link?
+      </Text>
+      <Text
+        style={[styles.linkModalUrl, dynamicStyles.subtitle]}
+        numberOfLines={2}
+      >
+        {linkToConfirm}
+      </Text>
+      <View style={styles.linkModalButtons}>
+        <Pressable
+          style={[styles.linkModalButton, styles.linkModalCancel]}
+          onPress={() => setLinkToConfirm(null)}
+        >
+          <Text style={styles.linkModalCancelText}>Cancel</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.linkModalButton, styles.linkModalOpen]}
+          onPress={confirmOpenLink}
+        >
+          <Text style={styles.linkModalOpenText}>Open</Text>
+        </Pressable>
+      </View>
+    </View>
+  </View>
+</Modal>
+
+{showDropdown && (
+  <Pressable
+    style={styles.overlay}
+    onPress={() => setShowDropdown(false)}
+  />
+)}
     </KeyboardAvoidingView>
   );
 };
@@ -1252,6 +1315,20 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginLeft: 8,
   },
+  membersHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8,
+  },
+  membersScrollContainer: {
+    maxHeight: 150,
+  },
+  categorySubtext: {
+    fontSize: 11,
+    textAlign: "center",
+    marginTop: 4,
+  },
   cancelReply: {
     padding: 4,
   },
@@ -1332,6 +1409,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  modalOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 999,
+    backgroundColor: "transparent", 
+  },
   imageModalBackground: {
     flex: 1,
     justifyContent: "center",
@@ -1400,10 +1486,8 @@ const styles = StyleSheet.create({
   },
   groupInfoSlideModal: {
     position: "absolute",
-    top: 190,
-    right: 0,
-    width: 280,
-    height: 600,
+    width: 190,
+    // height: 400,
     borderRadius: 12,
     borderWidth: 1,
     zIndex: 1000,
