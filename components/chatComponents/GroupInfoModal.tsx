@@ -66,7 +66,6 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
       <Pressable 
         style={styles.modalOverlay}
         onPress={onClose}
-        activeOpacity={1}
       />
 
       <Animated.View
@@ -205,7 +204,8 @@ const styles = StyleSheet.create({
   },
   groupInfoSlideModal: {
     position: "absolute",
-    width: 190,
+    width: 280, // Increased from 190
+    maxHeight: 500, // Added max height
     borderRadius: 12,
     borderWidth: 1,
     zIndex: 1000,
@@ -217,10 +217,10 @@ const styles = StyleSheet.create({
   },
   groupInfoContent: {
     flex: 1,
-    padding: 12,
+    padding: 16, // Increased from 12
   },
   groupInfoSection: {
-    marginBottom: 12,
+    marginBottom: 16, // Increased from 12
   },
   groupInfoTop: {
     alignItems: "center",
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   membersScrollContainer: {
-    maxHeight: 150,
+    maxHeight: 250, // Increased from 150
   },
   groupInfoLabel: {
     fontSize: 12,
