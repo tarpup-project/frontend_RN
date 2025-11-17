@@ -3,6 +3,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useGroupActions } from "@/hooks/useGroupActions";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
+import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import { Share2, Users, X } from "lucide-react-native";
 import { useState } from "react";
@@ -11,20 +12,17 @@ import {
   Modal,
   Pressable,
   StyleSheet,
-  Dimensions, StatusBar, Platform,
   TextInput,
   View,
-  Animated,
 } from "react-native";
-import * as Clipboard from 'expo-clipboard';
-import { toast } from 'sonner-native';
+import { toast } from "sonner-native";
 
 interface GroupDetailsType {
   id: string;
   name: string;
   shareLink?: string;
-  isJoined: boolean | undefined;  
-  isAdmin: boolean | undefined; 
+  isJoined: boolean | undefined;
+  isAdmin: boolean | undefined;
   isComplete: boolean;
 }
 
@@ -178,10 +176,7 @@ export const GroupOptionsDropdown = ({
           )}
 
           {groupDetails.shareLink && (
-            <Pressable
-              style={styles.dropdownItem}
-              onPress={handleShareGroup}
-            >
+            <Pressable style={styles.dropdownItem} onPress={handleShareGroup}>
               <Share2 size={16} color={dynamicStyles.text.color} />
               <Text style={[styles.dropdownText, dynamicStyles.text]}>
                 Share Group
@@ -322,15 +317,8 @@ export const GroupOptionsDropdown = ({
             <Text style={[styles.confirmTitle, dynamicStyles.text]}>
               Are you sure you want to leave this group?
             </Text>
-            
+
             <View style={styles.confirmButtons}>
-              <Pressable
-                style={[styles.confirmButton, styles.confirmCancel]}
-                onPress={() => setShowLeaveModal(false)}
-              >
-                <Text style={styles.confirmCancelText}>Cancel</Text>
-              </Pressable>
-              
               <Pressable
                 style={[styles.confirmButton, styles.confirmLeave]}
                 onPress={handleLeaveGroup}
@@ -339,6 +327,13 @@ export const GroupOptionsDropdown = ({
                 <Text style={styles.confirmLeaveText}>
                   {isLeaving ? "Leaving..." : "Yes, Leave"}
                 </Text>
+              </Pressable>
+
+              <Pressable
+                style={[styles.confirmButton, styles.confirmCancel]}
+                onPress={() => setShowLeaveModal(false)}
+              >
+                <Text style={styles.confirmCancelText}>Cancel</Text>
               </Pressable>
             </View>
           </View>
@@ -356,7 +351,7 @@ export const GroupOptionsDropdown = ({
             <Text style={[styles.confirmTitle, dynamicStyles.text]}>
               Are you sure you want to mark "{groupDetails.name}" as completed?
             </Text>
-            
+
             <View style={styles.confirmButtons}>
               <Pressable
                 style={[styles.confirmButton, styles.confirmCancel]}
@@ -364,7 +359,7 @@ export const GroupOptionsDropdown = ({
               >
                 <Text style={styles.confirmCancelText}>Cancel</Text>
               </Pressable>
-              
+
               <Pressable
                 style={[styles.confirmButton, styles.confirmComplete]}
                 onPress={handleMarkComplete}
@@ -380,10 +375,7 @@ export const GroupOptionsDropdown = ({
       </Modal>
 
       {showDropdown && (
-        <Pressable
-          style={styles.overlay}
-          onPress={onToggleDropdown}
-        />
+        <Pressable style={styles.overlay} onPress={onToggleDropdown} />
       )}
     </>
   );
@@ -521,7 +513,7 @@ const styles = StyleSheet.create({
     width: 280,
   },
   confirmTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
     marginBottom: 20,
     textAlign: "center",
@@ -532,7 +524,7 @@ const styles = StyleSheet.create({
   },
   confirmButton: {
     flex: 1,
-    padding: 12,
+    paddingVertical: 9,
     borderRadius: 8,
     alignItems: "center",
   },
