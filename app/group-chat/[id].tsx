@@ -14,7 +14,14 @@ import { GroupMember, MessageType, UserMessage } from "@/types/groups";
 import { formatFileSize, timeAgo } from "@/utils/timeUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Paperclip, Reply, Send, X } from "lucide-react-native";
+import {
+  Paperclip,
+  Reply,
+  Send,
+  Star,
+  UsersRound,
+  X,
+} from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import {
   ActionSheetIOS,
@@ -149,7 +156,11 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     modal: {
-      backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF",
+      backgroundColor: isDark ? "#0A0A0A" : "#FFFFFF",
+      borderColor: isDark? "#43474c" : "#d6dadf"
+    },
+    compatibilityText: {
+      color: isDark ? "#FFFFFF" : "#000000",
     },
   };
 
@@ -680,39 +691,36 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
             },
           ]}
         >
-          <View style={styles.groupInfoHeader}>
-            <Text style={[styles.groupInfoTitle, dynamicStyles.text]}>
-              Group Info
-            </Text>
-            <Pressable onPress={() => setShowGroupInfo(false)}>
-              <X size={24} color={dynamicStyles.text.color} />
-            </Pressable>
-          </View>
 
-            <ScrollView style={styles.groupInfoContent}>
-              <View style={styles.groupInfoSection}>
-                <View style={styles.groupInfoTop}>
-                  <View
+          <ScrollView style={styles.groupInfoContent}>
+            <View style={styles.groupInfoSection}>
+              <View style={styles.groupInfoTop}>
+                <View
+                  style={[
+                    styles.groupCategoryIcon,
+                    {
+                      backgroundColor:
+                        finalGroupDetails.category?.[0]?.bgColorHex ||
+                        "#007AFF",
+                    },
+                  ]}
+                >
+                  <UsersRound size={20} color="#ab653e" />
+                </View>
+                <Text style={[styles.groupInfoName, dynamicStyles.text]}>
+                  {finalGroupDetails.name}
+                </Text>
+                <View style={styles.compatibilityBadge}>
+                  <Star size={16} color="#FFD700" />
+                  <Text
                     style={[
-                      styles.groupCategoryIcon,
-                      {
-                        backgroundColor:
-                          finalGroupDetails.category?.[0]?.bgColorHex ||
-                          "#007AFF",
-                      },
+                      styles.compatibilityText,
+                      dynamicStyles.compatibilityText,
                     ]}
                   >
-                    <Ionicons name="star" size={20} color="#FFFFFF" />
-                  </View>
-                  <Text style={[styles.groupInfoName, dynamicStyles.text]}>
-                    {finalGroupDetails.name}
+                    {finalGroupDetails.score}% compatibility
                   </Text>
-                  <View style={styles.compatibilityBadge}>
-                    <Ionicons name="star" size={16} color="#FFD700" />
-                    <Text style={styles.compatibilityText}>
-                      {finalGroupDetails.score}% compatibility
-                    </Text>
-                  </View>
+                </View>
               </View>
             </View>
 
@@ -1392,18 +1400,17 @@ const styles = StyleSheet.create({
   },
   groupInfoSlideModal: {
     position: "absolute",
-    top: 190, 
+    top: 190,
     right: 0,
     width: 280,
     height: 600,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#333333",
     zIndex: 1000,
     shadowColor: "#000",
     shadowOffset: { width: -2, height: 0 },
     shadowOpacity: 0.25,
-    shadowRadius: 8,
+    shadowRadius: 4,
     elevation: 10,
   },
   groupInfoHeader: {
@@ -1411,7 +1418,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     padding: 12,
-    borderBottomWidth:0.5,
+    borderBottomWidth: 0.5,
     borderBottomColor: "#E0E0E0",
   },
   groupInfoTitle: {
@@ -1438,7 +1445,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   groupInfoName: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "600",
     textAlign: "center",
     marginBottom: 8,
@@ -1451,7 +1458,6 @@ const styles = StyleSheet.create({
   compatibilityText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#FFD700",
   },
   groupInfoLabel: {
     fontSize: 12,
@@ -1460,7 +1466,7 @@ const styles = StyleSheet.create({
   },
   groupInfoValue: {
     fontSize: 12,
-    lineHeight: 16  ,
+    lineHeight: 16,
   },
   memberItem: {
     flexDirection: "row",
