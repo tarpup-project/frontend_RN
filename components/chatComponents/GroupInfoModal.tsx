@@ -73,8 +73,8 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
           styles.groupInfoSlideModal,
           dynamicStyles.modal,
           {
-            top: iconPosition.y,
-            right: 16, 
+            top: iconPosition.y + 70,
+            right: 20, 
             opacity: fadeAnim,
             transform: [
               { translateX: slideAnim },
@@ -204,8 +204,9 @@ const styles = StyleSheet.create({
   },
   groupInfoSlideModal: {
     position: "absolute",
-    width: 280, // Increased from 190
-    maxHeight: 500, // Added max height
+    width: 280, 
+    height: 550,
+    maxHeight: 600, 
     borderRadius: 12,
     borderWidth: 1,
     zIndex: 1000,
@@ -217,10 +218,10 @@ const styles = StyleSheet.create({
   },
   groupInfoContent: {
     flex: 1,
-    padding: 16, // Increased from 12
+    padding: 16, 
   },
   groupInfoSection: {
-    marginBottom: 16, // Increased from 12
+    marginBottom: 16, 
   },
   groupInfoTop: {
     alignItems: "center",
@@ -261,7 +262,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   membersScrollContainer: {
-    maxHeight: 250, // Increased from 150
+    maxHeight: 300, 
   },
   groupInfoLabel: {
     fontSize: 12,
