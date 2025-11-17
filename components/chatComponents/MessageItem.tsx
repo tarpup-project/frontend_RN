@@ -104,7 +104,13 @@ export const MessageItem: React.FC<MessageItemProps> = ({
   if (msg.isAlert) {
     return (
       <View
-        ref={(ref) => messageRefs.current.set(msg.id, ref)}
+        ref={(ref) => {
+          if (ref) {
+            messageRefs.current.set(msg.id, ref);
+          } else {
+            messageRefs.current.delete(msg.id);
+          }
+        }}
         style={styles.messageWrapper}
       >
         <View style={styles.alertContainer}>
@@ -118,7 +124,13 @@ export const MessageItem: React.FC<MessageItemProps> = ({
 
   return (
     <View
-      ref={(ref) => messageRefs.current.set(msg.id, ref)}
+      ref={(ref) => {
+        if (ref) {
+          messageRefs.current.set(msg.id, ref);
+        } else {
+          messageRefs.current.delete(msg.id);
+        }
+      }}
       style={styles.messageWrapper}
     >
       <GestureDetector gesture={swipeGesture}>
