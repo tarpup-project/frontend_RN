@@ -82,7 +82,6 @@ export const MessageItem: React.FC<MessageItemProps> = ({
     },
   };
 
-  // Create the swipe gesture directly in the component
   const swipeGesture = Gesture.Pan()
     .activeOffsetX([-15, 15])
     .failOffsetY([-25, 25])
@@ -134,113 +133,115 @@ export const MessageItem: React.FC<MessageItemProps> = ({
       style={styles.messageWrapper}
     >
       <GestureDetector gesture={swipeGesture}>
-        <View style={[styles.messageRow, msg.isMe && styles.myMessageRow]}>
-          {!msg.isMe && (
-            <Pressable
-              onPress={() => {
-                if (msg.rawMessage?.sender?.id) {
-                  navigateToProfile(msg.rawMessage.sender.id);
-                }
-              }}
-              style={styles.messageAvatarContainer}
+  <View>
+    <View style={[styles.messageRow, msg.isMe && styles.myMessageRow]}>
+      {!msg.isMe && (
+        <Pressable
+          onPress={() => {
+            if (msg.rawMessage?.sender?.id) {
+              navigateToProfile(msg.rawMessage.sender.id);
+            }
+          }}
+          style={styles.messageAvatarContainer}
+        >
+          {typeof msg.avatar === "string" &&
+          msg.avatar.startsWith("http") ? (
+            <Image
+              source={{ uri: msg.avatar }}
+              style={styles.messageAvatarImage}
+            />
+          ) : (
+            <View
+              style={[
+                styles.messageAvatar,
+                { backgroundColor: msg.avatar },
+              ]}
             >
-              {typeof msg.avatar === "string" &&
-              msg.avatar.startsWith("http") ? (
-                <Image
-                  source={{ uri: msg.avatar }}
-                  style={styles.messageAvatarImage}
-                />
-              ) : (
-                <View
-                  style={[
-                    styles.messageAvatar,
-                    { backgroundColor: msg.avatar },
-                  ]}
-                >
-                  <Text style={styles.avatarText}>{msg.sender[0]}</Text>
-                </View>
-              )}
-            </Pressable>
+              <Text style={styles.avatarText}>{msg.sender[0]}</Text>
+            </View>
           )}
+        </Pressable>
+      )}
 
-          <View
-            style={[
-              styles.messageBubble,
-              msg.isMe ? dynamicStyles.myMessage : dynamicStyles.theirMessage,
-            ]}
-          >
-            {msg.replyingTo && (
-              <Pressable
-                style={styles.replyReference}
-                onPress={() => scrollToMessage(msg.replyingTo!.content.id)}
-              >
-                <View style={styles.replyBar} />
-                <Text
-                  style={[styles.replyRefText, dynamicStyles.subtitle]}
-                  numberOfLines={1}
-                >
-                  {msg.replyingTo.sender.fname}:{" "}
-                  {msg.replyingTo.content.message}
-                </Text>
-              </Pressable>
-            )}
-
-            {!msg.isMe && (
-              <Text style={[styles.senderName, dynamicStyles.subtitle]}>
-                {msg.sender}
-              </Text>
-            )}
-
-            {msg.file && (
-              <Pressable onPress={() => onImagePress(msg.file!.data)}>
-                <Image
-                  source={{ uri: msg.file.data }}
-                  style={styles.messageImage}
-                />
-              </Pressable>
-            )}
-
-            {msg.text && (
-              <View>
-                <Hyperlink
-                  linkDefault={false}
-                  onPress={(url) => onLinkPress(url)}
-                  linkStyle={{
-                    color: msg.isMe ? "#87CEEB" : "#007AFF",
-                    textDecorationLine: "underline",
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.messageText,
-                      msg.isMe
-                        ? dynamicStyles.myMessageText
-                        : dynamicStyles.theirMessageText,
-                    ]}
-                  >
-                    {msg.text}
-                  </Text>
-                </Hyperlink>
-              </View>
-            )}
-          </View>
-
-          <Text style={[styles.messageTime, dynamicStyles.subtitle]}>
-            {msg.time}
-          </Text>
-
+      <View
+        style={[
+          styles.messageBubble,
+          msg.isMe ? dynamicStyles.myMessage : dynamicStyles.theirMessage,
+        ]}
+      >
+        {msg.replyingTo && (
           <Pressable
-            onPress={() => onReply(msg.rawMessage)}
-            style={styles.replyButton}
+            style={styles.replyReference}
+            onPress={() => scrollToMessage(msg.replyingTo!.content.id)}
           >
-            <Reply
-              size={18}
-              color={dynamicStyles.subtitle.color}
-              style={{ opacity: 0.8 }}
+            <View style={styles.replyBar} />
+            <Text
+              style={[styles.replyRefText, dynamicStyles.subtitle]}
+              numberOfLines={1}
+            >
+              {msg.replyingTo.sender.fname}:{" "}
+              {msg.replyingTo.content.message}
+            </Text>
+          </Pressable>
+        )}
+
+        {!msg.isMe && (
+          <Text style={[styles.senderName, dynamicStyles.subtitle]}>
+            {msg.sender}
+          </Text>
+        )}
+
+        {msg.file && (
+          <Pressable onPress={() => onImagePress(msg.file!.data)}>
+            <Image
+              source={{ uri: msg.file.data }}
+              style={styles.messageImage}
             />
           </Pressable>
-        </View>
-      </GestureDetector>
+        )}
+
+        {msg.text && (
+          <View>
+            <Hyperlink
+              linkDefault={false}
+              onPress={(url) => onLinkPress(url)}
+              linkStyle={{
+                color: msg.isMe ? "#87CEEB" : "#007AFF",
+                textDecorationLine: "underline",
+              }}
+            >
+              <Text
+                style={[
+                  styles.messageText,
+                  msg.isMe
+                    ? dynamicStyles.myMessageText
+                    : dynamicStyles.theirMessageText,
+                ]}
+              >
+                {msg.text}
+              </Text>
+            </Hyperlink>
+          </View>
+        )}
+      </View>
+
+      <Pressable
+        onPress={() => onReply(msg.rawMessage)}
+        style={styles.replyButton}
+      >
+        <Reply
+          size={18}
+          color={dynamicStyles.subtitle.color}
+          style={{ opacity: 0.8 }}
+        />
+      </Pressable>
+    </View>
+
+    <Text style={[styles.messageTimeBelow, dynamicStyles.subtitle, msg.isMe && styles.myMessageTime]}>
+      {msg.time}
+    </Text>
+  </View>
+</GestureDetector>
     </View>
   );
 };
@@ -252,8 +253,7 @@ const styles = StyleSheet.create({
   messageRow: {
     flexDirection: "row",
     gap: 8,
-    maxWidth: "85%",
-    alignItems: "flex-end",
+    maxWidth: "65%",
   },
   myMessageRow: {
     alignSelf: "flex-end",
@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   messageText: {
-    fontSize: 14,
+    fontSize: 13,
     lineHeight: 20,
     marginBottom: 4,
   },
@@ -300,6 +300,14 @@ const styles = StyleSheet.create({
     fontSize: 10,
     alignSelf: "flex-end",
     marginTop: 4,
+  },
+  messageTimeBelow: {
+    fontSize: 10,
+    marginTop: 4,
+    alignSelf: "flex-start", 
+  },
+  myMessageTime: {
+    alignSelf: "flex-end",    
   },
   messageImage: {
     width: 200,
