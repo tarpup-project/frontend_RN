@@ -73,7 +73,7 @@ export const GroupOptionsDropdown = ({
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     modal: {
-      backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF",
+      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     input: {
       backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   infoIconText: {
-    fontSize: 8,
+    fontSize: 6,
     fontWeight: "600",
   },
   dropdown: {
@@ -428,7 +428,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   dropdownText: {
-    fontSize: 14,
+    fontSize: 11,
   },
   overlay: {
     position: "absolute",
@@ -448,7 +448,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 20,
     maxWidth: "90%",
-    width: 320,
+    width: 360,
   },
   reportHeader: {
     flexDirection: "row",
@@ -457,13 +457,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   reportTitle: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: "600",
   },
   reportSubtitle: {
-    fontSize: 14,
+    fontSize: 11,
     marginBottom: 16,
-    lineHeight: 20,
+    lineHeight: 16,
   },
   pickerContainer: {
     borderWidth: 1,
@@ -474,17 +474,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 12,
+    padding: 7,
   },
   pickerText: {
-    fontSize: 16,
+    fontSize: 13,
   },
   reportTextInput: {
     borderWidth: 1,
     borderRadius: 8,
     padding: 12,
-    fontSize: 16,
-    minHeight: 100,
+    fontSize: 13,
+    minHeight: 50,
     textAlignVertical: "top",
     marginBottom: 20,
   },
@@ -494,7 +494,8 @@ const styles = StyleSheet.create({
   },
   reportButton: {
     flex: 1,
-    padding: 12,
+    paddingHorizontal: 4,
+    paddingVertical: 9,
     borderRadius: 8,
     alignItems: "center",
   },
@@ -511,6 +512,7 @@ const styles = StyleSheet.create({
   reportCancelText: {
     color: "#000000",
     fontWeight: "500",
+    fontSize: 12,
   },
   confirmModal: {
     borderRadius: 12,
@@ -546,6 +548,7 @@ const styles = StyleSheet.create({
   confirmCancelText: {
     color: "#000000",
     fontWeight: "500",
+    fontSize: 12,
   },
   confirmLeaveText: {
     color: "#FFFFFF",
