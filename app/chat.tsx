@@ -1,16 +1,17 @@
+import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Skeleton } from "@/components/Skeleton";
 import { useMatchActions } from "@/hooks/useMatchActions";
 import { usePersonalChat } from "@/hooks/usePersonalChat";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { Bot, UserRound } from "lucide-react-native";
+import { UserRound } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -268,7 +269,11 @@ const Chat = () => {
         {!isUser && (
           <View style={styles.avatarContainer}>
             <View style={styles.aiAvatar}>
-              <Bot size={16} color="#FFFFFF" />
+              <Image
+                source={require("@/assets/images/tarpup-plain-dark.png")}
+                style={{ width: 30, height: 30 }}
+                resizeMode="contain"
+              />
             </View>
           </View>
         )}
@@ -543,7 +548,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: "600",
   },
   headerActions: {
@@ -647,7 +652,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   messageBubble: {
-    maxWidth: "80%",
+    maxWidth: "70%",
     padding: 12,
     borderRadius: 12,
   },
