@@ -468,11 +468,11 @@ const styles = StyleSheet.create({
     height: 30,
   },
   appTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
   },
   tagline: {
-    fontSize: 10,
+    fontSize: 14,
     marginTop: 8,
   },
   formSection: {
@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   sectionSubtitle: {
-    fontSize: 11,
+    fontSize: 12,
     marginBottom: 12,
     textAlign: "center",
   },
@@ -500,11 +500,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    height: 30,
+    height: 35,
     borderRadius: 8,
     borderWidth: 1,
     paddingHorizontal: 16,
-    fontSize: 12,
+    fontSize: 16,
   },
   dropdown: {
     height: 40,
@@ -523,7 +523,7 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   dropdownText: {
-    fontSize: 9,
+    fontSize: 14,
   },
   dropdownList: {
     marginTop: 8,
@@ -573,7 +573,7 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   checkboxText: {
-    fontSize: 10,
+    fontSize: 12,
     flex: 1,
     lineHeight: 16,
     fontWeight: "700",
@@ -591,7 +591,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   sendButtonText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "700",
   },
   signInContainer: {
@@ -601,11 +601,11 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   signInText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "700",
   },
   signInLink: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "700",
   },
 });
