@@ -428,9 +428,19 @@ const ConfirmationModal = ({
             {message}
           </Text>
           <View style={styles.confirmButtons}>
-          <Pressable style={[styles.cancelButton, dynamicStyles.cancelButton]} onPress={onCancel}>
-  <Text style={[styles.cancelButtonText, dynamicStyles.cancelButtonText]}>Cancel</Text>
-</Pressable>
+            <Pressable
+              style={[styles.cancelButton, dynamicStyles.cancelButton]}
+              onPress={onCancel}
+            >
+              <Text
+                style={[
+                  styles.cancelButtonText,
+                  dynamicStyles.cancelButtonText,
+                ]}
+              >
+                Cancel
+              </Text>
+            </Pressable>
             <Pressable style={styles.confirmButton} onPress={onConfirm}>
               <Text style={styles.confirmButtonText}>Clear</Text>
             </Pressable>
@@ -447,7 +457,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 60,
   },
   modalContainer: {
     width: "90%",

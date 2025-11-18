@@ -26,6 +26,7 @@ export const ImageModal: React.FC<ImageModalProps> = ({
       animationType="fade"
       onRequestClose={onClose}
     >
+       <Pressable onPress={(e) => e.stopPropagation()}>
       <View style={styles.imageModalOverlay}>
         <Pressable
           style={styles.imageModalBackground}
@@ -47,8 +48,9 @@ export const ImageModal: React.FC<ImageModalProps> = ({
               />
             )}
           </View>
-        </Pressable>
+        </Pressable>        
       </View>
+      </Pressable>
     </Modal>
   );
 };
