@@ -107,9 +107,9 @@ export const useFileUpload = () => {
       }
 
       // Validate file type (optional - remove if you want to allow all types)
-      if (!isValidFileType(file.name)) {
-        throw new Error('File type not supported');
-      }
+      // if (!isValidFileType(file.name)) {
+      //   throw new Error('File type not supported');
+      // }
 
       let fileData: string;
       const extension = file.name.split('.').pop()?.toLowerCase() || '';

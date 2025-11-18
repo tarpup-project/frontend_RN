@@ -49,19 +49,16 @@ const VerifySignIn = () => {
       backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
+
     verifyButton: {
-      backgroundColor:
-        code.join("").length === 6
-          ? isDark
-            ? "#FFFFFF"
-            : "#000000"
-          : isDark
-          ? "#828282"
-          : "#848484",
+      backgroundColor: code.join("").length === 6 
+        ? (isDark ? "#FFFFFF" : "#000000")
+        : "#828282",
     },
     verifyButtonText: {
-      color:
-        code.join("").length === 6 ? "#0a0a0a" : isDark ? "#0a0a0a" : "#FFFFFF",
+      color: code.join("").length === 6 
+        ? (isDark ? "#000000" : "#FFFFFF")
+        : "#FFFFFF",
     },
   };
 
