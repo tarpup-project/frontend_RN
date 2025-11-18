@@ -89,7 +89,6 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
 
-  // Memoized styles to prevent recreation on every render
   const dynamicStyles = useMemo(() => ({
     container: {
       backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
@@ -110,7 +109,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     }
   }, [groupId]);
 
-  // Combined keyboard and group info effect
+
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
       setKeyboardVisible(true);

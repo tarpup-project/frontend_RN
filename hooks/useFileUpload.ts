@@ -45,10 +45,16 @@ export const useFileUpload = () => {
 
   const selectFile = async () => {
     try {
+      // const result = await DocumentPicker.getDocumentAsync({
+      //   type: ['image/*', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', '*/*'],
+      //   copyToCacheDirectory: true,
+      // });
+
       const result = await DocumentPicker.getDocumentAsync({
-        type: ['image/*', 'application/pdf'],
+        type: '*/*',
         copyToCacheDirectory: true,
       });
+      
 
       if (!result.canceled && result.assets[0]) {
         const file = result.assets[0];
@@ -59,11 +65,11 @@ export const useFileUpload = () => {
           return;
         }
 
-        // Check file type
-        if (!isValidFileType(file.name)) {
-          Alert.alert('Invalid File Type', 'Please select an image or PDF file');
-          return;
-        }
+        // // Check file type
+        // if (!isValidFileType(file.name)) {
+        //   Alert.alert('Invalid File Type', 'Please select an image or PDF file');
+        //   return;
+        // }
 
         let fileData: string;
         
