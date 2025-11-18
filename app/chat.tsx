@@ -1,3 +1,7 @@
+import {
+  ChatSettingsModal,
+  ConfirmationModal,
+} from "@/components/chatComponents/chatSettingsModal";
 import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -6,7 +10,7 @@ import { usePersonalChat } from "@/hooks/usePersonalChat";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { UserRound, Settings } from "lucide-react-native";
+import { Settings, UserRound } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -20,7 +24,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { ChatSettingsModal, ConfirmationModal } from "@/components/chatComponents/chatSettingsModal"; 
 
 const Chat = () => {
   const { isDark } = useTheme();
@@ -28,7 +31,7 @@ const Chat = () => {
   const [message, setMessage] = useState("");
   const scrollViewRef = useRef<ScrollView>(null);
   const { user } = useAuthStore();
-  const [showSettingsModal, setShowSettingsModal] = useState(false); 
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showClearChatConfirm, setShowClearChatConfirm] = useState(false);
 
   const {
@@ -378,11 +381,11 @@ const Chat = () => {
             <Settings size={20} color={dynamicStyles.text.color} />
           </Pressable>
           <Pressable
-  style={styles.clearButton}
-  onPress={() => setShowClearChatConfirm(true)}
->
-  <Ionicons name="trash-outline" size={20} color="#EF4444" />
-</Pressable>
+            style={styles.clearButton}
+            onPress={() => setShowClearChatConfirm(true)}
+          >
+            <Ionicons name="trash-outline" size={20} color="#EF4444" />
+          </Pressable>
           <Pressable style={styles.closeButton} onPress={handleClose}>
             <Ionicons name="close" size={24} color={dynamicStyles.text.color} />
           </Pressable>
@@ -521,7 +524,7 @@ const Chat = () => {
         onClearChat={clearMessages}
       />
 
-<ConfirmationModal
+      <ConfirmationModal
         visible={showClearChatConfirm}
         title="Clear chat?"
         message="This will permanently delete your messages. Are you sure?"
@@ -702,7 +705,7 @@ const styles = StyleSheet.create({
   },
   inputSection: {
     padding: 16,
-    paddingBottom: Platform.OS === "ios" ? 24 : 2,
+    paddingBottom: Platform.OS === "ios" ? 24 : 15,
     borderTopWidth: 1,
     borderTopColor: "rgba(255, 255, 255, 0.1)",
   },
