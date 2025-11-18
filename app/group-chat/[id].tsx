@@ -75,6 +75,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   const { replyingTo, startReply, cancelReply } = useMessageReply();
   const {
     selectedFile,
+    isProcessing,
     selectImage,
     selectImageFromCamera,
     removeFile,
@@ -129,12 +130,10 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     markAsRead();
   }, [markAsRead]);
 
-  // Debug effect to track showGroupInfo state
   useEffect(() => {
     console.log("🔍 showGroupInfo state changed:", showGroupInfo);
   }, [showGroupInfo]);
 
-  // Group info animation effect
   useEffect(() => {
     if (showGroupInfo) {
       Animated.parallel([
@@ -341,7 +340,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
         message={message}
         onChangeMessage={setMessage}
         onSend={handleSend}
-        onAttachment={() => {}} // Simplified for now
+        onAttachment={() => {}} 
         isJoined={finalGroupDetails.isJoined !== false}
         onJoinGroup={handleJoinGroup}
         isJoining={isJoining}
