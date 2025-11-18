@@ -48,6 +48,22 @@ const VerifyEmail = () => {
       backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
+    verifyButton: {
+      backgroundColor:
+        code.join("").length === 6
+          ? isDark
+            ? "#FFFFFF"
+            : "#000000"
+          : "#828282",
+    },
+    verifyButtonText: {
+      color:
+        code.join("").length === 6
+          ? isDark
+            ? "#000000"
+            : "#FFFFFF"
+          : "#FFFFFF",
+    },
   };
 
   const handleCodeChange = (text: string, index: number) => {
@@ -249,17 +265,36 @@ const VerifyEmail = () => {
             <Pressable
               style={[
                 styles.verifyButton,
+                dynamicStyles.verifyButton,
                 code.join("").length !== 6 && styles.verifyButtonDisabled,
               ]}
               onPress={handleVerifyEmail}
               disabled={code.join("").length !== 6}
             >
-              <Text style={styles.verifyButtonText}>Verify Email</Text>
+              <Text
+                style={[
+                  styles.verifyButtonText,
+                  dynamicStyles.verifyButtonText,
+                ]}
+              >
+                Verify Email
+              </Text>
             </Pressable>
           ) : (
-            <View style={styles.verifyButton}>
-              <ActivityIndicator color="#0a0a0a" size="small" />
-              <Text style={styles.verifyButtonText}> Verifying...</Text>
+            <View style={[styles.verifyButton, dynamicStyles.verifyButton]}>
+              <ActivityIndicator
+                color={dynamicStyles.verifyButtonText.color}
+                size="small"
+              />
+              <Text
+                style={[
+                  styles.verifyButtonText,
+                  dynamicStyles.verifyButtonText,
+                ]}
+              >
+                {" "}
+                Verifying...
+              </Text>
             </View>
           )}
           <Text style={[styles.spam, dynamicStyles.subtitle]}>

@@ -81,8 +81,8 @@ const Signup = () => {
       backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     checkedBox: {
-      backgroundColor: "#00D084",
-      borderColor: "#00D084",
+      backgroundColor: isDark ? "#FFFFFF" : "#000000",
+      borderColor: isDark ? "#FFFFFF" : "#000000", 
     },
   };
 
