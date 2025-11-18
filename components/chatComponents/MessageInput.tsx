@@ -1,5 +1,5 @@
 import { useTheme } from "@/contexts/ThemeContext";
-import { formatFileSize } from "@/utils/timeUtils";
+// import { formatFileSize } from "@/utils/timeUtils";
 import { Paperclip, Send, X } from "lucide-react-native";
 import React, { useRef } from "react";
 import {
@@ -146,8 +146,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
               {selectedFile.name}
             </Text>
             <Text style={[styles.fileSize, dynamicStyles.subtitle]}>
-              {formatFileSize(selectedFile.size)}
-            </Text>
+  {selectedFile.size} bytes
+</Text>
           </View>
           <Pressable onPress={onRemoveFile} style={styles.removeFile}>
             <X size={24} color="#FF3B30" />
