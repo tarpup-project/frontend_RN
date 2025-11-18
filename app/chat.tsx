@@ -6,7 +6,7 @@ import { usePersonalChat } from "@/hooks/usePersonalChat";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { UserRound } from "lucide-react-native";
+import { UserRound, Settings } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -20,6 +20,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { ChatSettingsModal, ConfirmationModal } from "@/components/chatComponents/chatSettingsModal"; 
 
 const Chat = () => {
   const { isDark } = useTheme();
@@ -27,6 +28,8 @@ const Chat = () => {
   const [message, setMessage] = useState("");
   const scrollViewRef = useRef<ScrollView>(null);
   const { user } = useAuthStore();
+  const [showSettingsModal, setShowSettingsModal] = useState(false); 
+  const [showClearChatConfirm, setShowClearChatConfirm] = useState(false);
 
   const {
     messages,
@@ -92,6 +95,8 @@ const Chat = () => {
     },
   };
 
+  // ... (keep all your existing skeleton and helper functions the same)
+
   const MessageSkeleton = ({ isUser }: { isUser: boolean }) => (
     <View
       style={[styles.messageContainer, isUser && styles.userMessageContainer]}
@@ -146,7 +151,6 @@ const Chat = () => {
           ))}
       </View>
 
-      {/* Initial AI Message Skeleton */}
       <View style={styles.initialAiMessageSection}>
         <Skeleton width={32} height={32} borderRadius={16} />
         <View style={[styles.initialAiMessage, { padding: 12 }]}>
@@ -265,7 +269,6 @@ const Chat = () => {
         key={msg.id || index}
         style={[styles.messageContainer, isUser && styles.userMessageContainer]}
       >
-        {/* AI Avatar - Left side */}
         {!isUser && (
           <View style={styles.avatarContainer}>
             <View style={styles.aiAvatar}>
@@ -300,7 +303,6 @@ const Chat = () => {
             renderMatchButtons(messageData.matchId)}
         </View>
 
-        {/* User Avatar - Right side */}
         {isUser && (
           <View style={styles.avatarContainer}>
             <View style={styles.userAvatar}>
@@ -312,7 +314,6 @@ const Chat = () => {
     );
   };
 
-  // Auto scroll to bottom when messages change
   useEffect(() => {
     setTimeout(() => {
       scrollViewRef.current?.scrollToEnd({ animated: true });
@@ -323,27 +324,23 @@ const Chat = () => {
     markAsRead();
   }, []);
 
-  // Loading State with Skeleton
   if (isLoading) {
     return (
       <View style={[styles.container, dynamicStyles.container]}>
-        {/* Header Skeleton */}
         <View style={[styles.header, dynamicStyles.header]}>
           <Skeleton width={120} height={20} />
           <View style={styles.headerActions}>
             <Skeleton width={24} height={24} borderRadius={12} />
             <Skeleton width={24} height={24} borderRadius={12} />
+            <Skeleton width={24} height={24} borderRadius={12} />
           </View>
         </View>
 
-        {/* Content Skeleton */}
         <ScrollView
           style={styles.content}
           contentContainerStyle={styles.contentContainer}
         >
           <QuickStartSkeleton />
-
-          {/* Messages Skeleton */}
           {Array(4)
             .fill(0)
             .map((_, i) => (
@@ -351,7 +348,6 @@ const Chat = () => {
             ))}
         </ScrollView>
 
-        {/* Input Skeleton */}
         <View style={styles.inputSection}>
           <View style={styles.inputContainer}>
             <Skeleton height={50} borderRadius={25} style={{ flex: 1 }} />
@@ -374,32 +370,25 @@ const Chat = () => {
           Chat with TarpAI
         </Text>
         <View style={styles.headerActions}>
+          {/* Add Settings Icon */}
           <Pressable
-            style={styles.clearButton}
-            onPress={() => {
-              Alert.alert(
-                "Clear Chat",
-                "This will delete all messages. Are you sure?",
-                [
-                  { text: "Cancel", style: "cancel" },
-                  {
-                    text: "Clear",
-                    style: "destructive",
-                    onPress: clearMessages,
-                  },
-                ]
-              );
-            }}
+            style={styles.settingsButton}
+            onPress={() => setShowSettingsModal(true)}
           >
-            <Ionicons name="trash-outline" size={20} color="#EF4444" />
+            <Settings size={20} color={dynamicStyles.text.color} />
           </Pressable>
+          <Pressable
+  style={styles.clearButton}
+  onPress={() => setShowClearChatConfirm(true)}
+>
+  <Ionicons name="trash-outline" size={20} color="#EF4444" />
+</Pressable>
           <Pressable style={styles.closeButton} onPress={handleClose}>
             <Ionicons name="close" size={24} color={dynamicStyles.text.color} />
           </Pressable>
         </View>
       </View>
 
-      {/* Messages ScrollView */}
       <ScrollView
         ref={scrollViewRef}
         style={styles.content}
@@ -494,7 +483,6 @@ const Chat = () => {
         )}
       </ScrollView>
 
-      {/* Input Section */}
       <View style={styles.inputSection}>
         <View style={styles.inputContainer}>
           <TextInput
@@ -525,11 +513,28 @@ const Chat = () => {
           </Pressable>
         </View>
       </View>
+
+      {/* Add ChatSettingsModal */}
+      <ChatSettingsModal
+        visible={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        onClearChat={clearMessages}
+      />
+
+<ConfirmationModal
+        visible={showClearChatConfirm}
+        title="Clear chat?"
+        message="This will permanently delete your messages. Are you sure?"
+        onConfirm={() => {
+          setShowClearChatConfirm(false);
+          clearMessages();
+        }}
+        onCancel={() => setShowClearChatConfirm(false)}
+      />
     </KeyboardAvoidingView>
   );
 };
 
-// Keep all your existing styles exactly the same
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -555,6 +560,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+  },
+  settingsButton: {
+    padding: 8,
   },
   clearButton: {
     padding: 8,
@@ -622,11 +630,9 @@ const styles = StyleSheet.create({
     gap: 8,
     alignItems: "flex-end",
   },
-  // AI messages: Left aligned
   aiMessageContainer: {
     justifyContent: "flex-start",
   },
-  // User messages: Right aligned
   userMessageContainer: {
     alignSelf: "flex-end",
     flexDirection: "row",
