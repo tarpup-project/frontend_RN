@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    height: 35,
+    height: 30,
     borderRadius: 8,
     borderWidth: 1,
     paddingHorizontal: 16,
