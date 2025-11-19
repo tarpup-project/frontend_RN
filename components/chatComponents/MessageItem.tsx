@@ -196,7 +196,12 @@ export const MessageItem: React.FC<MessageItemProps> = ({
               )}
 
               {msg.file && (
-                <Pressable onPress={() => onImagePress(msg.file!.data)}>
+                <Pressable
+                  onPress={() => {
+                    console.log("🖼️ Image pressed!", msg.file!.data);
+                    onImagePress(msg.file!.data);
+                  }}
+                >
                   <Image
                     source={{ uri: msg.file.data }}
                     style={styles.messageImage}
