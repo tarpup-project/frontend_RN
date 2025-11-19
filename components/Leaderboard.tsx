@@ -139,8 +139,9 @@ const LeaderBoard = () => {
     data={leaderboardData}
     visible={showBreakdown}
     onClose={() => setShowBreakdown(false)}
-    </>
-  />
+    />
+
+    </> 
 
   );
 };
