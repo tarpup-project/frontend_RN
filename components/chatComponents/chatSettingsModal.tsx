@@ -159,16 +159,6 @@ export const ChatSettingsModal: React.FC<ChatSettingsModalProps> = ({
               )}
             </ScrollView>
 
-            {/* Clear Chat Button
-            <View style={styles.footer}>
-              <Pressable
-                style={[styles.clearChatButton]}
-                onPress={() => setShowClearChatConfirm(true)}
-              >
-                <Ionicons name="trash-outline" size={16} color="#EF4444" />
-                <Text style={[styles.clearChatText]}>Clear Chat</Text>
-              </Pressable>
-            </View> */}
           </View>
         </View>
       </Modal>
