@@ -310,6 +310,74 @@ const LeaderBoardBreakDown: React.FC<LeaderBoardBreakDownProps> = ({
               </Text>
             </View>
           </View>
+
+
+          <View style={[styles.howToEarnCard, dynamicStyles.card]}>
+  <View style={styles.howToEarnHeader}>
+    <Target size={17} color={dynamicStyles.text.color} />
+    <Text style={[styles.howToEarnTitle, dynamicStyles.text]}>
+      How to Earn More Points
+    </Text>
+  </View>
+  
+  <View style={styles.earnMethodsList}>
+    <View style={styles.earnMethod}>
+      <View style={styles.earnMethodLeft}>
+        <View style={[styles.earnMethodIcon, dynamicStyles.iconBg]}>
+          <UserPlus size={12} color={dynamicStyles.text.color} />
+        </View>
+        <Text style={[styles.earnMethodText, dynamicStyles.subtitle]}>
+          Invite friends
+        </Text>
+      </View>
+      <Text style={[styles.earnMethodPoints, dynamicStyles.text]}>
+        +{numberToStandard(data.referrals.weight)}
+      </Text>
+    </View>
+
+    <View style={styles.earnMethod}>
+      <View style={styles.earnMethodLeft}>
+        <View style={[styles.earnMethodIcon, dynamicStyles.iconBg]}>
+          <MessageSquare size={12} color={dynamicStyles.text.color} />
+        </View>
+        <Text style={[styles.earnMethodText, dynamicStyles.subtitle]}>
+          Create prompts
+        </Text>
+      </View>
+      <Text style={[styles.earnMethodPoints, dynamicStyles.text]}>
+        +{numberToStandard(data.createdPrompts.weight)}
+      </Text>
+    </View>
+
+    <View style={styles.earnMethod}>
+      <View style={styles.earnMethodLeft}>
+        <View style={[styles.earnMethodIcon, dynamicStyles.iconBg]}>
+          <Target size={12} color={dynamicStyles.text.color} />
+        </View>
+        <Text style={[styles.earnMethodText, dynamicStyles.subtitle]}>
+          Complete matches
+        </Text>
+      </View>
+      <Text style={[styles.earnMethodPoints, dynamicStyles.text]}>
+        +{numberToStandard(data.successfulMatches.weight)}
+      </Text>
+    </View>
+
+    <View style={styles.earnMethod}>
+      <View style={styles.earnMethodLeft}>
+        <View style={[styles.earnMethodIcon, dynamicStyles.iconBg]}>
+          <Users size={12} color={dynamicStyles.text.color} />
+        </View>
+        <Text style={[styles.earnMethodText, dynamicStyles.subtitle]}>
+          Join groups
+        </Text>
+      </View>
+      <Text style={[styles.earnMethodPoints, dynamicStyles.text]}>
+        +{numberToStandard(data.joinedGroups.weight)}
+      </Text>
+    </View>
+  </View>
+</View>
         </ScrollView>
       </View>
     </Modal>
@@ -461,6 +529,51 @@ const styles = StyleSheet.create({
   },
   activityPoints: {
     fontSize: 14,
+    fontWeight: "600",
+  },
+  howToEarnCard: {
+    padding: 16,
+    borderWidth: 1,
+    borderRadius: 8,
+    marginTop: 16,
+    marginBottom: 40,
+  },
+  howToEarnHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginBottom: 12,
+  },
+  howToEarnTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  earnMethodsList: {
+    gap: 12,
+  },
+  earnMethod: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  earnMethodLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
+  },
+  earnMethodIcon: {
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  earnMethodText: {
+    fontSize: 13,
+  },
+  earnMethodPoints: {
+    fontSize: 12,
     fontWeight: "600",
   },
   totalCard: {
