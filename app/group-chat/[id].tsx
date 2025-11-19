@@ -90,14 +90,17 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
 
-  const dynamicStyles = useMemo(() => ({
-    container: {
-      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
-    },
-    text: {
-      color: isDark ? "#FFFFFF" : "#000000",
-    },
-  }), [isDark]);
+  const dynamicStyles = useMemo(
+    () => ({
+      container: {
+        backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
+      },
+      text: {
+        color: isDark ? "#FFFFFF" : "#000000",
+      },
+    }),
+    [isDark]
+  );
 
   const joinGroup = useCallback(async () => {
     setIsJoining(true);
@@ -110,16 +113,21 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     }
   }, [groupId]);
 
-
   useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
-      setKeyboardVisible(true);
-      if (showGroupInfo) setShowGroupInfo(false);
-    });
-    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
-      setKeyboardVisible(false);
-    });
-  
+    const keyboardDidShowListener = Keyboard.addListener(
+      "keyboardDidShow",
+      () => {
+        setKeyboardVisible(true);
+        if (showGroupInfo) setShowGroupInfo(false);
+      }
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      "keyboardDidHide",
+      () => {
+        setKeyboardVisible(false);
+      }
+    );
+
     return () => {
       keyboardDidShowListener?.remove();
       keyboardDidHideListener?.remove();
@@ -239,9 +247,12 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     setShowDropdown(!showDropdown);
   }, [showDropdown]);
 
-  const navigateToProfile = useCallback((userId: string) => {
-    router.push(`/profile/${userId}` as any);
-  }, [router]);
+  const navigateToProfile = useCallback(
+    (userId: string) => {
+      router.push(`/profile/${userId}` as any);
+    },
+    [router]
+  );
 
   const handleLinkPress = useCallback((url: string) => {
     setLinkToConfirm(url);
@@ -267,21 +278,35 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
 
   // Loading state logic
   const loadingState = useMemo(() => {
-    if (groupLoading || isLoading) return 'loading';
-    if (!socket || !user) return 'connecting';
-    if (groupError || error) return 'error';
-    if (!finalGroupDetails) return 'not-found';
-    return 'ready';
-  }, [groupLoading, isLoading, socket, user, groupError, error, finalGroupDetails]);
+    if (groupLoading || isLoading) return "loading";
+    if (!socket || !user) return "connecting";
+    if (groupError || error) return "error";
+    if (!finalGroupDetails) return "not-found";
+    return "ready";
+  }, [
+    groupLoading,
+    isLoading,
+    socket,
+    user,
+    groupError,
+    error,
+    finalGroupDetails,
+  ]);
 
   // Early returns for different states
-  if (loadingState === 'loading') {
+  if (loadingState === "loading") {
     return <ChatLoadingState />;
   }
 
-  if (loadingState === 'connecting') {
+  if (loadingState === "connecting") {
     return (
-      <View style={[styles.container, dynamicStyles.container, styles.centerContainer]}>
+      <View
+        style={[
+          styles.container,
+          dynamicStyles.container,
+          styles.centerContainer,
+        ]}
+      >
         <Header />
         <ActivityIndicator size="large" color={dynamicStyles.text.color} />
         <Text style={[{ marginTop: 12, fontSize: 16 }, dynamicStyles.text]}>
@@ -291,7 +316,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     );
   }
 
-  if (loadingState === 'error') {
+  if (loadingState === "error") {
     return (
       <ErrorScreen
         message={String(groupError || error || "Failed to load chat")}
@@ -299,7 +324,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     );
   }
 
-  if (loadingState === 'not-found') {
+  if (loadingState === "not-found") {
     return <ErrorScreen message="Group not found" />;
   }
 
@@ -344,7 +369,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
         message={message}
         onChangeMessage={setMessage}
         onSend={handleSend}
-        onAttachment={() => {}} 
+        onAttachment={() => {}}
         isJoined={finalGroupDetails.isJoined !== false}
         onJoinGroup={handleJoinGroup}
         isJoining={isJoining}
@@ -356,6 +381,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
         selectImageFromCamera={selectImageFromCamera}
         selectFile={selectFile}
       />
+
 
       <GroupInfoModal
         visible={showGroupInfo}

@@ -196,17 +196,18 @@ export const MessageItem: React.FC<MessageItemProps> = ({
               )}
 
               {msg.file && (
-                <Pressable
-                  onPress={() => {
-                    console.log("🖼️ Image pressed!", msg.file!.data);
-                    onImagePress(msg.file!.data);
-                  }}
+                <GestureDetector
+                  gesture={Gesture.Tap().onEnd(() => {
+                    runOnJS(onImagePress)(msg.file!.data);
+                  })}
                 >
-                  <Image
-                    source={{ uri: msg.file.data }}
-                    style={styles.messageImage}
-                  />
-                </Pressable>
+                  <View>
+                    <Image
+                      source={{ uri: msg.file.data }}
+                      style={styles.messageImage}
+                    />
+                  </View>
+                </GestureDetector>
               )}
 
               {msg.text && (

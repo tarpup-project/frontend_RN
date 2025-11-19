@@ -9,7 +9,8 @@ import {
   TrendingUp,
   Trophy,
 } from "lucide-react-native";
-import React from "react";
+import React, { useState } from "react";
+import LeaderBoardBreakDown from "./Leaderboardbreakdown";
 import { Pressable, StyleSheet, View } from "react-native";
 
 const numberToSocial = (num: number): string => {
@@ -29,6 +30,7 @@ const numberToStandard = (num: number): string => {
 const LeaderBoard = () => {
   const { isDark } = useTheme();
   const { data, isLoading, error } = useLeaderboard();
+  const [showBreakdown, setShowBreakdown] = useState(false);
 
   const dynamicStyles = {
     container: {
@@ -47,7 +49,7 @@ const LeaderBoard = () => {
   };
 
   const handlePress = () => {
-    console.log("Leaderboard pressed - detailed view not yet implemented");
+    setShowBreakdown(true);
   };
 
   if (isLoading) {
@@ -85,6 +87,7 @@ const LeaderBoard = () => {
   const leaderboardData = data as UserLeaderboardInterface;
 
   return (
+    <>
     <Pressable
       style={[styles.container, dynamicStyles.container]}
       onPress={handlePress}
@@ -132,6 +135,13 @@ const LeaderBoard = () => {
         </View>
       </View>
     </Pressable>
+    <LeaderBoardBreakDown
+    data={leaderboardData}
+    visible={showBreakdown}
+    onClose={() => setShowBreakdown(false)}
+    </>
+  />
+
   );
 };
 
