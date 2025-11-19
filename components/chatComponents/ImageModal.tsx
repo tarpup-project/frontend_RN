@@ -28,13 +28,12 @@ export const ImageModal: React.FC<ImageModalProps> = ({
       animationType="fade"
       onRequestClose={onClose}
     >
-       {/* <Pressable onPress={(e) => e.stopPropagation()}> */}
-      <View style={styles.imageModalOverlay}>
+      <View style={styles.modalOverlay}>
         <Pressable
-          style={styles.imageModalBackground}
+          style={styles.modalBackground}
           onPress={onClose}
         >
-          <View style={styles.imageModalContent}>
+          <View style={styles.modalContent}>
             <Pressable
               style={styles.closeButton}
               onPress={onClose}
@@ -57,18 +56,16 @@ export const ImageModal: React.FC<ImageModalProps> = ({
 };
 
 const styles = StyleSheet.create({
-  imageModalOverlay: {
+  modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.9)",
-    justifyContent: "center",
-    alignItems: "center",
   },
-  imageModalBackground: {
+  modalBackground: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-  imageModalContent: {
+  modalContent: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
