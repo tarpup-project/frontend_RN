@@ -106,7 +106,10 @@ export const MessageList: React.FC<MessageListProps> = ({
             key={msg.id}
             msg={msg}
             onReply={onReply}
-            onImagePress={onImagePress}
+            onImagePress={(imageUrl) => {
+              console.log("🖼️ MessageList onImagePress called:", imageUrl);
+              onImagePress(imageUrl);
+            }}
             onLinkPress={onLinkPress}
             scrollToMessage={scrollToMessage}
             messageRefs={messageRefs}

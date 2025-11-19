@@ -19,6 +19,8 @@ export const ImageModal: React.FC<ImageModalProps> = ({
   visible,
   onClose,
 }) => {
+  console.log("🖼️ ImageModal render:", { imageUrl, visible });
+
   return (
     <Modal
       visible={visible}
@@ -26,7 +28,7 @@ export const ImageModal: React.FC<ImageModalProps> = ({
       animationType="fade"
       onRequestClose={onClose}
     >
-       <Pressable onPress={(e) => e.stopPropagation()}>
+       {/* <Pressable onPress={(e) => e.stopPropagation()}> */}
       <View style={styles.imageModalOverlay}>
         <Pressable
           style={styles.imageModalBackground}
@@ -50,7 +52,6 @@ export const ImageModal: React.FC<ImageModalProps> = ({
           </View>
         </Pressable>        
       </View>
-      </Pressable>
     </Modal>
   );
 };

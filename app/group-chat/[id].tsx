@@ -127,6 +127,10 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   }, [showGroupInfo]);
 
   useEffect(() => {
+    console.log("🖼️ showImageModal state:", showImageModal);
+  }, [showImageModal]);
+
+  useEffect(() => {
     markAsRead();
   }, [markAsRead]);
 
