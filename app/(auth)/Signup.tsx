@@ -530,17 +530,17 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     overflow: "hidden",
-    maxHeight: 200, // Reduced from 300
+    maxHeight: 200, 
   },
   dropdownScroll: {
-    maxHeight: 200, // Reduced from 300
+    maxHeight: 200, 
   },
   dropdownItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 12, // Reduced from 14
+    paddingVertical: 12,
     borderBottomWidth: 1,
   },
   dropdownItemContent: {

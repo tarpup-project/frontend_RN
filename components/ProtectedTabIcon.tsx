@@ -1,7 +1,7 @@
 import { useTheme } from "@/contexts/ThemeContext";
 import { Lock } from "lucide-react-native";
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, Pressable } from "react-native";
 
 interface ProtectedTabIconProps {
   IconComponent: React.ComponentType<any>;
@@ -38,14 +38,16 @@ const ProtectedTabIcon: React.FC<ProtectedTabIconProps> = ({
   };
 
   return (
-    <View style={styles.container}>
+    <Pressable
+    style={[styles.container, { padding: 10 }]}
+    hitSlop={20}
+  >
       <IconComponent
         size={size}
         color={color}
         strokeWidth={focused ? 2.5 : strokeWidth}
       />
 
-      {/* Notification Badge */}
       {notificationCount > 0 && !isProtected && (
         <View
           style={[styles.notificationBadge, dynamicStyles.notificationBadge]}
@@ -56,7 +58,6 @@ const ProtectedTabIcon: React.FC<ProtectedTabIconProps> = ({
         </View>
       )}
 
-      {/* Lock Icon for Protected Tabs */}
       {isProtected && (
         <View style={[styles.lockContainer, dynamicStyles.lockContainer]}>
           <Lock
@@ -66,7 +67,7 @@ const ProtectedTabIcon: React.FC<ProtectedTabIconProps> = ({
           />
         </View>
       )}
-    </View>
+    </Pressable>
   );
 };
 
@@ -75,6 +76,7 @@ const styles = StyleSheet.create({
     position: "relative",
     alignItems: "center",
     justifyContent: "center",
+    padding: 12,
   },
   lockContainer: {
     position: "absolute",

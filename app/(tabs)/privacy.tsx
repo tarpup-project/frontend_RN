@@ -54,7 +54,6 @@ const AccountSettings = () => {
     updateButtonText: {
       color: isDark ? "#0a0a0a" : "#FFFFFF",
     },
-    // Toggle styles for light mode
     customToggle: {
       backgroundColor: isDark ? "#333333" : "#E0E0E0",
     },
@@ -609,7 +608,6 @@ const styles = StyleSheet.create({
   toggleDescription: {
     fontSize: 12,
   },
-  // Custom Toggle Styles
   customToggle: {
     width: 40,
     height: 20,

@@ -54,7 +54,6 @@ const UserProfile = () => {
     },
   };
 
-  // Share profile functionality
   const profileLink = `https://tarpup.com/profile/${id}`;
 
   const copyToClipboard = async () => {
@@ -82,7 +81,6 @@ const UserProfile = () => {
     }
   };
 
-  // Loading State
   if (isLoading) {
     return (
       <View style={[styles.container, dynamicStyles.container]}>
@@ -154,7 +152,6 @@ const UserProfile = () => {
     );
   }
 
-  // Error State
   if (error || !profile) {
     return (
       <View style={[styles.container, dynamicStyles.container]}>

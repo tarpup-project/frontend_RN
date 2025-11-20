@@ -32,7 +32,6 @@ const AccountSettings = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isPasswordLoading, setIsPasswordLoading] = useState(false);
 
-  // Password fields
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -40,7 +39,6 @@ const AccountSettings = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Settings
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [emailVisible, setEmailVisible] = useState(true);
   const [profileVisible, setProfileVisible] = useState(true);
@@ -99,7 +97,6 @@ const AccountSettings = () => {
     },
   };
 
-  // Load notification settings on mount
   useEffect(() => {
     const loadNotificationSettings = async () => {
       try {

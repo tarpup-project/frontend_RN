@@ -16,8 +16,6 @@ const RequestChat = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
   const [message, setMessage] = useState("");
-
-  // Get prompt title from params (passed from prompts page)
   const promptTitle = (params.title as string) || "this prompt";
 
   const actionButtons = [
@@ -67,7 +65,6 @@ const RequestChat = () => {
 
   const handleActionPress = (text: string) => {
     console.log("Action pressed:", text);
-    // Handle navigation based on button
     if (text === "Go to groups") {
       router.push("/(tabs)/groups");
     } else if (text === "Browse other needs") {
