@@ -98,8 +98,6 @@ const Chat = () => {
     },
   };
 
-  // ... (keep all your existing skeleton and helper functions the same)
-
   const MessageSkeleton = ({ isUser }: { isUser: boolean }) => (
     <View
       style={[styles.messageContainer, isUser && styles.userMessageContainer]}

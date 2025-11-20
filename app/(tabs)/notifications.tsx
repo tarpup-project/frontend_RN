@@ -153,7 +153,6 @@ const Notifications = () => {
     updateSetting("importantUpdates", true);
     updateSetting("newFeature", true);
 
-    // Enable all categories
     const allCategories = [
       "Rides",
       "Roommates",
@@ -178,7 +177,6 @@ const Notifications = () => {
     updateSetting("importantUpdates", false);
     updateSetting("newFeature", false);
 
-    // Disable all categories
     const allCategories = [
       "Rides",
       "Roommates",
@@ -305,7 +303,6 @@ const Notifications = () => {
     </Pressable>
   );
 
-  // Skeleton components
   const SkeletonToggle = () => {
     return (
       <View style={styles.toggleRow}>

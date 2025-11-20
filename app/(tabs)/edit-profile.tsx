@@ -217,7 +217,6 @@ const EditProfile = () => {
         uploadFormData.append("prefs", JSON.stringify(formData.prefs));
       }
 
-      // Handle image upload if there's a new image
       if (imageUri && imageUri !== user?.bgUrl) {
         const filename = imageUri.split("/").pop();
         const match = /\.(\w+)$/.exec(filename || "");
@@ -240,7 +239,6 @@ const EditProfile = () => {
         }
       );
 
-      // Update user in auth store
       setUser(response.data.data);
 
       toast.success("Profile updated successfully!");

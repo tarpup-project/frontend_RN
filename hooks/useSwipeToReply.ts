@@ -5,7 +5,7 @@ import { runOnJS } from "react-native-reanimated";
 interface UseSwipeToReplyProps {
   onReply: (message: any) => void;
   scrollGesture: any;
-  message?: any; // The message data to reply to
+  message?: any; 
 }
 
 export const useSwipeToReply = ({ onReply, scrollGesture, message }: UseSwipeToReplyProps) => {
