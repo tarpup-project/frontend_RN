@@ -11,8 +11,7 @@ export function Text(props: TextProps) {
 
 const styles = StyleSheet.create({
   default: {
-    fontFamily: 'Geist Mono',
-    fontWeight: '400'
+    fontFamily: 'Geist-Medium'
   },
 });
 
