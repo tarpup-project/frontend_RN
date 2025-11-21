@@ -1,4 +1,5 @@
 import AuthModal from "@/components/AuthModal";
+import { Platform } from 'react-native';
 import ProtectedTabIcon from "@/components/ProtectedTabIcon";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useNotifications } from "@/hooks/useNotification";
@@ -26,10 +27,11 @@ export default function TabLayout() {
             backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
             borderTopColor: isDark ? "#333333" : "#E0E0E0",
             borderTopWidth: 1,
-
-            height: 80,
-            paddingBottom: 8,
-            paddingTop: 8,
+            height: Platform.select({
+              ios: 90,
+              android: 70
+            }) 
+       
           },
           tabBarLabelStyle: {
             fontSize: 12,
@@ -39,7 +41,7 @@ export default function TabLayout() {
             borderRadius: 12,
             marginHorizontal: 4,
             overflow: "hidden",
-            paddingVertical: 10, 
+            paddingVertical: 5, 
             paddingHorizontal: 10, 
             minHeight: 50, 
             minWidth: 50,
