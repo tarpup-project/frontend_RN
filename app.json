@@ -62,7 +62,8 @@
             "./assets/fonts/GeistMono-SemiBold.ttf"
           ]
         }
-      ]
+      ],
+      "expo-build-properties"
     ],
     "experiments": {
       "typedRoutes": true,
