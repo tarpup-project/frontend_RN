@@ -22,7 +22,9 @@ import {
   ShoppingBag,
   Sparkles,
   TrendingUp,
+  UsersRound,
   Trophy,
+  Volleyball,
 } from "lucide-react-native";
 import moment from "moment";
 import { useEffect, useRef, useState } from "react";
@@ -41,7 +43,7 @@ const getIconComponent = (iconName: any, categoryName?: string) => {
       const nameMap: Record<string, any> = {
         giveaway: Gift,
         sports: Trophy,
-        friends: Heart,
+        friends: UsersRound,
         market: ShoppingBag,
         games: Gamepad2,
         party: PartyPopper,
@@ -49,9 +51,12 @@ const getIconComponent = (iconName: any, categoryName?: string) => {
         roommates: Home,
         dating: Heart,
         "study group": BookOpen,
+
       };
 
       const normalized = categoryName.toLowerCase().trim();
+      console.log("DEBUG - normalized categoryName:", `"${normalized}"`);
+      console.log("DEBUG - found icon:", nameMap[normalized]);
       return nameMap[normalized] || Car;
     }
     return Car;
@@ -231,7 +236,6 @@ const Index = () => {
       <Header />
 
       <ScrollView style={styles.content}>
-        {/* Conditional rendering: LeaderBoard for authenticated users, PreviewModeBanner for non-authenticated */}
         {isAuthenticated ? (
           <LeaderBoard />
         ) : (
@@ -919,8 +923,4 @@ const styles = StyleSheet.create({
 
 export default Index;
 
-
-
-
-// export { default } from "@/app/debug-fonts";
 
