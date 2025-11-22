@@ -38,10 +38,7 @@ const ProtectedTabIcon: React.FC<ProtectedTabIconProps> = ({
   };
 
   return (
-    <Pressable
-    style={[styles.container, { padding: 10 }]}
-    hitSlop={20}
-  >
+    <View style={[styles.container, { padding: 10 }]}>
       <IconComponent
         size={size}
         color={color}
@@ -67,7 +64,7 @@ const ProtectedTabIcon: React.FC<ProtectedTabIconProps> = ({
           />
         </View>
       )}
-    </Pressable>
+    </View>
   );
 };
 
