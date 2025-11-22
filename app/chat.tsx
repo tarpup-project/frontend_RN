@@ -728,7 +728,7 @@ const styles = StyleSheet.create({
   sendButton: {
     width: 50,
     height: 50,
-    borderRadius: 25,
+    borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
   },
