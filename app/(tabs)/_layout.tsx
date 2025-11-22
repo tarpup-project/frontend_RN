@@ -29,8 +29,12 @@ export default function TabLayout() {
             borderTopWidth: 1,
             height: Platform.select({
               ios: 90,
-              android: 70
-            }) 
+              android: 80
+            }),
+             borderTopLeftRadius: 16, 
+            borderTopRightRadius: 16,
+            overflow: "hidden"
+
        
           },
           tabBarLabelStyle: {
