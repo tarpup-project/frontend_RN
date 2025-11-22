@@ -1,5 +1,4 @@
 import { useTheme } from "@/contexts/ThemeContext";
-// import { formatFileSize } from "@/utils/timeUtils";
 import { Paperclip, Send, X } from "lucide-react-native";
 import React, { useRef } from "react";
 import {

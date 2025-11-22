@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { Alert, Platform } from 'react-native';
 
@@ -94,6 +95,20 @@ const compressImage = async (uri: string): Promise<string> => {
   }
 };
 
+// Helper function to generate filename for camera images
+const generateCameraFilename = (): string => {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  return `camera-photo-${timestamp}.jpg`;
+};
+
+// Helper function to estimate file size from base64 string
+const estimateBase64Size = (base64String: string): number => {
+  // Remove data URL prefix if present
+  const base64Data = base64String.replace(/^data:image\/[a-z]+;base64,/, '');
+  // Base64 encoding increases size by ~33%, so reverse that
+  return Math.floor((base64Data.length * 3) / 4);
+};
+
 export const useFileUpload = () => {
   const [selectedFile, setSelectedFile] = useState<FileData | undefined>(undefined);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -133,6 +148,34 @@ export const useFileUpload = () => {
     }
   };
 
+  // Process camera/gallery image from ImagePicker
+  const processImagePickerResult = async (result: ImagePicker.ImagePickerAsset): Promise<FileData> => {
+    setIsProcessing(true);
+    try {
+      // Compress the image
+      const compressedData = await compressImage(result.uri);
+      
+      // Estimate file size from base64 data
+      const estimatedSize = estimateBase64Size(compressedData);
+      
+      // Validate file size (5MB limit)
+      if (estimatedSize > 5 * 1024 * 1024) {
+        throw new Error('Image is too large. Please try a different image.');
+      }
+
+      const filename = result.fileName || generateCameraFilename();
+
+      return {
+        data: compressedData,
+        name: filename,
+        size: estimatedSize,
+        ext: 'jpg',
+      };
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const selectFile = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
@@ -154,14 +197,28 @@ export const useFileUpload = () => {
 
   const selectImage = async () => {
     try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: 'image/*',
-        copyToCacheDirectory: true,
-        multiple: false,
+      // Request permission for media library
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        Alert.alert(
+          'Permission Required',
+          'Permission to access photo library is required to select images.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.8,
+        base64: false, // We'll handle compression ourselves
       });
 
       if (!result.canceled && result.assets[0]) {
-        const processedFile = await processFile(result.assets[0]);
+        const processedFile = await processImagePickerResult(result.assets[0]);
         setSelectedFile(processedFile);
       }
     } catch (error) {
@@ -172,20 +229,52 @@ export const useFileUpload = () => {
   };
 
   const selectImageFromCamera = async () => {
-    // For now, fallback to image picker since camera requires expo-image-picker
-    // You can implement camera functionality later with expo-image-picker
-    Alert.alert(
-      'Camera',
-      'Camera functionality requires expo-image-picker. Using gallery instead.',
-      [{ text: 'OK', onPress: selectImage }]
-    );
+    try {
+      // Request camera permission
+      const cameraPermission = await ImagePicker.requestCameraPermissionsAsync();
+      
+      if (cameraPermission.granted === false) {
+        Alert.alert(
+          'Camera Permission Required',
+          'Permission to access camera is required to take photos.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'Open Settings', 
+              onPress: () => {
+                if (Platform.OS === 'ios') {
+                  ImagePicker.requestCameraPermissionsAsync();
+                }
+              }
+            }
+          ]
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.8,
+        base64: false, // We'll handle compression ourselves
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const processedFile = await processImagePickerResult(result.assets[0]);
+        setSelectedFile(processedFile);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to take photo';
+      Alert.alert('Error', errorMessage);
+      console.error('Camera error:', error);
+    }
   };
 
   const removeFile = () => {
     setSelectedFile(undefined);
   };
 
-  // Utility function to get file info for display
   const getFileInfo = () => {
     if (!selectedFile) return null;
     
