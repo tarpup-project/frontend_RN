@@ -107,6 +107,7 @@ const Header = () => {
             <Pressable
               style={[styles.chatButton, dynamicStyles.chatButton]}
               onPress={handleChatPress}
+            
             >
               <View style={styles.chatContent}>
                 <Ionicons
@@ -118,8 +119,8 @@ const Header = () => {
                   Chat
                 </Text>
               </View>
-            </Pressable>
-          </Animated.View>
+              </Pressable>
+              </Animated.View>
         </View>
       </View>
       <AuthModal
