@@ -9,9 +9,7 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  /**
-   * Create new user account
-   */
+
   const signup = async (data: SignupRequest) => {
     setLoading(true);
     setError(null);
@@ -27,9 +25,7 @@ export const useAuth = () => {
     }
   };
 
-  /**
-   * Send login email to receive OTP
-   */
+
   const login = async (email: string) => {
     setLoading(true);
     setError(null);
@@ -45,9 +41,6 @@ export const useAuth = () => {
     }
   };
 
-  /**
-   * Verify OTP and complete authentication
-   */
   const verifyOTP = async (email: string, otp: string) => {
     setLoading(true);
     setError(null);
@@ -66,9 +59,7 @@ export const useAuth = () => {
     }
   };
 
-  /**
-   * Resend OTP code
-   */
+
   const resendOTP = async (email: string, mode: 'signup' | 'signin' = 'signin') => {
     setLoading(true);
     setError(null);
@@ -84,9 +75,7 @@ export const useAuth = () => {
     }
   };
 
-  /**
-   * Fetch current authenticated user
-   */
+ 
   const fetchAuthUser = async () => {
     setLoading(true);
     setError(null);
@@ -103,9 +92,7 @@ export const useAuth = () => {
     }
   };
 
-  /**
-   * Logout user
-   */
+
   const logout = async () => {
     setLoading(true);
     setError(null);
@@ -115,16 +102,13 @@ export const useAuth = () => {
     } catch (err) {
       const errorMessage = ErrorHandler.handle(err).message;
       setError(errorMessage);
-      // Still logout locally even if API call fails
       await logoutStore();
     } finally {
       setLoading(false);
     }
   };
 
-  /**
-   * Delete user account
-   */
+
   const deleteAccount = async () => {
     setLoading(true);
     setError(null);
@@ -141,13 +125,11 @@ export const useAuth = () => {
   };
 
   return {
-    // State
     user,
     isAuthenticated,
     isLoading: isLoading || loading,
     error,
 
-    // Actions
     signup,
     login,
     verifyOTP,
