@@ -7,7 +7,6 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useCampus } from "@/hooks/useCampus";
 import { useCategories } from "@/hooks/useCategories";
 import { useRecentMatches } from "@/hooks/useRecentMatches";
-import * as Font from 'expo-font';
 import { useAuthStore } from "@/state/authStore";
 import { Category } from "@/types/prompts";
 import { Ionicons } from "@expo/vector-icons";

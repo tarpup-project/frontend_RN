@@ -1,6 +1,6 @@
 import { MessageType, UserMessage } from "@/types/groups";
 import { timeAgo } from "@/utils/timeUtils";
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useCallback } from "react";
 import { ScrollView, StyleSheet } from "react-native";
 import {
   Gesture,
@@ -32,7 +32,35 @@ export const MessageList: React.FC<MessageListProps> = ({
   const scrollViewRef = useRef<ScrollView>(null);
   const nativeScrollGesture = Gesture.Native();
 
-  // Memoize the transformed messages to prevent recalculation on every render
+  const handleScrollToMessage = useCallback((messageId: string) => {
+    console.log("🎯 Attempting to scroll to message:", messageId);
+    
+    const messageRef = messageRefs.current.get(messageId);
+    if (!messageRef) {
+      console.log("❌ Message ref not found for:", messageId);
+      return;
+    }
+    
+    if (!scrollViewRef.current) {
+      console.log("❌ ScrollView ref not available");
+      return;
+    }
+
+    messageRef.measureLayout(
+      scrollViewRef.current,
+      (x: number, y: number) => {
+        console.log("✅ Measured position:", { x, y });
+        scrollViewRef.current?.scrollTo({ 
+          y: Math.max(0, y - 100), 
+          animated: true 
+        });
+      },
+      (error: any) => {
+        console.log("❌ Measure layout failed:", error);
+      }
+    );
+  }, [messageRefs]);
+
   const transformedMessages = useMemo(() => {
     return messages.map((msg, index) => {
       if (msg.messageType === MessageType.ALERT) {
@@ -70,7 +98,7 @@ export const MessageList: React.FC<MessageListProps> = ({
     });
   }, [messages, userId]);
 
-  // Auto-scroll to end when new messages arrive
+
   useEffect(() => {
     if (messages.length > 0) {
       setTimeout(() => {
@@ -79,7 +107,6 @@ export const MessageList: React.FC<MessageListProps> = ({
     }
   }, [messages.length]);
 
-  // Clean up message refs when messages change
   useEffect(() => {
     const currentMessageIds = new Set(messages.map(msg => msg.content.id));
     const refsToDelete: string[] = [];
@@ -111,7 +138,7 @@ export const MessageList: React.FC<MessageListProps> = ({
               onImagePress(imageUrl);
             }}
             onLinkPress={onLinkPress}
-            scrollToMessage={scrollToMessage}
+            scrollToMessage={handleScrollToMessage}
             messageRefs={messageRefs}
             navigateToProfile={navigateToProfile}
             scrollGesture={nativeScrollGesture}

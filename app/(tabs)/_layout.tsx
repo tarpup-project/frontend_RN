@@ -33,9 +33,7 @@ export default function TabLayout() {
             }),
              borderTopLeftRadius: 16, 
             borderTopRightRadius: 16,
-            overflow: "hidden"
-
-       
+            overflow: "hidden"       
           },
           tabBarLabelStyle: {
             fontSize: 12,
