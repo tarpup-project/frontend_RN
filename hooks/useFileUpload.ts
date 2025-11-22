@@ -11,7 +11,7 @@ interface FileData {
   ext: string;
 }
 
-// Helper function to format file size
+
 const formatFileSize = (bytes: number): string => {
   if (bytes === 0) return '0 Bytes';
   const k = 1024;
@@ -20,19 +20,7 @@ const formatFileSize = (bytes: number): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
-// Helper function to validate file types (basic validation)
-const isValidFileType = (fileName: string): boolean => {
-  const validExtensions = [
-    'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp',
-    'pdf', 'doc', 'docx', 'txt', 'rtf',
-    'xls', 'xlsx', 'ppt', 'pptx',
-    'mp3', 'wav', 'mp4', 'mov', 'avi'
-  ];
-  const extension = fileName.split('.').pop()?.toLowerCase();
-  return extension ? validExtensions.includes(extension) : false;
-};
 
-// Helper function to check if file is an image
 const isImageFile = (mimeType?: string, fileName?: string): boolean => {
   if (mimeType) {
     return mimeType.startsWith('image/');
@@ -44,10 +32,9 @@ const isImageFile = (mimeType?: string, fileName?: string): boolean => {
   return false;
 };
 
-// Helper function to convert file to base64 using fetch + FileReader
+
 const convertFileToBase64 = async (uri: string): Promise<string> => {
   try {
-    // Fix URI for Android if needed
     let finalUri = uri;
     if (Platform.OS === 'android' && uri.startsWith('/')) {
       finalUri = `file://${uri}`;
@@ -77,7 +64,7 @@ const convertFileToBase64 = async (uri: string): Promise<string> => {
   }
 };
 
-// Helper function to compress images
+
 const compressImage = async (uri: string): Promise<string> => {
   try {
     const result = await ImageManipulator.manipulateAsync(
@@ -95,17 +82,15 @@ const compressImage = async (uri: string): Promise<string> => {
   }
 };
 
-// Helper function to generate filename for camera images
+
 const generateCameraFilename = (): string => {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   return `camera-photo-${timestamp}.jpg`;
 };
 
-// Helper function to estimate file size from base64 string
+
 const estimateBase64Size = (base64String: string): number => {
-  // Remove data URL prefix if present
   const base64Data = base64String.replace(/^data:image\/[a-z]+;base64,/, '');
-  // Base64 encoding increases size by ~33%, so reverse that
   return Math.floor((base64Data.length * 3) / 4);
 };
 
@@ -116,24 +101,15 @@ export const useFileUpload = () => {
   const processFile = async (file: DocumentPicker.DocumentPickerAsset): Promise<FileData> => {
     setIsProcessing(true);
     try {
-      // Validate file size (5MB limit)
       if (file.size && file.size > 5 * 1024 * 1024) {
         throw new Error('File size must be less than 5MB');
       }
 
-      // Validate file type (optional - remove if you want to allow all types)
-      // if (!isValidFileType(file.name)) {
-      //   throw new Error('File type not supported');
-      // }
-
       let fileData: string;
       const extension = file.name.split('.').pop()?.toLowerCase() || '';
-
-      // Handle images with compression
       if (isImageFile(file.mimeType, file.name)) {
         fileData = await compressImage(file.uri);
       } else {
-        // Handle all other files with fetch + FileReader
         fileData = await convertFileToBase64(file.uri);
       }
 
@@ -148,17 +124,13 @@ export const useFileUpload = () => {
     }
   };
 
-  // Process camera/gallery image from ImagePicker
+
   const processImagePickerResult = async (result: ImagePicker.ImagePickerAsset): Promise<FileData> => {
     setIsProcessing(true);
     try {
-      // Compress the image
-      const compressedData = await compressImage(result.uri);
-      
-      // Estimate file size from base64 data
+      const compressedData = await compressImage(result.uri);      
       const estimatedSize = estimateBase64Size(compressedData);
       
-      // Validate file size (5MB limit)
       if (estimatedSize > 5 * 1024 * 1024) {
         throw new Error('Image is too large. Please try a different image.');
       }
@@ -197,7 +169,6 @@ export const useFileUpload = () => {
 
   const selectImage = async () => {
     try {
-      // Request permission for media library
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
       if (permissionResult.granted === false) {
@@ -214,7 +185,7 @@ export const useFileUpload = () => {
         allowsEditing: true,
         aspect: [16, 9],
         quality: 0.8,
-        base64: false, // We'll handle compression ourselves
+        base64: false,
       });
 
       if (!result.canceled && result.assets[0]) {
@@ -230,7 +201,6 @@ export const useFileUpload = () => {
 
   const selectImageFromCamera = async () => {
     try {
-      // Request camera permission
       const cameraPermission = await ImagePicker.requestCameraPermissionsAsync();
       
       if (cameraPermission.granted === false) {
@@ -257,7 +227,7 @@ export const useFileUpload = () => {
         allowsEditing: true,
         aspect: [16, 9],
         quality: 0.8,
-        base64: false, // We'll handle compression ourselves
+        base64: false, 
       });
 
       if (!result.canceled && result.assets[0]) {
