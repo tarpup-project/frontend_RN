@@ -371,21 +371,23 @@ const Chat = () => {
           Chat with TarpAI
         </Text>
         <View style={styles.headerActions}>
-          {/* Add Settings Icon */}
           <Pressable
             style={styles.settingsButton}
             onPress={() => setShowSettingsModal(true)}
+            hitSlop={20}
           >
             <Settings size={20} color={dynamicStyles.text.color} />
           </Pressable>
           <Pressable
             style={styles.clearButton}
             onPress={() => setShowClearChatConfirm(true)}
+            hitSlop={20}
           >
             <Ionicons name="trash-outline" size={20} color="#EF4444" />
           </Pressable>
-          <Pressable style={styles.closeButton} onPress={handleClose}>
+          <Pressable style={styles.closeButton} onPress={handleClose} hitSlop={20}>
             <Ionicons name="close" size={24} color={dynamicStyles.text.color} />
+            
           </Pressable>
         </View>
       </View>
@@ -560,7 +562,7 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
   },
   settingsButton: {
     padding: 8,
