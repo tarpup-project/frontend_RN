@@ -234,6 +234,19 @@ const UserProfile = () => {
                 </View>
               )}
 
+              {profile.userDetails?.phoneNumber && (
+                <View style={styles.infoRow}>
+                  <Ionicons
+                    name="call-outline"
+                    size={16}
+                    color={dynamicStyles.subtitle.color}
+                  />
+                  <Text style={[styles.infoText, dynamicStyles.subtitle]}>
+                    {profile.userDetails.phoneNumber}
+                  </Text>
+                </View>
+              )}
+
               <Text style={[styles.memberSince, dynamicStyles.subtitle]}>
                 Member since{" "}
                 {moment(profile.userDetails?.createdAt).format("MMMM YYYY")}
