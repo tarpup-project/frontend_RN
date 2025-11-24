@@ -2,6 +2,9 @@ import {
   ChatSettingsModal,
   ConfirmationModal,
 } from "@/components/chatComponents/chatSettingsModal";
+import { useImageUpload } from "@/hooks/useImageUpload";
+import { ImageCropModal } from "@/components/ImageCropModal";
+import { api } from "@/api/client"
 import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -33,9 +36,11 @@ const Chat = () => {
   const { user } = useAuthStore();
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showClearChatConfirm, setShowClearChatConfirm] = useState(false);
-
-
- 
+  const { selectAndProcessImage, isLoading: isImageLoading } = useImageUpload();
+const [showImageCropModal, setShowImageCropModal] = useState(false);
+const [selectedImage, setSelectedImage] = useState<string | null>(null);
+const [currentMessageId, setCurrentMessageId] = useState<string | null>(null);
+const [uploadingImage, setUploadingImage] = useState(false);
 
   const {
     messages,
@@ -182,6 +187,7 @@ const Chat = () => {
     }
   };
 
+
   const onMatchAction = async (
     matchId: string,
     action: "private" | "public" | "decline"
@@ -194,6 +200,51 @@ const Chat = () => {
       }
     } else {
       Alert.alert("Error", result.message || "Failed to process action");
+    }
+  };
+
+  const handleAddImage = async (messageId: string) => {
+    setCurrentMessageId(messageId);
+    const imageUri = await selectAndProcessImage();
+    if (imageUri) {
+      setSelectedImage(imageUri);
+      setShowImageCropModal(true);
+    }
+  };
+  
+  const handleImageCropComplete = async (croppedUri: string) => {
+    if (!currentMessageId) return;
+    
+    try {
+      setUploadingImage(true);
+      
+      // Create FormData for upload
+      const formData = new FormData();
+      formData.append('image', {
+        uri: croppedUri,
+        type: 'image/jpeg',
+        name: 'cropped-image.jpg',
+      } as any);
+  
+      // Upload to your backend
+      const response = await api.post(`/upload-image-to-message/${currentMessageId}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+  
+      // Refresh messages or update the specific message
+      // You might want to call your refresh messages function here
+      Alert.alert('Success', 'Image uploaded successfully!');
+      
+    } catch (error) {
+      console.error('Upload error:', error);
+      Alert.alert('Error', 'Failed to upload image. Please try again.');
+    } finally {
+      setUploadingImage(false);
+      setShowImageCropModal(false);
+      setSelectedImage(null);
+      setCurrentMessageId(null);
     }
   };
 
@@ -267,7 +318,7 @@ const Chat = () => {
   const renderMessage = (msg: any, index: number) => {
     const isUser = msg.sender === "user";
     const messageData = parseMessageForActions(msg.content);
-
+  
     return (
       <View
         key={msg.id || index}
@@ -284,7 +335,7 @@ const Chat = () => {
             </View>
           </View>
         )}
-
+  
         <View
           style={[
             styles.messageBubble,
@@ -301,12 +352,52 @@ const Chat = () => {
           >
             {messageData.textContent}
           </Text>
-
+  
           {messageData.hasMatchButtons &&
             messageData.matchId &&
             renderMatchButtons(messageData.matchId)}
+  
+          {/* Image display */}
+          {msg.imageUrl && (
+            <View style={styles.imageContainer}>
+              <Image 
+                source={{ uri: msg.imageUrl }} 
+                style={styles.messageImage} 
+                resizeMode="cover"
+              />
+            </View>
+          )}
+  
+          {/* Add Image button - only show for AI messages without image */}
+          {!isUser && !msg.imageUrl && (
+            <Pressable
+              style={[styles.addImageButton, dynamicStyles.quickStartButton]}
+              onPress={() => handleAddImage(msg.id)}
+              disabled={isImageLoading || uploadingImage}
+            >
+              {uploadingImage && currentMessageId === msg.id ? (
+                <>
+                  <ActivityIndicator size="small" color={dynamicStyles.text.color} />
+                  <Text style={[styles.addImageText, dynamicStyles.text]}>
+                    Uploading...
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Ionicons
+                    name="image-outline"
+                    size={16}
+                    color={dynamicStyles.text.color}
+                  />
+                  <Text style={[styles.addImageText, dynamicStyles.text]}>
+                    Add Image
+                  </Text>
+                </>
+              )}
+            </Pressable>
+          )}
         </View>
-
+  
         {isUser && (
           <View style={styles.avatarContainer}>
             <View style={styles.userAvatar}>
@@ -481,7 +572,6 @@ const Chat = () => {
         )}
       </ScrollView>
   
-      {/* Input Section - Always Visible with Animation */}
       <View style={styles.inputSection}>
         <View style={styles.inputContainer}>
           <TextInput
@@ -532,6 +622,16 @@ const Chat = () => {
         }}
         onCancel={() => setShowClearChatConfirm(false)}
       />
+      <ImageCropModal
+  visible={showImageCropModal}
+  imageUri={selectedImage}
+  onClose={() => {
+    setShowImageCropModal(false);
+    setSelectedImage(null);
+    setCurrentMessageId(null);
+  }}
+  onCropComplete={handleImageCropComplete}
+/>
     </KeyboardAvoidingView>
   );
 };
@@ -584,6 +684,29 @@ const styles = StyleSheet.create({
   },
   quickStartSection: {
     marginBottom: 16,
+  },addImageButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    marginTop: 8,
+    alignSelf: 'flex-start',
+  },
+  addImageText: {
+    fontSize: 12,
+  },
+  imageContainer: {
+    marginTop: 8,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  messageImage: {
+    width: 200,
+    height: 150,
+    borderRadius: 8,
   },
   sectionTitle: {
     fontSize: 14,
