@@ -45,7 +45,7 @@ const EditProfile = () => {
     bio: "",
     major: "",
     year: "Select year",
-    phoneNumber: '',
+    phoneNumber: "",
     interests: [],
     prefs: [],
   });
@@ -77,6 +77,12 @@ const EditProfile = () => {
     },
     addButtonIcon: {
       color: isDark ? "#0a0a0a" : "#FFFFFF",
+    },
+    saveButton: {
+      backgroundColor: isDark ? "#FFFFFF" : "#000000",
+    },
+    saveButtonText: {
+      color: isDark ? "#000000" : "#FFFFFF",
     },
   };
 
@@ -235,7 +241,7 @@ const EditProfile = () => {
         } as any);
       }
 
-      console.log("Form data being sent:", {  
+      console.log("Form data being sent:", {
         fullName: formData.fullName,
         phoneNumber: formData.phoneNumber,
         bio: formData.bio,
@@ -254,7 +260,7 @@ const EditProfile = () => {
       );
 
       setUser(response.data.data);
-      console.log(response.data.data)
+      console.log(response.data.data);
 
       toast.success("Profile updated successfully!");
       router.back();
@@ -567,18 +573,24 @@ const EditProfile = () => {
             <Text style={[styles.cancelText, dynamicStyles.text]}>Cancel</Text>
           </Pressable>
           <Pressable
-            style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}
+            style={[
+              styles.saveButton,
+              dynamicStyles.saveButton,
+              isLoading && styles.saveButtonDisabled,
+            ]}
             onPress={handleSave}
             disabled={isLoading}
           >
             {isLoading ? (
               <Loader
-                color="#000000"
+                color={dynamicStyles.saveButtonText.color}
                 text="Saving..."
                 textStyle={styles.saveText}
               />
             ) : (
-              <Text style={styles.saveText}>Save Changes</Text>
+              <Text style={[styles.saveText, dynamicStyles.saveButtonText]}>
+                Save Changes
+              </Text>
             )}
           </Pressable>
         </View>
@@ -801,7 +813,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
-    backgroundColor: "#FFFFFF",
     alignItems: "center",
     minWidth: 120,
   },
@@ -811,7 +822,6 @@ const styles = StyleSheet.create({
   saveText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#000000",
   },
   dropdown: {
     position: "absolute",
