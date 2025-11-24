@@ -7,6 +7,7 @@ export interface AuthUserInterface {
     bgUrl?: string;
     isStudent: boolean;
     profileVerified: boolean;
+    phoneNumber: string;
     major?: string;
     bio?: string;
     year?: string;
