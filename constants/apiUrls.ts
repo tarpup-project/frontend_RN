@@ -35,6 +35,7 @@ class UrlConstants {
 
   static fetchAllGroups = (campusID?: string) =>
     `/groups/all${campusID ? `?campusID=${campusID}` : ""}`;
+  static uploadImageToMessage = (id: string) => `/user/messages/upload/${id}`
   static fetchAllCategories = (campusID?: string, stateID?: string) =>
     `/groups/categories${
       campusID !== undefined ? `?campusID=${campusID}` : ""

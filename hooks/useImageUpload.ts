@@ -1,16 +1,31 @@
 import { useState } from 'react';
-import ImageCropPicker, { ImageOrVideo, Options } from 'react-native-image-crop-picker';
-import { Alert, Platform } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { Alert } from 'react-native';
 
 interface ProcessedImageResult {
   uri: string;
   width: number;
   height: number;
-  size: number;
+  size?: number;
 }
 
 export const useImageUpload = () => {
   const [isLoading, setIsLoading] = useState(false);
+
+  const requestPermissions = async () => {
+    const cameraPermission = await ImagePicker.requestCameraPermissionsAsync();
+    const mediaLibraryPermission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (cameraPermission.status !== 'granted' || mediaLibraryPermission.status !== 'granted') {
+      Alert.alert(
+        'Permission Required',
+        'Please enable camera and photo library permissions in your device settings.',
+        [{ text: 'OK' }]
+      );
+      return false;
+    }
+    return true;
+  };
 
   const showImageSourceOptions = (): Promise<'camera' | 'library' | null> => {
     return new Promise((resolve) => {
@@ -36,66 +51,53 @@ export const useImageUpload = () => {
     });
   };
 
-  const cropperOptions: Options = {
-    width: 400,
-    height: 400,
-    cropping: true,
-    includeBase64: false,
-    compressImageMaxWidth: 400,
-    compressImageMaxHeight: 400,
-    compressImageQuality: 0.8,
-    mediaType: 'photo',
-    includeExif: false,
-    freeStyleCropEnabled: false,
-    showCropGuidelines: true,
-    showCropFrame: true,
-    hideBottomControls: false,
-    enableRotationGesture: true,
-  };
-
   const selectAndProcessImage = async (): Promise<ProcessedImageResult | null> => {
     try {
       setIsLoading(true);
+
+      const hasPermissions = await requestPermissions();
+      if (!hasPermissions) {
+        return null;
+      }
 
       const source = await showImageSourceOptions();
       if (!source) {
         return null;
       }
 
-      let result: ImageOrVideo;
+      let result: ImagePicker.ImagePickerResult;
+
+      const options: ImagePicker.ImagePickerOptions = {
+        mediaTypes: 'images',
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+        allowsMultipleSelection: false,
+      };
 
       if (source === 'camera') {
-        result = await ImageCropPicker.openCamera(cropperOptions);
+        result = await ImagePicker.launchCameraAsync(options);
       } else {
-        result = await ImageCropPicker.openPicker(cropperOptions);
+        result = await ImagePicker.launchImageLibraryAsync(options);
       }
 
-      if ('cancelled' in result && result.cancelled) {
+      if (result.canceled || !result.assets || result.assets.length === 0) {
         return null;
       }
 
-      const imageResult = result as ImageOrVideo;
+      const asset = result.assets[0];
 
       return {
-        uri: imageResult.path,
-        width: imageResult.width,
-        height: imageResult.height,
-        size: imageResult.size,
+        uri: asset.uri,
+        width: asset.width || 400,
+        height: asset.height || 400,
+        size: asset.fileSize,
       };
 
     } catch (error: any) {
       console.error('Error selecting/processing image:', error);
       
-      if (error.code === 'E_PICKER_CANCELLED') {
-        return null;
-      }
-      
-      if (error.code === 'E_NO_CAMERA_PERMISSION' || error.code === 'E_NO_LIBRARY_PERMISSION') {
-        Alert.alert(
-          'Permission Required',
-          'Please enable camera and photo library permissions in your device settings.',
-          [{ text: 'OK' }]
-        );
+      if (error.code === 'UserCancel') {
         return null;
       }
 
@@ -106,19 +108,8 @@ export const useImageUpload = () => {
     }
   };
 
-  const cleanupImageCache = () => {
-    ImageCropPicker.clean()
-      .then(() => {
-        console.log('Removed all tmp images from tmp directory');
-      })
-      .catch((e) => {
-        console.log('Failed to clean image cache:', e);
-      });
-  };
-
   return {
     selectAndProcessImage,
     isLoading,
-    cleanupImageCache,
   };
 };
