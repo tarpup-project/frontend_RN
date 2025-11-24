@@ -40,12 +40,20 @@ import {
 } from "react-native";
 
 const getIconComponent = (iconName: any, categoryName?: string) => {
+  // Add this debug block at the very beginning
+  console.log("🔍 getIconComponent DEBUG:", {
+    iconName: iconName,
+    iconType: typeof iconName,
+    categoryName: categoryName,
+    categoryLower: categoryName?.toLowerCase().trim()
+  });
+
   if (typeof iconName === "object" && iconName.$$typeof) {
     if (categoryName) {
       const nameMap: Record<string, any> = {
         giveaway: Gift,
         sports: Volleyball,
-        friends: UsersRound,
+        friends: UsersRound, 
         market: ShoppingBag,
         games: Gamepad2,
         party: PartyPopper,
@@ -58,14 +66,24 @@ const getIconComponent = (iconName: any, categoryName?: string) => {
 
       const normalized = categoryName.toLowerCase().trim();
       const foundIcon = nameMap[normalized];
-      return nameMap[normalized] || Car;
+      
+      // Add this debug block
+      console.log("🔍 nameMap lookup:", {
+        normalized: normalized,
+        foundIcon: foundIcon?.name || 'undefined',
+        availableKeys: Object.keys(nameMap)
+      });
+      
+      return foundIcon || Car;
     }
     return Car;
   }
 
+  // Rest of your function...
   if (typeof iconName !== "string") return Car;
 
   const normalized = iconName.trim().toLowerCase().replace(/-/g, "");
+  console.log("🔍 string iconName normalized:", normalized);
 
   const iconMap: Record<string, any> = {
     car: Car,
@@ -79,6 +97,8 @@ const getIconComponent = (iconName: any, categoryName?: string) => {
     trophy: Trophy,
     trendingup: TrendingUp,
     sparkles: Sparkles,
+    usersround: UsersRound,   
+  volleyball: Volleyball,
   };
 
   return iconMap[normalized] || Car;
