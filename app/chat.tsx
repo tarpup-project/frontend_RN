@@ -34,6 +34,9 @@ const Chat = () => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showClearChatConfirm, setShowClearChatConfirm] = useState(false);
 
+
+ 
+
   const {
     messages,
     isLoading,
@@ -325,40 +328,6 @@ const Chat = () => {
     markAsRead();
   }, []);
 
-  if (isLoading) {
-    return (
-      <View style={[styles.container, dynamicStyles.container]}>
-        <View style={[styles.header, dynamicStyles.header]}>
-          <Skeleton width={120} height={20} />
-          <View style={styles.headerActions}>
-            <Skeleton width={24} height={24} borderRadius={12} />
-            <Skeleton width={24} height={24} borderRadius={12} />
-            <Skeleton width={24} height={24} borderRadius={12} />
-          </View>
-        </View>
-
-        <ScrollView
-          style={styles.content}
-          contentContainerStyle={styles.contentContainer}
-        >
-          <QuickStartSkeleton />
-          {Array(4)
-            .fill(0)
-            .map((_, i) => (
-              <MessageSkeleton key={i} isUser={i % 3 === 0} />
-            ))}
-        </ScrollView>
-
-        <View style={styles.inputSection}>
-          <View style={styles.inputContainer}>
-            <Skeleton height={50} borderRadius={25} style={{ flex: 1 }} />
-            <Skeleton width={50} height={50} borderRadius={25} />
-          </View>
-        </View>
-      </View>
-    );
-  }
-
   return (
     <KeyboardAvoidingView
       style={[styles.container, dynamicStyles.container]}
@@ -367,31 +336,44 @@ const Chat = () => {
     >
       {/* Header */}
       <View style={[styles.header, dynamicStyles.header]}>
-        <Text style={[styles.headerTitle, dynamicStyles.text]}>
-          Chat with TarpAI
-        </Text>
-        <View style={styles.headerActions}>
-          <Pressable
-            style={styles.settingsButton}
-            onPress={() => setShowSettingsModal(true)}
-            hitSlop={20}
-          >
-            <Settings size={20} color={dynamicStyles.text.color} />
-          </Pressable>
-          <Pressable
-            style={styles.clearButton}
-            onPress={() => setShowClearChatConfirm(true)}
-            hitSlop={20}
-          >
-            <Ionicons name="trash-outline" size={20} color="#EF4444" />
-          </Pressable>
-          <Pressable style={styles.closeButton} onPress={handleClose} hitSlop={20}>
-            <Ionicons name="close" size={24} color={dynamicStyles.text.color} />
-            
-          </Pressable>
-        </View>
+        {isLoading ? (
+          <>
+            <Skeleton width={120} height={20} />
+            <View style={styles.headerActions}>
+              <Skeleton width={24} height={24} borderRadius={12} />
+              <Skeleton width={24} height={24} borderRadius={12} />
+              <Skeleton width={24} height={24} borderRadius={12} />
+            </View>
+          </>
+        ) : (
+          <>
+            <Text style={[styles.headerTitle, dynamicStyles.text]}>
+              Chat with TarpAI
+            </Text>
+            <View style={styles.headerActions}>
+              <Pressable
+                style={styles.settingsButton}
+                onPress={() => setShowSettingsModal(true)}
+                hitSlop={20}
+              >
+                <Settings size={20} color={dynamicStyles.text.color} />
+              </Pressable>
+              <Pressable
+                style={styles.clearButton}
+                onPress={() => setShowClearChatConfirm(true)}
+                hitSlop={20}
+              >
+                <Ionicons name="trash-outline" size={20} color="#EF4444" />
+              </Pressable>
+              <Pressable style={styles.closeButton} onPress={handleClose} hitSlop={20}>
+                <Ionicons name="close" size={24} color={dynamicStyles.text.color} />
+              </Pressable>
+            </View>
+          </>
+        )}
       </View>
-
+  
+      {/* Content */}
       <ScrollView
         ref={scrollViewRef}
         style={styles.content}
@@ -399,93 +381,107 @@ const Chat = () => {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {messages.length === 0 ? (
-          <View style={styles.quickStartSection}>
-            <Text style={[styles.sectionTitle, dynamicStyles.text]}>
-              Quick Start
-            </Text>
-            <View style={styles.quickStartGrid}>
-              {quickStartOptions.map((option, index) => (
-                <Pressable
-                  key={index}
-                  style={[
-                    styles.quickStartButton,
-                    dynamicStyles.quickStartButton,
-                  ]}
-                  onPress={() => handleQuickStartPress(option.text)}
-                >
-                  <Ionicons
-                    name={option.icon as any}
-                    size={14}
-                    color={dynamicStyles.text.color}
-                  />
-                  <Text style={[styles.quickStartText, dynamicStyles.text]}>
-                    {option.text}
-                  </Text>
-                </Pressable>
+        {isLoading ? (
+          <>
+            <QuickStartSkeleton />
+            {Array(4)
+              .fill(0)
+              .map((_, i) => (
+                <MessageSkeleton key={i} isUser={i % 3 === 0} />
               ))}
-            </View>
-
-            <View style={styles.initialAiMessageSection}>
-              <View style={styles.avatarContainer}>
-                <View style={styles.aiAvatar}>
-                  <Ionicons
-                    name="hardware-chip-outline"
-                    size={16}
-                    color="#FFFFFF"
-                  />
-                </View>
-              </View>
-              <View
-                style={[
-                  styles.initialAiMessage,
-                  dynamicStyles.aiMessageContainer,
-                ]}
-              >
-                <Text style={[styles.aiMessageText, dynamicStyles.text]}>
-                  Hi! I'm TarpAI, your smart campus connection assistant. I help
-                  you find compatible students based on your needs. What would
-                  you like help with today?
-                </Text>
-              </View>
-            </View>
-          </View>
+          </>
         ) : (
           <>
-            {messages.map(renderMessage)}
-            {isTyping && (
-              <View
-                style={[styles.messageContainer, styles.aiMessageContainer]}
-              >
-                <View style={styles.avatarContainer}>
-                  <View style={styles.aiAvatar}>
-                    <Ionicons
-                      name="hardware-chip-outline"
-                      size={16}
-                      color="#FFFFFF"
-                    />
+            {messages.length === 0 ? (
+              <View style={styles.quickStartSection}>
+                <Text style={[styles.sectionTitle, dynamicStyles.text]}>
+                  Quick Start
+                </Text>
+                <View style={styles.quickStartGrid}>
+                  {quickStartOptions.map((option, index) => (
+                    <Pressable
+                      key={index}
+                      style={[
+                        styles.quickStartButton,
+                        dynamicStyles.quickStartButton,
+                      ]}
+                      onPress={() => handleQuickStartPress(option.text)}
+                    >
+                      <Ionicons
+                        name={option.icon as any}
+                        size={14}
+                        color={dynamicStyles.text.color}
+                      />
+                      <Text style={[styles.quickStartText, dynamicStyles.text]}>
+                        {option.text}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+  
+                <View style={styles.initialAiMessageSection}>
+                  <View style={styles.avatarContainer}>
+                    <View style={styles.aiAvatar}>
+                      <Ionicons
+                        name="hardware-chip-outline"
+                        size={16}
+                        color="#FFFFFF"
+                      />
+                    </View>
+                  </View>
+                  <View
+                    style={[
+                      styles.initialAiMessage,
+                      dynamicStyles.aiMessageContainer,
+                    ]}
+                  >
+                    <Text style={[styles.aiMessageText, dynamicStyles.text]}>
+                      Hi! I'm TarpAI, your smart campus connection assistant. I help
+                      you find compatible students based on your needs. What would
+                      you like help with today?
+                    </Text>
                   </View>
                 </View>
-                <View
-                  style={[
-                    styles.typingBubble,
-                    dynamicStyles.aiMessageContainer,
-                  ]}
-                >
-                  <ActivityIndicator
-                    size="small"
-                    color={dynamicStyles.text.color}
-                  />
-                  <Text style={[styles.typingText, dynamicStyles.subtitle]}>
-                    TarpAI is typing...
-                  </Text>
-                </View>
               </View>
+            ) : (
+              <>
+                {messages.map(renderMessage)}
+                {isTyping && (
+                  <View
+                    style={[styles.messageContainer, styles.aiMessageContainer]}
+                  >
+                    <View style={styles.avatarContainer}>
+                      <View style={styles.aiAvatar}>
+                        <Ionicons
+                          name="hardware-chip-outline"
+                          size={16}
+                          color="#FFFFFF"
+                        />
+                      </View>
+                    </View>
+                    <View
+                      style={[
+                        styles.typingBubble,
+                        dynamicStyles.aiMessageContainer,
+                      ]}
+                    >
+                      <ActivityIndicator
+                        size="small"
+                        color={dynamicStyles.text.color}
+                      />
+                      <Text style={[styles.typingText, dynamicStyles.subtitle]}>
+                        TarpAI is typing...
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </>
             )}
           </>
         )}
       </ScrollView>
-
+  
+      {/* Input Section - Always Visible with Animation */}
       <View style={styles.inputSection}>
         <View style={styles.inputContainer}>
           <TextInput
@@ -498,15 +494,17 @@ const Chat = () => {
             blurOnSubmit={false}
             returnKeyType="send"
             onSubmitEditing={handleSend}
+
+            editable={!isLoading} 
           />
           <Pressable
             style={[
               styles.sendButton,
               dynamicStyles.sendButton,
-              !message.trim() && styles.sendButtonDisabled,
+              (!message.trim() || isLoading) && styles.sendButtonDisabled,
             ]}
             onPress={handleSend}
-            disabled={!message.trim()}
+            disabled={!message.trim() || isLoading}
           >
             <Ionicons
               name="send"
@@ -516,14 +514,14 @@ const Chat = () => {
           </Pressable>
         </View>
       </View>
-
-      {/* Add ChatSettingsModal */}
+  
+      {/* Your existing modals */}
       <ChatSettingsModal
         visible={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
         onClearChat={clearMessages}
       />
-
+  
       <ConfirmationModal
         visible={showClearChatConfirm}
         title="Clear chat?"
@@ -706,8 +704,8 @@ const styles = StyleSheet.create({
   inputSection: {
     padding: 16,
     paddingBottom: Platform.OS === "ios" ? 24 : 15,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.1)",
+   borderTopWidth: 1,
+   borderTopColor: "rgba(255, 255, 255, 0.1)",
   },
   inputContainer: {
     flexDirection: "row",

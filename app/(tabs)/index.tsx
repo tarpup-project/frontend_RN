@@ -16,6 +16,7 @@ import {
   Car,
   Gamepad2,
   Gift,
+  House,
   Heart,
   Home,
   PartyPopper,
@@ -24,6 +25,7 @@ import {
   TrendingUp,
   UsersRound,
   Trophy,
+  Briefcase,
   Volleyball,
 } from "lucide-react-native";
 import moment from "moment";
@@ -42,21 +44,20 @@ const getIconComponent = (iconName: any, categoryName?: string) => {
     if (categoryName) {
       const nameMap: Record<string, any> = {
         giveaway: Gift,
-        sports: Trophy,
+        sports: Volleyball,
         friends: UsersRound,
         market: ShoppingBag,
         games: Gamepad2,
         party: PartyPopper,
         rides: Car,
-        roommates: Home,
+        roommates: House,
         dating: Heart,
         "study group": BookOpen,
-
+        "campus jobs": Briefcase,
       };
 
       const normalized = categoryName.toLowerCase().trim();
-      console.log("DEBUG - normalized categoryName:", `"${normalized}"`);
-      console.log("DEBUG - found icon:", nameMap[normalized]);
+      const foundIcon = nameMap[normalized];
       return nameMap[normalized] || Car;
     }
     return Car;
@@ -485,9 +486,15 @@ const Index = () => {
                       ]}
                     >
                       {(() => {
+                          console.log("🔥 RECENT MATCH ICON DEBUG:", {
+                            categoryName: match.categoryDetails.name,
+                            iconFromAPI: match.categoryDetails.icon
+                          });
                         const IconComponent = getIconComponent(
-                          match.categoryDetails.icon
+                          match.categoryDetails.icon,
+                          match.categoryDetails.name
                         );
+                        console.log("🔥 RECENT MATCH RESOLVED ICON:", IconComponent.name);
                         return (
                           <IconComponent
                             size={20}
