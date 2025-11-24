@@ -7,7 +7,7 @@ import { ImageUploadModal } from "@/components/ImageUploadModal";
 import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
 import { UrlConstants } from "@/constants/apiUrls";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useTheme } from "@/contexts/ThemeContext"; 
 import { useImageUpload } from "@/hooks/useImageUpload";
 import { useMatchActions } from "@/hooks/useMatchActions";
 import { usePersonalChat } from "@/hooks/usePersonalChat";
@@ -219,26 +219,26 @@ const Chat = () => {
 
   const handleImageUpload = async (imageUri: string) => {
     if (!currentMessageId) return;
-  
+
     try {
       setUploadingImage(true);
-      
-      const fileExtension = imageUri.split('.').pop()?.toLowerCase();
-      const mimeType = fileExtension === 'png' ? 'image/png' : 'image/jpeg';
+
+      const fileExtension = imageUri.split(".").pop()?.toLowerCase();
+      const mimeType = fileExtension === "png" ? "image/png" : "image/jpeg";
       const fileName = `image.${fileExtension}`;
-      
-      console.log('=== UPLOAD DEBUG ===');
-      console.log('File extension:', fileExtension);
-      console.log('MIME type:', mimeType);
-      console.log('messageId:', currentMessageId);
-  
+
+      console.log("=== UPLOAD DEBUG ===");
+      console.log("File extension:", fileExtension);
+      console.log("MIME type:", mimeType);
+      console.log("messageId:", currentMessageId);
+
       const formData = new FormData();
       formData.append("image", {
         uri: imageUri,
         type: mimeType,
         name: fileName,
       } as any);
-  
+
       const response = await api.post(
         UrlConstants.uploadImageToMessage(currentMessageId),
         formData,
@@ -248,11 +248,14 @@ const Chat = () => {
           },
         }
       );
-  
+
       Alert.alert("Success", "Image uploaded successfully!");
     } catch (error: any) {
-      console.log('=== UPLOAD ERROR ===');
-      console.log('Response data:', JSON.stringify(error.response?.data, null, 2));
+      console.log("=== UPLOAD ERROR ===");
+      console.log(
+        "Response data:",
+        JSON.stringify(error.response?.data, null, 2)
+      );
       Alert.alert("Error", "Failed to upload image. Please try again.");
     } finally {
       setUploadingImage(false);
@@ -260,7 +263,7 @@ const Chat = () => {
       setSelectedImageData(null);
       setCurrentMessageId(null);
     }
-  };    
+  };
 
   const renderMatchButtons = (matchId: string) => (
     <View style={styles.matchButtonsContainer}>
@@ -537,10 +540,10 @@ const Chat = () => {
                 <View style={styles.initialAiMessageSection}>
                   <View style={styles.avatarContainer}>
                     <View style={styles.aiAvatar}>
-                      <Ionicons
-                        name="hardware-chip-outline"
-                        size={16}
-                        color="#FFFFFF"
+                      <Image
+                        source={require("@/assets/images/tarpup-plain-dark.png")}
+                        style={{ width: 16, height: 16 }}
+                        resizeMode="contain"
                       />
                     </View>
                   </View>
@@ -567,10 +570,10 @@ const Chat = () => {
                   >
                     <View style={styles.avatarContainer}>
                       <View style={styles.aiAvatar}>
-                        <Ionicons
-                          name="hardware-chip-outline"
-                          size={16}
-                          color="#FFFFFF"
+                        <Image
+                          source={require("@/assets/images/tarpup-plain-dark.png")}
+                          style={{ width: 16, height: 16 }}
+                          resizeMode="contain"
                         />
                       </View>
                     </View>

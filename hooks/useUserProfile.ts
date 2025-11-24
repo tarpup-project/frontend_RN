@@ -8,6 +8,7 @@ interface UserProfile {
     fname: string;
     lname: string;
     email: string;
+    phoneNumber?: string;
     bgUrl?: string;
     bio?: string;
     universityID: string;
