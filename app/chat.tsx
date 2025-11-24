@@ -1,13 +1,14 @@
+import { api } from "@/api/client";
 import {
   ChatSettingsModal,
   ConfirmationModal,
 } from "@/components/chatComponents/chatSettingsModal";
-import { useImageUpload } from "@/hooks/useImageUpload";
 import { ImageUploadModal } from "@/components/ImageUploadModal";
-import { api } from "@/api/client"
 import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
+import { UrlConstants } from "@/constants/apiUrls";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useImageUpload } from "@/hooks/useImageUpload";
 import { useMatchActions } from "@/hooks/useMatchActions";
 import { usePersonalChat } from "@/hooks/usePersonalChat";
 import { useAuthStore } from "@/state/authStore";
@@ -42,10 +43,10 @@ const Chat = () => {
     uri: string;
     width: number;
     height: number;
-    size: number;
+    size?: number;
   } | null>(null);
-const [currentMessageId, setCurrentMessageId] = useState<string | null>(null);
-const [uploadingImage, setUploadingImage] = useState(false);
+  const [currentMessageId, setCurrentMessageId] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const {
     messages,
@@ -192,7 +193,6 @@ const [uploadingImage, setUploadingImage] = useState(false);
     }
   };
 
-
   const onMatchAction = async (
     matchId: string,
     action: "private" | "public" | "decline"
@@ -216,31 +216,34 @@ const [uploadingImage, setUploadingImage] = useState(false);
       setShowImageUploadModal(true);
     }
   };
-  
+
   const handleImageUpload = async (imageUri: string) => {
     if (!currentMessageId) return;
-    
+
     try {
       setUploadingImage(true);
-      
+
       const formData = new FormData();
-      formData.append('image', {
+      formData.append("image", {
         uri: imageUri,
-        type: 'image/jpeg',
-        name: 'cropped-image.jpg',
+        type: "image/jpeg",
+        name: "cropped-image.jpg",
       } as any);
-  
-      const response = await api.post(`/upload-image-to-message/${currentMessageId}`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-  
-      Alert.alert('Success', 'Image uploaded successfully!');
-      
+
+      await api.post(
+        UrlConstants.uploadImageToMessage(currentMessageId),
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      Alert.alert("Success", "Image uploaded successfully!");
     } catch (error) {
-      console.error('Upload error:', error);
-      Alert.alert('Error', 'Failed to upload image. Please try again.');
+      console.error("Upload error:", error);
+      Alert.alert("Error", "Failed to upload image. Please try again.");
     } finally {
       setUploadingImage(false);
       setShowImageUploadModal(false);
@@ -319,7 +322,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
   const renderMessage = (msg: any, index: number) => {
     const isUser = msg.sender === "user";
     const messageData = parseMessageForActions(msg.content);
-  
+
     return (
       <View
         key={msg.id || index}
@@ -336,7 +339,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
             </View>
           </View>
         )}
-  
+
         <View
           style={[
             styles.messageBubble,
@@ -353,22 +356,22 @@ const [uploadingImage, setUploadingImage] = useState(false);
           >
             {messageData.textContent}
           </Text>
-  
+
           {messageData.hasMatchButtons &&
             messageData.matchId &&
             renderMatchButtons(messageData.matchId)}
-  
+
           {/* Image display */}
           {msg.imageUrl && (
             <View style={styles.imageContainer}>
-              <Image 
-                source={{ uri: msg.imageUrl }} 
-                style={styles.messageImage} 
+              <Image
+                source={{ uri: msg.imageUrl }}
+                style={styles.messageImage}
                 resizeMode="cover"
               />
             </View>
           )}
-  
+
           {!isUser && msg.isRequest && !msg.imageUrl && (
             <Pressable
               style={[styles.addImageButton, dynamicStyles.quickStartButton]}
@@ -377,7 +380,10 @@ const [uploadingImage, setUploadingImage] = useState(false);
             >
               {uploadingImage && currentMessageId === msg.id ? (
                 <>
-                  <ActivityIndicator size="small" color={dynamicStyles.text.color} />
+                  <ActivityIndicator
+                    size="small"
+                    color={dynamicStyles.text.color}
+                  />
                   <Text style={[styles.addImageText, dynamicStyles.text]}>
                     Uploading...
                   </Text>
@@ -397,7 +403,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
             </Pressable>
           )}
         </View>
-  
+
         {isUser && (
           <View style={styles.avatarContainer}>
             <View style={styles.userAvatar}>
@@ -456,14 +462,22 @@ const [uploadingImage, setUploadingImage] = useState(false);
               >
                 <Ionicons name="trash-outline" size={20} color="#EF4444" />
               </Pressable>
-              <Pressable style={styles.closeButton} onPress={handleClose} hitSlop={20}>
-                <Ionicons name="close" size={24} color={dynamicStyles.text.color} />
+              <Pressable
+                style={styles.closeButton}
+                onPress={handleClose}
+                hitSlop={20}
+              >
+                <Ionicons
+                  name="close"
+                  size={24}
+                  color={dynamicStyles.text.color}
+                />
               </Pressable>
             </View>
           </>
         )}
       </View>
-  
+
       {/* Content */}
       <ScrollView
         ref={scrollViewRef}
@@ -509,7 +523,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
                     </Pressable>
                   ))}
                 </View>
-  
+
                 <View style={styles.initialAiMessageSection}>
                   <View style={styles.avatarContainer}>
                     <View style={styles.aiAvatar}>
@@ -527,9 +541,9 @@ const [uploadingImage, setUploadingImage] = useState(false);
                     ]}
                   >
                     <Text style={[styles.aiMessageText, dynamicStyles.text]}>
-                      Hi! I'm TarpAI, your smart campus connection assistant. I help
-                      you find compatible students based on your needs. What would
-                      you like help with today?
+                      Hi! I'm TarpAI, your smart campus connection assistant. I
+                      help you find compatible students based on your needs.
+                      What would you like help with today?
                     </Text>
                   </View>
                 </View>
@@ -571,7 +585,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
           </>
         )}
       </ScrollView>
-  
+
       <View style={styles.inputSection}>
         <View style={styles.inputContainer}>
           <TextInput
@@ -584,8 +598,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
             blurOnSubmit={false}
             returnKeyType="send"
             onSubmitEditing={handleSend}
-
-            editable={!isLoading} 
+            editable={!isLoading}
           />
           <Pressable
             style={[
@@ -604,14 +617,14 @@ const [uploadingImage, setUploadingImage] = useState(false);
           </Pressable>
         </View>
       </View>
-  
+
       {/* Your existing modals */}
       <ChatSettingsModal
         visible={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
         onClearChat={clearMessages}
       />
-  
+
       <ConfirmationModal
         visible={showClearChatConfirm}
         title="Clear chat?"
@@ -623,16 +636,16 @@ const [uploadingImage, setUploadingImage] = useState(false);
         onCancel={() => setShowClearChatConfirm(false)}
       />
       <ImageUploadModal
-  visible={showImageUploadModal}
-  imageData={selectedImageData}
-  onClose={() => {
-    setShowImageUploadModal(false);
-    setSelectedImageData(null);
-    setCurrentMessageId(null);
-  }}
-  onUpload={handleImageUpload}
-  isUploading={uploadingImage}
-/>
+        visible={showImageUploadModal}
+        imageData={selectedImageData}
+        onClose={() => {
+          setShowImageUploadModal(false);
+          setSelectedImageData(null);
+          setCurrentMessageId(null);
+        }}
+        onUpload={handleImageUpload}
+        isUploading={uploadingImage}
+      />
     </KeyboardAvoidingView>
   );
 };
@@ -685,7 +698,8 @@ const styles = StyleSheet.create({
   },
   quickStartSection: {
     marginBottom: 16,
-  },addImageButton: {
+  },
+  addImageButton: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
@@ -694,7 +708,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     borderWidth: 1,
     marginTop: 8,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   addImageText: {
     fontSize: 12,
@@ -702,7 +716,7 @@ const styles = StyleSheet.create({
   imageContainer: {
     marginTop: 8,
     borderRadius: 8,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   messageImage: {
     width: 200,
@@ -828,8 +842,8 @@ const styles = StyleSheet.create({
   inputSection: {
     padding: 16,
     paddingBottom: Platform.OS === "ios" ? 24 : 15,
-   borderTopWidth: 1,
-   borderTopColor: "rgba(255, 255, 255, 0.1)",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.1)",
   },
   inputContainer: {
     flexDirection: "row",

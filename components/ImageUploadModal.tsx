@@ -1,16 +1,15 @@
-import React, { useState } from 'react';
+import { Text } from "@/components/Themedtext";
+import { useTheme } from "@/contexts/ThemeContext";
+import { Ionicons } from "@expo/vector-icons";
+import React from "react";
 import {
-  Modal,
-  View,
-  StyleSheet,
-  Pressable,
   ActivityIndicator,
-  Alert,
   Image,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Text } from '@/components/Themedtext';
-import { useTheme } from '@/contexts/ThemeContext';
+  Modal,
+  Pressable,
+  StyleSheet,
+  View,
+} from "react-native";
 
 interface ImageUploadModalProps {
   visible: boolean;
@@ -18,7 +17,7 @@ interface ImageUploadModalProps {
     uri: string;
     width: number;
     height: number;
-    size: number;
+    size?: number;
   } | null;
   onClose: () => void;
   onUpload: (imageUri: string) => void;
@@ -36,20 +35,20 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
 
   const dynamicStyles = {
     modal: {
-      backgroundColor: isDark ? '#0a0a0a' : '#FFFFFF',
+      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
     },
     text: {
-      color: isDark ? '#FFFFFF' : '#0a0a0a',
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
     header: {
-      borderBottomColor: isDark ? '#333333' : '#E0E0E0',
+      borderBottomColor: isDark ? "#333333" : "#E0E0E0",
     },
     cancelButton: {
-      backgroundColor: isDark ? '#1A1A1A' : '#F5F5F5',
-      borderColor: isDark ? '#333333' : '#E0E0E0',
+      backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
+      borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     primaryButton: {
-      backgroundColor: '#10B981',
+      backgroundColor: "#10B981",
     },
   };
 
@@ -111,7 +110,10 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
               Size: {imageData.width} × {imageData.height}
             </Text>
             <Text style={[styles.infoText, dynamicStyles.text]}>
-              File size: {formatFileSize(imageData.size)}
+              File size:{" "}
+              {imageData.size !== undefined
+                ? formatFileSize(imageData.size)
+                : "Unknown"}
             </Text>
           </View>
         </View>
@@ -142,12 +144,17 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
             {isUploading ? (
               <View style={styles.uploadingContainer}>
                 <ActivityIndicator size="small" color="#FFFFFF" />
-                <Text style={[styles.buttonText, { color: '#FFFFFF', marginLeft: 8 }]}>
+                <Text
+                  style={[
+                    styles.buttonText,
+                    { color: "#FFFFFF", marginLeft: 8 },
+                  ]}
+                >
                   Uploading...
                 </Text>
               </View>
             ) : (
-              <Text style={[styles.buttonText, { color: '#FFFFFF' }]}>
+              <Text style={[styles.buttonText, { color: "#FFFFFF" }]}>
                 Upload
               </Text>
             )}
@@ -163,9 +170,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingTop: 60,
     paddingHorizontal: 20,
     paddingBottom: 16,
@@ -173,7 +180,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   closeButton: {
     padding: 4,
@@ -184,17 +191,17 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 20,
   },
   previewImage: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
     borderRadius: 12,
   },
   imageInfo: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 16,
     gap: 4,
   },
@@ -203,7 +210,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   buttonsContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingHorizontal: 20,
     paddingBottom: 40,
     gap: 12,
@@ -212,21 +219,21 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 16,
     borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   cancelButton: {
     borderWidth: 1,
   },
   buttonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   buttonDisabled: {
     opacity: 0.6,
   },
   uploadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
 });
