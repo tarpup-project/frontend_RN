@@ -461,13 +461,13 @@ const Chat = () => {
               Chat with TarpAI
             </Text>
             <View style={styles.headerActions}>
-              {/* <Pressable
+              <Pressable
                 style={styles.settingsButton}
                 onPress={() => setShowSettingsModal(true)}
                 hitSlop={10}
               >
                 <Settings size={20} color={dynamicStyles.text.color} />
-              </Pressable> */}
+              </Pressable>
               <Pressable
                 style={styles.clearButton}
                 onPress={() => setShowClearChatConfirm(true)}

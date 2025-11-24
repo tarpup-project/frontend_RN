@@ -1,9 +1,11 @@
 import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/contexts/ThemeContext";
+import {
+  useActivePrompts,
+  useDeleteActivePrompt,
+} from "@/hooks/useActivePrompts";
 import { ArrowLeft, Loader2, X } from "lucide-react-native";
 import moment from "moment";
-import { useActivePrompts, useDeleteActivePrompt } from "@/hooks/useActivePrompts";
-import { usePendingMatches, useMatchAction } from "@/hooks/usePendingMatches";
 import React, { useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 
@@ -33,6 +35,7 @@ interface PendingMatch {
   };
 }
 
+// ... imports and interfaces remain the same ...
 
 export const ChatSettingsModal: React.FC<ChatSettingsModalProps> = ({
   visible,
@@ -44,9 +47,40 @@ export const ChatSettingsModal: React.FC<ChatSettingsModalProps> = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showClearChatConfirm, setShowClearChatConfirm] = useState(false);
   const [selectedPromptId, setSelectedPromptId] = useState<string>("");
-  const [confirmDeleteAction, setConfirmDeleteAction] = useState<(() => Promise<void>) | null>(null);
+  const [confirmDeleteAction, setConfirmDeleteAction] = useState<
+    (() => Promise<void>) | null
+  >(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // ... dynamicStyles and handler functions remain the same ...
+  const dynamicStyles = {
+    modal: {
+      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
+      borderColor: isDark ? "#333333" : "#E0E0E0",
+    },
+    overlay: {
+      backgroundColor: "rgba(0, 0, 0, 0.5)",
+    },
+    text: {
+      color: isDark ? "#FFFFFF" : "#0a0a0a",
+    },
+    subtitle: {
+      color: isDark ? "#CCCCCC" : "#666666",
+    },
+    tabContainer: {
+      backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
+    },
+    activeTab: {
+      backgroundColor: isDark ? "#0a0a0a" : "#000000",
+    },
+    activeTabText: {
+      color: isDark ? "#FFFFFF" : "#FFFFFF",
+    },
+    inactiveTabText: {
+      color: isDark ? "#CCCCCC" : "#666666",
+    },
+  };
+  // ... handler functions remain the same ...
   const handleDeletePrompt = (id: string, onConfirm: () => Promise<void>) => {
     setSelectedPromptId(id);
     setConfirmDeleteAction(() => onConfirm);
@@ -65,25 +99,116 @@ export const ChatSettingsModal: React.FC<ChatSettingsModalProps> = ({
     setShowDeleteConfirm(false);
     setConfirmDeleteAction(null);
   };
+  // --- MISSING CLEAR CHAT BUTTON FIX ---
+  const handleClearChatPress = () => {
+    setShowClearChatConfirm(true);
+  };
 
   return (
     <>
       <Modal
         visible={visible}
         transparent
-        animationType="fade"
+        animationType="slide" // Changed fade to slide for better feel
         onRequestClose={onClose}
       >
-        {/* Previous modal code stays the same */}
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {activeTab === "prompts" ? (
-            <ActivePromptsTab onDeletePrompt={handleDeletePrompt} />
-          ) : (
-            <PendingMatchesTab />
-          )}
-        </ScrollView>
+        {/* Fix: The main wrapper needs to use `styles.overlay` to fill the screen */}
+        <View style={[styles.overlay, dynamicStyles.overlay]}>
+          {/* Fix: This container defines the size/position of the modal content */}
+          <View style={[styles.modalContainer, dynamicStyles.modal]}>
+            {/* Header */}
+            <View
+              style={[
+                styles.header,
+                { borderColor: dynamicStyles.modal.borderColor },
+              ]}
+            >
+              <View style={styles.headerLeft}>
+                <Pressable onPress={onClose} style={styles.headerButton}>
+                  <ArrowLeft size={20} color={dynamicStyles.text.color} />
+                </Pressable>
+                <Text style={[styles.headerTitle, dynamicStyles.text]}>
+                  Prompt Settings
+                </Text>
+              </View>
+              <View style={styles.headerRight}>
+                {/* --- FIX: Added Clear Chat Button --- */}
+                <Pressable
+                  onPress={handleClearChatPress}
+                  style={styles.headerButton}
+                >
+                  <Text style={styles.clearChatText}>Clear</Text>
+                </Pressable>
+                <Pressable onPress={onClose} style={styles.headerButton}>
+                  <X size={20} color={dynamicStyles.text.color} />
+                </Pressable>
+              </View>
+            </View>
+
+            {/* Tab Selector */}
+            <View style={styles.tabSection}>
+              <View style={[styles.tabContainer, dynamicStyles.tabContainer]}>
+                <Pressable
+                  style={[
+                    styles.tab,
+                    activeTab === "prompts" && [
+                      styles.activeTab,
+                      dynamicStyles.activeTab,
+                    ],
+                  ]}
+                  onPress={() => setActiveTab("prompts")}
+                >
+                  <Text
+                    style={[
+                      styles.tabText,
+                      activeTab === "prompts"
+                        ? dynamicStyles.activeTabText
+                        : dynamicStyles.inactiveTabText,
+                    ]}
+                  >
+                    Active Prompts
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[
+                    styles.tab,
+                    activeTab === "matches" && [
+                      styles.activeTab,
+                      dynamicStyles.activeTab,
+                    ],
+                  ]}
+                  onPress={() => setActiveTab("matches")}
+                >
+                  <Text
+                    style={[
+                      styles.tabText,
+                      activeTab === "matches"
+                        ? dynamicStyles.activeTabText
+                        : dynamicStyles.inactiveTabText,
+                    ]}
+                  >
+                    Pending Matches
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+
+            {/* Content ScrollView */}
+            <ScrollView
+              style={styles.content}
+              showsVerticalScrollIndicator={false}
+            >
+              {activeTab === "prompts" ? (
+                <ActivePromptsTab onDeletePrompt={handleDeletePrompt} />
+              ) : (
+                <PendingMatchesTab />
+              )}
+            </ScrollView>
+          </View>
+        </View>
       </Modal>
 
+      {/* Confirmation Modals (remain unchanged) */}
       <ConfirmationModal
         visible={showDeleteConfirm}
         title="Remove from prompts marketplace"
@@ -107,7 +232,6 @@ export const ChatSettingsModal: React.FC<ChatSettingsModalProps> = ({
     </>
   );
 };
-
 
 const ActivePromptsTab = ({
   onDeletePrompt,
@@ -148,7 +272,11 @@ const ActivePromptsTab = ({
         {[1, 2, 3].map((i) => (
           <View
             key={i}
-            style={[styles.promptCard, dynamicStyles.promptCard, { opacity: 0.5 }]}
+            style={[
+              styles.promptCard,
+              dynamicStyles.promptCard,
+              { opacity: 0.5 },
+            ]}
           >
             <View style={styles.promptContent}>
               <View
@@ -390,48 +518,44 @@ const ConfirmationModal = ({
             {message}
           </Text>
           <View style={styles.confirmButtons}>
-            <Pressable
-              style={[
-                styles.cancelButton,
-                dynamicStyles.cancelButton,
-                isLoading && { opacity: 0.6 },
-              ]}
-              onPress={onCancel}
-              disabled={isLoading}
-            >
-              <Text
-                style={[
-                  styles.cancelButtonText,
-                  dynamicStyles.cancelButtonText,
-                ]}
-              >
-                Cancel
-              </Text>
-            </Pressable>
-            <Pressable
-              style={[
-                styles.confirmButton,
-                isLoading && { opacity: 0.8 },
-              ]}
-              onPress={onConfirm}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <Loader2 size={12} color="#FFFFFF" />
-                  <Text style={styles.confirmButtonText}>Removing...</Text>
-                </View>
-              ) : (
-                <Text style={styles.confirmButtonText}>Remove</Text>
-              )}
-            </Pressable>
+          <Pressable
+  style={[
+    styles.cancelButton,
+    dynamicStyles.cancelButton,
+    isLoading && { opacity: 0.6 },
+  ]}
+  onPress={onCancel}
+  disabled={isLoading}
+>
+  <Text style={[styles.cancelButtonText, dynamicStyles.cancelButtonText]}>
+    Cancel
+  </Text>
+</Pressable>
+
+<Pressable
+  style={[
+    styles.confirmButton,
+    isLoading && { opacity: 0.8 },
+  ]}
+  onPress={onConfirm}
+  disabled={isLoading}
+>
+  {isLoading ? (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+      <Loader2 size={12} color="#FFFFFF" />
+      <Text style={styles.confirmButtonText}>Removing...</Text>
+    </View>
+  ) : (
+    <Text style={styles.confirmButtonText}>Remove</Text>
+  )}
+</Pressable>
+
           </View>
         </View>
       </View>
     </Modal>
   );
 };
-
 
 const styles = StyleSheet.create({
   overlay: {
@@ -454,12 +578,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.1)",
+    //borderBottomColor: "rgba(255, 255, 255, 0.1)",
   },
   headerLeft: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
   },
   headerTitle: {
     fontSize: 16,
@@ -710,31 +839,13 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     marginBottom: 20,
   },
-  // confirmButtons: {
-  //   flexDirection: "row",
-  //   justifyContent: "flex-end",
-  //   gap: 12,
-  // },
-  // cancelButton: {
-  //   paddingVertical: 10,
-  //   paddingHorizontal: 20,
-  //   borderRadius: 8,
-  //   borderWidth: 1,
-  //   borderColor: "#E0E0E0",
-  //   alignItems: "center",
-  // },
+
   cancelButtonText: {
     color: "#FFFFFF",
     fontSize: 11,
     fontWeight: "600",
   },
-  // confirmButton: {
-  //   paddingVertical: 10,
-  //   paddingHorizontal: 20,
-  //   borderRadius: 8,
-  //   backgroundColor: "#EF4444",
-  //   alignItems: "center",
-  // },
+
   confirmButtonText: {
     color: "#FFFFFF",
     fontSize: 11,
