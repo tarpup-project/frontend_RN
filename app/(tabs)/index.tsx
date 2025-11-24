@@ -40,7 +40,6 @@ import {
 } from "react-native";
 
 const getIconComponent = (iconName: any, categoryName?: string) => {
-  // Add this debug block at the very beginning
   console.log("🔍 getIconComponent DEBUG:", {
     iconName: iconName,
     iconType: typeof iconName,
@@ -67,7 +66,6 @@ const getIconComponent = (iconName: any, categoryName?: string) => {
       const normalized = categoryName.toLowerCase().trim();
       const foundIcon = nameMap[normalized];
       
-      // Add this debug block
       console.log("🔍 nameMap lookup:", {
         normalized: normalized,
         foundIcon: foundIcon?.name || 'undefined',
@@ -79,7 +77,7 @@ const getIconComponent = (iconName: any, categoryName?: string) => {
     return Car;
   }
 
-  // Rest of your function...
+
   if (typeof iconName !== "string") return Car;
 
   const normalized = iconName.trim().toLowerCase().replace(/-/g, "");

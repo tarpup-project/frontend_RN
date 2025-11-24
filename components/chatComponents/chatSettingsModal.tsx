@@ -1,6 +1,9 @@
 import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ArrowLeft, Loader2, X } from "lucide-react-native";
+import moment from "moment";
+import { useActivePrompts, useDeleteActivePrompt } from "@/hooks/useActivePrompts";
+import { usePendingMatches, useMatchAction } from "@/hooks/usePendingMatches";
 import React, { useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 
@@ -30,6 +33,7 @@ interface PendingMatch {
   };
 }
 
+
 export const ChatSettingsModal: React.FC<ChatSettingsModalProps> = ({
   visible,
   onClose,
@@ -39,37 +43,27 @@ export const ChatSettingsModal: React.FC<ChatSettingsModalProps> = ({
   const [activeTab, setActiveTab] = useState<"prompts" | "matches">("prompts");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showClearChatConfirm, setShowClearChatConfirm] = useState(false);
+  const [selectedPromptId, setSelectedPromptId] = useState<string>("");
+  const [confirmDeleteAction, setConfirmDeleteAction] = useState<(() => Promise<void>) | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const dynamicStyles = {
-    modal: {
-      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
-      borderColor: isDark ? "#333333" : "#E0E0E0",
-    },
-    overlay: {
-      backgroundColor: "rgba(0, 0, 0, 0.5)",
-    },
-    text: {
-      color: isDark ? "#FFFFFF" : "#0a0a0a",
-    },
-    subtitle: {
-      color: isDark ? "#CCCCCC" : "#666666",
-    },
-    tabContainer: {
-      backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
-    },
-    activeTab: {
-      backgroundColor: isDark ? "#0a0a0a" : "#000000",
-    },
-    activeTabText: {
-      color: isDark ? "#FFFFFF" : "#FFFFFF",
-    },
-    inactiveTabText: {
-      color: isDark ? "#CCCCCC" : "#666666",
-    },
-    confirmModal: {
-      backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF",
-      borderColor: isDark ? "#333333" : "#E0E0E0",
-    },
+  const handleDeletePrompt = (id: string, onConfirm: () => Promise<void>) => {
+    setSelectedPromptId(id);
+    setConfirmDeleteAction(() => onConfirm);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (confirmDeleteAction) {
+      setIsDeleting(true);
+      try {
+        await confirmDeleteAction();
+      } finally {
+        setIsDeleting(false);
+      }
+    }
+    setShowDeleteConfirm(false);
+    setConfirmDeleteAction(null);
   };
 
   return (
@@ -80,102 +74,25 @@ export const ChatSettingsModal: React.FC<ChatSettingsModalProps> = ({
         animationType="fade"
         onRequestClose={onClose}
       >
-        <View style={[styles.overlay, dynamicStyles.overlay]}>
-          <View style={[styles.modalContainer, dynamicStyles.modal]}>
-            {/* Header */}
-            <View style={styles.header}>
-              <View style={styles.headerLeft}>
-                <Pressable onPress={onClose} style={styles.headerButton}>
-                  <ArrowLeft size={20} color={dynamicStyles.text.color} />
-                </Pressable>
-                <Text style={[styles.headerTitle, dynamicStyles.text]}>
-                  Prompt Settings
-                </Text>
-              </View>
-              <Pressable onPress={onClose} style={styles.headerButton}>
-                <X size={20} color={dynamicStyles.text.color} />
-              </Pressable>
-            </View>
-
-            {/* Tabs */}
-            <View style={styles.tabSection}>
-              <View style={[styles.tabContainer, dynamicStyles.tabContainer]}>
-                <Pressable
-                  style={[
-                    styles.tab,
-                    activeTab === "prompts" && [
-                      styles.activeTab,
-                      dynamicStyles.activeTab,
-                    ],
-                  ]}
-                  onPress={() => setActiveTab("prompts")}
-                >
-                  <Text
-                    style={[
-                      styles.tabText,
-                      activeTab === "prompts"
-                        ? dynamicStyles.activeTabText
-                        : dynamicStyles.inactiveTabText,
-                    ]}
-                  >
-                    Active Prompts
-                  </Text>
-                </Pressable>
-                <Pressable
-                  style={[
-                    styles.tab,
-                    activeTab === "matches" && [
-                      styles.activeTab,
-                      dynamicStyles.activeTab,
-                    ],
-                  ]}
-                  onPress={() => setActiveTab("matches")}
-                >
-                  <Text
-                    style={[
-                      styles.tabText,
-                      activeTab === "matches"
-                        ? dynamicStyles.activeTabText
-                        : dynamicStyles.inactiveTabText,
-                    ]}
-                  >
-                    Pending Matches
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
-
-            {/* Tab Content */}
-            <ScrollView
-              style={styles.content}
-              showsVerticalScrollIndicator={false}
-            >
-              {activeTab === "prompts" ? (
-                <ActivePromptsTab
-                  onDeletePrompt={() => setShowDeleteConfirm(true)}
-                />
-              ) : (
-                <PendingMatchesTab />
-              )}
-            </ScrollView>
-
-          </View>
-        </View>
+        {/* Previous modal code stays the same */}
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          {activeTab === "prompts" ? (
+            <ActivePromptsTab onDeletePrompt={handleDeletePrompt} />
+          ) : (
+            <PendingMatchesTab />
+          )}
+        </ScrollView>
       </Modal>
 
-      {/* Delete Confirmation Modal */}
       <ConfirmationModal
         visible={showDeleteConfirm}
         title="Remove from prompts marketplace"
         message="Are you sure you want to remove this prompt from the prompts marketplace?"
-        onConfirm={() => {
-          setShowDeleteConfirm(false);
-          // Handle delete logic here
-        }}
+        onConfirm={handleConfirmDelete}
         onCancel={() => setShowDeleteConfirm(false)}
+        isLoading={isDeleting}
       />
 
-      {/* Clear Chat Confirmation Modal */}
       <ConfirmationModal
         visible={showClearChatConfirm}
         title="Clear chat?"
@@ -191,20 +108,15 @@ export const ChatSettingsModal: React.FC<ChatSettingsModalProps> = ({
   );
 };
 
+
 const ActivePromptsTab = ({
   onDeletePrompt,
 }: {
-  onDeletePrompt: () => void;
+  onDeletePrompt: (id: string, onConfirm: () => Promise<void>) => void;
 }) => {
   const { isDark } = useTheme();
-  const [prompts] = useState<ActivePrompt[]>([
-    {
-      id: "1",
-      title: "Connect with Software Engineers to Build AI App",
-      description: "Looking for experienced developers",
-      createdAt: "2024-11-15T10:00:00Z",
-    },
-  ]);
+  const { data: prompts, isLoading } = useActivePrompts();
+  const deletePromptMutation = useDeleteActivePrompt();
 
   const dynamicStyles = {
     text: {
@@ -219,14 +131,57 @@ const ActivePromptsTab = ({
     },
   };
 
-  const formatTimeAgo = (dateString: string) => {
-    const now = new Date();
-    const date = new Date(dateString);
-    const diffInDays = Math.floor(
-      (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    return `${diffInDays} days ago`;
+  const handleDelete = async (id: string) => {
+    try {
+      await deletePromptMutation.mutateAsync(id);
+    } catch (error) {
+      console.error("Failed to delete prompt:", error);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <View style={styles.tabContent}>
+        <Text style={[styles.tabDescription, dynamicStyles.subtitle]}>
+          Your prompts that are visible on the marketplace
+        </Text>
+        {[1, 2, 3].map((i) => (
+          <View
+            key={i}
+            style={[styles.promptCard, dynamicStyles.promptCard, { opacity: 0.5 }]}
+          >
+            <View style={styles.promptContent}>
+              <View
+                style={{
+                  height: 14,
+                  backgroundColor: dynamicStyles.subtitle.color,
+                  marginBottom: 4,
+                  borderRadius: 4,
+                  width: "80%",
+                }}
+              />
+              <View
+                style={{
+                  height: 10,
+                  backgroundColor: dynamicStyles.subtitle.color,
+                  borderRadius: 4,
+                  width: "40%",
+                }}
+              />
+            </View>
+            <View
+              style={{
+                height: 26,
+                width: 70,
+                backgroundColor: "#EF4444",
+                borderRadius: 6,
+              }}
+            />
+          </View>
+        ))}
+      </View>
+    );
+  }
 
   return (
     <View style={styles.tabContent}>
@@ -234,7 +189,7 @@ const ActivePromptsTab = ({
         Your prompts that are visible on the marketplace
       </Text>
 
-      {prompts.length > 0 ? (
+      {prompts && prompts.length > 0 ? (
         prompts.map((prompt) => (
           <View
             key={prompt.id}
@@ -245,11 +200,24 @@ const ActivePromptsTab = ({
                 {prompt.title}
               </Text>
               <Text style={[styles.promptDate, dynamicStyles.subtitle]}>
-                {formatTimeAgo(prompt.createdAt)}
+                {moment(prompt.createdAt).fromNow()}
               </Text>
             </View>
-            <Pressable style={styles.removeButton} onPress={onDeletePrompt}>
-              <Text style={styles.removeButtonText}>Remove</Text>
+            <Pressable
+              style={[
+                styles.removeButton,
+                deletePromptMutation.isPending && { opacity: 0.6 },
+              ]}
+              onPress={() => {
+                onDeletePrompt(prompt.id, () => handleDelete(prompt.id));
+              }}
+              disabled={deletePromptMutation.isPending}
+            >
+              {deletePromptMutation.isPending ? (
+                <Loader2 size={12} color="#FFFFFF" />
+              ) : (
+                <Text style={styles.removeButtonText}>Remove</Text>
+              )}
             </Pressable>
           </View>
         ))
@@ -375,18 +343,21 @@ const PendingMatchesTab = () => {
   );
 };
 
+// Updated ConfirmationModal with loading states
 const ConfirmationModal = ({
   visible,
   title,
   message,
   onConfirm,
   onCancel,
+  isLoading = false,
 }: {
   visible: boolean;
   title: string;
   message: string;
   onConfirm: () => void;
   onCancel: () => void;
+  isLoading?: boolean;
 }) => {
   const { isDark } = useTheme();
 
@@ -402,7 +373,8 @@ const ConfirmationModal = ({
       color: isDark ? "#CCCCCC" : "#666666",
     },
     cancelButton: {
-      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
+      backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
+      borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     cancelButtonText: {
       color: isDark ? "#FFFFFF" : "#0a0a0a",
@@ -419,8 +391,13 @@ const ConfirmationModal = ({
           </Text>
           <View style={styles.confirmButtons}>
             <Pressable
-              style={[styles.cancelButton, dynamicStyles.cancelButton]}
+              style={[
+                styles.cancelButton,
+                dynamicStyles.cancelButton,
+                isLoading && { opacity: 0.6 },
+              ]}
               onPress={onCancel}
+              disabled={isLoading}
             >
               <Text
                 style={[
@@ -431,8 +408,22 @@ const ConfirmationModal = ({
                 Cancel
               </Text>
             </Pressable>
-            <Pressable style={styles.confirmButton} onPress={onConfirm}>
-              <Text style={styles.confirmButtonText}>Clear</Text>
+            <Pressable
+              style={[
+                styles.confirmButton,
+                isLoading && { opacity: 0.8 },
+              ]}
+              onPress={onConfirm}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Loader2 size={12} color="#FFFFFF" />
+                  <Text style={styles.confirmButtonText}>Removing...</Text>
+                </View>
+              ) : (
+                <Text style={styles.confirmButtonText}>Remove</Text>
+              )}
             </Pressable>
           </View>
         </View>
@@ -440,6 +431,7 @@ const ConfirmationModal = ({
     </Modal>
   );
 };
+
 
 const styles = StyleSheet.create({
   overlay: {
@@ -587,6 +579,34 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
   },
+  matchDate: {
+    fontSize: 10,
+    marginBottom: 8,
+  },
+  confirmButtons: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 12,
+    minHeight: 40,
+  },
+  confirmButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    backgroundColor: "#EF4444",
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 80,
+  },
+  cancelButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 80,
+  },
   scoreText: {
     color: "#FFFFFF",
     fontSize: 10,
@@ -690,31 +710,31 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     marginBottom: 20,
   },
-  confirmButtons: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 12,
-  },
-  cancelButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    alignItems: "center",
-  },
+  // confirmButtons: {
+  //   flexDirection: "row",
+  //   justifyContent: "flex-end",
+  //   gap: 12,
+  // },
+  // cancelButton: {
+  //   paddingVertical: 10,
+  //   paddingHorizontal: 20,
+  //   borderRadius: 8,
+  //   borderWidth: 1,
+  //   borderColor: "#E0E0E0",
+  //   alignItems: "center",
+  // },
   cancelButtonText: {
     color: "#FFFFFF",
     fontSize: 11,
     fontWeight: "600",
   },
-  confirmButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    backgroundColor: "#EF4444",
-    alignItems: "center",
-  },
+  // confirmButton: {
+  //   paddingVertical: 10,
+  //   paddingHorizontal: 20,
+  //   borderRadius: 8,
+  //   backgroundColor: "#EF4444",
+  //   alignItems: "center",
+  // },
   confirmButtonText: {
     color: "#FFFFFF",
     fontSize: 11,

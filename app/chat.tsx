@@ -461,24 +461,24 @@ const Chat = () => {
               Chat with TarpAI
             </Text>
             <View style={styles.headerActions}>
-              <Pressable
+              {/* <Pressable
                 style={styles.settingsButton}
                 onPress={() => setShowSettingsModal(true)}
-                hitSlop={20}
+                hitSlop={10}
               >
                 <Settings size={20} color={dynamicStyles.text.color} />
-              </Pressable>
+              </Pressable> */}
               <Pressable
                 style={styles.clearButton}
                 onPress={() => setShowClearChatConfirm(true)}
-                hitSlop={20}
+                hitSlop={10}
               >
                 <Ionicons name="trash-outline" size={20} color="#EF4444" />
               </Pressable>
               <Pressable
                 style={styles.closeButton}
                 onPress={handleClose}
-                hitSlop={20}
+                hitSlop={10}
               >
                 <Ionicons
                   name="close"
