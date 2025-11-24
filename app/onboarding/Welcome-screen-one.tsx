@@ -31,12 +31,12 @@ const WelcomeScreenOne = () => {
 
   return (
     <SafeAreaView style={[styles.container, dynamicStyles.container]}>
-      <Pressable
-        style={styles.skipButton}
-        onPress={() => router.push("/(tabs)")}
-      >
-        <Text style={[styles.skipText, dynamicStyles.skipText]}>Skip</Text>
-      </Pressable>
+        <Pressable
+          style={styles.skipButton}
+          onPress={() => router.push("/(tabs)")}
+        >
+          <Text style={[styles.skipText, dynamicStyles.skipText]}>Skip</Text>
+        </Pressable>
 
       <View style={styles.content}>
         <View style={styles.logoContainer}>
@@ -83,8 +83,10 @@ const styles = StyleSheet.create({
   },
   skipButton: {
     alignSelf: "flex-end",
-    paddingVertical: Platform.OS === "ios" ? 0 : 8,
-    paddingHorizontal: 16,
+    paddingVertical: Platform.OS === "ios" ? 10 : 8,
+    paddingHorizontal: 20,
+    minHeight: 44, 
+    minWidth: 60,
   },
   skipText: {
     fontSize: 16,

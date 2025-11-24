@@ -270,13 +270,12 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   }, [linkToConfirm]);
 
   const handleShowGroupInfo = useCallback(() => {
-    console.log("🔍 handleShowGroupInfo called!"); // Debug log
-    setIconPosition({ x: 0, y: 100 }); // Simple fixed position
+    console.log("🔍 handleShowGroupInfo called!");
+    setIconPosition({ x: 0, y: 100 }); 
     setShowGroupInfo(true);
-    console.log("🔍 showGroupInfo set to true"); // Debug log
+    console.log("🔍 showGroupInfo set to true"); 
   }, []);
 
-  // Loading state logic
   const loadingState = useMemo(() => {
     if (groupLoading || isLoading) return "loading";
     if (!socket || !user) return "connecting";
@@ -293,133 +292,155 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     finalGroupDetails,
   ]);
 
-  // Early returns for different states
+
   if (loadingState === "loading") {
-    return <ChatLoadingState />;
-  }
-
-  if (loadingState === "connecting") {
     return (
-      <View
-        style={[
-          styles.container,
-          dynamicStyles.container,
-          styles.centerContainer,
-        ]}
+      <KeyboardAvoidingView
+        style={[styles.container, dynamicStyles.container]}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={0}
       >
-        <Header />
-        <ActivityIndicator size="large" color={dynamicStyles.text.color} />
-        <Text style={[{ marginTop: 12, fontSize: 16 }, dynamicStyles.text]}>
-          Connecting...
-        </Text>
-      </View>
-    );
-  }
-
-  if (loadingState === "error") {
-    return (
-      <ErrorScreen
-        message={String(groupError || error || "Failed to load chat")}
-      />
-    );
-  }
-
-  if (loadingState === "not-found") {
-    return <ErrorScreen message="Group not found" />;
-  }
-
-  return (
-    <KeyboardAvoidingView
-      style={[styles.container, dynamicStyles.container]}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={0}
-    >
-      <Header />
-
-      <ChatHeader
-        groupDetails={{
-          id: finalGroupDetails.id,
-          name: finalGroupDetails.name,
-          members: finalGroupDetails.members,
-          score: finalGroupDetails.score,
-          shareLink: finalGroupDetails.shareLink,
-          isJoined: finalGroupDetails.isJoined,
-          isAdmin: finalGroupDetails.isAdmin,
-          isComplete: finalGroupDetails.isComplete,
-        }}
-        showDropdown={showDropdown}
-        onToggleDropdown={handleToggleDropdown}
-        onShowGroupInfo={handleShowGroupInfo}
-        onLeaveSuccess={() => router.back()}
-        navigateToProfile={navigateToProfile}
-      />
-
-      <MessageList
-        messages={messages}
-        userId={user?.id}
-        onReply={startReply}
-        onImagePress={setShowImageModal}
-        onLinkPress={handleLinkPress}
-        scrollToMessage={scrollToMessage}
-        messageRefs={messageRefs}
-        navigateToProfile={navigateToProfile}
-      />
-
-      <MessageInput
-        message={message}
-        onChangeMessage={setMessage}
-        onSend={handleSend}
-        onAttachment={() => {}}
-        isJoined={finalGroupDetails.isJoined !== false}
-        onJoinGroup={handleJoinGroup}
-        isJoining={isJoining}
-        selectedFile={selectedFile || null}
-        onRemoveFile={removeFile}
-        replyingTo={replyingTo || null}
-        onCancelReply={cancelReply}
-        selectImage={selectImage}
-        selectImageFromCamera={selectImageFromCamera}
-        selectFile={selectFile}
-      />
-
-
-      <GroupInfoModal
-        visible={showGroupInfo}
-        groupDetails={{
-          id: finalGroupDetails.id,
-          name: finalGroupDetails.name,
-          members: finalGroupDetails.members,
-          score: finalGroupDetails.score,
-          category: finalGroupDetails.category,
-        }}
-        iconPosition={iconPosition}
-        slideAnim={slideAnim}
-        fadeAnim={fadeAnim}
-        scaleAnim={scaleAnim}
-        onClose={() => setShowGroupInfo(false)}
-        navigateToProfile={navigateToProfile}
-      />
-
-      <ImageModal
-        imageUrl={showImageModal}
-        visible={!!showImageModal}
-        onClose={() => setShowImageModal(null)}
-      />
-
-      <LinkConfirmModal
-        url={linkToConfirm}
-        visible={!!linkToConfirm}
-        onConfirm={confirmOpenLink}
-        onCancel={() => setLinkToConfirm(null)}
-      />
-
-      {showDropdown && (
-        <Pressable
-          style={styles.overlay}
-          onPress={() => setShowDropdown(false)}
+        <ChatLoadingState />
+        
+        <MessageInput
+          message={message}
+          onChangeMessage={setMessage}
+          onSend={handleSend}
+          onAttachment={() => {}}
+          onJoinGroup={handleJoinGroup}
+          isJoining={isJoining}
+          isJoined={loadingState === "loading" ? true : (finalGroupDetails?.isJoined !== false)}
+          selectedFile={selectedFile || null}
+          onRemoveFile={removeFile}
+          replyingTo={replyingTo || null}
+          onCancelReply={cancelReply}
+          selectImage={selectImage}
+          selectImageFromCamera={selectImageFromCamera}
+          selectFile={selectFile}
         />
-      )}
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    );
+  }
+  
+
+ 
+  return (
+      <KeyboardAvoidingView
+        style={[styles.container, dynamicStyles.container]}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={0}
+      >
+       <Header />    
+        {/* Content area - can still lazy load */}
+        <View style={{ flex: 1 }}>
+
+          
+          {loadingState === "connecting" && (
+            <View style={[styles.centerContainer, { flex: 1 }]}>
+              <ActivityIndicator size="large" color={dynamicStyles.text.color} />
+              <Text style={[{ marginTop: 12, fontSize: 16 }, dynamicStyles.text]}>
+                Connecting...
+              </Text>
+            </View>
+          )}
+          
+          {loadingState === "error" && (
+            <ErrorScreen message={String(groupError || error || "Failed to load chat")} />
+          )}
+          
+          {loadingState === "not-found" && (
+            <ErrorScreen message="Group not found" />
+          )}
+          
+          {loadingState === "ready" && (
+            <>
+              <ChatHeader
+                groupDetails={{
+                  id: finalGroupDetails.id,
+                  name: finalGroupDetails.name,
+                  members: finalGroupDetails.members,
+                  score: finalGroupDetails.score,
+                  shareLink: finalGroupDetails.shareLink,
+                  isJoined: finalGroupDetails.isJoined,
+                  isAdmin: finalGroupDetails.isAdmin,
+                  isComplete: finalGroupDetails.isComplete,
+                }}
+                showDropdown={showDropdown}
+                onToggleDropdown={handleToggleDropdown}
+                onShowGroupInfo={handleShowGroupInfo}
+                onLeaveSuccess={() => router.back()}
+                navigateToProfile={navigateToProfile}
+              />
+    
+              <MessageList
+                messages={messages}
+                userId={user?.id}
+                onReply={startReply}
+                onImagePress={setShowImageModal}
+                onLinkPress={handleLinkPress}
+                scrollToMessage={scrollToMessage}
+                messageRefs={messageRefs}
+                navigateToProfile={navigateToProfile}
+              />
+    
+              <GroupInfoModal
+                visible={showGroupInfo}
+                groupDetails={{
+                  id: finalGroupDetails.id,
+                  name: finalGroupDetails.name,
+                  members: finalGroupDetails.members,
+                  score: finalGroupDetails.score,
+                  category: finalGroupDetails.category,
+                }}
+                iconPosition={iconPosition}
+                slideAnim={slideAnim}
+                fadeAnim={fadeAnim}
+                scaleAnim={scaleAnim}
+                onClose={() => setShowGroupInfo(false)}
+                navigateToProfile={navigateToProfile}
+              />
+    
+              <ImageModal
+                imageUrl={showImageModal}
+                visible={!!showImageModal}
+                onClose={() => setShowImageModal(null)}
+              />
+    
+              <LinkConfirmModal
+                url={linkToConfirm}
+                visible={!!linkToConfirm}
+                onConfirm={confirmOpenLink}
+                onCancel={() => setLinkToConfirm(null)}
+              />
+    
+              {showDropdown && (
+                <Pressable
+                  style={styles.overlay}
+                  onPress={() => setShowDropdown(false)}
+                />
+              )}
+            </>
+          )}
+        </View>
+    
+        {/* MessageInput - ALWAYS VISIBLE */}
+        <MessageInput
+          message={message}
+          onChangeMessage={setMessage}
+          onSend={handleSend}
+          onAttachment={() => {}}
+          isJoined={finalGroupDetails?.isJoined !== false}
+          onJoinGroup={handleJoinGroup}
+          isJoining={isJoining}
+          selectedFile={selectedFile || null}
+          onRemoveFile={removeFile}
+          replyingTo={replyingTo || null}
+          onCancelReply={cancelReply}
+          selectImage={selectImage}
+          selectImageFromCamera={selectImageFromCamera}
+          selectFile={selectFile}
+        />
+      </KeyboardAvoidingView>
   );
 };
 
