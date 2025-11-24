@@ -3,7 +3,7 @@ import {
   ConfirmationModal,
 } from "@/components/chatComponents/chatSettingsModal";
 import { useImageUpload } from "@/hooks/useImageUpload";
-import { ImageCropModal } from "@/components/ImageCropModal";
+import { ImageUploadModal } from "@/components/ImageUploadModal";
 import { api } from "@/api/client"
 import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
@@ -37,8 +37,13 @@ const Chat = () => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showClearChatConfirm, setShowClearChatConfirm] = useState(false);
   const { selectAndProcessImage, isLoading: isImageLoading } = useImageUpload();
-const [showImageCropModal, setShowImageCropModal] = useState(false);
-const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [showImageUploadModal, setShowImageUploadModal] = useState(false);
+  const [selectedImageData, setSelectedImageData] = useState<{
+    uri: string;
+    width: number;
+    height: number;
+    size: number;
+  } | null>(null);
 const [currentMessageId, setCurrentMessageId] = useState<string | null>(null);
 const [uploadingImage, setUploadingImage] = useState(false);
 
@@ -205,36 +210,32 @@ const [uploadingImage, setUploadingImage] = useState(false);
 
   const handleAddImage = async (messageId: string) => {
     setCurrentMessageId(messageId);
-    const imageUri = await selectAndProcessImage();
-    if (imageUri) {
-      setSelectedImage(imageUri);
-      setShowImageCropModal(true);
+    const imageData = await selectAndProcessImage();
+    if (imageData) {
+      setSelectedImageData(imageData);
+      setShowImageUploadModal(true);
     }
   };
   
-  const handleImageCropComplete = async (croppedUri: string) => {
+  const handleImageUpload = async (imageUri: string) => {
     if (!currentMessageId) return;
     
     try {
       setUploadingImage(true);
       
-      // Create FormData for upload
       const formData = new FormData();
       formData.append('image', {
-        uri: croppedUri,
+        uri: imageUri,
         type: 'image/jpeg',
         name: 'cropped-image.jpg',
       } as any);
   
-      // Upload to your backend
       const response = await api.post(`/upload-image-to-message/${currentMessageId}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
   
-      // Refresh messages or update the specific message
-      // You might want to call your refresh messages function here
       Alert.alert('Success', 'Image uploaded successfully!');
       
     } catch (error) {
@@ -242,8 +243,8 @@ const [uploadingImage, setUploadingImage] = useState(false);
       Alert.alert('Error', 'Failed to upload image. Please try again.');
     } finally {
       setUploadingImage(false);
-      setShowImageCropModal(false);
-      setSelectedImage(null);
+      setShowImageUploadModal(false);
+      setSelectedImageData(null);
       setCurrentMessageId(null);
     }
   };
@@ -368,8 +369,7 @@ const [uploadingImage, setUploadingImage] = useState(false);
             </View>
           )}
   
-          {/* Add Image button - only show for AI messages without image */}
-          {!isUser && !msg.imageUrl && (
+          {!isUser && msg.isRequest && !msg.imageUrl && (
             <Pressable
               style={[styles.addImageButton, dynamicStyles.quickStartButton]}
               onPress={() => handleAddImage(msg.id)}
@@ -622,15 +622,16 @@ const [uploadingImage, setUploadingImage] = useState(false);
         }}
         onCancel={() => setShowClearChatConfirm(false)}
       />
-      <ImageCropModal
-  visible={showImageCropModal}
-  imageUri={selectedImage}
+      <ImageUploadModal
+  visible={showImageUploadModal}
+  imageData={selectedImageData}
   onClose={() => {
-    setShowImageCropModal(false);
-    setSelectedImage(null);
+    setShowImageUploadModal(false);
+    setSelectedImageData(null);
     setCurrentMessageId(null);
   }}
-  onCropComplete={handleImageCropComplete}
+  onUpload={handleImageUpload}
+  isUploading={uploadingImage}
 />
     </KeyboardAvoidingView>
   );
