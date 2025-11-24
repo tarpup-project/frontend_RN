@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { Alert } from 'react-native';
 
 interface ProcessedImageResult {
@@ -33,19 +34,9 @@ export const useImageUpload = () => {
         'Select Image Source',
         'Choose how you want to select an image',
         [
-          {
-            text: 'Camera',
-            onPress: () => resolve('camera'),
-          },
-          {
-            text: 'Photo Library',
-            onPress: () => resolve('library'),
-          },
-          {
-            text: 'Cancel',
-            style: 'cancel',
-            onPress: () => resolve(null),
-          },
+          { text: 'Camera', onPress: () => resolve('camera') },
+          { text: 'Photo Library', onPress: () => resolve('library') },
+          { text: 'Cancel', style: 'cancel', onPress: () => resolve(null) },
         ]
       );
     });
@@ -56,14 +47,10 @@ export const useImageUpload = () => {
       setIsLoading(true);
 
       const hasPermissions = await requestPermissions();
-      if (!hasPermissions) {
-        return null;
-      }
+      if (!hasPermissions) return null;
 
       const source = await showImageSourceOptions();
-      if (!source) {
-        return null;
-      }
+      if (!source) return null;
 
       let result: ImagePicker.ImagePickerResult;
 
@@ -75,11 +62,10 @@ export const useImageUpload = () => {
         allowsMultipleSelection: false,
       };
 
-      if (source === 'camera') {
-        result = await ImagePicker.launchCameraAsync(options);
-      } else {
-        result = await ImagePicker.launchImageLibraryAsync(options);
-      }
+      result =
+        source === 'camera'
+          ? await ImagePicker.launchCameraAsync(options)
+          : await ImagePicker.launchImageLibraryAsync(options);
 
       if (result.canceled || !result.assets || result.assets.length === 0) {
         return null;
@@ -87,19 +73,26 @@ export const useImageUpload = () => {
 
       const asset = result.assets[0];
 
+      // 👇 **THIS IS THE IMPORTANT PART**
+      const jpeg = await ImageManipulator.manipulateAsync(
+        asset.uri,
+        [], // no transform
+        {
+          compress: 0.9,
+          format: ImageManipulator.SaveFormat.JPEG,
+        }
+      );
+
       return {
-        uri: asset.uri,
-        width: asset.width || 400,
-        height: asset.height || 400,
-        size: asset.fileSize,
+        uri: jpeg.uri,
+        width: jpeg.width,
+        height: jpeg.height,
       };
 
     } catch (error: any) {
       console.error('Error selecting/processing image:', error);
-      
-      if (error.code === 'UserCancel') {
-        return null;
-      }
+
+      if (error.code === 'UserCancel') return null;
 
       Alert.alert('Error', 'Failed to select image. Please try again.');
       return null;
@@ -108,8 +101,5 @@ export const useImageUpload = () => {
     }
   };
 
-  return {
-    selectAndProcessImage,
-    isLoading,
-  };
+  return { selectAndProcessImage, isLoading };
 };
