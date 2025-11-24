@@ -25,8 +25,9 @@ interface FormData {
   bio: string;
   major: string;
   year: string;
+  phoneNumber: string;
   interests: string[];
-  prefs: Array<{ category: string; isPref: boolean }>;
+  prefs: { category: string; isPref: boolean }[];
 }
 
 const EditProfile = () => {
@@ -44,6 +45,7 @@ const EditProfile = () => {
     bio: "",
     major: "",
     year: "Select year",
+    phoneNumber: '',
     interests: [],
     prefs: [],
   });
@@ -109,6 +111,7 @@ const EditProfile = () => {
         bio: user.bio || "",
         major: user.major || "",
         year: user.year || "Select year",
+        phoneNumber: user.phoneNumber || "",
         interests: user.interests || [],
         prefs: user.prefs || [],
       });
@@ -201,6 +204,9 @@ const EditProfile = () => {
       if (formData.fullName) {
         uploadFormData.append("fullName", formData.fullName);
       }
+      if (formData.phoneNumber) {
+        uploadFormData.append("phoneNumber", formData.phoneNumber);
+      }
       if (formData.bio) {
         uploadFormData.append("bio", formData.bio);
       }
@@ -229,6 +235,14 @@ const EditProfile = () => {
         } as any);
       }
 
+      console.log("Form data being sent:", {  
+        fullName: formData.fullName,
+        phoneNumber: formData.phoneNumber,
+        bio: formData.bio,
+        major: formData.major,
+        year: formData.year,
+      });
+
       const response = await api.post(
         UrlConstants.editProfile,
         uploadFormData,
@@ -240,6 +254,7 @@ const EditProfile = () => {
       );
 
       setUser(response.data.data);
+      console.log(response.data.data)
 
       toast.success("Profile updated successfully!");
       router.back();
@@ -337,6 +352,23 @@ const EditProfile = () => {
               onChangeText={(value) => updateFormData("fullName", value)}
               placeholder="Enter your full name"
               placeholderTextColor={dynamicStyles.subtitle.color}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, dynamicStyles.text]}>Phone Number</Text>
+            <TextInput
+              style={[styles.input, dynamicStyles.input]}
+              value={formData.phoneNumber}
+              onChangeText={(value) => {
+                // Remove non-numeric characters
+                const numericValue = value.replace(/\D/g, "");
+                updateFormData("phoneNumber", numericValue);
+              }}
+              placeholder="Enter your phone number"
+              placeholderTextColor={dynamicStyles.subtitle.color}
+              keyboardType="phone-pad"
+              maxLength={15}
             />
           </View>
 

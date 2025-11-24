@@ -703,8 +703,8 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     backgroundColor: "#8B0000",
-    padding: 14,
-    borderRadius: 8,
+    padding: 12,
+    borderRadius: 16,
     alignItems: "center",
     marginBottom: 8,
   },
