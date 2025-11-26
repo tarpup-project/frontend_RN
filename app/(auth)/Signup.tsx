@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    height: Platform.OS === 'ios' ? 35 : 40,
+    height: Platform.OS === 'ios' ? 35 : 41,
     borderRadius: 8,
     borderWidth: 1,
     paddingHorizontal: 16,
@@ -509,7 +509,7 @@ const styles = StyleSheet.create({
     
   },
   dropdown: {
-    height: 40,
+    height: 41,
     borderRadius: 8,
     borderWidth: 1,
     paddingHorizontal: 16,
