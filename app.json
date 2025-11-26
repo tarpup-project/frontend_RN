@@ -12,10 +12,14 @@
     "ios": {
       "supportsTablet": true,
       "backgroundColor": "#0a0a0a",
-      "bundleIdentifier": "com.vector10.Tarpup",
+      "bundleIdentifier": "com.Tarpup.app",
       "buildNumber": "17",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
+      },
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "entitlements": {
+        "aps-environment": "production"
       }
     },
     "android": {
@@ -28,7 +32,8 @@
       "backgroundColor": "#0a0a0a",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.vector10.Tarpup"
+      "package": "com.vector10.Tarpup",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "output": "static",
@@ -63,7 +68,8 @@
           ]
         }
       ],
-      "expo-build-properties"
+      "expo-build-properties",
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -74,6 +80,12 @@
       "eas": {
         "projectId": "b5308305-a3e0-4349-870c-b26bd1b68fa2"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/b5308305-a3e0-4349-870c-b26bd1b68fa2"
     }
   }
 }

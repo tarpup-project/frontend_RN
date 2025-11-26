@@ -31,8 +31,6 @@ export default function TabLayout() {
               ios: 90,
               android: 80
             }),
-             borderTopLeftRadius: 16, 
-            borderTopRightRadius: 16,
             overflow: "hidden"       
           },
           tabBarLabelStyle: {
@@ -42,11 +40,10 @@ export default function TabLayout() {
           tabBarItemStyle: {
             borderRadius: 12,
             marginHorizontal: 4,
-            overflow: "hidden",
-            paddingVertical: 5, 
-            paddingHorizontal: 10, 
-            minHeight: 50, 
-            minWidth: 50,
+            paddingVertical: 8, 
+            paddingHorizontal: 12, 
+            minHeight: 60, 
+            minWidth: 60,
           },
           tabBarInactiveBackgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
         }}
