@@ -38,7 +38,7 @@ const ProtectedTabIcon: React.FC<ProtectedTabIconProps> = ({
   };
 
   return (
-    <View style={[styles.container, { padding: 10 }]}>
+    <View style={styles.container}>
       <IconComponent
         size={size}
         color={color}
@@ -73,7 +73,9 @@ const styles = StyleSheet.create({
     position: "relative",
     alignItems: "center",
     justifyContent: "center",
-    padding: 12,
+    width: 44,  
+    height: 44
+   // padding: 12,
   },
   lockContainer: {
     position: "absolute",
