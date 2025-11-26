@@ -29,11 +29,9 @@ export async function registerForPushNotificationsAsync() {
   }
 
   if (Device.isDevice) {
-    // Check existing permissions
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
     
-    // Request permissions if not granted
     if (existingStatus !== 'granted') {
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
@@ -60,7 +58,7 @@ export async function registerForPushNotificationsAsync() {
   return token;
 }
 
-export function useNotifications() {
+export function usePushNotifications() {
     const router = useRouter();
   const [expoPushToken, setExpoPushToken] = useState<string>('');
   const [notification, setNotification] = useState<Notifications.Notification | null>(null);
@@ -68,16 +66,13 @@ export function useNotifications() {
 const responseListener = useRef<Notifications.Subscription | undefined>(undefined);
 
 useEffect(() => {
-    // Register for push notifications and get token
     registerForPushNotificationsAsync().then(token => {
       if (token) {
         setExpoPushToken(token);
-        // Send token to backend immediately after getting it
         sendTokenToBackend(token);
       }
     });
   
-    // Listener for notifications received while app is in foreground
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
       console.log('Notification received in foreground:', notification);
       setNotification(notification);
@@ -109,7 +104,6 @@ responseListener.current = Notifications.addNotificationResponseReceivedListener
   
   async function sendTokenToBackend(token: string) {
     try {
-      // Get user from your auth store
       const { user, isAuthenticated } = useAuthStore.getState();
       
       if (!isAuthenticated || !user) {

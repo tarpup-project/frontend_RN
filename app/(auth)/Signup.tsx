@@ -12,6 +12,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Platform,
   TextInput,
   View,
 } from "react-native";
@@ -500,11 +501,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    height: 35,
+    height: Platform.OS === 'ios' ? 35 : 40,
     borderRadius: 8,
     borderWidth: 1,
     paddingHorizontal: 16,
     fontSize: 16,
+    
   },
   dropdown: {
     height: 40,
