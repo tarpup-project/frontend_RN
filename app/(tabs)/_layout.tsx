@@ -1,11 +1,11 @@
 import AuthModal from "@/components/AuthModal";
-import { Platform, View } from "react-native";
+import { Platform } from "react-native";
 import ProtectedTabIcon from "@/components/ProtectedTabIcon";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useNotifications } from "@/hooks/useNotification";
 import { useAuthStore } from "@/state/authStore";
 import { Tabs } from "expo-router";
-import { Activity, Home, UserRound, UsersRound } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 
 export default function TabLayout() {
@@ -45,8 +45,7 @@ export default function TabLayout() {
           options={{
             title: "Spot",
             tabBarIcon: ({ color, focused }) => (          
-                <Home size={22} color={color} strokeWidth={focused ? 2.5 : 2} />           
-
+              <Ionicons name={focused ? "home" : "home-outline"} size={24} color={color} />
             )
           }}
         />
@@ -56,7 +55,7 @@ export default function TabLayout() {
           options={{
             title: "Prompts",
             tabBarIcon: ({ color, focused }) => (
-              <Activity size={22} color={color} strokeWidth={focused ? 2.5 : 2} />          
+              <Ionicons name={focused ? "pulse" : "pulse-outline"} size={24} color={color} />
             )
           }}
         />
@@ -66,14 +65,10 @@ export default function TabLayout() {
           options={{
             title: "Groups",
             tabBarIcon: ({ color, focused }) => (
-              <ProtectedTabIcon
-                IconComponent={UsersRound}
-                size={22}
-                color={isAuthenticated ? color : "#999999"}
-                strokeWidth={2}
-                focused={focused}
-                isProtected={!isAuthenticated}
-                notificationCount={isAuthenticated ? groupNotifications : 0}
+              <Ionicons 
+                name={focused ? "people" : "people-outline"} 
+                size={24} 
+                color={isAuthenticated ? color : "#999999"} 
               />
             )
           }}
@@ -92,14 +87,10 @@ export default function TabLayout() {
           options={{
             title: "Profile",
             tabBarIcon: ({ color, focused }) => (
-              <ProtectedTabIcon
-                IconComponent={UserRound}
-                size={22}
-                color={isAuthenticated ? color : "#999999"}
-                strokeWidth={2}
-                focused={focused}
-                isProtected={!isAuthenticated}
-                notificationCount={isAuthenticated ? personalNotifications : 0}
+              <Ionicons 
+                name={focused ? "person" : "person-outline"} 
+                size={24} 
+                color={isAuthenticated ? color : "#999999"} 
               />
             )
           }}

@@ -95,6 +95,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
       animationType="none"
       statusBarTranslucent
       onRequestClose={onClose}
+      onDismiss={onClose}
     >
       <Animated.View
         style={[styles.overlay, dynamicStyles.overlay, { opacity: fadeAnim }]}

@@ -1,23 +1,21 @@
 import { useTheme } from "@/contexts/ThemeContext";
-import { Lock } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 interface ProtectedTabIconProps {
-  IconComponent: React.ComponentType<any>;
+  iconName: string;
   size?: number;
   color: string;
-  strokeWidth?: number;
   focused?: boolean;
   isProtected: boolean;
   notificationCount?: number;
 }
 
 const ProtectedTabIcon: React.FC<ProtectedTabIconProps> = ({
-  IconComponent,
-  size = 22,
+  iconName,
+  size = 24,
   color,
-  strokeWidth = 2,
   focused = false,
   isProtected,
   notificationCount = 0
@@ -39,7 +37,7 @@ const ProtectedTabIcon: React.FC<ProtectedTabIconProps> = ({
 
   return (
     <>
-      <IconComponent size={size} color={color} strokeWidth={focused ? 2.5 : strokeWidth} />
+      <Ionicons name={iconName} size={size} color={color} />
 
       {notificationCount > 0 && !isProtected && (
         <View style={[styles.notificationBadge, dynamicStyles.notificationBadge]}>
@@ -51,7 +49,7 @@ const ProtectedTabIcon: React.FC<ProtectedTabIconProps> = ({
 
       {isProtected && (
         <View style={[styles.lockContainer, dynamicStyles.lockContainer]}>
-          <Lock size={10} color={dynamicStyles.lockIcon.color} strokeWidth={2.5} />
+          <Ionicons name="lock-closed" size={10} color={dynamicStyles.lockIcon.color} />
         </View>
       )}
     </>
@@ -59,7 +57,6 @@ const ProtectedTabIcon: React.FC<ProtectedTabIconProps> = ({
 };
 
 const styles = StyleSheet.create({
-  
   lockContainer: {
     position: "absolute",
     bottom: 0,

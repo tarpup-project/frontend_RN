@@ -33,7 +33,8 @@ import { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Image,
-  Pressable,
+  //Pressable,
+  TouchableOpacity,
   ScrollView,
   StyleSheet,
   View,
@@ -293,7 +294,7 @@ const Index = () => {
             </Text>
 
             <View style={{ position: "relative" }}>
-              <Pressable
+              <TouchableOpacity
                 style={[styles.campusSelector, dynamicStyles.innerCard]}
                 onPress={() => setIsDropdownOpen(!isDropdownOpen)}
               >
@@ -315,7 +316,7 @@ const Index = () => {
                     color={dynamicStyles.text.color}
                   />
                 </View>
-              </Pressable>
+              </TouchableOpacity>
 
               {isDropdownOpen && (
                 <ScrollView
@@ -328,7 +329,7 @@ const Index = () => {
                     <UniversityDropdownSkeleton />
                   ) : (
                     universities.map((uni) => (
-                      <Pressable
+                      <TouchableOpacity
                         key={uni.id}
                         style={[
                           styles.dropdownItem,
@@ -356,7 +357,7 @@ const Index = () => {
                             color={isDark ? "#FFFFFF" : "#0a0a0a"}
                           />
                         )}
-                      </Pressable>
+                      </TouchableOpacity>
                     ))
                   )}
                 </ScrollView>
@@ -364,7 +365,7 @@ const Index = () => {
             </View>
 
             <View style={styles.resetSection}>
-              <Pressable
+              <TouchableOpacity
                 style={[
                   styles.resetButton,
                   { borderColor: dynamicStyles.innerCard.borderColor },
@@ -379,7 +380,7 @@ const Index = () => {
                 <Text style={[styles.resetText, dynamicStyles.text]}>
                   Reset
                 </Text>
-              </Pressable>
+              </TouchableOpacity>
               <Text style={[styles.resetSubtext, dynamicStyles.subtitle]}>
                 {selectedUniversity
                   ? "Filtered to your university"
@@ -410,7 +411,7 @@ const Index = () => {
                 console.log("Full category object:", category);
 
                 return (
-                  <Pressable
+                  <TouchableOpacity
                     key={category.id}
                     style={[styles.card, dynamicStyles.card]}
                     onPress={() => {
@@ -458,7 +459,7 @@ const Index = () => {
                         {category.matches} matches
                       </Text>
                     </Animated.View>
-                  </Pressable>
+                  </TouchableOpacity>
                 );
               })}
             </View>
@@ -469,11 +470,11 @@ const Index = () => {
               <Text style={[styles.sectionTitle, dynamicStyles.text]}>
                 Recent Matches
               </Text>
-              <Pressable onPress={() => setShowAllRecent(!showAllRecent)}>
+              <TouchableOpacity onPress={() => setShowAllRecent(!showAllRecent)}>
                 <Text style={[styles.viewAllText, dynamicStyles.subtitle]}>
                   {showAllRecent ? "Show less" : "Show all"}
                 </Text>
-              </Pressable>
+              </TouchableOpacity>
             </View>
 
             {isLoadingRecentMatches ? (
@@ -490,7 +491,7 @@ const Index = () => {
                   showAllRecent ? recentMatchesData.allMatches.length : 7
                 )
                 .map((match, matchIndex) => (
-                  <Pressable
+                  <TouchableOpacity
                     key={`${match.id}-${match.categoryDetails.id}-${matchIndex}`}
                     style={[styles.recentCard, dynamicStyles.card]}
                     onPress={() =>
@@ -599,7 +600,7 @@ const Index = () => {
                         </Text>
                       </View>
                     </View>
-                  </Pressable>
+                  </TouchableOpacity>
                 ))
             ) : (
               <View style={styles.emptyContainer}>
@@ -627,7 +628,7 @@ const Index = () => {
                 </View>
               </View>
             ) : recentMatchesData?.matchSummary ? (
-              <Pressable
+              <TouchableOpacity
                 style={[
                   styles.compatibilityCard,
                   dynamicStyles.compatibilityCard,
@@ -656,7 +657,7 @@ const Index = () => {
                     % of users
                   </Text>
                 </View>
-              </Pressable>
+              </TouchableOpacity>
             ) : null}
           </View>
         </View>
@@ -671,9 +672,10 @@ const styles = StyleSheet.create({
     fontFamily: "Geist-Regular",
   },
   content: {
-    flex: 1,
+   // flex: 1,
     paddingHorizontal: 16,
     paddingTop: 0,
+    paddingBottom: 100,
   },
   filterSection: {
     marginTop: 16,
