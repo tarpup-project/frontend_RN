@@ -1,5 +1,5 @@
 import AuthModal from "@/components/AuthModal";
-import { Platform } from "react-native";
+import { Platform, View } from "react-native";
 import ProtectedTabIcon from "@/components/ProtectedTabIcon";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useNotifications } from "@/hooks/useNotification";
@@ -45,7 +45,10 @@ export default function TabLayout() {
           options={{
             title: "Spot",
             tabBarIcon: ({ color, focused }) => (
-              <Home size={22} color={color} strokeWidth={focused ? 2.5 : 2} />
+              <View style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+                <Home size={22} color={color} strokeWidth={focused ? 2.5 : 2} />
+              </View>
+
             )
           }}
         />
@@ -55,7 +58,9 @@ export default function TabLayout() {
           options={{
             title: "Prompts",
             tabBarIcon: ({ color, focused }) => (
-              <Activity size={22} color={color} strokeWidth={focused ? 2.5 : 2} />
+              <View style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+                <Activity size={22} color={color} strokeWidth={focused ? 2.5 : 2} />
+              </View>
             )
           }}
         />
