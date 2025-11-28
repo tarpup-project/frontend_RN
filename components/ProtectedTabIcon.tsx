@@ -1,7 +1,7 @@
 import { useTheme } from "@/contexts/ThemeContext";
 import { Lock } from "lucide-react-native";
 import React from "react";
-import { StyleSheet, Text, View, Pressable } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 interface ProtectedTabIconProps {
   IconComponent: React.ComponentType<any>;
@@ -15,40 +15,34 @@ interface ProtectedTabIconProps {
 
 const ProtectedTabIcon: React.FC<ProtectedTabIconProps> = ({
   IconComponent,
-  size = 20,
+  size = 22,
   color,
   strokeWidth = 2,
   focused = false,
   isProtected,
-  notificationCount = 0,
+  notificationCount = 0
 }) => {
   const { isDark } = useTheme();
 
   const dynamicStyles = {
     lockContainer: {
       backgroundColor: isDark ? "#1a1a1a" : "#FFFFFF",
-      borderColor: isDark ? "#333333" : "#E0E0E0",
+      borderColor: isDark ? "#333333" : "#E0E0E0"
     },
     lockIcon: {
-      color: isDark ? "#FF6B6B" : "#FF4444",
+      color: isDark ? "#FF6B6B" : "#FF4444"
     },
     notificationBadge: {
-      backgroundColor: "#FF3B30",
-    },
+      backgroundColor: "#FF3B30"
+    }
   };
 
   return (
     <View style={styles.container}>
-      <IconComponent
-        size={size}
-        color={color}
-        strokeWidth={focused ? 2.5 : strokeWidth}
-      />
+      <IconComponent size={size} color={color} strokeWidth={focused ? 2.5 : strokeWidth} />
 
       {notificationCount > 0 && !isProtected && (
-        <View
-          style={[styles.notificationBadge, dynamicStyles.notificationBadge]}
-        >
+        <View style={[styles.notificationBadge, dynamicStyles.notificationBadge]}>
           <Text style={styles.notificationText}>
             {notificationCount > 99 ? "99+" : notificationCount.toString()}
           </Text>
@@ -57,11 +51,7 @@ const ProtectedTabIcon: React.FC<ProtectedTabIconProps> = ({
 
       {isProtected && (
         <View style={[styles.lockContainer, dynamicStyles.lockContainer]}>
-          <Lock
-            size={10}
-            color={dynamicStyles.lockIcon.color}
-            strokeWidth={2.5}
-          />
+          <Lock size={10} color={dynamicStyles.lockIcon.color} strokeWidth={2.5} />
         </View>
       )}
     </View>
@@ -70,49 +60,38 @@ const ProtectedTabIcon: React.FC<ProtectedTabIconProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    position: "relative",
+    width: 30,
+    height: 30,
     alignItems: "center",
-    justifyContent: "center",
-    width: 44,  
-    height: 44
-   // padding: 12,
+    justifyContent: "center"
   },
   lockContainer: {
     position: "absolute",
-    bottom: -2,
-    right: -2,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    bottom: 0,
+    right: 0,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
     borderWidth: 1,
     alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 3,
+    justifyContent: "center"
   },
   notificationBadge: {
     position: "absolute",
-    top: 5,
-    right: 5,
+    top: -2,
+    right: -2,
     minWidth: 16,
     height: 16,
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 4,
+    paddingHorizontal: 4
   },
   notificationText: {
     color: "#FFFFFF",
     fontSize: 10,
-    fontWeight: "700",
-    textAlign: "center",
-  },
+    fontWeight: "700"
+  }
 });
 
 export default ProtectedTabIcon;

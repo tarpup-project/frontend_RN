@@ -1,5 +1,5 @@
 import AuthModal from "@/components/AuthModal";
-import { Platform } from 'react-native';
+import { Platform } from "react-native";
 import ProtectedTabIcon from "@/components/ProtectedTabIcon";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useNotifications } from "@/hooks/useNotification";
@@ -27,25 +27,17 @@ export default function TabLayout() {
             backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
             borderTopColor: isDark ? "#333333" : "#E0E0E0",
             borderTopWidth: 1,
-            height: Platform.select({
-              ios: 90,
-              android: 80
-            }),
-            overflow: "hidden"       
+            height: Platform.select({ ios: 80, android: 70 }),
+            overflow: "visible"
+          },
+          tabBarItemStyle: {
+            paddingVertical: 2,
+            paddingHorizontal: 2
           },
           tabBarLabelStyle: {
             fontSize: 12,
-            fontWeight: "500",
-          },
-          tabBarItemStyle: {
-            borderRadius: 12,
-            marginHorizontal: 4,
-            paddingVertical: 8, 
-            paddingHorizontal: 12, 
-            minHeight: 60, 
-            minWidth: 60,
-          },
-          tabBarInactiveBackgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
+            fontWeight: "500"
+          }
         }}
       >
         <Tabs.Screen
@@ -53,23 +45,21 @@ export default function TabLayout() {
           options={{
             title: "Spot",
             tabBarIcon: ({ color, focused }) => (
-              <Home size={20} color={color} strokeWidth={focused ? 2.5 : 2} />
-            ),
+              <Home size={22} color={color} strokeWidth={focused ? 2.5 : 2} />
+            )
           }}
         />
+
         <Tabs.Screen
           name="prompts"
           options={{
             title: "Prompts",
             tabBarIcon: ({ color, focused }) => (
-              <Activity
-                size={20}
-                color={color}
-                strokeWidth={focused ? 2.5 : 2}
-              />
-            ),
+              <Activity size={22} color={color} strokeWidth={focused ? 2.5 : 2} />
+            )
           }}
         />
+
         <Tabs.Screen
           name="groups"
           options={{
@@ -77,14 +67,14 @@ export default function TabLayout() {
             tabBarIcon: ({ color, focused }) => (
               <ProtectedTabIcon
                 IconComponent={UsersRound}
-                size={20}
-                color={isAuthenticated ? color : isDark ? "#666666" : "#999999"}
+                size={22}
+                color={isAuthenticated ? color : "#999999"}
                 strokeWidth={2}
                 focused={focused}
                 isProtected={!isAuthenticated}
                 notificationCount={isAuthenticated ? groupNotifications : 0}
               />
-            ),
+            )
           }}
           listeners={{
             tabPress: (e) => {
@@ -92,9 +82,10 @@ export default function TabLayout() {
                 e.preventDefault();
                 setShowAuthModal(true);
               }
-            },
+            }
           }}
         />
+
         <Tabs.Screen
           name="profile"
           options={{
@@ -102,14 +93,14 @@ export default function TabLayout() {
             tabBarIcon: ({ color, focused }) => (
               <ProtectedTabIcon
                 IconComponent={UserRound}
-                size={20}
-                color={isAuthenticated ? color : isDark ? "#666666" : "#999999"}
+                size={22}
+                color={isAuthenticated ? color : "#999999"}
                 strokeWidth={2}
                 focused={focused}
                 isProtected={!isAuthenticated}
                 notificationCount={isAuthenticated ? personalNotifications : 0}
               />
-            ),
+            )
           }}
           listeners={{
             tabPress: (e) => {
@@ -117,46 +108,18 @@ export default function TabLayout() {
                 e.preventDefault();
                 setShowAuthModal(true);
               }
-            },
+            }
           }}
         />
 
-        <Tabs.Screen
-          name="edit-profile"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="account-settings"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="notifications"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="privacy"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="how-it-works"
-          options={{
-            href: null,
-          }}
-        />
+        <Tabs.Screen name="edit-profile" options={{ href: null }} />
+        <Tabs.Screen name="account-settings" options={{ href: null }} />
+        <Tabs.Screen name="notifications" options={{ href: null }} />
+        <Tabs.Screen name="privacy" options={{ href: null }} />
+        <Tabs.Screen name="how-it-works" options={{ href: null }} />
       </Tabs>
 
-      <AuthModal
-        visible={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-      />
+      <AuthModal visible={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </>
   );
 }
