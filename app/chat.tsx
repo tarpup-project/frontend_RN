@@ -14,7 +14,6 @@ import { usePersonalChat } from "@/hooks/usePersonalChat";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { Settings, UserRound } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -420,7 +419,7 @@ const Chat = () => {
         {isUser && (
           <View style={styles.avatarContainer}>
             <View style={styles.userAvatar}>
-              <UserRound size={16} color="#FFFFFF" />
+            <Ionicons name="settings-outline" size={20} color={dynamicStyles.text.color} />
             </View>
           </View>
         )}
@@ -466,7 +465,7 @@ const Chat = () => {
                 onPress={() => setShowSettingsModal(true)}
                 hitSlop={10}
               >
-                <Settings size={20} color={dynamicStyles.text.color} />
+                <Ionicons name="person" size={16} color="#FFFFFF" />
               </Pressable>
               <Pressable
                 style={styles.clearButton}

@@ -1,7 +1,7 @@
 import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useRouter } from "expo-router";
-import { Lock } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useRef } from "react";
 import {
   Animated,
@@ -128,12 +128,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ visible, onClose }) => {
                       resizeMode="contain"
                     />
                   </View>
-                  <Lock
-                    size={20}
-                    color={isDark ? "#FFFFFF" : "#0a0a0a"}
-                    strokeWidth={2.5}
-                    style={styles.lockIcon}
-                  />
+                  <Ionicons
+  name="lock-closed"
+  size={20}
+  color={isDark ? "#FFFFFF" : "#0a0a0a"}
+  style={styles.lockIcon}
+/>
                 </View>
 
                 {/* Title */}

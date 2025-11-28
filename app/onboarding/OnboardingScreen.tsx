@@ -1,7 +1,7 @@
 import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { LinearGradient } from "expo-linear-gradient";
-import { MessageSquare, UsersRound, Sparkles } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useRef } from "react";
 import {
   Animated,
@@ -23,10 +23,13 @@ interface OnboardingScreenProps {
   hasChips?: boolean;
 }
 
-const iconMap = {
-  MessageSquare,
-  UsersRound,
-  Sparkles,
+const iconMap: Record<string, string> = {
+  "chatbubble-outline": "chatbubble-outline",
+  "sparkles-outline": "sparkles-outline",
+  "people-outline": "people-outline",
+  MessageSquare: "chatbubble-outline",
+  UsersRound: "people-outline",
+  Sparkles: "sparkles-outline",
 };
 
 const OnboardingScreen = ({
@@ -90,9 +93,9 @@ const OnboardingScreen = ({
   };
 
   const renderIcon = () => {
-    const IconComponent = iconMap[icon as keyof typeof iconMap];
-    return IconComponent ? (
-      <IconComponent size={50} color="#FFFFFF" strokeWidth={2} />
+    const iconName = iconMap[icon as keyof typeof iconMap];
+    return iconName ? (
+      <Ionicons name={iconName as any} size={50} color="#FFFFFF" />
     ) : null;
   };
 

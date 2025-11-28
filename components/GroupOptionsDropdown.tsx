@@ -5,7 +5,6 @@ import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
-import { Share2, Users, X } from "lucide-react-native";
 import { useState } from "react";
 import {
   Alert,
@@ -137,7 +136,7 @@ export const GroupOptionsDropdown = ({
             <Text style={[styles.infoIconText, dynamicStyles.text]}>i</Text>
           </View>
         ) : (
-          <X size={20} color="#FF3B30" />
+          <Ionicons name="close" size={20} color="#FF3B30" />
         )}
       </Pressable>
 
@@ -150,7 +149,7 @@ export const GroupOptionsDropdown = ({
               onShowGroupInfo();
             }}
           >
-            <Users size={16} color={dynamicStyles.text.color} />
+            <Ionicons name="people-outline" size={16} color={dynamicStyles.text.color} />
             <Text style={[styles.dropdownText, dynamicStyles.text]}>
               More Info
             </Text>
@@ -177,7 +176,7 @@ export const GroupOptionsDropdown = ({
 
           {groupDetails.shareLink && (
             <Pressable style={styles.dropdownItem} onPress={handleShareGroup}>
-              <Share2 size={16} color={dynamicStyles.text.color} />
+              <Ionicons name="share-outline" size={16} color={dynamicStyles.text.color} />
               <Text style={[styles.dropdownText, dynamicStyles.text]}>
                 Share Group
               </Text>
@@ -212,7 +211,7 @@ export const GroupOptionsDropdown = ({
               }}
               disabled={isLeaving}
             >
-              <X size={16} color="#FF3B30" />
+              <Ionicons name="close" size={16} color="#FF3B30" />
               <Text style={[styles.dropdownText, { color: "#FF3B30" }]}>
                 {isLeaving ? "Leaving..." : "Leave Group"}
               </Text>
@@ -234,8 +233,8 @@ export const GroupOptionsDropdown = ({
                 Report Group
               </Text>
               <Pressable onPress={() => setShowReportModal(false)}>
-                <X size={24} color={dynamicStyles.text.color} />
-              </Pressable>
+  <Ionicons name="close" size={24} color={dynamicStyles.text.color} />
+</Pressable>
             </View>
 
             <Text style={[styles.reportSubtitle, dynamicStyles.subtitle]}>

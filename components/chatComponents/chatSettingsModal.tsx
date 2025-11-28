@@ -4,7 +4,7 @@ import {
   useActivePrompts,
   useDeleteActivePrompt,
 } from "@/hooks/useActivePrompts";
-import { ArrowLeft, Loader2, X } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import moment from "moment";
 import React, { useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
@@ -125,7 +125,7 @@ export const ChatSettingsModal: React.FC<ChatSettingsModalProps> = ({
             >
               <View style={styles.headerLeft}>
                 <Pressable onPress={onClose} style={styles.headerButton}>
-                  <ArrowLeft size={20} color={dynamicStyles.text.color} />
+                <Ionicons name="arrow-back" size={20} color={dynamicStyles.text.color} />
                 </Pressable>
                 <Text style={[styles.headerTitle, dynamicStyles.text]}>
                   Prompt Settings
@@ -140,7 +140,7 @@ export const ChatSettingsModal: React.FC<ChatSettingsModalProps> = ({
                   <Text style={styles.clearChatText}>Clear</Text>
                 </Pressable>
                 <Pressable onPress={onClose} style={styles.headerButton}>
-                  <X size={20} color={dynamicStyles.text.color} />
+                <Ionicons name="close" size={20} color={dynamicStyles.text.color} />
                 </Pressable>
               </View>
             </View>
@@ -341,11 +341,11 @@ const ActivePromptsTab = ({
               }}
               disabled={deletePromptMutation.isPending}
             >
-              {deletePromptMutation.isPending ? (
-                <Loader2 size={12} color="#FFFFFF" />
-              ) : (
-                <Text style={styles.removeButtonText}>Remove</Text>
-              )}
+             {deletePromptMutation.isPending ? (
+  <Ionicons name="hourglass-outline" size={12} color="#FFFFFF" />
+) : (
+  <Text style={styles.removeButtonText}>Remove</Text>
+)}
             </Pressable>
           </View>
         ))
@@ -428,11 +428,11 @@ const PendingMatchesTab = () => {
                   disabled={loadingAction?.id === match.id}
                 >
                   {loadingAction?.id === match.id &&
-                  loadingAction?.type === "private" ? (
-                    <Loader2 size={12} color="#FFFFFF" />
-                  ) : (
-                    <Text style={styles.actionButtonText}>Private Chat</Text>
-                  )}
+loadingAction?.type === "private" ? (
+  <Ionicons name="hourglass-outline" size={12} color="#FFFFFF" />
+) : (
+  <Text style={styles.actionButtonText}>Private Chat</Text>
+)}
                 </Pressable>
                 <Pressable
                   style={[styles.actionButton, { backgroundColor: "#10B981" }]}
@@ -440,11 +440,11 @@ const PendingMatchesTab = () => {
                   disabled={loadingAction?.id === match.id}
                 >
                   {loadingAction?.id === match.id &&
-                  loadingAction?.type === "public" ? (
-                    <Loader2 size={12} color="#FFFFFF" />
-                  ) : (
-                    <Text style={styles.actionButtonText}>Public Group</Text>
-                  )}
+loadingAction?.type === "public" ? (
+  <Ionicons name="hourglass-outline" size={12} color="#FFFFFF" />
+) : (
+  <Text style={styles.actionButtonText}>Public Group</Text>
+)}
                 </Pressable>
               </View>
               <Pressable
@@ -453,11 +453,11 @@ const PendingMatchesTab = () => {
                 disabled={loadingAction?.id === match.id}
               >
                 {loadingAction?.id === match.id &&
-                loadingAction?.type === "decline" ? (
-                  <Loader2 size={12} color="#EF4444" />
-                ) : (
-                  <Text style={styles.declineButtonText}>Decline</Text>
-                )}
+loadingAction?.type === "decline" ? (
+  <Ionicons name="hourglass-outline" size={12} color="#EF4444" />
+) : (
+  <Text style={styles.declineButtonText}>Decline</Text>
+)}
               </Pressable>
             </View>
           </View>
@@ -540,14 +540,14 @@ const ConfirmationModal = ({
   onPress={onConfirm}
   disabled={isLoading}
 >
-  {isLoading ? (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-      <Loader2 size={12} color="#FFFFFF" />
-      <Text style={styles.confirmButtonText}>Removing...</Text>
-    </View>
-  ) : (
-    <Text style={styles.confirmButtonText}>Remove</Text>
-  )}
+{isLoading ? (
+  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+    <Ionicons name="hourglass-outline" size={12} color="#FFFFFF" />
+    <Text style={styles.confirmButtonText}>Removing...</Text>
+  </View>
+) : (
+  <Text style={styles.confirmButtonText}>Remove</Text>
+)}
 </Pressable>
 
           </View>

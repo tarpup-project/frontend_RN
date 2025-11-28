@@ -10,20 +10,6 @@ import { usePrompts } from "@/hooks/usePrompts";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import {
-  Bed,
-  BookOpenText,
-  Briefcase,
-  Car,
-  Filter,
-  Gamepad2,
-  Gift,
-  PartyPopper,
-  ShoppingBag,
-  UsersRound,
-  Volleyball,
-  X,
-} from "lucide-react-native";
 import moment from "moment";
 import React, { useMemo, useState } from "react";
 import {
@@ -37,22 +23,22 @@ import {
 } from "react-native";
 import { toast } from "sonner-native";
 
-const iconMap: Record<string, any> = {
-  "briefcase-business": Briefcase,
-  "users-round": UsersRound,
-  "gamepad-2": Gamepad2,
-  gift: Gift,
-  "shopping-bag": ShoppingBag,
-  "party-popper": PartyPopper,
-  car: Car,
-  "bed-double": Bed,
-  volleyball: Volleyball,
-  "book-open-text": BookOpenText,
+const iconMap: Record<string, string> = {
+  "briefcase-business": "briefcase-outline",
+  "users-round": "people-outline",
+  "gamepad-2": "game-controller-outline",
+  gift: "gift-outline",
+  "shopping-bag": "bag-outline",
+  "party-popper": "balloon-outline",
+  car: "car-outline",
+  "bed-double": "bed-outline",
+  volleyball: "football-outline",
+  "book-open-text": "book-outline",
 };
 
 const getIconComponent = (iconName: string) => {
   const normalizedName = iconName.toLowerCase();
-  return iconMap[normalizedName] || Filter;
+  return iconMap[normalizedName] || "funnel-outline";
 };
 
 const SkeletonCard = ({ isDark }: { isDark: boolean }) => {
@@ -271,15 +257,15 @@ const Prompts = () => {
                   ]}
                   onPress={() => handleCategorySelect(0, undefined)}
                 >
-                  <Filter
-                    size={16}
-                    color={
-                      selectedCategoryIndex === 0
-                        ? dynamicStyles.categoryChipTextActive.color
-                        : dynamicStyles.categoryChipText.color
-                    }
-                    strokeWidth={2}
-                  />
+                  <Ionicons
+  name="funnel-outline"
+  size={16}
+  color={
+    selectedCategoryIndex === 0
+      ? dynamicStyles.categoryChipTextActive.color
+      : dynamicStyles.categoryChipText.color
+  }
+/>
                   <Text
                     style={[
                       styles.categoryText,
@@ -294,44 +280,44 @@ const Prompts = () => {
                 </Pressable>
 
                 {categories.map((category, index) => {
-                  const IconComponent = getIconComponent(category.icon);
-                  return (
-                    <Pressable
-                      key={category.id}
-                      style={[
-                        styles.categoryChip,
-                        dynamicStyles.categoryChip,
-                        selectedCategoryIndex === index + 1 && [
-                          dynamicStyles.categoryChipActive,
-                        ],
-                      ]}
-                      onPress={() =>
-                        handleCategorySelect(index + 1, category.id)
-                      }
-                    >
-                      <IconComponent
-                        size={16}
-                        color={
-                          selectedCategoryIndex === index + 1
-                            ? dynamicStyles.categoryChipTextActive.color
-                            : dynamicStyles.categoryChipText.color
-                        }
-                        strokeWidth={2}
-                      />
-                      <Text
-                        style={[
-                          styles.categoryText,
-                          dynamicStyles.categoryChipText,
-                          selectedCategoryIndex === index + 1 && [
-                            dynamicStyles.categoryChipTextActive,
-                          ],
-                        ]}
-                      >
-                        {category.name}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
+  const iconName = getIconComponent(category.icon);
+  return (
+    <Pressable
+      key={category.id}
+      style={[
+        styles.categoryChip,
+        dynamicStyles.categoryChip,
+        selectedCategoryIndex === index + 1 && [
+          dynamicStyles.categoryChipActive,
+        ],
+      ]}
+      onPress={() =>
+        handleCategorySelect(index + 1, category.id)
+      }
+    >
+      <Ionicons
+        name={iconName as any}
+        size={16}
+        color={
+          selectedCategoryIndex === index + 1
+            ? dynamicStyles.categoryChipTextActive.color
+            : dynamicStyles.categoryChipText.color
+        }
+      />
+      <Text
+        style={[
+          styles.categoryText,
+          dynamicStyles.categoryChipText,
+          selectedCategoryIndex === index + 1 && [
+            dynamicStyles.categoryChipTextActive,
+          ],
+        ]}
+      >
+        {category.name}
+      </Text>
+    </Pressable>
+  );
+})}
               </ScrollView>
             </View>
           )}
@@ -362,29 +348,29 @@ const Prompts = () => {
               >
                 <View style={styles.cardHeader}>
                   <View style={styles.categoryBadgesContainer}>
-                    {prompt.category.slice(0, 2).map((cat) => {
-                      const IconComponent = getIconComponent(cat.icon);
-                      return (
-                        <View
-                          key={cat.id}
-                          style={[
-                            styles.categoryBadge,
-                            { backgroundColor: cat.bgColorHex },
-                          ]}
-                        >
-                          <IconComponent
-                            size={12}
-                            color={cat.colorHex}
-                            strokeWidth={2}
-                          />
-                          <Text
-                            style={[styles.badgeText, { color: cat.colorHex }]}
-                          >
-                            {cat.name}
-                          </Text>
-                        </View>
-                      );
-                    })}
+                  {prompt.category.slice(0, 2).map((cat) => {
+  const iconName = getIconComponent(cat.icon);
+  return (
+    <View
+      key={cat.id}
+      style={[
+        styles.categoryBadge,
+        { backgroundColor: cat.bgColorHex },
+      ]}
+    >
+      <Ionicons
+        name={iconName as any}
+        size={12}
+        color={cat.colorHex}
+      />
+      <Text
+        style={[styles.badgeText, { color: cat.colorHex }]}
+      >
+        {cat.name}
+      </Text>
+    </View>
+  );
+})}
                   </View>
                   <View style={styles.headerRight}>
                     <View style={styles.timeRow}>
@@ -488,7 +474,7 @@ const Prompts = () => {
                 style={styles.closeButton}
                 onPress={() => setShowFullImage(null)}
               >
-                <X size={28} color="#FFFFFF" />
+                <Ionicons name="close" size={28} color="#FFFFFF" />
               </Pressable>
 
               {showFullImage && (

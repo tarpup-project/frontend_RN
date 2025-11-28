@@ -7,13 +7,6 @@ import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { router } from "expo-router";
-import {
-  Bell,
-  HelpCircle,
-  Settings,
-  ShieldCheck,
-  Users,
-} from "lucide-react-native";
 import moment from "moment";
 import React, { useState } from "react";
 import {
@@ -154,28 +147,28 @@ const Profile = () => {
   const settingsOptions = [
     {
       id: 1,
-      icon: Settings,
+      iconName: "settings-outline",
       title: "Account Settings",
       hasChevron: true,
       route: "/account-settings",
     },
     {
       id: 2,
-      icon: Bell,
+      iconName: "notifications-outline",
       title: "Notifications",
       hasChevron: true,
       route: "/notifications",
     },
     {
       id: 3,
-      icon: ShieldCheck,
+      iconName: "shield-checkmark-outline",
       title: "Privacy & Safety",
       hasChevron: true,
       route: "/privacy",
     },
     {
       id: 4,
-      icon: HelpCircle,
+      iconName: "help-circle-outline",
       title: "How It Works",
       hasChevron: true,
       route: "/how-it-works",
@@ -289,11 +282,11 @@ const Profile = () => {
 
           <View style={styles.referralStats}>
             <View style={[styles.iconBackground, dynamicStyles.iconBackground]}>
-              <Users
-                size={18}
-                color={dynamicStyles.subtitle.color}
-                strokeWidth={2}
-              />
+            <Ionicons
+  name="people-outline"
+  size={18}
+  color={dynamicStyles.subtitle.color}
+/>
             </View>
             <Text style={[styles.referralCount, dynamicStyles.text]}>
               <Text style={{ color: "#FFFFFF" }}>
@@ -483,30 +476,30 @@ const Profile = () => {
             Settings
           </Text>
           {settingsOptions.map((option) => (
-            <Pressable
-              key={option.id}
-              style={styles.settingItem}
-              onPress={() => router.push(option.route as any)}
-            >
-              <View style={styles.settingLeft}>
-                <option.icon
-                  size={20}
-                  color={dynamicStyles.text.color}
-                  strokeWidth={2}
-                />
-                <Text style={[styles.settingText, dynamicStyles.text]}>
-                  {option.title}
-                </Text>
-              </View>
-              {option.hasChevron && (
-                <Ionicons
-                  name="chevron-forward"
-                  size={20}
-                  color={dynamicStyles.subtitle.color}
-                />
-              )}
-            </Pressable>
-          ))}
+  <Pressable
+    key={option.id}
+    style={styles.settingItem}
+    onPress={() => router.push(option.route as any)}
+  >
+    <View style={styles.settingLeft}>
+      <Ionicons
+        name={option.iconName as any}
+        size={20}
+        color={dynamicStyles.text.color}
+      />
+      <Text style={[styles.settingText, dynamicStyles.text]}>
+        {option.title}
+      </Text>
+    </View>
+    {option.hasChevron && (
+      <Ionicons
+        name="chevron-forward"
+        size={20}
+        color={dynamicStyles.subtitle.color}
+      />
+    )}
+  </Pressable>
+))}
 
           {/* Sign Out */}
           <Pressable style={styles.settingItem} onPress={handleLogout}>

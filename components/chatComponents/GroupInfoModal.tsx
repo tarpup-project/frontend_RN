@@ -2,7 +2,7 @@ import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthStore } from "@/state/authStore";
 import { GroupMember } from "@/types/groups";
-import { Star, UsersRound } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
   Animated,
@@ -96,13 +96,13 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
                   },
                 ]}
               >
-                <UsersRound size={20} color="#ab653e" />
+                <Ionicons name="people" size={20} color="#ab653e" />
               </View>
               <Text style={[styles.groupInfoName, dynamicStyles.text]}>
                 {groupDetails.name}
               </Text>
               <View style={styles.compatibilityBadge}>
-                <Star size={16} color="#FFD700" />
+              <Ionicons name="star" size={16} color="#FFD700" />
                 <Text
                   style={[
                     styles.compatibilityText,
@@ -121,7 +121,7 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
 
           <View style={styles.groupInfoSection}>
             <View style={styles.membersHeader}>
-              <UsersRound size={18} color={dynamicStyles.text.color} />
+            <Ionicons name="people" size={18} color={dynamicStyles.text.color} />
               <Text style={[styles.groupInfoLabel, dynamicStyles.text]}>
                 Members ({groupDetails.members.length})
               </Text>

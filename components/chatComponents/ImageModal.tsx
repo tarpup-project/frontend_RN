@@ -1,4 +1,4 @@
-import { X } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
   Image,
@@ -38,7 +38,7 @@ export const ImageModal: React.FC<ImageModalProps> = ({
               style={styles.closeButton}
               onPress={onClose}
             >
-              <X size={28} color="#FFFFFF" />
+            <Ionicons name="close" size={28} color="#FFFFFF" />
             </Pressable>
 
             {imageUrl && (

@@ -7,7 +7,6 @@ import { UrlConstants } from "@/constants/apiUrls";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { Bell } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { toast } from "sonner-native";
@@ -421,18 +420,18 @@ const Notifications = () => {
           <View style={[styles.divider, dynamicStyles.divider]} />
 
           <ToggleSwitch
-            value={newMatches}
-            onValueChange={setNewMatches}
-            label="New Matches"
-            description="Get notified when you have new matches"
-            icon={
-              <Bell
-                size={16}
-                color={dynamicStyles.text.color}
-                strokeWidth={2}
-              />
-            }
-          />
+  value={newMatches}
+  onValueChange={setNewMatches}
+  label="New Matches"
+  description="Get notified when you have new matches"
+  icon={
+    <Ionicons
+      name="notifications-outline"
+      size={16}
+      color={dynamicStyles.text.color}
+    />
+  }
+/>
 
           <ToggleSwitch
             value={groupMessages}

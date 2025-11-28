@@ -1,5 +1,5 @@
 import { useTheme } from "@/contexts/ThemeContext";
-import { Reply } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -130,12 +130,12 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                 onPress={() => onReply(msg.rawMessage)}
                 style={styles.replyButton}
               >
-                <Reply
-                  size={18}
-                  color={dynamicStyles.subtitle.color}
-                  strokeWidth={2.5}
-                  style={{ opacity: 0.8 }}
-                />
+                <Ionicons
+  name="arrow-undo-outline"
+  size={18}
+  color={dynamicStyles.subtitle.color}
+  style={{ opacity: 0.8 }}
+/>
               </Pressable>
             )}
 
@@ -240,12 +240,12 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                 onPress={() => onReply(msg.rawMessage)}
                 style={styles.replyButton}
               >
-                <Reply
-                  size={18}
-                  color={dynamicStyles.subtitle.color}
-                  strokeWidth={2.5}
-                  style={{ opacity: 0.8 }}
-                />
+               <Ionicons
+  name="arrow-undo-outline"
+  size={18}
+  color={dynamicStyles.subtitle.color}
+  style={{ opacity: 0.8 }}
+/>
               </Pressable>
             )}
           </View>

@@ -1,30 +1,19 @@
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { UrlConstants } from '@/constants/apiUrls';
-import {
-  BookOpen,
-  Car,
-  Gamepad2,
-  Gift,
-  Heart,
-  Home,
-  PartyPopper,
-  ShoppingBag,
-} from "lucide-react-native";
-
 
 const getIconComponent = (iconName: string) => {
-  const iconMap: { [key: string]: any } = {
-    'Car': Car,
-    'Home': Home,
-    'ShoppingBag': ShoppingBag,
-    'Gamepad2': Gamepad2,
-    'Heart': Heart,
-    'BookOpen': BookOpen,
-    'Gift': Gift,
-    'PartyPopper': PartyPopper,
+  const iconMap: { [key: string]: string } = {
+    'Car': 'car-outline',
+    'Home': 'home-outline',
+    'ShoppingBag': 'bag-outline',
+    'Gamepad2': 'game-controller-outline',
+    'Heart': 'heart-outline',
+    'BookOpen': 'book-outline',
+    'Gift': 'gift-outline',
+    'PartyPopper': 'balloon-outline',
   };
-  return iconMap[iconName] || Car; 
+  return iconMap[iconName] || 'car-outline'; 
 };
 
 export const useCategories = (universityId?: string) => {

@@ -2,7 +2,6 @@ import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { MoveRight, Sparkle } from "lucide-react-native";
 import { Pressable, StyleSheet, View } from "react-native";
 
 const PreviewModeBanner = () => {
@@ -59,7 +58,7 @@ const PreviewModeBanner = () => {
               <Text style={[styles.title, dynamicStyles.text]}>
                 Preview Mode
               </Text>
-              <Sparkle size={16} color="#FFD700" />
+              <Ionicons name="sparkles" size={16} color="#FFD700" />
             </View>
             <Text style={[styles.subtitle, dynamicStyles.subtitle]}>
               You're exploring TarpAI! Sign up to request matches and join
@@ -79,7 +78,7 @@ const PreviewModeBanner = () => {
           <Text style={[styles.buttonText, dynamicStyles.secondaryButtonText]}>
             Create Account
           </Text>
-          <MoveRight size={18} color={dynamicStyles.primaryButtonText.color} />
+          <Ionicons name="arrow-forward" size={18} color={dynamicStyles.secondaryButtonText.color} />
         </Pressable>
 
         <Pressable
@@ -93,7 +92,7 @@ const PreviewModeBanner = () => {
           <Text style={[styles.buttonText, dynamicStyles.primaryButtonText]}>
             Log in
           </Text>
-          <MoveRight size={18} color={dynamicStyles.primaryButtonText.color} />
+          <Ionicons name="arrow-forward" size={18} color={dynamicStyles.primaryButtonText.color} />
         </Pressable>
       </View>
     </>
