@@ -44,10 +44,8 @@ export default function TabLayout() {
           name="index"
           options={{
             title: "Spot",
-            tabBarIcon: ({ color, focused }) => (
-              <View style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
-                <Home size={22} color={color} strokeWidth={focused ? 2.5 : 2} />
-              </View>
+            tabBarIcon: ({ color, focused }) => (          
+                <Home size={22} color={color} strokeWidth={focused ? 2.5 : 2} />           
 
             )
           }}
@@ -58,9 +56,7 @@ export default function TabLayout() {
           options={{
             title: "Prompts",
             tabBarIcon: ({ color, focused }) => (
-              <View style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
-                <Activity size={22} color={color} strokeWidth={focused ? 2.5 : 2} />
-              </View>
+              <Activity size={22} color={color} strokeWidth={focused ? 2.5 : 2} />          
             )
           }}
         />

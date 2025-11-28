@@ -38,7 +38,7 @@ const ProtectedTabIcon: React.FC<ProtectedTabIconProps> = ({
   };
 
   return (
-    <View style={styles.container}>
+    <>
       <IconComponent size={size} color={color} strokeWidth={focused ? 2.5 : strokeWidth} />
 
       {notificationCount > 0 && !isProtected && (
@@ -54,17 +54,12 @@ const ProtectedTabIcon: React.FC<ProtectedTabIconProps> = ({
           <Lock size={10} color={dynamicStyles.lockIcon.color} strokeWidth={2.5} />
         </View>
       )}
-    </View>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center"
-  },
+  
   lockContainer: {
     position: "absolute",
     bottom: 0,
