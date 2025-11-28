@@ -11,23 +11,6 @@ import { useAuthStore } from "@/state/authStore";
 import { Category } from "@/types/prompts";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import {
-  BookOpen,
-  Car,
-  Gamepad2,
-  Gift,
-  House,
-  Heart,
-  Home,
-  PartyPopper,
-  ShoppingBag,
-  Sparkles,
-  TrendingUp,
-  UsersRound,
-  Trophy,
-  Briefcase,
-  Volleyball,
-} from "lucide-react-native";
 import moment from "moment";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -41,66 +24,54 @@ import {
 } from "react-native";
 
 const getIconComponent = (iconName: any, categoryName?: string) => {
-  console.log("🔍 getIconComponent DEBUG:", {
-    iconName: iconName,
-    iconType: typeof iconName,
-    categoryName: categoryName,
-    categoryLower: categoryName?.toLowerCase().trim()
-  });
 
   if (typeof iconName === "object" && iconName.$$typeof) {
     if (categoryName) {
-      const nameMap: Record<string, any> = {
-        giveaway: Gift,
-        sports: Volleyball,
-        friends: UsersRound, 
-        market: ShoppingBag,
-        games: Gamepad2,
-        party: PartyPopper,
-        rides: Car,
-        roommates: House,
-        dating: Heart,
-        "study group": BookOpen,
-        "campus jobs": Briefcase,
+      const nameMap: Record<string, string> = {
+        giveaway: "gift-outline",
+        sports: "football-outline",
+        friends: "people-outline",
+        market: "bag-outline",
+        games: "game-controller-outline",
+        party: "balloon-outline",
+        rides: "car-outline",
+        roommates: "home-outline",
+        dating: "heart-outline",
+        "study group": "book-outline",
+        "campus jobs": "briefcase-outline",
       };
 
       const normalized = categoryName.toLowerCase().trim();
       const foundIcon = nameMap[normalized];
       
-      console.log("🔍 nameMap lookup:", {
-        normalized: normalized,
-        foundIcon: foundIcon?.name || 'undefined',
-        availableKeys: Object.keys(nameMap)
-      });
-      
-      return foundIcon || Car;
+      return foundIcon || "car-outline";
     }
-    return Car;
+    return "Car-outline";
   }
 
 
-  if (typeof iconName !== "string") return Car;
+  if (typeof iconName !== "string") return "Car-outline";
 
   const normalized = iconName.trim().toLowerCase().replace(/-/g, "");
   console.log("🔍 string iconName normalized:", normalized);
 
-  const iconMap: Record<string, any> = {
-    car: Car,
-    home: Home,
-    shoppingbag: ShoppingBag,
-    gamepad2: Gamepad2,
-    heart: Heart,
-    bookopen: BookOpen,
-    gift: Gift,
-    partypopper: PartyPopper,
-    trophy: Trophy,
-    trendingup: TrendingUp,
-    sparkles: Sparkles,
-    usersround: UsersRound,   
-  volleyball: Volleyball,
+  const iconMap: Record<string, string> = {
+    car: "car-outline",
+    home: "home-outline",
+    shoppingbag: "bag-outline",
+    gamepad2: "game-controller-outline",
+    heart: "heart-outline",
+    bookopen: "book-outline",
+    gift: "gift-outline",
+    partypopper: "balloon-outline",
+    trophy: "trophy-outline",
+    trendingup: "trending-up-outline",
+    sparkles: "sparkles-outline",
+    usersround: "people-outline",
+    volleyball: "football-outline",
   };
 
-  return iconMap[normalized] || Car;
+  return iconMap[normalized] || "car-outline";
 };
 
 const CategoryCardSkeleton = () => {
@@ -424,19 +395,11 @@ const Index = () => {
                         { backgroundColor: category.bgColor },
                       ]}
                     >
-                      {(() => {
-                        const IconComponent = getIconComponent(
-                          category.icon,
-                          category.name
-                        );
-                        return (
-                          <IconComponent
-                            size={24}
-                            color={category.iconColor}
-                            strokeWidth={2}
-                          />
-                        );
-                      })()}
+                      <Ionicons
+  name={getIconComponent(category.icon, category.name) as any}
+  size={24}
+  color={category.iconColor}
+/>
                     </View>
                     <Text style={[styles.cardTitle, dynamicStyles.text]}>
                       {category.name}
@@ -505,23 +468,23 @@ const Index = () => {
                       ]}
                     >
                       {(() => {
-                          console.log("🔥 RECENT MATCH ICON DEBUG:", {
-                            categoryName: match.categoryDetails.name,
-                            iconFromAPI: match.categoryDetails.icon
-                          });
-                        const IconComponent = getIconComponent(
-                          match.categoryDetails.icon,
-                          match.categoryDetails.name
-                        );
-                        console.log("🔥 RECENT MATCH RESOLVED ICON:", IconComponent.name);
-                        return (
-                          <IconComponent
-                            size={20}
-                            color={match.categoryDetails.colorHex}
-                            strokeWidth={2}
-                          />
-                        );
-                      })()}
+  console.log("🔥 RECENT MATCH ICON DEBUG:", {
+    categoryName: match.categoryDetails.name,
+    iconFromAPI: match.categoryDetails.icon
+  });
+  const iconName = getIconComponent(
+    match.categoryDetails.icon,
+    match.categoryDetails.name
+  );
+  console.log("🔥 RECENT MATCH RESOLVED ICON:", iconName);
+  return (
+    <Ionicons
+      name={iconName as any}
+      size={20}
+      color={match.categoryDetails.colorHex}
+    />
+  );
+})()}
                     </View>
                     <View style={styles.recentContent}>
                       <Text style={[styles.recentTitle, dynamicStyles.text]}>

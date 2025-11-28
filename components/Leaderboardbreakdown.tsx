@@ -1,16 +1,6 @@
 import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/contexts/ThemeContext";
-import {
-  Award,
-  MessageSquare,
-  Sparkles,
-  Target,
-  TrendingUp,
-  Trophy,
-  UserPlus,
-  Users,
-  X,
-} from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 
@@ -105,14 +95,14 @@ const LeaderBoardBreakDown: React.FC<LeaderBoardBreakDownProps> = ({
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <View style={[styles.trophyIcon, { backgroundColor: "#FF7B00" }]}>
-              <Trophy size={20} color="#FFFFFF" />
+            <Ionicons name="trophy" size={20} color="#FFFFFF" />
             </View>
             <Text style={[styles.headerTitle, dynamicStyles.text]}>
               Your TarpAI Stats
             </Text>
           </View>
           <Pressable onPress={onClose} style={styles.closeButton}>
-            <X size={20} color={dynamicStyles.subtitle.color} />
+          <Ionicons name="close" size={20} color={dynamicStyles.subtitle.color} />
           </Pressable>
         </View>
 
@@ -122,7 +112,7 @@ const LeaderBoardBreakDown: React.FC<LeaderBoardBreakDownProps> = ({
 
         <View style={styles.statsRow}>
           <View style={[styles.statCard, dynamicStyles.card]}>
-            <Award color="#FF7B00" size={20} />
+          <Ionicons name="medal" size={20} color="#FF7B00" />
             <View style={styles.statInfo}>
               <Text style={[styles.statLabel, dynamicStyles.subtitle]}>
                 Rank
@@ -138,7 +128,7 @@ const LeaderBoardBreakDown: React.FC<LeaderBoardBreakDownProps> = ({
           </View>
 
           <View style={[styles.statCard, dynamicStyles.card]}>
-            <TrendingUp color={dynamicStyles.text.color} size={20} />
+          <Ionicons name="trending-up" size={20} color={dynamicStyles.text.color} />
             <View style={styles.statInfo}>
               <Text style={[styles.statLabel, dynamicStyles.subtitle]}>
                 Points
@@ -171,7 +161,7 @@ const LeaderBoardBreakDown: React.FC<LeaderBoardBreakDownProps> = ({
             <View style={[styles.activityCard, dynamicStyles.card]}>
               <View style={styles.activityLeft}>
                 <View style={[styles.activityIcon, dynamicStyles.iconBg]}>
-                  <UserPlus size={17} color={dynamicStyles.text.color} />
+                <Ionicons name="person-add-outline" size={17} color={dynamicStyles.text.color} />
                 </View>
                 <View style={styles.activityInfo}>
                   <View style={styles.activityTitleRow}>
@@ -200,7 +190,7 @@ const LeaderBoardBreakDown: React.FC<LeaderBoardBreakDownProps> = ({
             <View style={[styles.activityCard, dynamicStyles.card]}>
               <View style={styles.activityLeft}>
                 <View style={[styles.activityIcon, dynamicStyles.iconBg]}>
-                  <MessageSquare size={17} color={dynamicStyles.text.color} />
+                <Ionicons name="chatbubble-outline" size={17} color={dynamicStyles.text.color} />
                 </View>
                 <View style={styles.activityInfo}>
                   <View style={styles.activityTitleRow}>
@@ -230,7 +220,7 @@ const LeaderBoardBreakDown: React.FC<LeaderBoardBreakDownProps> = ({
             <View style={[styles.activityCard, dynamicStyles.card]}>
               <View style={styles.activityLeft}>
                 <View style={[styles.activityIcon, dynamicStyles.iconBg]}>
-                  <Target size={17} color={dynamicStyles.text.color} />
+                <Ionicons name="locate-outline" size={17} color={dynamicStyles.text.color} />
                 </View>
                 <View style={styles.activityInfo}>
                   <View style={styles.activityTitleRow}>
@@ -260,7 +250,7 @@ const LeaderBoardBreakDown: React.FC<LeaderBoardBreakDownProps> = ({
             <View style={[styles.activityCard, dynamicStyles.card]}>
               <View style={styles.activityLeft}>
                 <View style={[styles.activityIcon, dynamicStyles.iconBg]}>
-                  <Users size={17} color={dynamicStyles.text.color} />
+                <Ionicons name="people-outline" size={17} color={dynamicStyles.text.color} />
                 </View>
                 <View style={styles.activityInfo}>
                   <View style={styles.activityTitleRow}>
@@ -290,7 +280,7 @@ const LeaderBoardBreakDown: React.FC<LeaderBoardBreakDownProps> = ({
           <View style={[styles.totalCard, dynamicStyles.totalCard]}>
             <View style={styles.totalLeft}>
               <View style={styles.totalTitleRow}>
-                <Sparkles size={13} color={dynamicStyles.text.color} />
+              <Ionicons name="sparkles" size={13} color={dynamicStyles.text.color} />
                 <Text style={[styles.totalTitle, dynamicStyles.text]}>
                   Total Earned
                 </Text>
@@ -314,7 +304,7 @@ const LeaderBoardBreakDown: React.FC<LeaderBoardBreakDownProps> = ({
 
           <View style={[styles.howToEarnCard, dynamicStyles.card]}>
   <View style={styles.howToEarnHeader}>
-    <Target size={17} color={dynamicStyles.text.color} />
+  <Ionicons name="person-add-outline" size={12} color={dynamicStyles.text.color} />
     <Text style={[styles.howToEarnTitle, dynamicStyles.text]}>
       How to Earn More Points
     </Text>
@@ -324,7 +314,7 @@ const LeaderBoardBreakDown: React.FC<LeaderBoardBreakDownProps> = ({
     <View style={styles.earnMethod}>
       <View style={styles.earnMethodLeft}>
         <View style={[styles.earnMethodIcon, dynamicStyles.iconBg]}>
-          <UserPlus size={12} color={dynamicStyles.text.color} />
+        <Ionicons name="person-add-outline" size={12} color={dynamicStyles.text.color} />
         </View>
         <Text style={[styles.earnMethodText, dynamicStyles.subtitle]}>
           Invite friends
@@ -338,7 +328,7 @@ const LeaderBoardBreakDown: React.FC<LeaderBoardBreakDownProps> = ({
     <View style={styles.earnMethod}>
       <View style={styles.earnMethodLeft}>
         <View style={[styles.earnMethodIcon, dynamicStyles.iconBg]}>
-          <MessageSquare size={12} color={dynamicStyles.text.color} />
+        <Ionicons name="chatbubble-outline" size={12} color={dynamicStyles.text.color} />
         </View>
         <Text style={[styles.earnMethodText, dynamicStyles.subtitle]}>
           Create prompts
@@ -352,7 +342,7 @@ const LeaderBoardBreakDown: React.FC<LeaderBoardBreakDownProps> = ({
     <View style={styles.earnMethod}>
       <View style={styles.earnMethodLeft}>
         <View style={[styles.earnMethodIcon, dynamicStyles.iconBg]}>
-          <Target size={12} color={dynamicStyles.text.color} />
+        <Ionicons name="locate-outline" size={12} color={dynamicStyles.text.color} />
         </View>
         <Text style={[styles.earnMethodText, dynamicStyles.subtitle]}>
           Complete matches
@@ -366,7 +356,7 @@ const LeaderBoardBreakDown: React.FC<LeaderBoardBreakDownProps> = ({
     <View style={styles.earnMethod}>
       <View style={styles.earnMethodLeft}>
         <View style={[styles.earnMethodIcon, dynamicStyles.iconBg]}>
-          <Users size={12} color={dynamicStyles.text.color} />
+        <Ionicons name="people-outline" size={12} color={dynamicStyles.text.color} />
         </View>
         <Text style={[styles.earnMethodText, dynamicStyles.subtitle]}>
           Join groups

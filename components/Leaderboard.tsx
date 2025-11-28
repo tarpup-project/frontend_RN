@@ -3,12 +3,7 @@ import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLeaderboard } from "@/hooks/useLeaderboard";
 import { UserLeaderboardInterface } from "@/types/leaderboard";
-import {
-  ChevronRight,
-  Sparkles,
-  TrendingUp,
-  Trophy,
-} from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import LeaderBoardBreakDown from "./Leaderboardbreakdown";
 import { Pressable, StyleSheet, View } from "react-native";
@@ -57,9 +52,9 @@ const LeaderBoard = () => {
       <View style={[styles.container, dynamicStyles.container]}>
         <View style={styles.content}>
           <View style={styles.leftSection}>
-            <View style={[styles.trophyIcon, { backgroundColor: "#FF7B00" }]}>
-              <Trophy size={20} color="#FFFFFF" />
-            </View>
+          <View style={[styles.trophyIcon, { backgroundColor: "#FF7B00" }]}>
+  <Ionicons name="trophy" size={20} color="#FFFFFF" />
+</View>
             <View style={styles.rankingInfo}>
               <View style={styles.rankRow}>
                 <Skeleton width={60} height={20} style={{ marginRight: 8 }} />
@@ -73,7 +68,7 @@ const LeaderBoard = () => {
               <Skeleton width={60} height={24} />
               <Skeleton width={40} height={10} style={{ marginTop: 2 }} />
             </View>
-            <ChevronRight size={18} color={dynamicStyles.subtitle.color} />
+            <Ionicons name="chevron-forward" size={18} color={dynamicStyles.subtitle.color} />
           </View>
         </View>
       </View>
@@ -94,9 +89,9 @@ const LeaderBoard = () => {
     >
       <View style={styles.content}>
         <View style={styles.leftSection}>
-          <View style={[styles.trophyIcon, { backgroundColor: "#FF7B00" }]}>
-            <Trophy size={20} color="#FFFFFF" />
-          </View>
+        <View style={[styles.trophyIcon, { backgroundColor: "#FF7B00" }]}>
+  <Ionicons name="trophy" size={20} color="#FFFFFF" />
+</View>
           <View style={styles.rankingInfo}>
             <View style={styles.rankRow}>
               <Text style={[styles.rankText, dynamicStyles.text]}>
@@ -107,7 +102,7 @@ const LeaderBoard = () => {
                 </Text>
               </Text>
               <View style={[styles.risingStarBadge, dynamicStyles.badge]}>
-                <Sparkles size={12} color={dynamicStyles.text.color} />
+              <Ionicons name="sparkles" size={12} color={dynamicStyles.text.color} />
                 <Text style={[styles.badgeText, dynamicStyles.text]}>
                   Rising Star
                 </Text>
@@ -122,7 +117,7 @@ const LeaderBoard = () => {
         <View style={styles.rightSection}>
           <View style={styles.pointsContainer}>
             <View style={styles.pointsRow}>
-              <TrendingUp size={18} color={dynamicStyles.text.color} />
+            <Ionicons name="trending-up" size={18} color={dynamicStyles.text.color} />
               <Text style={[styles.pointsText, dynamicStyles.text]}>
                 {numberToSocial(leaderboardData.totalPoints)}
               </Text>
@@ -131,7 +126,7 @@ const LeaderBoard = () => {
               Points
             </Text>
           </View>
-          <ChevronRight size={18} color={dynamicStyles.subtitle.color} />
+          <Ionicons name="chevron-forward" size={18} color={dynamicStyles.subtitle.color} />
         </View>
       </View>
     </Pressable>

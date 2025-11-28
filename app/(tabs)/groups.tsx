@@ -6,19 +6,6 @@ import { useCampus } from "@/hooks/useCampus";
 import { transformGroupForUI, useGroups } from "@/hooks/useGroups";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import {
-  Bed,
-  BookOpenText,
-  Briefcase,
-  Car,
-  Filter,
-  Gamepad2,
-  Gift,
-  PartyPopper,
-  ShoppingBag,
-  Users,
-  Volleyball,
-} from "lucide-react-native";
 import { useState } from "react";
 import {
   Image,
@@ -29,17 +16,17 @@ import {
   View,
 } from "react-native";
 
-const iconMap: Record<string, any> = {
-  "briefcase-business": Briefcase,
-  "users-round": Users,
-  "gamepad-2": Gamepad2,
-  gift: Gift,
-  "shopping-bag": ShoppingBag,
-  "party-popper": PartyPopper,
-  car: Car,
-  "bed-double": Bed,
-  volleyball: Volleyball,
-  "book-open-text": BookOpenText,
+const iconMap: Record<string, string> = {
+  "briefcase-business": "briefcase-outline",
+  "users-round": "people-outline",
+  "gamepad-2": "game-controller-outline",
+  gift: "gift-outline",
+  "shopping-bag": "bag-outline",
+  "party-popper": "balloon-outline",
+  car: "car-outline",
+  "bed-double": "bed-outline",
+  volleyball: "football-outline",
+  "book-open-text": "book-outline",
 };
 
 const GroupSkeletonCard = ({ isDark }: { isDark: boolean }) => {
@@ -136,7 +123,7 @@ const getGroupIconByCategory = (categoryName: string) => {
 
 const getIconComponent = (iconName: string) => {
   const normalizedName = iconName.toLowerCase();
-  return iconMap[normalizedName] || Filter;
+  return iconMap[normalizedName] || "pricetag-outline";
 };
 
 const Groups = () => {
@@ -313,18 +300,11 @@ const Groups = () => {
                         dynamicStyles.categoryBadge,
                       ]}
                     >
-                      {(() => {
-                        const IconComponent = getIconComponent(
-                          group.rawGroup.category[0].icon
-                        );
-                        return (
-                          <IconComponent
-                            size={12}
-                            color={group.rawGroup.category[0].colorHex}
-                            strokeWidth={2}
-                          />
-                        );
-                      })()}
+                      <Ionicons
+  name={getIconComponent(group.rawGroup.category[0].icon) as any}
+  size={12}
+  color={group.rawGroup.category[0].colorHex}
+/>
                       <Text
                         style={[
                           styles.categoryText,

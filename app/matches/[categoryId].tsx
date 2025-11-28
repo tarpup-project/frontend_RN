@@ -11,7 +11,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { router, useLocalSearchParams } from "expo-router";
-import { Clock, Zap } from "lucide-react-native";
 import moment from "moment";
 import { useEffect, useRef } from "react";
 import {
@@ -61,6 +60,8 @@ const useCategoryMatches = (categoryId: string, campusId?: string) => {
     retry: 2,
   });
 };
+
+
 const AnimatedZap = ({ color, size }: { color: string; size: number }) => {
   const opacityAnim = useRef(new Animated.Value(1)).current;
 
@@ -86,7 +87,7 @@ const AnimatedZap = ({ color, size }: { color: string; size: number }) => {
 
   return (
     <Animated.View style={{ opacity: opacityAnim }}>
-      <Zap color={color} size={size} />
+      <Ionicons name="flash" size={size} color={color} />
     </Animated.View>
   );
 };
@@ -188,7 +189,7 @@ const AnimatedMatchCard = ({
         </View>
 
         <View style={styles.matchFooter}>
-          <Clock size={14} color={dynamicStyles.subtitle.color} />
+        <Ionicons name="time-outline" size={14} color={dynamicStyles.subtitle.color} />
           <Text style={[styles.timeText, dynamicStyles.subtitle]}>
             {moment(match.createdAt).fromNow()}
           </Text>

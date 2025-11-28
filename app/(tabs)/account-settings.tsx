@@ -7,7 +7,6 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { AlertTriangle, Lock, Shield, User } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -266,7 +265,7 @@ const AccountSettings = () => {
         {/* Account Information Section */}
         <View style={[styles.section, dynamicStyles.card]}>
           <View style={styles.sectionTitleRow}>
-            <User size={20} color={dynamicStyles.text.color} strokeWidth={2} />
+          <Ionicons name="person-outline" size={20} color={dynamicStyles.text.color} />
             <Text style={[styles.sectionTitle, dynamicStyles.text]}>
               Account Information
             </Text>
@@ -306,7 +305,7 @@ const AccountSettings = () => {
         {/* Password & Security */}
         <View style={[styles.section, dynamicStyles.card]}>
           <View style={styles.sectionTitleRow}>
-            <Lock size={20} color={dynamicStyles.text.color} strokeWidth={2} />
+          <Ionicons name="lock-closed-outline" size={20} color={dynamicStyles.text.color} />
             <Text style={[styles.sectionTitle, dynamicStyles.text]}>
               Password & Security
             </Text>
@@ -439,11 +438,7 @@ const AccountSettings = () => {
         {/* Privacy Settings */}
         <View style={[styles.section, dynamicStyles.card]}>
           <View style={styles.sectionTitleRow}>
-            <Shield
-              size={20}
-              color={dynamicStyles.text.color}
-              strokeWidth={2}
-            />
+          <Ionicons name="shield-outline" size={20} color={dynamicStyles.text.color} />
             <Text style={[styles.sectionTitle, dynamicStyles.text]}>
               Privacy Settings
             </Text>
@@ -481,11 +476,7 @@ const AccountSettings = () => {
         {/* Data & Account Management */}
         <View style={[styles.section, dynamicStyles.card]}>
           <View style={styles.sectionTitleRow}>
-            <AlertTriangle
-              size={20}
-              color={dynamicStyles.text.color}
-              strokeWidth={2}
-            />
+          <Ionicons name="warning-outline" size={20} color={dynamicStyles.text.color} />
             <Text style={[styles.sectionTitle, dynamicStyles.text]}>
               Data & Account Management
             </Text>

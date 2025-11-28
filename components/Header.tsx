@@ -5,7 +5,6 @@
   import { Ionicons } from "@expo/vector-icons";
   import { useRouter } from "expo-router";
   import { StatusBar } from "expo-status-bar";
-  import { Moon, Sun } from "lucide-react-native";
   import { useEffect, useRef, useState } from "react";
   import { Animated, Image, Pressable, StyleSheet, View } from "react-native";
   import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -95,13 +94,13 @@
           </View>
 
           <View style={styles.iconsContainer}>
-            <Pressable style={styles.iconButton} onPress={handleThemeToggle} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              {isDark ? (
-                <Moon size={20} color={dynamicStyles.icon.color} />
-              ) : (
-                <Sun size={20} color={dynamicStyles.icon.color} />
-              )}
-            </Pressable>
+          <Pressable style={styles.iconButton} onPress={handleThemeToggle} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+  {isDark ? (
+    <Ionicons name="moon" size={20} color={dynamicStyles.icon.color} />
+  ) : (
+    <Ionicons name="sunny" size={20} color={dynamicStyles.icon.color} />
+  )}
+</Pressable>
 
 
             <Pressable

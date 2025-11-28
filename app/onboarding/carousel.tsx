@@ -1,6 +1,6 @@
 import { useTheme } from "@/contexts/ThemeContext";
 import { useRouter } from "expo-router";
-import { MessageSquare, UsersRound, Sparkles } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useRef, useState } from "react";
 import { Dimensions, FlatList, StyleSheet, View } from "react-native";
 import CustomPagination from "./CustomPagination";
@@ -10,8 +10,8 @@ const { width } = Dimensions.get("window");
 
 interface CarouselItem {
   id: number;
-  icon: any;
-  iconDark: any;
+  icon: string;
+  iconDark: string;
   iconBgColor: string | string[];
   title: string;
   subtitle: string;
@@ -23,19 +23,19 @@ interface CarouselItem {
 const carouselData: CarouselItem[] = [
   {
     id: 1,
-    icon: "MessageSquare",
-    iconDark: MessageSquare,
+    icon: "chatbubble-outline",
+    iconDark: "chatbubble-outline",
     iconBgColor: ["#87CEEB", "#4A90E2"],
     title: "Just state your need",
     subtitle: "Simply type what you're looking for in natural\nlanguage.",
     buttonText: "Continue",
     hasChips: true,
-    isLucideIcon: true,
+    isLucideIcon: false,
   },
   {
     id: 2,
-    icon: "Sparkles",
-    iconDark: Sparkles,
+    icon: "sparkles-outline",
+    iconDark: "sparkles-outline",
     iconBgColor: ["#FF00FF", "#CC00CC"],
     title: "Get Matched Instantly",
     subtitle:
@@ -45,8 +45,8 @@ const carouselData: CarouselItem[] = [
   },
   {
     id: 3,
-    icon: "UsersRound",
-    iconDark: UsersRound,
+    icon: "people-outline",
+    iconDark: "people-outline",
     iconBgColor: "#FF4500",
     title: "Connect and Coordinate",
     subtitle:
@@ -55,6 +55,7 @@ const carouselData: CarouselItem[] = [
     hasChips: false,
   },
 ];
+
 
 const OnboardingCarousel = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
