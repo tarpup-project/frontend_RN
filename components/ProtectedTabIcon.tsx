@@ -60,8 +60,8 @@ const ProtectedTabIcon: React.FC<ProtectedTabIconProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    width: 30,
-    height: 30,
+    width: 44,
+    height: 44,
     alignItems: "center",
     justifyContent: "center"
   },
