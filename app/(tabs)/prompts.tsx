@@ -459,35 +459,36 @@ const Prompts = () => {
         onClose={() => setShowAuthModal(false)}
       />
       <Modal
-        visible={!!showFullImage}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowFullImage(null)}
-      >
-        <View style={styles.imageModalOverlay}>
-          <Pressable
-            style={styles.imageModalBackground}
-            onPress={() => setShowFullImage(null)}
-          >
-            <View style={styles.imageModalContent}>
-              <Pressable
-                style={styles.closeButton}
-                onPress={() => setShowFullImage(null)}
-              >
-                <Ionicons name="close" size={28} color="#FFFFFF" />
-              </Pressable>
+  visible={!!showFullImage}
+  transparent={true}
+  animationType="fade"
+  onRequestClose={() => setShowFullImage(null)}
+>
+  <Pressable
+    style={styles.imageModalOverlay}
+    onPress={() => setShowFullImage(null)}
+  >
+    <Pressable
+      style={styles.closeButton}
+      onPress={() => setShowFullImage(null)}
+    >
+      <Ionicons name="close" size={28} color="#FFFFFF" />
+    </Pressable>
 
-              {showFullImage && (
-                <Image
-                  source={{ uri: showFullImage }}
-                  style={styles.fullImage}
-                  resizeMode="contain"
-                />
-              )}
-            </View>
-          </Pressable>
-        </View>
-      </Modal>
+    {showFullImage && (
+      <Pressable
+        onPress={(e) => e.stopPropagation()}
+        style={styles.imageModalContent}
+      >
+        <Image
+          source={{ uri: showFullImage }}
+          style={styles.fullImage}
+          resizeMode="contain"
+        />
+      </Pressable>
+    )}
+  </Pressable>
+</Modal>
     </View>
   );
 };
