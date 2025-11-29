@@ -7,13 +7,12 @@ import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
-
 Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-    } as Notifications.NotificationBehavior),
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  } as Notifications.NotificationBehavior),
 });
 
 export async function registerForPushNotificationsAsync() {
@@ -58,14 +57,105 @@ export async function registerForPushNotificationsAsync() {
   return token;
 }
 
+// Move these OUTSIDE the usePushNotifications function
+export async function subscribeToTopic(topic: string) {
+  try {
+    const { user, isAuthenticated } = useAuthStore.getState();
+    
+    if (!isAuthenticated || !user) {
+      console.log('No authenticated user, cannot subscribe to topic');
+      return;
+    }
+
+    console.log(`User subscribed to topic: ${topic}`);
+    const response = await fetch(`${UrlConstants.baseUrl}/user/notifications/subscribe-topic`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(user.authToken && { 'Authorization': `Bearer ${user.authToken}` }),
+      },
+      body: JSON.stringify({
+        topic: topic,
+      }),
+    });
+
+    if (response.ok) {
+      console.log(`Successfully subscribed to topic: ${topic}`);
+    }
+  } catch (error) {
+    console.error('Error subscribing to topic:', error);
+  }
+}
+
+export async function unsubscribeFromTopic(topic: string) {
+  try {
+    const { user, isAuthenticated } = useAuthStore.getState();
+    
+    if (!isAuthenticated || !user) {
+      console.log('No authenticated user, cannot unsubscribe from topic');
+      return;
+    }
+
+    const response = await fetch(`${UrlConstants.baseUrl}/user/notifications/unsubscribe-topic`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(user.authToken && { 'Authorization': `Bearer ${user.authToken}` }),
+      },
+      body: JSON.stringify({
+        topic: topic,
+      }),
+    });
+
+    if (response.ok) {
+      console.log(`Successfully unsubscribed from topic: ${topic}`);
+    }
+  } catch (error) {
+    console.error('Error unsubscribing from topic:', error);
+  }
+}
+
+async function sendTokenToBackend(token: string) {
+  try {
+    const { user, isAuthenticated } = useAuthStore.getState();
+    
+    if (!isAuthenticated || !user) {
+      console.log('No authenticated user found, skipping token upload');
+      return;
+    }
+
+    const response = await fetch(`${UrlConstants.baseUrl}/user/notifications/user`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(user.authToken && { 'Authorization': `Bearer ${user.authToken}` }),
+      },
+      body: JSON.stringify({
+        token: token,
+        title: "Push Notification Setup",
+        body: `${user.fname} ${user.lname || ''}, you're now connected for notifications!`,
+      }),
+    });
+
+    if (response.ok) {
+      console.log('Push token sent to backend successfully');
+    } else {
+      const errorData = await response.json();
+      console.error('Failed to send push token:', response.status, errorData);
+    }
+  } catch (error) {
+    console.error('Error sending token to backend:', error);
+  }
+}
+
 export function usePushNotifications() {
-    const router = useRouter();
+  const router = useRouter();
   const [expoPushToken, setExpoPushToken] = useState<string>('');
   const [notification, setNotification] = useState<Notifications.Notification | null>(null);
   const notificationListener = useRef<Notifications.Subscription | undefined>(undefined);
-const responseListener = useRef<Notifications.Subscription | undefined>(undefined);
+  const responseListener = useRef<Notifications.Subscription | undefined>(undefined);
 
-useEffect(() => {
+  useEffect(() => {
     registerForPushNotificationsAsync().then(token => {
       if (token) {
         setExpoPushToken(token);
@@ -78,62 +168,29 @@ useEffect(() => {
       setNotification(notification);
     });
   
-
-responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-    console.log('Notification tapped:', response);
-    const data = response.notification.request.content.data;
-    
-    if (data.type === 'message' && data.chatId) {
-      router.push(`/(app)/messages/${data.chatId}` as any);
-    } else if (data.type === 'group' && data.groupId) {
-      router.push(`/(app)/groups/${data.groupId}` as any);
-    } else if (data.screen) {
-      router.push(data.screen as any);
-    }
-  });
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+      console.log('Notification tapped:', response);
+      const data = response.notification.request.content.data;
+      
+      if (data.type === 'message' && data.chatId) {
+        router.push(`/(app)/messages/${data.chatId}` as any);
+      } else if (data.type === 'group' && data.groupId) {
+        router.push(`/(app)/groups/${data.groupId}` as any);
+      } else if (data.screen) {
+        router.push(data.screen as any);
+      }
+    });
   
     return () => {
-        if (notificationListener.current) {
-          notificationListener.current.remove();
-        }
-        if (responseListener.current) {
-          responseListener.current.remove();
-        }
-      };
+      if (notificationListener.current) {
+        notificationListener.current.remove();
+      }
+      if (responseListener.current) {
+        responseListener.current.remove();
+      }
+    };
   }, []);
-  
-  async function sendTokenToBackend(token: string) {
-    try {
-      const { user, isAuthenticated } = useAuthStore.getState();
-      
-      if (!isAuthenticated || !user) {
-        console.log('No authenticated user found, skipping token upload');
-        return;
-      }
-  
-      const response = await fetch(`${UrlConstants.baseUrl}/api/users/push-token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(user.authToken && { 'Authorization': `Bearer ${user.authToken}` }),
-        },
-        body: JSON.stringify({
-          token,
-          platform: Platform.OS,
-          userId: user.id,
-        }),
-      });
-  
-      if (response.ok) {
-        console.log('Push token sent to backend successfully');
-      } else {
-        console.error('Failed to send push token:', response.status);
-      }
-    } catch (error) {
-      console.error('Error sending token to backend:', error);
-    }
-  }
-  
+
   return {
     expoPushToken,
     notification,

@@ -5,6 +5,7 @@ import { useAuthStore } from "@/state/authStore";
 import { saveUserData } from "@/utils/storage";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
+import { subscribeToTopic } from '@/hooks/usePushNotifications';
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import {
@@ -88,23 +89,36 @@ const VerifySignIn = () => {
       toast.error("Please enter the complete 6-digit code");
       return;
     }
-
+  
     setIsVerifying(true);
     try {
       const response = await axios.post(`${UrlConstants.baseUrl}/user/verify`, {
         email: email,
         token: verificationCode,
       });
-
+  
       if (response.data.status === "success") {
         const userData = response.data.data;
         await saveUserData(userData);
         useAuthStore.getState().setUser(userData);
-
+  
+        // Subscribe to push notification topics
+        try {
+          await subscribeToTopic('all_users');
+          await subscribeToTopic('announcements');
+          
+          if (userData.universityID) {
+            await subscribeToTopic(`university_${userData.universityID}`);
+          }
+        } catch (error) {
+          console.error('Failed to subscribe to topics:', error);
+          // Don't block login if topic subscription fails
+        }
+  
         toast.success("Welcome back!", {
           description: "You've been signed in successfully",
         });
-
+  
         setTimeout(() => {
           router.replace("/(tabs)");
         }, 800);
@@ -112,7 +126,7 @@ const VerifySignIn = () => {
     } catch (error: any) {
       const errorMessage =
         error?.response?.data?.message || "Invalid code. Please try again.";
-
+  
       toast.error("Verification failed", {
         description: errorMessage,
       });
