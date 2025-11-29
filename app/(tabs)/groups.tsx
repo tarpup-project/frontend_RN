@@ -287,7 +287,21 @@ const Groups = () => {
             !isError &&
             groups &&
             groups.length > 0 &&
-            groups.map(transformGroupForUI).map((group) => {
+            groups
+    .slice() 
+    .sort((a, b) => {
+      if (a.unread > 0 && b.unread === 0) return -1;
+      if (a.unread === 0 && b.unread > 0) return 1;      
+
+      if (a.unread > 0 && b.unread > 0) {
+        return b.unread - a.unread;
+      }
+      
+      const dateA = new Date(a.lastMessageAt || a.createdAt).getTime();
+      const dateB = new Date(b.lastMessageAt || b.createdAt).getTime();
+      return dateB - dateA;
+    })
+            .map(transformGroupForUI).map((group) => {
               return (
                 <View
                   key={group.id}

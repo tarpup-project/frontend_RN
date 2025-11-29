@@ -59,50 +59,55 @@ export default function TabLayout() {
             )
           }}
         />
+<Tabs.Screen
+  name="groups"
+  options={{
+    title: "Groups",
+    tabBarIcon: ({ color, focused }) => (
+      <ProtectedTabIcon
+        name={focused ? "people" : "people-outline"}
+        size={24}
+        color={isAuthenticated ? color : "#999999"}
+        focused={focused}
+        isProtected={!isAuthenticated}
+        notificationCount={isAuthenticated ? groupNotifications : 0}
+      />
+    )
+  }}
+  listeners={{
+    tabPress: (e) => {
+      if (!isAuthenticated) {
+        e.preventDefault();
+        setShowAuthModal(true);
+      }
+    }
+  }}
+/>
 
-        <Tabs.Screen
-          name="groups"
-          options={{
-            title: "Groups",
-            tabBarIcon: ({ color, focused }) => (
-              <Ionicons 
-                name={focused ? "people" : "people-outline"} 
-                size={24} 
-                color={isAuthenticated ? color : "#999999"} 
-              />
-            )
-          }}
-          listeners={{
-            tabPress: (e) => {
-              if (!isAuthenticated) {
-                e.preventDefault();
-                setShowAuthModal(true);
-              }
-            }
-          }}
-        />
-
-        <Tabs.Screen
-          name="profile"
-          options={{
-            title: "Profile",
-            tabBarIcon: ({ color, focused }) => (
-              <Ionicons 
-                name={focused ? "person" : "person-outline"} 
-                size={24} 
-                color={isAuthenticated ? color : "#999999"} 
-              />
-            )
-          }}
-          listeners={{
-            tabPress: (e) => {
-              if (!isAuthenticated) {
-                e.preventDefault();
-                setShowAuthModal(true);
-              }
-            }
-          }}
-        />
+<Tabs.Screen
+  name="profile"
+  options={{
+    title: "Profile",
+    tabBarIcon: ({ color, focused }) => (
+      <ProtectedTabIcon
+        name={focused ? "person" : "person-outline"}
+        size={24}
+        color={isAuthenticated ? color : "#999999"}
+        focused={focused}
+        isProtected={!isAuthenticated}
+        notificationCount={isAuthenticated ? personalNotifications : 0}
+      />
+    )
+  }}
+  listeners={{
+    tabPress: (e) => {
+      if (!isAuthenticated) {
+        e.preventDefault();
+        setShowAuthModal(true);
+      }
+    }
+  }}
+/>
 
         <Tabs.Screen name="edit-profile" options={{ href: null }} />
         <Tabs.Screen name="account-settings" options={{ href: null }} />

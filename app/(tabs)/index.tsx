@@ -25,35 +25,31 @@ import {
 
 const getIconComponent = (iconName: any, categoryName?: string) => {
 
-  if (typeof iconName === "object" && iconName.$$typeof) {
-    if (categoryName) {
-      const nameMap: Record<string, string> = {
-        giveaway: "gift-outline",
-        sports: "football-outline",
-        friends: "people-outline",
-        market: "bag-outline",
-        games: "game-controller-outline",
-        party: "balloon-outline",
-        rides: "car-outline",
-        roommates: "home-outline",
-        dating: "heart-outline",
-        "study group": "book-outline",
-        "campus jobs": "briefcase-outline",
-      };
+  if (categoryName) {
+    const nameMap: Record<string, string> = {
+      giveaway: "gift-outline",
+      sports: "football-outline",
+      friends: "people-outline",
+      market: "bag-outline",
+      games: "game-controller-outline",
+      party: "balloon-outline",
+      rides: "car-outline",
+      roommates: "home-outline",
+      dating: "heart-outline",
+      "study group": "book-outline",
+      "campus jobs": "briefcase-outline",
+    };
 
-      const normalized = categoryName.toLowerCase().trim();
-      const foundIcon = nameMap[normalized];
-      
-      return foundIcon || "car-outline";
-    }
-    return "Car-outline";
+    const normalized = categoryName.toLowerCase().trim();
+    const foundIcon = nameMap[normalized];
+    
+    if (foundIcon) return foundIcon;
   }
 
 
-  if (typeof iconName !== "string") return "Car-outline";
+  if (typeof iconName !== "string") return "car-outline";
 
   const normalized = iconName.trim().toLowerCase().replace(/-/g, "");
-  console.log("🔍 string iconName normalized:", normalized);
 
   const iconMap: Record<string, string> = {
     car: "car-outline",
