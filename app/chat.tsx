@@ -419,7 +419,7 @@ const Chat = () => {
         {isUser && (
           <View style={styles.avatarContainer}>
             <View style={styles.userAvatar}>
-            <Ionicons name="settings-outline" size={20} color={dynamicStyles.text.color} />
+            <Ionicons name="person-outline" size={20} color={dynamicStyles.text.color} />
             </View>
           </View>
         )}
@@ -465,7 +465,7 @@ const Chat = () => {
                 onPress={() => setShowSettingsModal(true)}
                 hitSlop={10}
               >
-                <Ionicons name="person" size={16} color="#FFFFFF" />
+                <Ionicons name="settings-outline" size={16} color="#FFFFFF" />
               </Pressable>
               <Pressable
                 style={styles.clearButton}
