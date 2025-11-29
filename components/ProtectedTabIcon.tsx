@@ -4,7 +4,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 interface ProtectedTabIconProps {
-  iconName: string;
+  name: string; 
   size?: number;
   color: string;
   focused?: boolean;
@@ -13,7 +13,7 @@ interface ProtectedTabIconProps {
 }
 
 const ProtectedTabIcon: React.FC<ProtectedTabIconProps> = ({
-  iconName,
+  name, 
   size = 24,
   color,
   focused = false,
@@ -37,7 +37,7 @@ const ProtectedTabIcon: React.FC<ProtectedTabIconProps> = ({
 
   return (
     <>
-      <Ionicons name={iconName} size={size} color={color} />
+      <Ionicons name={name as any} size={size} color={color} /> 
 
       {notificationCount > 0 && !isProtected && (
         <View style={[styles.notificationBadge, dynamicStyles.notificationBadge]}>
