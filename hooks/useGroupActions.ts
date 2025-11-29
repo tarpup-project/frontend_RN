@@ -4,6 +4,7 @@ import * as Clipboard from 'expo-clipboard';
 import { toast } from 'sonner-native';
 import { api } from '@/api/client';
 import { UrlConstants } from '@/constants/apiUrls';
+import { subscribeToTopic, unsubscribeFromTopic } from '@/hooks/usePushNotifications';
 
 interface ReportGroupData {
   groupID: string;
@@ -13,13 +14,37 @@ interface ReportGroupData {
 
 export const useGroupActions = () => {
   const [isLeaving, setIsLeaving] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
   const [isReporting, setIsReporting] = useState(false);
   const [isMarkingComplete, setIsMarkingComplete] = useState(false);
+
+  const joinGroup = async (groupID: string): Promise<boolean> => {
+    setIsJoining(true);
+    try {
+      await api.post(UrlConstants.fetchInviteGroupDetails(groupID), {});
+      
+      // Subscribe to group notifications
+      await subscribeToTopic(`group_${groupID}`);
+      
+      toast.success("You have joined the group");
+      return true;
+    } catch (error) {
+      console.error('Join group error:', error);
+      toast.error("Failed to join group");
+      return false;
+    } finally {
+      setIsJoining(false);
+    }
+  };
 
   const leaveGroup = async (groupID: string): Promise<boolean> => {
     setIsLeaving(true);
     try {
       await api.post(UrlConstants.leaveGroup, { groupID });
+      
+      // Unsubscribe from group notifications
+      await unsubscribeFromTopic(`group_${groupID}`);
+      
       toast.success("You have left the group");
       return true;
     } catch (error) {
@@ -84,10 +109,12 @@ export const useGroupActions = () => {
   };
 
   return {
+    joinGroup,
     leaveGroup,
     reportGroup,
     markAsCompleted,
     shareGroup,
+    isJoining,
     isLeaving,
     isReporting,
     isMarkingComplete,
