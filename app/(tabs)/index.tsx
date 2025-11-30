@@ -374,9 +374,6 @@ const Index = () => {
           ) : (
             <View style={styles.cardsGrid}>
               {categories.map((category: Category) => {
-                console.log("Icon name from API:", category.icon);
-                console.log("Full category object:", category);
-
                 return (
                   <TouchableOpacity
                     key={category.id}
@@ -464,15 +461,12 @@ const Index = () => {
                       ]}
                     >
                       {(() => {
-  console.log("🔥 RECENT MATCH ICON DEBUG:", {
-    categoryName: match.categoryDetails.name,
-    iconFromAPI: match.categoryDetails.icon
-  });
+
   const iconName = getIconComponent(
     match.categoryDetails.icon,
     match.categoryDetails.name
   );
-  console.log("🔥 RECENT MATCH RESOLVED ICON:", iconName);
+  
   return (
     <Ionicons
       name={iconName as any}

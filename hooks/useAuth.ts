@@ -48,6 +48,7 @@ export const useAuth = () => {
       const response = await AuthAPI.verifyOTP(email, otp);
       if (response.success && response.user) {
         setUser(response.user);
+        console.log("otp verified")
       }
       return response;
     } catch (err) {
