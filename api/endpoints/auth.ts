@@ -11,7 +11,7 @@ import {
   SignupRequest,
   SignupResponse,
 } from '../../types/auth';
-import { saveAuthToken, saveUserData, clearUserData } from '../../utils/storage';
+import { saveAuthToken, saveUserData, clearUserData, saveAccessToken } from '../../utils/storage';
 
 export class AuthAPI {
 
@@ -50,11 +50,14 @@ export class AuthAPI {
 
     const userData = response.data.data;
     if (userData) {
-
       if (userData.authToken) {
-        await saveAuthToken(userData.authToken);
+        await saveAccessToken(userData.authToken);
+        console.log('💾 Saved token:', userData.authToken.substring(0, 20) + '...');
+      } else {
+        console.log('⚠️ No authToken in response');
       }
       await saveUserData(userData);
+      console.log('💾 Saved user data:', userData.email);
     }
 
     return {
@@ -93,7 +96,7 @@ export class AuthAPI {
     const response = await api.post<{ token: string }>(UrlConstants.refreshToken);
     
     if (response.data.token) {
-      await saveAuthToken(response.data.token);
+      await saveAccessToken(response.data.token);
     }
 
     return response.data;

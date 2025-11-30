@@ -27,11 +27,8 @@ export class PromptsAPI {
       params?.stateID,
       params?.categoryID,
       params?.userID
-    );
-    console.log('Prompts API URL:', url);
-    
+    );    
     const response = await api.get<{ data: AllPromptsResponse }>(url);
-    console.log('Prompts API response:', response.data);
     
     return response.data.data;
   }
