@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuthStore } from '@/state/authStore';
 import { api } from '@/api/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { UrlConstants } from '@/constants/apiUrls';
 import { 
   GroupMessage, 
@@ -25,6 +26,7 @@ interface SendMessageOptions {
 }
 
 export const useGroupMessages = ({ groupId, socket }: UseGroupMessagesProps) => {
+  const queryClient = useQueryClient();
   const [messages, setMessages] = useState<GroupMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -188,15 +190,18 @@ export const useGroupMessages = ({ groupId, socket }: UseGroupMessagesProps) => 
   const markAsRead = useCallback(async () => {
     try {
       await api.post(UrlConstants.markGroupMessageAsRead(groupId));
+      queryClient.invalidateQueries({ queryKey: ['groups'] });      
     } catch (err) {
       console.error('Failed to mark messages as read:', err);
     }
-  }, [groupId]);
+  }, [groupId, queryClient]);
+
 
   const scrollToMessage = useCallback((messageId: string) => {
     const messageIndex = messages.findIndex(msg => msg.content.id === messageId);
     return messageIndex;
   }, [messages]);
+  
 
   return {
     messages,

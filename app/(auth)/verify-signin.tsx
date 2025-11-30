@@ -1,11 +1,9 @@
 import { Text } from "@/components/Themedtext";
-import { UrlConstants } from "@/constants/apiUrls";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthStore } from "@/state/authStore";
 import { saveUserData } from "@/utils/storage";
 import { Ionicons } from "@expo/vector-icons";
-import axios from "axios";
 import { subscribeToTopic } from '@/hooks/usePushNotifications';
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useRef, useState } from "react";
@@ -95,9 +93,8 @@ const VerifySignIn = () => {
     setIsVerifying(true);
     try {
       const response = await verifyOTP(email, verificationCode);
-
+      console.log('✅ Verify response:', response);
       if (response.success && response.user) {
-        // Subscribe to push notification topics
         try {
           await subscribeToTopic('all_users');
           await subscribeToTopic('announcements');
