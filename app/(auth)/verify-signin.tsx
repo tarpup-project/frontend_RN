@@ -1,6 +1,7 @@
 import { Text } from "@/components/Themedtext";
 import { UrlConstants } from "@/constants/apiUrls";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useAuth } from "@/hooks/useAuth";
 import { useAuthStore } from "@/state/authStore";
 import { saveUserData } from "@/utils/storage";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,6 +24,7 @@ const VerifySignIn = () => {
   const { isDark } = useTheme();
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { verifyOTP, resendOTP } = useAuth();
 
   const email = params.email as string;
   const [code, setCode] = useState(["", "", "", "", "", ""]);
@@ -92,27 +94,19 @@ const VerifySignIn = () => {
   
     setIsVerifying(true);
     try {
-      const response = await axios.post(`${UrlConstants.baseUrl}/user/verify`, {
-        email: email,
-        token: verificationCode,
-      });
-  
-      if (response.data.status === "success") {
-        const userData = response.data.data;
-        await saveUserData(userData);
-        useAuthStore.getState().setUser(userData);
-  
+      const response = await verifyOTP(email, verificationCode);
+
+      if (response.success && response.user) {
         // Subscribe to push notification topics
         try {
           await subscribeToTopic('all_users');
           await subscribeToTopic('announcements');
           
-          if (userData.universityID) {
-            await subscribeToTopic(`university_${userData.universityID}`);
+          if (response.user.universityID) {
+            await subscribeToTopic(`university_${response.user.universityID}`);
           }
         } catch (error) {
           console.error('Failed to subscribe to topics:', error);
-          // Don't block login if topic subscription fails
         }
   
         toast.success("Welcome back!", {
@@ -140,16 +134,9 @@ const VerifySignIn = () => {
   const handleResendCode = async () => {
     setIsResending(true);
     try {
-      const response = await axios.post(
-        `${UrlConstants.baseUrl}/user/resend-otp`,
-        {
-          email: email,
-          mode: "signin",
-        }
-      );
-      console.log(email, response);
+      const response = await resendOTP(email, 'signin');
 
-      if (response.data.status === "success") {
+      if (response.success) {
         toast.success("Code resent!", {
           description: "Check your email for the new code",
         });

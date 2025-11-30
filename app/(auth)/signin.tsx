@@ -1,6 +1,7 @@
 import { Text } from "@/components/Themedtext";
 import { UrlConstants } from "@/constants/apiUrls";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useAuth } from "@/hooks/useAuth";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import { useRouter } from "expo-router";
@@ -19,6 +20,7 @@ import { toast } from "sonner-native";
 const SignIn = () => {
   const { isDark } = useTheme();
   const router = useRouter();
+  const { login } = useAuth();
 
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -70,11 +72,9 @@ const SignIn = () => {
 
     setIsLoading(true);
     try {
-      const response = await axios.post(`${UrlConstants.baseUrl}/user/login`, {
-        email: email,
-      });
+      const response = await login(email);
 
-      if (response.data.status === "success") {
+      if (response.success) {
         toast.success("Verification code sent!", {
           description: "Check your email for the 6-digit code",
         });
