@@ -18,18 +18,24 @@ const queryClient = new QueryClient();
 
 function RootLayoutContent() {
   const { isDark } = useTheme();
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isAuthenticated, isLoading, isHydrated, hydrate } = useAuthStore();
   const segments = useSegments();
   const router = useRouter(); 
 
   useEffect(() => {
-    if (!isLoading) {
-      SplashScreen.hideAsync();
-    }
-  }, [isLoading]);
+    console.log('🚀 App mounted, triggering hydration...');
+    hydrate();
+  }, []);
+
 
   useEffect(() => {
-    if (isLoading) {
+    if (!isLoading && isHydrated) {
+      SplashScreen.hideAsync();
+    }
+  }, [isLoading, isHydrated]);
+
+  useEffect(() => {
+    if (isLoading || !isHydrated) {
       return;
     }
 
@@ -38,10 +44,10 @@ function RootLayoutContent() {
     if (isAuthenticated && inAuthGroup) {
       router.replace("/(tabs)/prompts");
     }
-  }, [isAuthenticated, isLoading, segments, router]);
+  }, [isAuthenticated, isLoading, isHydrated, segments, router]);
 
 
-  if (isLoading) {
+  if (isLoading || !isHydrated) {
     return (
       <View
         style={{
