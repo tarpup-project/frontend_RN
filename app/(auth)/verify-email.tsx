@@ -2,6 +2,7 @@ import { Text } from "@/components/Themedtext";
 import { UrlConstants } from "@/constants/apiUrls";
 import { useTheme } from "@/contexts/ThemeContext";
 import { saveUserData } from "@/utils/storage";
+import { useAuth } from "@/hooks/useAuth";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -26,6 +27,7 @@ const VerifyEmail = () => {
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const { verifyOTP, resendOTP } = useAuth();
 
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
@@ -95,15 +97,9 @@ const VerifyEmail = () => {
 
     setIsVerifying(true);
     try {
-      const response = await axios.post(`${UrlConstants.baseUrl}/user/verify`, {
-        email: email,
-        token: verificationCode,
-      });
+      const response = await verifyOTP(email, verificationCode);
 
-      if (response.data.status === "success") {
-        const userData = response.data.data;
-        await saveUserData(userData);
-
+      if (response.success) {
         toast.success("Email verified!", {
           description: "Your account has been created successfully",
         });
@@ -126,18 +122,13 @@ const VerifyEmail = () => {
     }
   };
 
+
   const handleResendCode = async () => {
     setIsResending(true);
     try {
-      const response = await axios.post(
-        `${UrlConstants.baseUrl}/user/resend-otp`,
-        {
-          email: email,
-          mode: "signup",
-        }
-      );
+      const response = await resendOTP(email, 'signup');
 
-      if (response.data.status === "success") {
+      if (response.success) {
         toast.success("Code resent!", {
           description: "Check your email for the new code",
         });
