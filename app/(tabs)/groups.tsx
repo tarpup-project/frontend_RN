@@ -133,10 +133,18 @@ const Groups = () => {
     isLoading,
     isError,
     refetch,
-    isRefetching,
+   // isRefetching,
   } = useGroups();
   const [dropdownVisible, setDropdownVisible] = useState<string | null>(null);
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
   const { selectedUniversity } = useCampus();
+
+  const handleManualRefresh = async () => {
+    setIsManualRefreshing(true);
+    await refetch();
+    setIsManualRefreshing(false);
+  };
+
 
   const toggleDropdown = (groupId: string) => {
     setDropdownVisible(dropdownVisible === groupId ? null : groupId);
@@ -211,7 +219,7 @@ const Groups = () => {
       <ScrollView
         style={styles.content}
         refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
+          <RefreshControl refreshing={isManualRefreshing} onRefresh={handleManualRefresh} />
         }
       >
         <View style={styles.headerSection}>

@@ -1,9 +1,7 @@
 import { Text } from "@/components/Themedtext";
-import { UrlConstants } from "@/constants/apiUrls";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/hooks/useAuth";
 import { Ionicons } from "@expo/vector-icons";
-import axios from "axios";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -73,8 +71,8 @@ const SignIn = () => {
     setIsLoading(true);
     try {
       const response = await login(email);
-
-      if (response.success) {
+        if(response.success) {
+        console.log("Response success",response.success)
         toast.success("Verification code sent!", {
           description: "Check your email for the 6-digit code",
         });

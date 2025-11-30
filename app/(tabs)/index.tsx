@@ -16,7 +16,6 @@ import { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Image,
-  //Pressable,
   TouchableOpacity,
   ScrollView,
   StyleSheet,

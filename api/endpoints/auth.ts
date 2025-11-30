@@ -34,10 +34,15 @@ export class AuthAPI {
 
 
   static async login(email: string): Promise<LoginResponse> {
-    const response = await api.post<LoginResponse>(UrlConstants.loginUser, {
-      email,
-    });
-    return response.data;
+    const response = await api.post<{ status: string; data: string }>(
+      UrlConstants.loginUser,
+      { email }
+    );
+    
+    return {
+      message: response.data.data,
+      success: response.data.status === 'success',
+    };
   }
 
 
@@ -48,7 +53,9 @@ export class AuthAPI {
     });
 
 
+  console.log('🔍 Raw verify response:', JSON.stringify(response.data, null, 2));
     const userData = response.data.data;
+    console.log('👤 userData:', JSON.stringify(userData, null, 2));
     if (userData) {
       if (userData.authToken) {
         await saveAccessToken(userData.authToken);

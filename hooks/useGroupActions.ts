@@ -22,10 +22,8 @@ export const useGroupActions = () => {
     setIsJoining(true);
     try {
       await api.post(UrlConstants.fetchInviteGroupDetails(groupID), {});
-      
-      // Subscribe to group notifications
-      await subscribeToTopic(`group_${groupID}`);
-      
+
+      await subscribeToTopic(`group_${groupID}`);      
       toast.success("You have joined the group");
       return true;
     } catch (error) {
