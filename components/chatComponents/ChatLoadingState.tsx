@@ -66,12 +66,6 @@ export const ChatLoadingState: React.FC = () => {
             ))}
         </View>
       </View>
-
-      <View style={styles.inputSection}>
-        <Skeleton width={24} height={24} borderRadius={12} />
-        <Skeleton height={44} borderRadius={22} style={{ flex: 1 }} />
-        <Skeleton width={44} height={44} borderRadius={22} />
-      </View>
     </View>
   );
 };
