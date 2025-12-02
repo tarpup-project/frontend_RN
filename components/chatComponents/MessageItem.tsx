@@ -349,7 +349,6 @@ const styles = StyleSheet.create({
   },
   myReplyReference: {
     alignSelf: "flex-end",
-    alignItems: "flex-end",
   },
   senderName: {
     fontSize: 12,
