@@ -1,6 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { UrlConstants } from '../constants/apiUrls';
-import { clearUserData } from '../utils/storage';
+import { clearUserData ,getAccessToken, saveAccessToken} from '../utils/storage';
 import { useAuthStore } from '../state/authStore';
 
 
@@ -31,6 +31,17 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
+api.interceptors.request.use(
+  async (config) => {
+    const accessToken = await getAccessToken();
+    if (accessToken && !config.url?.includes('/refresh-token')) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
@@ -49,7 +60,11 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        await api.post(UrlConstants.refreshToken);
+        const refreshResponse = await api.post(UrlConstants.refreshToken);
+
+        if (refreshResponse.data?.token) {
+          await saveAccessToken(refreshResponse.data.token);
+        }   
         
         processQueue(null);
         return api(originalRequest);    

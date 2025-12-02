@@ -1,3 +1,4 @@
+import { FileData, ReplyData } from "@/components/chatComponents/chatTypes";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useRef } from "react";
@@ -13,7 +14,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { FileData, ReplyData } from "@/components/chatComponents/chatTypes";
 
 interface MessageInputProps {
   message: string;
@@ -126,7 +126,11 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             />
           )}
           <Pressable onPress={onCancelReply} style={styles.cancelReply}>
-          <Ionicons name="close" size={20} color={dynamicStyles.subtitle.color} />
+            <Ionicons
+              name="close"
+              size={20}
+              color={dynamicStyles.subtitle.color}
+            />
           </Pressable>
         </View>
       )}
@@ -145,18 +149,18 @@ export const MessageInput: React.FC<MessageInputProps> = ({
               {selectedFile.name}
             </Text>
             <Text style={[styles.fileSize, dynamicStyles.subtitle]}>
-  {selectedFile.size} bytes
-</Text>
+              {selectedFile.size} bytes
+            </Text>
           </View>
           <Pressable onPress={onRemoveFile} style={styles.removeFile}>
-          <Ionicons name="close" size={24} color="#FF3B30" /> 
+            <Ionicons name="close" size={24} color="#FF3B30" />
           </Pressable>
         </View>
       )}
 
       <View style={styles.inputSection}>
         <Pressable style={styles.attachButton} onPress={handleAttachment}>
-        <Ionicons name="attach" size={24} color={dynamicStyles.text.color} />
+          <Ionicons name="attach" size={24} color={dynamicStyles.text.color} />
         </Pressable>
         <TextInput
           ref={textInputRef}
@@ -201,7 +205,11 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             onPress={onSend}
             disabled={!message.trim() && !selectedFile}
           >
-            <Ionicons name="send" size={20} color={dynamicStyles.sendIcon.color} />
+            <Ionicons
+              name="send"
+              size={20}
+              color={dynamicStyles.sendIcon.color}
+            />
           </Pressable>
         )}
       </View>

@@ -162,6 +162,14 @@ export const getRefreshToken = async (): Promise<string | null> => {
   return await storage.getSecureValue('refreshToken');
 };
 
+export const saveSocketToken = async (token: string) => {
+  await storage.setSecureValue('socketToken', token);
+};
+
+export const getSocketToken = async (): Promise<string | null> => {
+  return await storage.getSecureValue('socketToken');
+};
+
 export const saveTokens = async (accessToken: string, refreshToken: string) => {
   await storage.setSecureValue('accessToken', accessToken);
   await storage.setSecureValue('refreshToken', refreshToken);
@@ -170,5 +178,6 @@ export const saveTokens = async (accessToken: string, refreshToken: string) => {
 export const clearUserData = async () => {
   await storage.deleteSecureValue('accessToken');
   await storage.deleteSecureValue('refreshToken');
+  await storage.deleteSecureValue('socketToken');
   await storage.deleteValue(StorageKeys.USER_DATA);
 };

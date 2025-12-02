@@ -9,10 +9,10 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
-  Platform,
   TextInput,
   View,
 } from "react-native";
@@ -83,7 +83,7 @@ const Signup = () => {
     },
     checkedBox: {
       backgroundColor: isDark ? "#FFFFFF" : "#000000",
-      borderColor: isDark ? "#FFFFFF" : "#000000", 
+      borderColor: isDark ? "#FFFFFF" : "#000000",
     },
   };
 
@@ -351,7 +351,11 @@ const Signup = () => {
                 ]}
               >
                 {isAdult && (
-                  <Ionicons name="checkmark" size={10} color="#FFFFFF" />
+                  <Ionicons
+                    name="checkmark"
+                    size={10}
+                    color={isDark ? "#0a0a0a" : "#FFFFFF"}
+                  />
                 )}
               </View>
               <Text style={[styles.checkboxText, dynamicStyles.text]}>
@@ -371,7 +375,11 @@ const Signup = () => {
                 ]}
               >
                 {acceptsResponsibility && (
-                  <Ionicons name="checkmark" size={10} color="#FFFFFF" />
+                  <Ionicons
+                    name="checkmark"
+                    size={10}
+                    color={isDark ? "#0a0a0a" : "#FFFFFF"}
+                  />
                 )}
               </View>
               <Text style={[styles.checkboxText, dynamicStyles.text]}>
@@ -501,12 +509,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    height: Platform.OS === 'ios' ? 35 : 41,
+    height: Platform.OS === "ios" ? 35 : 41,
     borderRadius: 8,
     borderWidth: 1,
     paddingHorizontal: 16,
     fontSize: 16,
-    
   },
   dropdown: {
     height: 41,
@@ -532,10 +539,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     overflow: "hidden",
-    maxHeight: 200, 
+    maxHeight: 200,
   },
   dropdownScroll: {
-    maxHeight: 200, 
+    maxHeight: 200,
   },
   dropdownItem: {
     flexDirection: "row",

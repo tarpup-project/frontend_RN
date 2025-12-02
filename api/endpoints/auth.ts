@@ -11,7 +11,7 @@ import {
   SignupRequest,
   SignupResponse,
 } from '../../types/auth';
-import { saveAuthToken, saveUserData, clearUserData, saveAccessToken } from '../../utils/storage';
+import { saveAuthToken, saveUserData, clearUserData, saveAccessToken, saveSocketToken, saveRefreshToken } from '../../utils/storage';
 
 export class AuthAPI {
 
@@ -47,31 +47,36 @@ export class AuthAPI {
 
 
   static async verifyOTP(email: string, otp: string): Promise<VerifyOTPResponse> {
-    const response = await api.post<{ data: AuthUserInterface }>(UrlConstants.verifyOTP, {
+    const response = await api.post<{ 
+      status: string; 
+      data: { 
+        user: AuthUserInterface;
+        authTokens: {
+          accessToken: string;
+          refreshToken: string;
+          socketToken: string;
+        }
+      }
+    }>(UrlConstants.verifyOTP, {
       email,
       token: otp, 
     });
-
-
-  console.log('🔍 Raw verify response:', JSON.stringify(response.data, null, 2));
-    const userData = response.data.data;
-    console.log('👤 userData:', JSON.stringify(userData, null, 2));
-    if (userData) {
-      if (userData.authToken) {
-        await saveAccessToken(userData.authToken);
-        console.log('💾 Saved token:', userData.authToken.substring(0, 20) + '...');
-      } else {
-        console.log('⚠️ No authToken in response');
-      }
-      await saveUserData(userData);
-      console.log('💾 Saved user data:', userData.email);
+  
+    const { user, authTokens } = response.data.data;
+    
+    if (user && authTokens) {
+      await saveAccessToken(authTokens.accessToken);
+      await saveRefreshToken(authTokens.refreshToken);
+      await saveSocketToken(authTokens.socketToken); 
+      await saveUserData(user);
+      console.log('💾 Saved tokens and user data:', user.email);
     }
-
+  
     return {
-      user: userData,
-      token: userData.authToken || '',
+      user,
+      token: authTokens.accessToken,
       message: 'Verification successful',
-      success: true,
+      success: response.data.status === 'success',
     };
   }
 

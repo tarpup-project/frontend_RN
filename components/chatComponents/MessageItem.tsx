@@ -131,11 +131,11 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                 style={styles.replyButton}
               >
                 <Ionicons
-  name="arrow-undo-outline"
-  size={18}
-  color={dynamicStyles.subtitle.color}
-  style={{ opacity: 0.8 }}
-/>
+                  name="arrow-undo-outline"
+                  size={18}
+                  color={dynamicStyles.subtitle.color}
+                  style={{ opacity: 0.8 }}
+                />
               </Pressable>
             )}
 
@@ -195,20 +195,18 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                 </Text>
               )}
 
-              {msg.file && (
-                <GestureDetector
-                  gesture={Gesture.Tap().onEnd(() => {
-                    runOnJS(onImagePress)(msg.file!.data);
-                  })}
-                >
-                  <View>
-                    <Image
-                      source={{ uri: msg.file.data }}
-                      style={styles.messageImage}
-                    />
-                  </View>
-                </GestureDetector>
-              )}
+{msg.file && (
+  <GestureDetector
+    gesture={Gesture.Tap().onEnd(() => {
+      runOnJS(onImagePress)(msg.file!.data);
+    })}
+  >
+    <Image
+      source={{ uri: msg.file.data }}
+      style={styles.messageImage}
+    />
+  </GestureDetector>
+)}
 
               {msg.text && (
                 <View>
@@ -240,12 +238,12 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                 onPress={() => onReply(msg.rawMessage)}
                 style={styles.replyButton}
               >
-               <Ionicons
-  name="arrow-undo-outline"
-  size={18}
-  color={dynamicStyles.subtitle.color}
-  style={{ opacity: 0.8 }}
-/>
+                <Ionicons
+                  name="arrow-undo-outline"
+                  size={18}
+                  color={dynamicStyles.subtitle.color}
+                  style={{ opacity: 0.8 }}
+                />
               </Pressable>
             )}
           </View>
@@ -305,6 +303,23 @@ const styles = StyleSheet.create({
     maxWidth: "100%",
     alignSelf: "flex-start",
   },
+  // captionContainer: {
+  //   marginTop: 6,
+  // },
+  // imageContainer: {
+  //   marginTop: 6,
+  //   marginBottom: 6,
+  //   borderRadius: 12,
+  //   overflow: "hidden",
+  //   maxWidth: 250,
+  // },
+
+  messageImage: {
+    width: 200,
+    height: 200,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
   senderName: {
     fontSize: 12,
     fontWeight: "600",
@@ -327,12 +342,6 @@ const styles = StyleSheet.create({
   },
   myMessageTime: {
     alignSelf: "flex-end",
-  },
-  messageImage: {
-    width: 200,
-    height: 200,
-    borderRadius: 12,
-    marginBottom: 8,
   },
   replyReference: {
     flexDirection: "row",
