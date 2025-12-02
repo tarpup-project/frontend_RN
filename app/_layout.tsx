@@ -10,7 +10,7 @@ import React, { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Toaster } from "sonner-native";
-import { AuthProvider } from "@/contexts/Authprovider";
+
 
 SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient();
@@ -96,7 +96,6 @@ export default function RootLayout() {
   }, [expoPushToken]);
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
         <GestureHandlerRootView style={{ flex: 1 }}>
           <SafeAreaProvider>
             <ThemeProvider>
@@ -104,7 +103,6 @@ export default function RootLayout() {
             </ThemeProvider>
           </SafeAreaProvider>
         </GestureHandlerRootView>
-      </AuthProvider>
     </QueryClientProvider>
   );
 }
