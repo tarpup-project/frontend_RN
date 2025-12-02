@@ -1,11 +1,11 @@
 import Header from "@/components/Header";
 import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
+import { useRouter } from "expo-router";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useCampus } from "@/hooks/useCampus";
 import { transformGroupForUI, useGroups } from "@/hooks/useGroups";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
 import { useState } from "react";
 import {
   Image,
@@ -133,18 +133,18 @@ const Groups = () => {
     isLoading,
     isError,
     refetch,
-   // isRefetching,
+    // isRefetching,
   } = useGroups();
   const [dropdownVisible, setDropdownVisible] = useState<string | null>(null);
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
   const { selectedUniversity } = useCampus();
+  const router = useRouter();
 
   const handleManualRefresh = async () => {
     setIsManualRefreshing(true);
     await refetch();
     setIsManualRefreshing(false);
   };
-
 
   const toggleDropdown = (groupId: string) => {
     setDropdownVisible(dropdownVisible === groupId ? null : groupId);
@@ -219,7 +219,10 @@ const Groups = () => {
       <ScrollView
         style={styles.content}
         refreshControl={
-          <RefreshControl refreshing={isManualRefreshing} onRefresh={handleManualRefresh} />
+          <RefreshControl
+            refreshing={isManualRefreshing}
+            onRefresh={handleManualRefresh}
+          />
         }
       >
         <View style={styles.headerSection}>
@@ -296,131 +299,155 @@ const Groups = () => {
             groups &&
             groups.length > 0 &&
             groups
-    .slice() 
-    .sort((a, b) => {
-      if (a.unread > 0 && b.unread === 0) return -1;
-      if (a.unread === 0 && b.unread > 0) return 1;      
+              .slice()
+              .sort((a, b) => {
+                if (a.unread > 0 && b.unread === 0) return -1;
+                if (a.unread === 0 && b.unread > 0) return 1;
 
-      if (a.unread > 0 && b.unread > 0) {
-        return b.unread - a.unread;
-      }
-      
-      const dateA = new Date(a.lastMessageAt || a.createdAt).getTime();
-      const dateB = new Date(b.lastMessageAt || b.createdAt).getTime();
-      return dateB - dateA;
-    })
-            .map(transformGroupForUI).map((group) => {
-              return (
-                <View
-                  key={group.id}
-                  style={[styles.groupCard, dynamicStyles.card]}
-                >
-                  <View style={styles.topRow}>
-                    <View
-                      style={[
-                        styles.categoryBadge,
-                        dynamicStyles.categoryBadge,
-                      ]}
-                    >
-                      <Ionicons
-  name={getIconComponent(group.rawGroup.category[0].icon) as any}
-  size={12}
-  color={group.rawGroup.category[0].colorHex}
-/>
-                      <Text
+                if (a.unread > 0 && b.unread > 0) {
+                  return b.unread - a.unread;
+                }
+
+                const dateA = new Date(
+                  a.lastMessageAt || a.createdAt
+                ).getTime();
+                const dateB = new Date(
+                  b.lastMessageAt || b.createdAt
+                ).getTime();
+                return dateB - dateA;
+              })
+              .map(transformGroupForUI)
+              .map((group) => {
+                return (
+                  <Pressable
+  key={group.id}
+  style={[styles.groupCard, dynamicStyles.card]}
+  onPress={() => {
+    router.push({
+      pathname: `/group-chat/${group.id}` as any,
+      params: {
+        groupData: JSON.stringify(group.rawGroup),
+      },
+    });
+  }}
+>
+
+                    <View style={styles.topRow}>
+                      <View
                         style={[
-                          styles.categoryText,
-                          dynamicStyles.categoryBadgeText,
+                          styles.categoryBadge,
+                          dynamicStyles.categoryBadge,
                         ]}
                       >
-                        {group.category}
-                      </Text>
-                    </View>
+                        <Ionicons
+                          name={
+                            getIconComponent(
+                              group.rawGroup.category[0].icon
+                            ) as any
+                          }
+                          size={12}
+                          color={group.rawGroup.category[0].colorHex}
+                        />
+                        <Text
+                          style={[
+                            styles.categoryText,
+                            dynamicStyles.categoryBadgeText,
+                          ]}
+                        >
+                          {group.category}
+                        </Text>
+                      </View>
 
-                    <View style={[styles.matchBadge, dynamicStyles.matchBadge]}>
-                      <Ionicons
-                        name="star-outline"
-                        size={12}
-                        color={dynamicStyles.matchText.color}
-                      />
-                      <Text style={[styles.matchText, dynamicStyles.matchText]}>
-                        {group.matchPercentage} match
-                      </Text>
-                    </View>
-                  </View>
-
-                  <Text style={[styles.groupTitle, dynamicStyles.text]}>
-                    {group.title}
-                  </Text>
-                  <Text
-                    style={[styles.groupDescription, dynamicStyles.subtitle]}
-                  >
-                    {group.description}
-                  </Text>
-
-                  <View style={styles.membersRow}>
-                    <View style={styles.avatarsContainer}>
-                      {group.rawGroup.members
-                        .slice(0, 3)
-                        .map((member, index) => (
-                          <View
-                            key={member.id}
-                            style={[
-                              styles.avatar,
-                              {
-                                backgroundColor: member.bgUrl
-                                  ? "transparent"
-                                  : group.avatarColors[index],
-                              },
-                              dynamicStyles.avatarBorder,
-                              index > 0 && { marginLeft: -8 },
-                            ]}
-                          >
-                            {member.bgUrl ? (
-                              <Image
-                                source={{ uri: member.bgUrl }}
-                                style={styles.avatarImage}
-                              />
-                            ) : (
-                              <Text style={styles.avatarText}>
-                                {member.fname[0].toUpperCase()}
-                              </Text>
-                            )}
-                          </View>
-                        ))}
-                      <Text
-                        style={[styles.membersText, dynamicStyles.subtitle]}
+                      <View
+                        style={[styles.matchBadge, dynamicStyles.matchBadge]}
                       >
-                        {group.members}{" "}
-                        {group.members === 1 ? "member" : "members"}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.footerRow}>
-                    <View style={styles.activeRow}>
-                      <Ionicons
-                        name="time-outline"
-                        size={14}
-                        color={dynamicStyles.subtitle.color}
-                      />
-                      <Text style={[styles.activeText, dynamicStyles.subtitle]}>
-                        {group.activeTime}
-                      </Text>
+                        <Ionicons
+                          name="star-outline"
+                          size={12}
+                          color={dynamicStyles.matchText.color}
+                        />
+                        <Text
+                          style={[styles.matchText, dynamicStyles.matchText]}
+                        >
+                          {group.matchPercentage} match
+                        </Text>
+                      </View>
                     </View>
 
-                    <View
-                      style={[styles.unreadBadge, dynamicStyles.unreadBadge]}
+                    <Text style={[styles.groupTitle, dynamicStyles.text]}>
+                      {group.title}
+                    </Text>
+                    <Text
+                      style={[styles.groupDescription, dynamicStyles.subtitle]}
                     >
-                      <Text
-                        style={[styles.unreadText, dynamicStyles.unreadText]}
-                      >
-                        {group.unreadCount} new messages
-                      </Text>
-                    </View>
-                  </View>
+                      {group.description}
+                    </Text>
 
-                  <Pressable
+                    <View style={styles.membersRow}>
+                      <View style={styles.avatarsContainer}>
+                        {group.rawGroup.members
+                          .slice(0, 3)
+                          .map((member, index) => (
+                            <View
+                              key={member.id}
+                              style={[
+                                styles.avatar,
+                                {
+                                  backgroundColor: member.bgUrl
+                                    ? "transparent"
+                                    : group.avatarColors[index],
+                                },
+                                dynamicStyles.avatarBorder,
+                                index > 0 && { marginLeft: -8 },
+                              ]}
+                            >
+                              {member.bgUrl ? (
+                                <Image
+                                  source={{ uri: member.bgUrl }}
+                                  style={styles.avatarImage}
+                                />
+                              ) : (
+                                <Text style={styles.avatarText}>
+                                  {member.fname[0].toUpperCase()}
+                                </Text>
+                              )}
+                            </View>
+                          ))}
+                        <Text
+                          style={[styles.membersText, dynamicStyles.subtitle]}
+                        >
+                          {group.members}{" "}
+                          {group.members === 1 ? "member" : "members"}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.footerRow}>
+                      <View style={styles.activeRow}>
+                        <Ionicons
+                          name="time-outline"
+                          size={14}
+                          color={dynamicStyles.subtitle.color}
+                        />
+                        <Text
+                          style={[styles.activeText, dynamicStyles.subtitle]}
+                        >
+                          {group.activeTime}
+                        </Text>
+                      </View>
+
+                      <View
+                        style={[styles.unreadBadge, dynamicStyles.unreadBadge]}
+                      >
+                        <Text
+                          style={[styles.unreadText, dynamicStyles.unreadText]}
+                        >
+                          {group.unreadCount} new messages
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* <Pressable
                     style={[styles.openButton, dynamicStyles.openButton]}
                     onPress={() => {
                       router.push({
@@ -444,10 +471,10 @@ const Groups = () => {
                     >
                       Open Chat
                     </Text>
+                  </Pressable> */}
                   </Pressable>
-                </View>
-              );
-            })}
+                );
+              })}
         </View>
       </ScrollView>
     </View>

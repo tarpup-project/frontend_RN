@@ -1,10 +1,10 @@
 // app/test-notifications.tsx
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { useNotifications } from '@/hooks/usePushNotifications';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 export default function TestNotificationsScreen() {
-  const { expoPushToken, notification } = useNotifications();
+  const { expoPushToken, notification } = usePushNotifications();
 
   return (
     <ScrollView style={styles.container}>

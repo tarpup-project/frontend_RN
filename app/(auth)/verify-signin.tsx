@@ -1,8 +1,6 @@
 import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/hooks/useAuth";
-import { useAuthStore } from "@/state/authStore";
-import { saveUserData } from "@/utils/storage";
 import { Ionicons } from "@expo/vector-icons";
 import { subscribeToTopic } from '@/hooks/usePushNotifications';
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -93,7 +91,6 @@ const VerifySignIn = () => {
     setIsVerifying(true);
     try {
       const response = await verifyOTP(email, verificationCode);
-      console.log('✅ Verify response:', response);
       if (response.success && response.user) {
         try {
           await subscribeToTopic('all_users');

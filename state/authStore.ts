@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { AuthUserInterface } from '../types/auth';
-import { getUserData, clearUserData, getAccessToken, saveUserData } from '../utils/storage';
+import { getUserData, clearUserData, getAccessToken, saveUserData, getRefreshToken } from '../utils/storage';
 
 interface AuthState {
   user: AuthUserInterface | undefined;
@@ -41,34 +41,60 @@ export const useAuthStore = create<AuthState>((set) => ({
       isAuthenticated: false,
     });
   },
-  hydrate: async () => {
-    set({ isLoading: true });
-    try {
-      const [userData, token] = await Promise.all([
-        getUserData(),
-        getAccessToken()
-      ]);
 
-      console.log('🔍 Hydrating auth state...');
-    console.log('📦 userData:', userData);
-    console.log('🔑 token:', token ? 'exists' : 'null');
+
+  hydrate: async () => {
+    set({ isLoading: true, isHydrated: false });
+    
+    try {
+      const accessToken = await getAccessToken();
+      const refreshToken = await getRefreshToken();
       
-      if (userData && token) {
-        console.log('✅ Restoring session for:', userData);
-        set({
-          user: userData as AuthUserInterface,
-          isAuthenticated: true,
-          isHydrated: true,
-        });
+      console.log('🔍 Hydrating auth state...');
+      console.log('🔑 accessToken:', accessToken ? 'exists' : 'null');
+      console.log('🔑 refreshToken:', refreshToken ? 'exists' : 'null');
+      
+      if (accessToken && refreshToken) {
+        try {
+          console.log('🔄 Validating tokens with fetchAuthUser...');
+
+          const { AuthAPI } = await import('../api/endpoints/auth');
+          const user = await AuthAPI.fetchAuthUser();
+          
+          console.log('✅ Auto-login successful:', user.email);
+          set({ 
+            user, 
+            isAuthenticated: true, 
+            isLoading: false, 
+            isHydrated: true 
+          });
+        } catch (error) {
+          console.log('❌ Token validation failed, clearing data');
+          await clearUserData();
+          set({ 
+            user: undefined, 
+            isAuthenticated: false, 
+            isLoading: false, 
+            isHydrated: true 
+          });
+        }
       } else {
-        console.log('❌ No session to restore');
-        set({ isHydrated: true });
+        console.log('ℹ️ No tokens found, user needs to login');
+        set({ 
+          user: undefined, 
+          isAuthenticated: false, 
+          isLoading: false, 
+          isHydrated: true 
+        });
       }
     } catch (error) {
-      console.error('Error hydrating auth state:', error);
-      set({ isHydrated: true });
-    } finally {
-      set({ isLoading: false });
+      console.error('❌ Hydration error:', error);
+      set({ 
+        user: undefined, 
+        isAuthenticated: false, 
+        isLoading: false, 
+        isHydrated: true 
+      });
     }
   },
 }));

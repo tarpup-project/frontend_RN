@@ -498,18 +498,18 @@ const Chat = () => {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {isLoading ? (
-          <>
-            <QuickStartSkeleton />
-            {Array(4)
-              .fill(0)
-              .map((_, i) => (
-                <MessageSkeleton key={i} isUser={i % 3 === 0} />
-              ))}
-          </>
-        ) : (
-          <>
-            {messages.length === 0 ? (
+       {isLoading ? (
+  <>
+    <QuickStartSkeleton />
+    {Array(4)
+      .fill(0)
+      .map((_, i) => (
+        <MessageSkeleton key={i} isUser={i % 3 === 0} />
+      ))}
+  </>
+) : (
+  <>
+    {messages.length === 0 || (messages.length === 1 && messages[0].id === '-1') ? (
               <View style={styles.quickStartSection}>
                 <Text style={[styles.sectionTitle, dynamicStyles.text]}>
                   Quick Start

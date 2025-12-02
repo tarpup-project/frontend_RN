@@ -10,6 +10,8 @@ export const groupsKeys = {
   list: (campusId?: string) => [...groupsKeys.lists(), campusId] as const,
   details: () => [...groupsKeys.all, 'detail'] as const,
   detail: (id: string) => [...groupsKeys.details(), id] as const,
+  messages: () => [...groupsKeys.all, 'messages'] as const,
+  messageList: (groupId: string) => [...groupsKeys.messages(), groupId] as const,
 };
 
 const fetchGroups = async (campusId?: string): Promise<Group[]> => {
