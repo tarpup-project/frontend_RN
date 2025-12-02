@@ -1,3 +1,4 @@
+
 import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
@@ -56,10 +57,10 @@ export const MessageItem: React.FC<MessageItemProps> = ({
 
   const dynamicStyles = {
     myMessage: {
-      backgroundColor: isDark ? "#FFFFFF" : "#000000",
+      backgroundColor: isDark ? "#262626" : "#262626",
     },
     myMessageText: {
-      color: isDark ? "#000000" : "#FFFFFF",
+      color: isDark ? "#FFFFFF" : "#FFFFFF",
     },
     theirMessage: {
       backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
@@ -167,25 +168,36 @@ export const MessageItem: React.FC<MessageItemProps> = ({
               </Pressable>
             )}
 
-            <View
-              style={[
-                styles.messageBubble,
-                msg.isMe ? dynamicStyles.myMessage : dynamicStyles.theirMessage,
-              ]}
-            >
+            <View style={styles.messageContent}>
               {msg.replyingTo && (
                 <Pressable
-                  style={styles.replyReference}
+                  style={[
+                    styles.replyReference,
+                    msg.isMe
+                      ? dynamicStyles.myMessage
+                      : dynamicStyles.theirMessage,
+                    msg.isMe && styles.myReplyReference,
+                  ]}
                   onPress={() => scrollToMessage(msg.replyingTo!.content.id)}
                 >
-                  <View style={styles.replyBar} />
-                  <Text
-                    style={[styles.replyRefText, dynamicStyles.subtitle]}
-                    numberOfLines={1}
-                  >
-                    {msg.replyingTo.sender.fname}:{" "}
-                    {msg.replyingTo.content.message}
-                  </Text>
+                  <View style={styles.replyContent}>
+                    <Text
+                      style={[
+                        styles.replyAuthor,
+                        msg.isMe
+                          ? dynamicStyles.myMessageText
+                          : dynamicStyles.theirMessageText,
+                      ]}
+                    >
+                      {msg.replyingTo.sender.fname}
+                    </Text>
+                    <Text
+                      style={[styles.replyText, dynamicStyles.subtitle]}
+                      numberOfLines={2}
+                    >
+                      {msg.replyingTo.content.message}
+                    </Text>
+                  </View>
                 </Pressable>
               )}
 
@@ -195,21 +207,29 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                 </Text>
               )}
 
-{msg.file && (
-  <GestureDetector
-    gesture={Gesture.Tap().onEnd(() => {
-      runOnJS(onImagePress)(msg.file!.data);
-    })}
-  >
-    <Image
-      source={{ uri: msg.file.data }}
-      style={styles.messageImage}
-    />
-  </GestureDetector>
-)}
+              {msg.file && (
+                <GestureDetector
+                  gesture={Gesture.Tap().onEnd(() => {
+                    runOnJS(onImagePress)(msg.file!.data);
+                  })}
+                >
+                  <Image
+                    source={{ uri: msg.file.data }}
+                    style={styles.messageImage}
+                  />
+                </GestureDetector>
+              )}
 
               {msg.text && (
-                <View>
+                <View
+                  style={[
+                    styles.messageBubble,
+                    msg.isMe
+                      ? dynamicStyles.myMessage
+                      : dynamicStyles.theirMessage,
+                    msg.file && styles.captionBubble,
+                  ]}
+                >
                   <Hyperlink
                     linkDefault={false}
                     onPress={(url) => onLinkPress(url)}
@@ -297,33 +317,45 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
   },
+  messageContent: {
+    width: "80%",
+    gap: 6,
+  },
   messageBubble: {
-    padding: 12,
-    borderRadius: 16,
-    maxWidth: "100%",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 15,
     alignSelf: "flex-start",
   },
-  // captionContainer: {
-  //   marginTop: 6,
-  // },
-  // imageContainer: {
-  //   marginTop: 6,
-  //   marginBottom: 6,
-  //   borderRadius: 12,
-  //   overflow: "hidden",
-  //   maxWidth: 250,
-  // },
-
+  captionBubble: {
+    marginTop: 0,
+  },
+  replyContent: {
+    flex: 1,
+  },
+  replyAuthor: {
+    fontSize: 11,
+    fontWeight: "600",
+    marginBottom: 2,
+  },
+  replyText: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
   messageImage: {
     width: 200,
     height: 200,
     borderRadius: 12,
-    marginBottom: 8,
+  },
+  myReplyReference: {
+    alignSelf: "flex-end",
+    alignItems: "flex-end",
   },
   senderName: {
     fontSize: 12,
     fontWeight: "600",
     marginBottom: 4,
+    marginLeft: 4,
   },
   messageText: {
     fontSize: 13,
@@ -345,22 +377,12 @@ const styles = StyleSheet.create({
   },
   replyReference: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     marginBottom: 8,
     padding: 8,
-    backgroundColor: "rgba(128, 128, 128, 0.1)",
+    borderLeftWidth: 3,
+    borderLeftColor: "#007AFF",
     borderRadius: 8,
-  },
-  replyBar: {
-    width: 3,
-    height: 30,
-    backgroundColor: "#007AFF",
-    marginRight: 8,
-    borderRadius: 1.5,
-  },
-  replyRefText: {
-    fontSize: 12,
-    flex: 1,
   },
   replyButton: {
     justifyContent: "flex-end",
