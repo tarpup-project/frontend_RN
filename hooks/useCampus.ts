@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
+import { storage, StorageKeys } from '@/utils/storage';
 import { UrlConstants } from '@/constants/apiUrls';
 import { useCampusStore } from '@/state/campusStore';
 import { useAuthStore } from '@/state/authStore';
@@ -33,21 +34,29 @@ export const useCampus = () => {
   });
 
   useEffect(() => {
-    if (
-      isHydrated &&
-      user?.universityID && 
-      universities.length > 0 && 
-      !selectedUniversity
-    ) {
-      const userUniversity = universities.find(
-        uni => uni.id === user.universityID
-      );
-
-      if (userUniversity) {
-        setSelectedUniversity(userUniversity);
-      } 
-    }
-  }, [user?.universityID, universities, selectedUniversity, isHydrated, setSelectedUniversity]);
+    const hydrateCampusSelection = async () => {
+      if (universities.length > 0 && !selectedUniversity && isHydrated) {
+        const storedId = await storage.getValue(StorageKeys.UNIVERSITY_ID);
+        
+        if (storedId) {
+          const university = universities.find(u => u.id === storedId);
+          if (university) {
+            setSelectedUniversity(university);
+            return;
+          }
+        }
+        
+        if (user?.universityID) {
+          const userUniversity = universities.find(u => u.id === user.universityID);
+          if (userUniversity) {
+            setSelectedUniversity(userUniversity);
+          }
+        }
+      }
+    };
+  
+    hydrateCampusSelection();
+  }, [universities, selectedUniversity, isHydrated, user?.universityID]);
 
   return {
     selectedUniversity,

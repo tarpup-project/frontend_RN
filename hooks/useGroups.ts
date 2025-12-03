@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/api/client';
+import moment from "moment"
 import { UrlConstants } from '@/constants/apiUrls';
 import { useCampus } from './useCampus';
 import { Group, GroupsResponse } from '@/types/groups';
@@ -98,22 +99,9 @@ export const transformGroupForUI = (group: Group) => {
 };
 
 const getTimeAgo = (dateString: string): string => {
-  const now = new Date();
-  const date = new Date(dateString);
-  const diffInMs = now.getTime() - date.getTime();
-  
-  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-  
-  if (diffInMinutes < 60) {
-    return `${diffInMinutes} minutes ago`;
-  } else if (diffInHours < 24) {
-    return `${diffInHours} hours ago`;
-  } else {
-    return `${diffInDays} days ago`;
-  }
+  return moment(dateString).fromNow();
 };
+
 
 const getCategoryIcon = (iconName?: string): string => {
   const iconMap: Record<string, string> = {
@@ -130,3 +118,5 @@ const getCategoryIcon = (iconName?: string): string => {
   
   return iconMap[iconName || ''] || 'pricetag-outline';
 };
+
+export { getTimeAgo}

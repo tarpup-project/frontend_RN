@@ -176,7 +176,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                     msg.isMe
                       ? dynamicStyles.myMessage
                       : dynamicStyles.theirMessage,
-                    msg.isMe && styles.myReplyReference,
+                   // msg.isMe && styles.myReplyReference,
                   ]}
                   onPress={() => scrollToMessage(msg.replyingTo!.content.id)}
                 >
@@ -318,14 +318,14 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   messageContent: {
-    width: "80%",
+    maxWidth: "100%",
     gap: 6,
   },
   messageBubble: {
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 15,
-    alignSelf: "flex-start",
+    alignItems: 'flex-start'
   },
   captionBubble: {
     marginTop: 0,
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   myReplyReference: {
-    alignSelf: "flex-end",
+   // alignSelf: "flex-end",
   },
   senderName: {
     fontSize: 12,
@@ -360,6 +360,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     marginBottom: 4,
+    textAlign: "left"
   },
   messageTime: {
     fontSize: 10,

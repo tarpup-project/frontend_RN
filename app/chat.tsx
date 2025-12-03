@@ -7,7 +7,7 @@ import { ImageUploadModal } from "@/components/ImageUploadModal";
 import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
 import { UrlConstants } from "@/constants/apiUrls";
-import { useTheme } from "@/contexts/ThemeContext"; 
+import { useTheme } from "@/contexts/ThemeContext";
 import { useImageUpload } from "@/hooks/useImageUpload";
 import { useMatchActions } from "@/hooks/useMatchActions";
 import { usePersonalChat } from "@/hooks/usePersonalChat";
@@ -86,10 +86,10 @@ const Chat = () => {
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     userMessage: {
-      backgroundColor: isDark ? "#FFFFFF" : "#0a0a0a",
+      backgroundColor: isDark ? "#262626" : "#262626",
     },
     userMessageText: {
-      color: isDark ? "#0a0a0a" : "#FFFFFF",
+      color: isDark ? "#FFFFFF" : "#FFFFFF",
     },
     aiMessageContainer: {
       backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
@@ -419,7 +419,11 @@ const Chat = () => {
         {isUser && (
           <View style={styles.avatarContainer}>
             <View style={styles.userAvatar}>
-            <Ionicons name="person-outline" size={20} color={dynamicStyles.text.color} />
+              <Ionicons
+                name="person-outline"
+                size={20}
+                color={dynamicStyles.text.color}
+              />
             </View>
           </View>
         )}
@@ -465,14 +469,18 @@ const Chat = () => {
                 onPress={() => setShowSettingsModal(true)}
                 hitSlop={10}
               >
-                <Ionicons name="settings-outline" size={16} color="#FFFFFF" />
+                <Ionicons name="settings-outline" size={20} color="#EF4444" />
               </Pressable>
               <Pressable
                 style={styles.clearButton}
                 onPress={() => setShowClearChatConfirm(true)}
                 hitSlop={10}
               >
-                <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                <Ionicons
+                  name="trash-outline"
+                  size={20}
+                  color={dynamicStyles.text.color}
+                />
               </Pressable>
               <Pressable
                 style={styles.closeButton}
@@ -498,18 +506,19 @@ const Chat = () => {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-       {isLoading ? (
-  <>
-    <QuickStartSkeleton />
-    {Array(4)
-      .fill(0)
-      .map((_, i) => (
-        <MessageSkeleton key={i} isUser={i % 3 === 0} />
-      ))}
-  </>
-) : (
-  <>
-    {messages.length === 0 || (messages.length === 1 && messages[0].id === '-1') ? (
+        {isLoading ? (
+          <>
+            <QuickStartSkeleton />
+            {Array(4)
+              .fill(0)
+              .map((_, i) => (
+                <MessageSkeleton key={i} isUser={i % 3 === 0} />
+              ))}
+          </>
+        ) : (
+          <>
+            {messages.length === 0 ||
+            (messages.length === 1 && messages[0].id === "-1") ? (
               <View style={styles.quickStartSection}>
                 <Text style={[styles.sectionTitle, dynamicStyles.text]}>
                   Quick Start
