@@ -6,13 +6,14 @@ import { UrlConstants } from '@/constants/apiUrls';
 
 // Configure how notifications are handled when app is in foreground
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
-
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
 /**
  * Request notification permissions from user
  * Returns true if granted, false otherwise
@@ -168,7 +169,7 @@ export async function setupNotifications(authToken: string): Promise<boolean> {
  * Firebase tokens can change, so we need to update the backend when that happens
  */
 export function setupTokenRefreshListener(authToken: string): () => void {
-  const unsubscribe = messaging().onTokenRefresh(async (newToken) => {
+  const unsubscribe = messaging().onTokenRefresh(async (newToken: string) => {
     console.log('🔄 FCM token refreshed:', newToken.substring(0, 20) + '...');
     await registerTokenWithBackend(newToken, authToken);
   });
