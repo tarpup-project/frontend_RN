@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { AuthUserInterface } from "../types/auth";
+import { setupNotifications } from "../utils/notifications";
 import { jwtDecode } from 'jwt-decode';
 import {
   clearUserData,
@@ -29,6 +30,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   setUser: (user) => {
     if (user) {
       saveUserData(user);
+      if (user.authToken) {
+        setupNotifications(user.authToken);
+      }
     }
     set({
       user,
@@ -83,15 +87,12 @@ export const useAuthStore = create<AuthState>((set) => ({
             isLoading: false,
             isHydrated: true,
           });
+          if (user.authToken) {
+            setupNotifications(user.authToken);
+          }
         } catch (error) {
           console.log("❌ Token validation failed, clearing data");
           await clearUserData();
-          set({
-            user: undefined,
-            isAuthenticated: false,
-            isLoading: false,
-            isHydrated: true,
-          });
         }
       } else {
         console.log("ℹ️ No tokens found, user needs to login");

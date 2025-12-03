@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
-import { useCampusStore } from "@/state/campusStore";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
@@ -17,6 +16,7 @@ SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient();
 
 function RootLayoutContent() {
+  usePushNotifications();
   const { isDark } = useTheme();
   const { isAuthenticated, isLoading, isHydrated, hydrate, user } = useAuthStore();
   const segments = useSegments();
@@ -25,11 +25,9 @@ function RootLayoutContent() {
   useEffect(() => {
     const initialize = async () => {
       console.log(' App mounted, triggering hydration...');
-      await hydrate();
-      
+      await hydrate();     
 
-    };
-    
+    };    
     initialize();
   }, []);
 
@@ -93,14 +91,7 @@ function RootLayoutContent() {
 }
 
 export default function RootLayout() {
-  const { expoPushToken, notification } = usePushNotifications();
 
-  useEffect(() => {
-    if (expoPushToken) {
-      console.log('Push token ready:', expoPushToken);
-      // Send to your backend here, remember Blaise
-    }
-  }, [expoPushToken]);
   return (
     <QueryClientProvider client={queryClient}>
         <GestureHandlerRootView style={{ flex: 1 }}>

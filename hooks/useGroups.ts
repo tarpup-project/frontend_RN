@@ -1,6 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/api/client';
-import moment from "moment"
+import moment from "moment";
+import { subscribeToAllUserGroups, subscribeToGroupTopic, unsubscribeFromGroupTopic } from '@/utils/topicManager';
+import { useEffect } from 'react';
+import { useAuthStore } from '@/state/authStore';
 import { UrlConstants } from '@/constants/apiUrls';
 import { useCampus } from './useCampus';
 import { Group, GroupsResponse } from '@/types/groups';
@@ -24,8 +27,9 @@ const fetchGroups = async (campusId?: string): Promise<Group[]> => {
 
 export const useGroups = () => {
   const { selectedUniversity } = useCampus();
+  const { isAuthenticated } = useAuthStore();
   
-  return useQuery({
+  const query = useQuery({
     queryKey: groupsKeys.list(selectedUniversity?.id),
     queryFn: () => fetchGroups(selectedUniversity?.id),
     enabled: true,
@@ -35,6 +39,14 @@ export const useGroups = () => {
     refetchInterval: 15000, 
     refetchIntervalInBackground: true,
   });
+
+  useEffect(() => {
+    if (isAuthenticated && query.data?.length) {
+      subscribeToAllUserGroups(query.data.map(g => g.id));
+    }
+  }, [query.data, isAuthenticated]);
+
+  return query;
 };
 
 
@@ -72,8 +84,14 @@ const joinGroup = async (groupId: string): Promise<void> => {
 export const useGroupActions = () => {
   return {
     markAsRead: markGroupAsRead,
-    leaveGroup: leaveGroup,
-    joinGroup: joinGroup,
+    leaveGroup: async (groupId: string) => {
+      await leaveGroup(groupId);
+      await unsubscribeFromGroupTopic(groupId);
+    },
+    joinGroup: async (groupId: string) => {
+      await joinGroup(groupId);
+      await subscribeToGroupTopic(groupId);
+    },
   };
 };
 
