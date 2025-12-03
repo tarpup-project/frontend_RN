@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { useCampusStore } from "@/state/campusStore";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
@@ -17,13 +18,19 @@ const queryClient = new QueryClient();
 
 function RootLayoutContent() {
   const { isDark } = useTheme();
-  const { isAuthenticated, isLoading, isHydrated, hydrate } = useAuthStore();
+  const { isAuthenticated, isLoading, isHydrated, hydrate, user } = useAuthStore();
   const segments = useSegments();
   const router = useRouter(); 
 
   useEffect(() => {
-    console.log('🚀 App mounted, triggering hydration...');
-    hydrate();
+    const initialize = async () => {
+      console.log(' App mounted, triggering hydration...');
+      await hydrate();
+      
+
+    };
+    
+    initialize();
   }, []);
 
 

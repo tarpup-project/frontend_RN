@@ -1,10 +1,11 @@
 import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/hooks/useAuth";
+import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from "@expo/vector-icons";
 import { subscribeToTopic } from '@/hooks/usePushNotifications';
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -80,12 +81,21 @@ const VerifySignIn = () => {
       inputRefs.current[index - 1]?.focus();
     }
   };
-
+  
   const handleVerifySignIn = async () => {
-    const verificationCode = code.join("");
+    let verificationCode = code.join("");
+    
     if (verificationCode.length !== 6) {
-      toast.error("Please enter the complete 6-digit code");
-      return;
+      const clipboardText = await Clipboard.getStringAsync();
+      if (/^\d{6}$/.test(clipboardText)) {
+        verificationCode = clipboardText;
+        const digits = clipboardText.split('');
+        setCode(digits);
+        await new Promise(resolve => setTimeout(resolve, 300)); 
+      } else {
+        toast.error("Please enter the complete 6-digit code or copy it to clipboard");
+        return;
+      }
     }
   
     setIsVerifying(true);
@@ -112,12 +122,8 @@ const VerifySignIn = () => {
         }, 800);
       }
     } catch (error: any) {
-      const errorMessage =
-        error?.response?.data?.message || "Invalid code. Please try again.";
-  
-      toast.error("Verification failed", {
-        description: errorMessage,
-      });
+      const errorMessage = error?.response?.data?.message || "Invalid code. Please try again.";
+      toast.error("Verification failed", { description: errorMessage });
       setCode(["", "", "", "", "", ""]);
       inputRefs.current[0]?.focus();
     } finally {
@@ -259,10 +265,10 @@ const VerifySignIn = () => {
               style={[
                 styles.verifyButton,
                 dynamicStyles.verifyButton,
-                code.join("").length !== 6 && styles.verifyButtonDisabled,
+                //code.join("").length !== 6 && styles.verifyButtonDisabled,
               ]}
               onPress={handleVerifySignIn}
-              disabled={code.join("").length !== 6}
+              // disabled={code.join("").length !== 6}
             >
               <Text
                 style={[
@@ -270,7 +276,7 @@ const VerifySignIn = () => {
                   dynamicStyles.verifyButtonText,
                 ]}
               >
-                Verify Email
+                Paste code and Verify Email
               </Text>
             </Pressable>
           ) : (

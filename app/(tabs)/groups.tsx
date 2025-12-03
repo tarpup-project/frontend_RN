@@ -1,11 +1,12 @@
 import Header from "@/components/Header";
 import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
-import { useRouter } from "expo-router";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useCampus } from "@/hooks/useCampus";
+import moment from "moment";
 import { transformGroupForUI, useGroups } from "@/hooks/useGroups";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   Image,
@@ -320,18 +321,17 @@ const Groups = () => {
               .map((group) => {
                 return (
                   <Pressable
-  key={group.id}
-  style={[styles.groupCard, dynamicStyles.card]}
-  onPress={() => {
-    router.push({
-      pathname: `/group-chat/${group.id}` as any,
-      params: {
-        groupData: JSON.stringify(group.rawGroup),
-      },
-    });
-  }}
->
-
+                    key={group.id}
+                    style={[styles.groupCard, dynamicStyles.card]}
+                    onPress={() => {
+                      router.push({
+                        pathname: `/group-chat/${group.id}` as any,
+                        params: {
+                          groupData: JSON.stringify(group.rawGroup),
+                        },
+                      });
+                    }}
+                  >
                     <View style={styles.topRow}>
                       <View
                         style={[
@@ -432,7 +432,11 @@ const Groups = () => {
                         <Text
                           style={[styles.activeText, dynamicStyles.subtitle]}
                         >
-                          {group.activeTime}
+                          Active{" "}
+                          {moment(
+                            group.rawGroup.lastMessageAt ||
+                              group.rawGroup.createdAt
+                          ).fromNow()}
                         </Text>
                       </View>
 

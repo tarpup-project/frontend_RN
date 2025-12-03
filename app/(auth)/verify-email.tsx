@@ -1,10 +1,9 @@
 import { Text } from "@/components/Themedtext";
-import { UrlConstants } from "@/constants/apiUrls";
+import * as Clipboard from 'expo-clipboard';
 import { useTheme } from "@/contexts/ThemeContext";
 import { saveUserData } from "@/utils/storage";
 import { useAuth } from "@/hooks/useAuth";
 import { Ionicons } from "@expo/vector-icons";
-import axios from "axios";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import {
@@ -30,6 +29,8 @@ const VerifyEmail = () => {
   const { verifyOTP, resendOTP } = useAuth();
 
   const inputRefs = useRef<(TextInput | null)[]>([]);
+
+
 
   const dynamicStyles = {
     container: {
@@ -88,39 +89,44 @@ const VerifyEmail = () => {
     }
   };
 
-  const handleVerifyEmail = async () => {
-    const verificationCode = code.join("");
-    if (verificationCode.length !== 6) {
-      toast.error("Please enter the complete 6-digit code");
-      return;
-    }
-
-    setIsVerifying(true);
-    try {
-      const response = await verifyOTP(email, verificationCode);
-
-      if (response.success) {
-        toast.success("Email verified!", {
-          description: "Your account has been created successfully",
-        });
-
-        setTimeout(() => {
-          router.replace("/(auth)/signup-success");
-        }, 800);
+  const handleVerifySignIn = async () => {
+      let verificationCode = code.join("");
+      
+      if (verificationCode.length !== 6) {
+        const clipboardText = await Clipboard.getStringAsync();
+        if (/^\d{6}$/.test(clipboardText)) {
+          verificationCode = clipboardText;
+          const digits = clipboardText.split('');
+          setCode(digits);
+          await new Promise(resolve => setTimeout(resolve, 300)); 
+        } else {
+          toast.error("Please enter the complete 6-digit code or copy it to clipboard");
+          return;
+        }
       }
-    } catch (error: any) {
-      const errorMessage =
-        error?.response?.data?.message || "Invalid code. Please try again.";
-
-      toast.error("Verification failed", {
-        description: errorMessage,
-      });
-      setCode(["", "", "", "", "", ""]);
-      inputRefs.current[0]?.focus();
-    } finally {
-      setIsVerifying(false);
-    }
-  };
+    
+      setIsVerifying(true);
+      try {
+        const response = await verifyOTP(email, verificationCode);
+        if (response.success && response.user) {
+              
+          toast.success("Welcome back!", {
+            description: "You've been signed in successfully",
+          });
+    
+          setTimeout(() => {
+            router.replace("/(tabs)");
+          }, 800);
+        }
+      } catch (error: any) {
+        const errorMessage = error?.response?.data?.message || "Invalid code. Please try again.";
+        toast.error("Verification failed", { description: errorMessage });
+        setCode(["", "", "", "", "", ""]);
+        inputRefs.current[0]?.focus();
+      } finally {
+        setIsVerifying(false);
+      }
+    };
 
 
   const handleResendCode = async () => {
@@ -257,10 +263,10 @@ const VerifyEmail = () => {
               style={[
                 styles.verifyButton,
                 dynamicStyles.verifyButton,
-                code.join("").length !== 6 && styles.verifyButtonDisabled,
+                //code.join("").length !== 6 && styles.verifyButtonDisabled,
               ]}
-              onPress={handleVerifyEmail}
-              disabled={code.join("").length !== 6}
+              onPress={handleVerifySignIn}
+              // disabled={code.join("").length !== 6}
             >
               <Text
                 style={[
@@ -268,7 +274,7 @@ const VerifyEmail = () => {
                   dynamicStyles.verifyButtonText,
                 ]}
               >
-                Verify Email
+                Paste Code and Verify Email
               </Text>
             </Pressable>
           ) : (
