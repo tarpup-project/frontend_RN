@@ -3,7 +3,7 @@ import * as Notifications from 'expo-notifications';
 import messaging from '@react-native-firebase/messaging';
 import type { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
 import { useRouter } from 'expo-router';
-import { setupNotifications, setupTokenRefreshListener } from '@/utils/notifications';
+import { setupNotifications } from '@/utils/notifications';
 import { useAuthStore } from '@/state/authStore';
 
 
@@ -29,11 +29,9 @@ export function usePushNotifications() {
     try {
       console.log('🔔 Initializing push notifications...');
 
-      const success = await setupNotifications(user.authToken);
+      const fcmToken = await setupNotifications();
       
-      if (success) {
-        tokenRefreshUnsubscribe.current = setupTokenRefreshListener(user.authToken);
-
+      if (fcmToken) {
         setupForegroundNotificationHandler();
         
         setupBackgroundNotificationHandler();
@@ -104,9 +102,7 @@ export function usePushNotifications() {
       if (responseListener.current) {
         responseListener.current.remove();
       }
-      if (tokenRefreshUnsubscribe.current) {
-        tokenRefreshUnsubscribe.current();
-      }
+   
     };
   }, []);
 

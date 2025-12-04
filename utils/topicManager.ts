@@ -1,9 +1,6 @@
 import messaging from '@react-native-firebase/messaging';
 
-/**
- * Subscribe to a group's notification topic
- * Call this when user joins a group or on app launch for all user's groups
- */
+
 export async function subscribeToGroupTopic(groupId: string): Promise<boolean> {
   try {
     const topic = `group_${groupId}`;
@@ -16,10 +13,7 @@ export async function subscribeToGroupTopic(groupId: string): Promise<boolean> {
   }
 }
 
-/**
- * Unsubscribe from a group's notification topic
- * Call this when user leaves a group
- */
+
 export async function unsubscribeFromGroupTopic(groupId: string): Promise<boolean> {
   try {
     const topic = `group_${groupId}`;
@@ -32,10 +26,7 @@ export async function unsubscribeFromGroupTopic(groupId: string): Promise<boolea
   }
 }
 
-/**
- * Subscribe to all groups user is a member of
- * Call this on login/app launch after fetching user's groups
- */
+
 export async function subscribeToAllUserGroups(groupIds: string[]): Promise<void> {
   console.log(`🔔 Subscribing to ${groupIds.length} group topics...`);
   
@@ -56,10 +47,7 @@ export async function subscribeToAllUserGroups(groupIds: string[]): Promise<void
   }
 }
 
-/**
- * Unsubscribe from all groups
- * Call this on logout to clean up subscriptions
- */
+
 export async function unsubscribeFromAllUserGroups(groupIds: string[]): Promise<void> {
   console.log(`🔕 Unsubscribing from ${groupIds.length} group topics...`);
   
