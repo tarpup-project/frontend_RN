@@ -1,4 +1,3 @@
-
 export default {
   expo: {
     name: "Tarpup",
@@ -42,6 +41,8 @@ export default {
     },
     plugins: [
       "expo-router",
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging",
       [
         "expo-splash-screen",
         {
@@ -69,34 +70,12 @@ export default {
           ]
         }
       ],
-      // CHANGED: Added iOS configuration to expo-build-properties
       [
         "expo-build-properties",
         {
           ios: {
-            // Tells iOS to use static frameworks instead of dynamic frameworks
-            // This is required for Firebase SDK compatibility
             useFrameworks: "static",
-            
-            // Specifies extra CocoaPods to install with custom configuration
-            // These modular_headers enable Swift pods to work with static libraries
-            extraPods: [
-              {
-                // GoogleUtilities is a dependency of Firebase that needs module maps
-                name: "GoogleUtilities",
-                modular_headers: true
-              },
-              {
-                // FirebaseCoreInternal is a Swift pod that requires module maps
-                name: "FirebaseCoreInternal",
-                modular_headers: true
-              },
-              {
-                // FirebaseCore is the base Firebase pod
-                name: "FirebaseCore",
-                modular_headers: true
-              }
-            ]
+            forceStaticLinking: ["RNFBApp", "RNFBMessaging"]
           }
         }
       ],
@@ -118,7 +97,6 @@ export default {
     owner: "blaise-10"
   }
 }
-
 
 
 
