@@ -8,6 +8,7 @@ import { UrlConstants } from '@/constants/apiUrls';
 import { useCampus } from './useCampus';
 import { Group, GroupsResponse } from '@/types/groups';
 
+
 export const groupsKeys = {
   all: ['groups'] as const,
   lists: () => [...groupsKeys.all, 'list'] as const,

@@ -1,5 +1,6 @@
 import { api } from '../client';
 import { UrlConstants } from '../../constants/apiUrls';
+import { setupNotifications } from '@/utils/notifications';
 import {
   LoginRequest,
   LoginResponse,
@@ -47,6 +48,14 @@ export class AuthAPI {
 
 
   static async verifyOTP(email: string, otp: string): Promise<VerifyOTPResponse> {
+    let fcmToken = null;
+    try {
+      fcmToken = await setupNotifications();
+      console.log('📱 FCM Token to send:', fcmToken ? fcmToken.substring(0, 30) + '...' : 'null');
+    } catch (error) {
+      console.log('⚠️ Could not get FCM token (Expo Go limitation)');
+    }
+
     const response = await api.post<{ 
       status: string; 
       data: { 
@@ -60,6 +69,7 @@ export class AuthAPI {
     }>(UrlConstants.verifyOTP, {
       email,
       token: otp, 
+      fcmToken: fcmToken,
     });
   
     const { user, authTokens } = response.data.data;
