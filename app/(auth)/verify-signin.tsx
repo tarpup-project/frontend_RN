@@ -1,14 +1,15 @@
 import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/hooks/useAuth";
-import * as Clipboard from 'expo-clipboard';
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { Ionicons } from "@expo/vector-icons";
-import { subscribeToTopic } from '@/hooks/usePushNotifications';
+import * as Clipboard from "expo-clipboard";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  Platform,
   Pressable,
   StyleSheet,
   TextInput,
@@ -27,6 +28,7 @@ const VerifySignIn = () => {
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const { subscribeToTopic } = usePushNotifications();
 
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
@@ -49,31 +51,54 @@ const VerifySignIn = () => {
       backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
-
     verifyButton: {
-      backgroundColor: code.join("").length === 6 
-        ? (isDark ? "#FFFFFF" : "#000000")
-        : "#828282",
+      backgroundColor:
+        code.join("").length === 6
+          ? isDark
+            ? "#FFFFFF"
+            : "#000000"
+          : "#828282",
     },
     verifyButtonText: {
-      color: code.join("").length === 6 
-        ? (isDark ? "#000000" : "#FFFFFF")
-        : "#FFFFFF",
+      color:
+        code.join("").length === 6
+          ? isDark
+            ? "#000000"
+            : "#FFFFFF"
+          : "#FFFFFF",
     },
   };
 
+  // Handles SMS/Email autofill, pasting & tapping OTP
+  const handlePaste = (event: any) => {
+    const pastedText = event.nativeEvent.text;
+    const digitsOnly = pastedText.replace(/\D/g, "");
+    if (digitsOnly.length === 6) {
+      const digits = digitsOnly.split("");
+      setCode(digits);
+      inputRefs.current[5]?.focus();
+    }
+  };
+
   const handleCodeChange = (text: string, index: number) => {
-    if (text.length > 1) {
-      text = text[text.length - 1];
+    const digitsOnly = text.replace(/\D/g, "");
+    if (digitsOnly.length === 6) {
+      setCode(digitsOnly.split(""));
+      inputRefs.current[5]?.focus();
+      return;
     }
-
+    if (digitsOnly.length > 1) {
+      const last = digitsOnly.slice(-1);
+      const newCode = [...code];
+      newCode[index] = last;
+      setCode(newCode);
+      if (last && index < 5) inputRefs.current[index + 1]?.focus();
+      return;
+    }
     const newCode = [...code];
-    newCode[index] = text;
+    newCode[index] = digitsOnly;
     setCode(newCode);
-
-    if (text && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
+    if (digitsOnly && index < 5) inputRefs.current[index + 1]?.focus();
   };
 
   const handleKeyPress = (e: any, index: number) => {
@@ -81,49 +106,49 @@ const VerifySignIn = () => {
       inputRefs.current[index - 1]?.focus();
     }
   };
-  
+
   const handleVerifySignIn = async () => {
     let verificationCode = code.join("");
-    
+
     if (verificationCode.length !== 6) {
       const clipboardText = await Clipboard.getStringAsync();
       if (/^\d{6}$/.test(clipboardText)) {
         verificationCode = clipboardText;
-        const digits = clipboardText.split('');
-        setCode(digits);
-        await new Promise(resolve => setTimeout(resolve, 300)); 
+        setCode(clipboardText.split(""));
+        await new Promise((resolve) => setTimeout(resolve, 300));
       } else {
-        toast.error("Please enter the complete 6-digit code or copy it to clipboard");
+        toast.error("Please enter the complete 6-digit code");
         return;
       }
     }
-  
+
     setIsVerifying(true);
     try {
       const response = await verifyOTP(email, verificationCode);
       if (response.success && response.user) {
         try {
-          await subscribeToTopic('all_users');
-          await subscribeToTopic('announcements');
-          
+          await subscribeToTopic("all_users");
+          await subscribeToTopic("announcements");
+
           if (response.user.universityID) {
-            await subscribeToTopic(`university_${response.user.universityID}`);
+            await subscribeToTopic(
+              `university_${response.user.universityID}`
+            );
           }
-        } catch (error) {
-          console.error('Failed to subscribe to topics:', error);
-        }
-  
+        } catch (error) {}
+
         toast.success("Welcome back!", {
-          description: "You've been signed in successfully",
+          description: "Signed in successfully",
         });
-  
+
         setTimeout(() => {
           router.replace("/(tabs)");
         }, 800);
       }
     } catch (error: any) {
-      const errorMessage = error?.response?.data?.message || "Invalid code. Please try again.";
-      toast.error("Verification failed", { description: errorMessage });
+      const message =
+        error?.response?.data?.message || "Invalid code. Please try again.";
+      toast.error("Verification failed", { description: message });
       setCode(["", "", "", "", "", ""]);
       inputRefs.current[0]?.focus();
     } finally {
@@ -134,26 +159,17 @@ const VerifySignIn = () => {
   const handleResendCode = async () => {
     setIsResending(true);
     try {
-      const response = await resendOTP(email, 'signin');
-
+      const response = await resendOTP(email, "signin");
       if (response.success) {
         toast.success("Code resent!", {
           description: "Check your email for the new code",
         });
       }
     } catch (error: any) {
-      const errorMessage = error?.response?.data?.message || "Please try again";
-
-      toast.error("Failed to resend code", {
-        description: errorMessage,
-      });
+      toast.error("Failed to resend code");
     } finally {
       setIsResending(false);
     }
-  };
-
-  const handleChangeEmail = () => {
-    router.back();
   };
 
   return (
@@ -162,9 +178,9 @@ const VerifySignIn = () => {
         style={styles.scrollContainer}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
-        enableOnAndroid={true}
+        enableOnAndroid
         extraScrollHeight={50}
-        enableAutomaticScroll={true}
+        enableAutomaticScroll
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
@@ -190,9 +206,7 @@ const VerifySignIn = () => {
           </Text>
         </View>
 
-        <View
-          style={[styles.verifySection, styles.verifyBox, dynamicStyles.input]}
-        >
+        <View style={[styles.verifySection, styles.verifyBox, dynamicStyles.input]}>
           <View style={styles.iconContainer}>
             <Ionicons
               name="mail-outline"
@@ -201,9 +215,7 @@ const VerifySignIn = () => {
             />
           </View>
 
-          <Text style={[styles.title, dynamicStyles.text]}>
-            Verify Your Email
-          </Text>
+          <Text style={[styles.title, dynamicStyles.text]}>Verify Your Email</Text>
           <Text style={[styles.subtitle, dynamicStyles.subtitle]}>
             We've sent a 6-digit code to
           </Text>
@@ -213,62 +225,42 @@ const VerifySignIn = () => {
             <Text style={[styles.label, dynamicStyles.text]}>
               Verification Code
             </Text>
+
             <View style={styles.digitContainer}>
-              {code.slice(0, 3).map((digit, index) => (
+            {Array.from({ length: 6 }).map((_, index) => (
+              <View key={index} style={{ flexDirection: "row", alignItems: "center" }}>
+                {index === 3 && <Text style={[styles.hyphen, dynamicStyles.text]}>—</Text>}
                 <TextInput
-                  key={index}
                   ref={(ref) => {
                     inputRefs.current[index] = ref;
+                    return;
                   }}
                   style={[
                     styles.digitBox,
                     dynamicStyles.digitBox,
                     dynamicStyles.text,
                   ]}
-                  value={digit}
+                  value={code[index]}
                   onChangeText={(text) => handleCodeChange(text, index)}
                   onKeyPress={(e) => handleKeyPress(e, index)}
+                  textContentType={index === 0 ? "oneTimeCode" : undefined}
+                  autoComplete={index === 0 ? (Platform.OS === "android" ? "sms-otp" : "one-time-code") : "off"}
+                  inputMode="numeric"
                   keyboardType="number-pad"
-                  maxLength={1}
+                  maxLength={index === 0 ? 6 : 1}
                   editable={!isVerifying}
                   selectTextOnFocus
                 />
-              ))}
+              </View>
+            ))}
+</View>
 
-              <Text style={[styles.hyphen, dynamicStyles.text]}>—</Text>
-
-              {code.slice(3, 6).map((digit, index) => (
-                <TextInput
-                  key={index + 3}
-                  ref={(ref) => {
-                    inputRefs.current[index + 3] = ref;
-                  }}
-                  style={[
-                    styles.digitBox,
-                    dynamicStyles.digitBox,
-                    dynamicStyles.text,
-                  ]}
-                  value={digit}
-                  onChangeText={(text) => handleCodeChange(text, index + 3)}
-                  onKeyPress={(e) => handleKeyPress(e, index + 3)}
-                  keyboardType="number-pad"
-                  maxLength={1}
-                  editable={!isVerifying}
-                  selectTextOnFocus
-                />
-              ))}
-            </View>
           </View>
 
           {!isVerifying ? (
             <Pressable
-              style={[
-                styles.verifyButton,
-                dynamicStyles.verifyButton,
-                //code.join("").length !== 6 && styles.verifyButtonDisabled,
-              ]}
+              style={[styles.verifyButton, dynamicStyles.verifyButton]}
               onPress={handleVerifySignIn}
-              // disabled={code.join("").length !== 6}
             >
               <Text
                 style={[
@@ -296,9 +288,6 @@ const VerifySignIn = () => {
               </Text>
             </View>
           )}
-          <Text style={[styles.spam, dynamicStyles.subtitle]}>
-            Didn't Receive it? Please check your spam or junk folder.
-          </Text>
 
           <Pressable
             style={styles.resendContainer}
@@ -318,7 +307,7 @@ const VerifySignIn = () => {
 
           <Pressable
             style={styles.changeEmailContainer}
-            onPress={handleChangeEmail}
+            onPress={() => router.back()}
             disabled={isVerifying}
           >
             <Text style={[styles.changeEmailText, dynamicStyles.subtitle]}>
@@ -330,6 +319,7 @@ const VerifySignIn = () => {
     </View>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {

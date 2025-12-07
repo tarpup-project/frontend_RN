@@ -182,6 +182,7 @@ export const useGroupMessages = ({ groupId, socket }: UseGroupMessagesProps) => 
                   : msg
               )
             );
+            markAsRead();
             resolve(true);
           } else {
             // Remove optimistic message on failure
@@ -198,7 +199,7 @@ export const useGroupMessages = ({ groupId, socket }: UseGroupMessagesProps) => 
       setIsSending(false);
       return false;
     }
-  }, [socket, user, groupId, queryClient]);
+  }, [socket, user, groupId, queryClient, markAsRead]);
 
   const markAsRead = useCallback(async () => {
     try {

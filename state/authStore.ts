@@ -6,6 +6,7 @@ import {
   getAccessToken,
   getRefreshToken,
   saveUserData,
+  getUserData,
 } from "../utils/storage";
 
 interface AuthState {
@@ -85,8 +86,25 @@ export const useAuthStore = create<AuthState>((set) => ({
           });
         
         } catch (error) {
-          console.log("❌ Token validation failed, clearing data");
-          await clearUserData();
+          console.log("❌ Token validation failed, falling back to stored user");
+          const storedUser = await getUserData();
+          if (storedUser) {
+            set({
+              user: storedUser,
+              isAuthenticated: true,
+              isLoading: false,
+              isHydrated: true,
+            });
+          } else {
+            await clearUserData();
+            set({
+              user: undefined,
+              isAuthenticated: false,
+              isLoading: false,
+              isHydrated: true,
+            });
+          }
+          return;
         }
       } else {
         console.log("ℹ️ No tokens found, user needs to login");
