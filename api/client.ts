@@ -291,8 +291,11 @@ api.interceptors.response.use(
       } catch (err) {
         processQueue(err, null);
 
-        await clearUserData();
-        useAuthStore.getState().setUser(undefined);
+        const status = (err as AxiosError).response?.status;
+        if (status === 401 || status === 403) {
+          await clearUserData();
+          useAuthStore.getState().setUser(undefined);
+        }
 
         return Promise.reject(err);
       } finally {

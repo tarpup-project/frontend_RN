@@ -1,12 +1,12 @@
 import AuthModal from "@/components/AuthModal";
-import { Platform } from "react-native";
 import ProtectedTabIcon from "@/components/ProtectedTabIcon";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useNotifications } from "@/hooks/useNotification";
 import { useAuthStore } from "@/state/authStore";
-import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { Tabs } from "expo-router";
 import { useState } from "react";
+import { Platform } from "react-native";
 
 export default function TabLayout() {
   const { isDark } = useTheme();
@@ -59,6 +59,20 @@ export default function TabLayout() {
             )
           }}
         />
+        <Tabs.Screen
+        name="tarps"
+        options={{
+          title: "Tarps",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "location" : "location-outline"}
+              size={28}
+              color={color}
+            />
+          )
+        }}
+      />
+
 <Tabs.Screen
   name="groups"
   options={{

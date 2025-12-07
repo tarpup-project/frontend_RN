@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState} from 'react';
-import * as Notifications from 'expo-notifications';
-import messaging from '@react-native-firebase/messaging';
-import type { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
-import { useRouter } from 'expo-router';
-import { setupNotifications } from '@/utils/notifications';
 import { useAuthStore } from '@/state/authStore';
+import { setupNotifications } from '@/utils/notifications';
+import type { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
+import messaging from '@react-native-firebase/messaging';
+import * as Notifications from 'expo-notifications';
+import { useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 
 
 export function usePushNotifications() {
@@ -92,6 +92,16 @@ export function usePushNotifications() {
       }
     );
   };
+  const subscribeToTopic = async (topic: string) => {
+    try {
+      await messaging().subscribeToTopic(topic);
+      console.log(`🔔 Subscribed to topic: ${topic}`);
+      return { success: true };
+    } catch (error) {
+      console.error('❌ Failed to subscribe to topic:', error);
+      return { success: false, error };
+    }
+  };
 
   // Cleanup on unmount or logout
   useEffect(() => {
@@ -108,5 +118,6 @@ export function usePushNotifications() {
 
   return {
     isInitialized,
+    subscribeToTopic
   };
 }

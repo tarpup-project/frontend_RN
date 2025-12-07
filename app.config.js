@@ -9,19 +9,30 @@ export default {
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
     backgroundColor: "#0a0a0a",
+
     ios: {
       supportsTablet: true,
       backgroundColor: "#0a0a0a",
       bundleIdentifier: "com.Tarpup.app",
       buildNumber: "17",
+
       infoPlist: {
-        ITSAppUsesNonExemptEncryption: false
+        ITSAppUsesNonExemptEncryption: false,
+
+        // ✅ REQUIRED FOR LOCATION PERMISSIONS (FIXED)
+        NSLocationWhenInUseUsageDescription:
+          "Tarpup needs your location to add photo markers on the map.",
+        NSLocationAlwaysAndWhenInUseUsageDescription:
+          "Tarpup uses your location to display accurate map markers."
       },
-      googleServicesFile: process.env.GOOGLE_SERVICES_PLIST || './GoogleService-Info.plist',
+
+      googleServicesFile:
+        process.env.GOOGLE_SERVICES_PLIST || "./GoogleService-Info.plist",
       entitlements: {
         "aps-environment": "production"
       }
     },
+
     android: {
       adaptiveIcon: {
         backgroundColor: "#0a0a0a",
@@ -35,14 +46,17 @@ export default {
       package: "com.vector10.Tarpup",
       googleServicesFile: "./google-services.json"
     },
+
     web: {
       output: "static",
       favicon: "./assets/images/favicon.png"
     },
+
     plugins: [
       "expo-router",
       "@react-native-firebase/app",
       "@react-native-firebase/messaging",
+
       [
         "expo-splash-screen",
         {
@@ -56,6 +70,7 @@ export default {
           }
         }
       ],
+
       [
         "expo-font",
         {
@@ -70,6 +85,7 @@ export default {
           ]
         }
       ],
+
       [
         "expo-build-properties",
         {
@@ -79,24 +95,29 @@ export default {
           }
         }
       ],
+
       "expo-notifications"
     ],
+
     experiments: {
       typedRoutes: true,
       reactCompiler: true
     },
+
     extra: {
       router: {},
       eas: {
         projectId: "b8094831-e558-419d-b061-cacb75387f83"
       }
     },
+
     runtimeVersion: {
       policy: "appVersion"
     },
+
     owner: "blaise-10"
   }
-}
+};
 
 
 

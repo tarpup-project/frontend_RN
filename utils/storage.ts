@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import { AuthUserInterface } from '@/types/auth';
 
 
 export class StorageKeys {
@@ -138,12 +139,12 @@ export const deleteAuthToken = async () => {
   await storage.deleteSecureValue(StorageKeys.USER_AUTH_TOKEN);
 };
 
-export const saveUserData = async (user: any) => {
+export const saveUserData = async (user: AuthUserInterface) => {
   await storage.setObject(StorageKeys.USER_DATA, user);
 };
 
-export const getUserData = async () => {
-  return await storage.getObject(StorageKeys.USER_DATA);
+export const getUserData = async (): Promise<AuthUserInterface | null> => {
+  return await storage.getObject<AuthUserInterface>(StorageKeys.USER_DATA);
 };
 
 export const saveAccessToken = async (token: string) => {

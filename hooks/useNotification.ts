@@ -1,7 +1,7 @@
 import { UrlConstants } from "@/constants/apiUrls";
 import { useAuthStore } from "@/state/authStore";
 import { useNotificationStore } from "@/state/notificationStore";
-import axios from "axios";
+import { api } from "@/api/client";
 import { useEffect } from "react";
 
 interface NotificationResponse {
@@ -22,10 +22,10 @@ export const useNotifications = () => {
     if (!isAuthenticated || !user) return;
 
     try {
-      const response = await axios.get<{
+      const response = await api.get<{
         status: string;
         data: NotificationResponse;
-      }>(`${UrlConstants.baseUrl}${UrlConstants.allNotifications}`);
+      }>(UrlConstants.allNotifications);
 
       if (response.data.status === "success") {
         setNotifications({
@@ -60,7 +60,7 @@ export const useNotifications = () => {
 
     const interval = setInterval(() => {
       fetchNotifications();
-    }, 30000);
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [isAuthenticated, user]);

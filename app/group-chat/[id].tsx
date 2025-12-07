@@ -12,6 +12,7 @@ import { UrlConstants } from "@/constants/apiUrls";
 import { GroupSocketProvider, useGroupSocket } from "@/contexts/SocketProvider";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useFileUpload } from "@/hooks/useFileUpload";
+import { useNotifications } from "@/hooks/useNotification";
 import { useGroupMessages, useMessageReply } from "@/hooks/useGroupMessages";
 import { useGroupDetails } from "@/hooks/useGroups";
 import { useAuthStore } from "@/state/authStore";
@@ -71,6 +72,8 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
 
   const { messages, isLoading, error, sendMessage, markAsRead } =
     useGroupMessages({ groupId, socket: socket && user ? socket : undefined });
+
+  const { refetchNotifications } = useNotifications();
 
   const { replyingTo, startReply, cancelReply } = useMessageReply();
   const {
@@ -140,7 +143,8 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
 
   useEffect(() => {
     markAsRead();
-  }, [markAsRead]);
+    refetchNotifications();
+  }, [markAsRead, refetchNotifications]);
 
   useEffect(() => {
     console.log("🔍 showGroupInfo state changed:", showGroupInfo);
