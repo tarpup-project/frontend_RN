@@ -168,7 +168,7 @@ export default function TarpsScreen() {
       setRecents([]);
       return;
     }
-    const assets = await MediaLibrary.getAssetsAsync({ first: 6, mediaType: MediaLibrary.MediaType.photo });
+    const assets = await MediaLibrary.getAssetsAsync({ first: 50, mediaType: MediaLibrary.MediaType.photo, sortBy: MediaLibrary.SortBy.creationTime });
     setRecents(assets.assets.map((a) => a.uri));
   };
 
@@ -293,7 +293,7 @@ export default function TarpsScreen() {
             </View>
 
             <View style={{ flex: 1 }}>
-            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }}>
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }} nestedScrollEnabled>
               <View style={styles.sectionHeaderRow}>
                 <Text style={[styles.sectionTitle, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>Photos (up to 10)</Text>
               </View>
@@ -309,20 +309,22 @@ export default function TarpsScreen() {
                 <Text style={[styles.sectionSub, { color: isDark ? "#9AA0A6" : "#666" }]}>Recents</Text>
                 <Text style={[styles.sectionSub, { color: isDark ? "#9AA0A6" : "#666" }]}>{selectedImages.length}/10 selected</Text>
               </View>
-              <View style={styles.grid}>
-                {recents.slice(0, 6).map((uri, i) => {
-                  const order = selectedImages.indexOf(uri);
-                  const active = order !== -1;
-                  return (
-                    <Pressable key={`${uri}-${i}`} style={[styles.gridItem, active && styles.gridItemActive]} onPress={() => toggleSelect(uri)}>
-                      <ExpoImage source={{ uri }} style={styles.gridImage} contentFit="cover" />
-                      {active && (
-                        <View style={styles.orderBadge}><Text style={styles.orderText}>{order + 1}</Text></View>
-                      )}
-                    </Pressable>
-                  );
-                })}
-              </View>
+              <ScrollView style={styles.galleryScroll} nestedScrollEnabled>
+                <View style={styles.grid}>
+                  {recents.map((uri, i) => {
+                    const order = selectedImages.indexOf(uri);
+                    const active = order !== -1;
+                    return (
+                      <Pressable key={`${uri}-${i}`} style={[styles.gridItem, active && styles.gridItemActive]} onPress={() => toggleSelect(uri)}>
+                        <ExpoImage source={{ uri }} style={styles.gridImage} contentFit="cover" />
+                        {active && (
+                          <View style={styles.orderBadge}><Text style={styles.orderText}>{order + 1}</Text></View>
+                        )}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </ScrollView>
 
               <Text style={[styles.helperText, { color: isDark ? "#9AA0A6" : "#666" }]}>Tap photos to select • Scroll to see more</Text>
 
@@ -427,7 +429,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   gridItem: {
-    width: "30%",
+    width: "48%",
     aspectRatio: 1,
     borderRadius: 12,
     overflow: "hidden",
@@ -443,6 +445,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#141922",
   },
   galleryText: { color: "#FFFFFF", fontSize: 12, fontWeight: "600" },
+  galleryScroll: { height: 220 },
   helperText: { fontSize: 12, paddingHorizontal: 14 },
   selectedGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, paddingHorizontal: 14, paddingTop: 10 },
   orderBadge: { position: "absolute", left: 8, bottom: 8, backgroundColor: "#0a0a0a", width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center" },

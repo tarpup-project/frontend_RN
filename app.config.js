@@ -43,7 +43,7 @@ export default {
       backgroundColor: "#0a0a0a",
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
-      package: "com.vector10.Tarpup",
+      package: "com.Tarpup.app",
       googleServicesFile: "./google-services.json"
     },
 
@@ -106,14 +106,12 @@ export default {
 
     extra: {
       router: {},
-        "eas": {
+      "eas": {
         "projectId": "2ce3d903-a4a5-461e-8d0e-25e247a22197"
       }
     },
 
-    runtimeVersion: {
-      policy: "appVersion"
-    },
+    runtimeVersion: "1.0.0",
 
     owner: "henrichh"
   }
