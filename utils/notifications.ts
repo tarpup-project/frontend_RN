@@ -75,12 +75,8 @@ export async function getFCMToken(): Promise<string | null> {
       return null;
     }
 
-    try {
-      await messaging().registerDeviceForRemoteMessages();
-    } catch {}
-
     const token = await messaging().getToken();
-    console.log('✅ FCM Token:', token);
+    console.log('✅ FCM Token obtained:', token);
     return token;
   } catch (error) {
     console.error('Error getting FCM token:', error);
@@ -106,24 +102,21 @@ export async function setupNotifications(): Promise<string | null> {
       return null;
     }
 
-    console.log('📨 Ready to use FCM token for testing');
+    try {
+      await api.post(UrlConstants.sendUserNotification, {
+        token: fcmToken,
+        title: 'Hello World',
+        body: 'Hello User, you just got a notification',
+      });
+      console.log('📨 Sent FCM token to backend');
+    } catch (err) {
+      console.error('❌ Failed to send FCM token to backend:', err);
+    }
 
     console.log('✅ Got FCM token');
     return fcmToken;
   } catch (error) {
     console.error('❌ Error in notification setup:', error);
-    return null;
-  }
-}
-
-export async function refreshFCMToken(): Promise<string | null> {
-  try {
-    await messaging().deleteToken();
-    const newToken = await messaging().getToken();
-    console.log('🔄 Refreshed FCM Token:', newToken);
-    return newToken;
-  } catch (error) {
-    console.error('❌ Failed to refresh FCM token:', error);
     return null;
   }
 }

@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "1041067419568",
-    "project_id": "tarpup-79a90",
-    "storage_bucket": "tarpup-79a90.firebasestorage.app"
+    "project_number": "271447535775",
+    "project_id": "smart-match-6780c",
+    "storage_bucket": "smart-match-6780c.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1041067419568:android:e45894e098c99df9075875",
+        "mobilesdk_app_id": "1:271447535775:android:d0b08878aba85eece9b2aa",
         "android_client_info": {
-          "package_name": "com.vector10.Tarpup"
+          "package_name": "com.Tarpup.app"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAqzgfS9ELk2EFSFGjzMORjrr7Nqcs7qMg"
+          "current_key": "AIzaSyAiByluGAeWcdErhqmwZ4KoCjxSxZeE40Q"
         }
       ],
       "services": {
