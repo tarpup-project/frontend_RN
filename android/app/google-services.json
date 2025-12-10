@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1041067419568",
+    "project_id": "tarpup-79a90",
+    "storage_bucket": "tarpup-79a90.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1041067419568:android:e45894e098c99df9075875",
+        "android_client_info": {
+          "package_name": "com.vector10.Tarpup"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAqzgfS9ELk2EFSFGjzMORjrr7Nqcs7qMg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
