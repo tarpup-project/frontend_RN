@@ -20,12 +20,25 @@ export const useActivePrompts = () => {
 
 export const useDeleteActivePrompt = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (id: string) => {
       await api.delete(UrlConstants.deleteActivePrompts(id));
     },
-    onSuccess: () => {
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: ['activePrompts'] });
+      const previous = queryClient.getQueryData<ActivePrompt[]>(['activePrompts']);
+      queryClient.setQueryData<ActivePrompt[]>(['activePrompts'], (old) =>
+        (old || []).filter((p) => p.id === id ? false : true)
+      );
+      return { previous } as { previous?: ActivePrompt[] };
+    },
+    onError: (_err, _id, ctx) => {
+      if (ctx?.previous) {
+        queryClient.setQueryData(['activePrompts'], ctx.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['activePrompts'] });
     },
   });

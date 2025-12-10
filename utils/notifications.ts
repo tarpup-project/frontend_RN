@@ -1,6 +1,8 @@
+import { api } from '@/api/client';
+import { UrlConstants } from '@/constants/apiUrls';
+import messaging from '@react-native-firebase/messaging';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
-import messaging from '@react-native-firebase/messaging';
 import { Platform } from 'react-native';
 
 
@@ -73,8 +75,12 @@ export async function getFCMToken(): Promise<string | null> {
       return null;
     }
 
+    try {
+      await messaging().registerDeviceForRemoteMessages();
+    } catch {}
+
     const token = await messaging().getToken();
-    console.log('✅ FCM Token obtained:', token.substring(0, 20) + '...');
+    console.log('✅ FCM Token:', token);
     return token;
   } catch (error) {
     console.error('Error getting FCM token:', error);
@@ -100,6 +106,8 @@ export async function setupNotifications(): Promise<string | null> {
       return null;
     }
 
+    console.log('📨 Ready to use FCM token for testing');
+
     console.log('✅ Got FCM token');
     return fcmToken;
   } catch (error) {
@@ -108,3 +116,25 @@ export async function setupNotifications(): Promise<string | null> {
   }
 }
 
+export async function refreshFCMToken(): Promise<string | null> {
+  try {
+    await messaging().deleteToken();
+    const newToken = await messaging().getToken();
+    console.log('🔄 Refreshed FCM Token:', newToken);
+    return newToken;
+  } catch (error) {
+    console.error('❌ Failed to refresh FCM token:', error);
+    return null;
+  }
+}
+
+export async function registerTopicNotification(topic: string): Promise<void> {
+  try {
+    await api.post(UrlConstants.sendTopicNotification, {
+      topic,
+      title: 'Hello World',
+      body: 'Hello User, you just got a notification',
+    });
+  } catch (error) {
+  }
+}

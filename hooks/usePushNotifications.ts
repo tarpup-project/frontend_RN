@@ -1,5 +1,5 @@
 import { useAuthStore } from '@/state/authStore';
-import { setupNotifications } from '@/utils/notifications';
+import { registerTopicNotification, setupNotifications } from '@/utils/notifications';
 import type { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
 import messaging from '@react-native-firebase/messaging';
 import * as Notifications from 'expo-notifications';
@@ -37,6 +37,12 @@ export function usePushNotifications() {
         setupBackgroundNotificationHandler();
         
         setupNotificationTapHandler();
+
+        try {
+          tokenRefreshUnsubscribe.current = messaging().onTokenRefresh(async (newToken) => {
+            console.log('🔁 Refreshed FCM Token:', newToken);
+          });
+        } catch {}
         
         setIsInitialized(true);
         console.log('✅ Push notifications initialized');
@@ -103,6 +109,16 @@ export function usePushNotifications() {
     }
   };
 
+  const subscribeAndRegisterTopic = async (topic: string) => {
+    try {
+      await messaging().subscribeToTopic(topic);
+      await registerTopicNotification(topic);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error };
+    }
+  };
+
   // Cleanup on unmount or logout
   useEffect(() => {
     return () => {
@@ -118,6 +134,7 @@ export function usePushNotifications() {
 
   return {
     isInitialized,
-    subscribeToTopic
+    subscribeToTopic,
+    subscribeAndRegisterTopic
   };
 }

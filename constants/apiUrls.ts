@@ -23,6 +23,8 @@ class UrlConstants {
 
   static allNotifications = `/user/notifications`;
   static notificationSettings = "/user/profile/notification";
+  static sendUserNotification = "/user/notifications/user";
+  static sendTopicNotification = "/user/notifications/topic";
 
   static fetchPersonalMessageHistory = `/user/messages`;
   static markMessagesAsRead = `/user/messages/mark`;

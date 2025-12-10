@@ -10,8 +10,10 @@ import {
   AlertMessage, 
   MessageType, 
   SendMessagePayload,
-  MessageFile
+  MessageFile,
+  Group
 } from '../types/groups';
+import { groupsKeys } from './useGroups';
 import { SocketEvents } from '../types/socket';
 
 
@@ -199,12 +201,17 @@ export const useGroupMessages = ({ groupId, socket }: UseGroupMessagesProps) => 
       setIsSending(false);
       return false;
     }
-  }, [socket, user, groupId, queryClient, markAsRead]);
+  }, [socket, user, groupId, queryClient]);
 
   const markAsRead = useCallback(async () => {
     try {
       await api.post(UrlConstants.markGroupMessageAsRead(groupId));
-      queryClient.invalidateQueries({ queryKey: ['groups'] });      
+      queryClient.setQueriesData<Group[]>
+        ({ queryKey: groupsKeys.lists() }, (old) => {
+          if (!old) return old as any;
+          return old.map(g => (g.id === groupId ? { ...g, unread: 0 } : g));
+        });
+      queryClient.invalidateQueries({ queryKey: groupsKeys.all });
     } catch (err) {
       console.error('Failed to mark messages as read:', err);
     }

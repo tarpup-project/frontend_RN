@@ -8,6 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import moment from "moment";
 import React, { useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { toast } from "sonner-native";
 
 interface ChatSettingsModalProps {
   visible: boolean;
@@ -201,7 +202,11 @@ export const ChatSettingsModal: React.FC<ChatSettingsModalProps> = ({
               showsVerticalScrollIndicator={false}
             >
               {activeTab === "prompts" ? (
-                <ActivePromptsTab onDeletePrompt={handleDeletePrompt} />
+                <ActivePromptsTab 
+                  onDeletePrompt={handleDeletePrompt}
+                  busyId={selectedPromptId}
+                  isDeleting={isDeleting}
+                />
               ) : (
                 <PendingMatchesTab />
               )}
@@ -237,12 +242,18 @@ export const ChatSettingsModal: React.FC<ChatSettingsModalProps> = ({
 
 const ActivePromptsTab = ({
   onDeletePrompt,
+  busyId,
+  isDeleting,
 }: {
   onDeletePrompt: (id: string, onConfirm: () => Promise<void>) => void;
+  busyId?: string;
+  isDeleting?: boolean;
 }) => {
   const { isDark } = useTheme();
   const { data: prompts, isLoading } = useActivePrompts();
   const deletePromptMutation = useDeleteActivePrompt();
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [localBusyId, setLocalBusyId] = useState<string | null>(null);
 
   const dynamicStyles = {
     text: {
@@ -260,8 +271,9 @@ const ActivePromptsTab = ({
   const handleDelete = async (id: string) => {
     try {
       await deletePromptMutation.mutateAsync(id);
+      toast.success("Prompt removed from marketplace");
     } catch (error) {
-      console.error("Failed to delete prompt:", error);
+      toast.error("Failed to remove prompt");
     }
   };
 
@@ -333,22 +345,46 @@ const ActivePromptsTab = ({
                 {moment(prompt.createdAt).fromNow()}
               </Text>
             </View>
-            <Pressable
-              style={[
-                styles.removeButton,
-                deletePromptMutation.isPending && { opacity: 0.6 },
-              ]}
-              onPress={() => {
-                onDeletePrompt(prompt.id, () => handleDelete(prompt.id));
-              }}
-              disabled={deletePromptMutation.isPending}
-            >
-              {deletePromptMutation.isPending ? (
-                <Ionicons name="hourglass-outline" size={12} color="#FFFFFF" />
-              ) : (
+            {confirmId === prompt.id ? (
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <Pressable
+                  style={[styles.cancelButton, { minWidth: 60 }]}
+                  onPress={() => setConfirmId(null)}
+                  disabled={localBusyId === prompt.id}
+                >
+                  <Text style={[styles.cancelButtonText, { color: "#000000" }]}>No</Text>
+                </Pressable>
+                <Pressable
+                  style={[
+                    styles.confirmButton,
+                    localBusyId === prompt.id && { opacity: 0.8 },
+                  ]}
+                  onPress={async () => {
+                    setLocalBusyId(prompt.id);
+                    try {
+                      await handleDelete(prompt.id);
+                    } finally {
+                      setLocalBusyId(null);
+                      setConfirmId(null);
+                    }
+                  }}
+                  disabled={localBusyId === prompt.id}
+                >
+                  {localBusyId === prompt.id ? (
+                    <Ionicons name="hourglass-outline" size={12} color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.confirmButtonText}>Yes</Text>
+                  )}
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable
+                style={[styles.removeButton]}
+                onPress={() => setConfirmId(prompt.id)}
+              >
                 <Text style={styles.removeButtonText}>Remove</Text>
-              )}
-            </Pressable>
+              </Pressable>
+            )}
           </View>
         ))
       ) : (
