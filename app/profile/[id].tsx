@@ -27,6 +27,7 @@ const UserProfile = () => {
   const [copied, setCopied] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
 
+
   const dynamicStyles = {
     container: {
       backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",

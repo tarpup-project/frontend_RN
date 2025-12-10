@@ -106,8 +106,8 @@ export default {
 
     extra: {
       router: {},
-      eas: {
-        projectId: "b8094831-e558-419d-b061-cacb75387f83"
+        "eas": {
+        "projectId": "2ce3d903-a4a5-461e-8d0e-25e247a22197"
       }
     },
 
@@ -115,7 +115,7 @@ export default {
       policy: "appVersion"
     },
 
-    owner: "blaise-10"
+    owner: "henrichh"
   }
 };
 
