@@ -1,4 +1,4 @@
-package com.vector10.Tarpup
+package com.Tarpup.app
 import com.facebook.react.common.assets.ReactFontManager
 
 import android.app.Application

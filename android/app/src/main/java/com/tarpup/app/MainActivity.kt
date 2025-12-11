@@ -1,4 +1,4 @@
-package com.vector10.Tarpup
+package com.Tarpup.app
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build
