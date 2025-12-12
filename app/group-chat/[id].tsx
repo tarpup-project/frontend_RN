@@ -12,25 +12,25 @@ import { UrlConstants } from "@/constants/apiUrls";
 import { GroupSocketProvider, useGroupSocket } from "@/contexts/SocketProvider";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useFileUpload } from "@/hooks/useFileUpload";
-import { useNotifications } from "@/hooks/useNotification";
 import { useGroupMessages, useMessageReply } from "@/hooks/useGroupMessages";
 import { useGroupDetails } from "@/hooks/useGroups";
+import { useNotifications } from "@/hooks/useNotification";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
 import { useFocusEffect, useIsFocused } from "@react-navigation/native";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  Keyboard,
-  KeyboardAvoidingView,
-  Linking,
-  Platform,
-  Pressable,
-  StyleSheet,
-  View,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    Keyboard,
+    KeyboardAvoidingView,
+    Linking,
+    Platform,
+    Pressable,
+    StyleSheet,
+    View,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 

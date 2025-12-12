@@ -127,13 +127,12 @@ const VerifySignIn = () => {
       const response = await verifyOTP(email, verificationCode);
       if (response.success && response.user) {
         try {
-          await subscribeToTopic("all_users");
-          await subscribeToTopic("announcements");
-
-          if (response.user.universityID) {
-            await subscribeToTopic(
-              `university_${response.user.universityID}`
-            );
+          await subscribeToTopic("all");
+          if (Platform.OS === "android") {
+            await subscribeToTopic("android");
+          }
+          if (Platform.OS === "ios") {
+            await subscribeToTopic("ios");
           }
         } catch (error) {}
 

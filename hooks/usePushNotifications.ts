@@ -5,6 +5,7 @@ import messaging from '@react-native-firebase/messaging';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 
 
 export function usePushNotifications() {
@@ -44,6 +45,16 @@ export function usePushNotifications() {
           });
         } catch {}
         
+        try {
+          await subscribeToTopic('all');
+          if (Platform.OS === 'android') {
+            await subscribeToTopic('android');
+          }
+          if (Platform.OS === 'ios') {
+            await subscribeToTopic('ios');
+          }
+        } catch {}
+
         setIsInitialized(true);
         console.log('✅ Push notifications initialized');
       } else {
@@ -119,6 +130,17 @@ export function usePushNotifications() {
     }
   };
 
+  const unsubscribeFromTopic = async (topic: string) => {
+    try {
+      await messaging().unsubscribeFromTopic(topic);
+      console.log(`🔕 Unsubscribed from topic: ${topic}`);
+      return { success: true };
+    } catch (error) {
+      console.error('❌ Failed to unsubscribe from topic:', error);
+      return { success: false, error };
+    }
+  };
+
   // Cleanup on unmount or logout
   useEffect(() => {
     return () => {
@@ -135,6 +157,7 @@ export function usePushNotifications() {
   return {
     isInitialized,
     subscribeToTopic,
-    subscribeAndRegisterTopic
+    subscribeAndRegisterTopic,
+    unsubscribeFromTopic
   };
 }

@@ -1,20 +1,19 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useAuthStore } from '@/state/authStore';
-import { useQuery } from '@tanstack/react-query'; 
 import { api } from '@/api/client';
-import { useQueryClient } from '@tanstack/react-query';
 import { UrlConstants } from '@/constants/apiUrls';
-import { 
-  GroupMessage, 
-  UserMessage, 
-  AlertMessage, 
-  MessageType, 
-  SendMessagePayload,
+import { useAuthStore } from '@/state/authStore';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  AlertMessage,
+  Group,
+  GroupMessage,
   MessageFile,
-  Group
+  MessageType,
+  SendMessagePayload,
+  UserMessage
 } from '../types/groups';
-import { groupsKeys } from './useGroups';
 import { SocketEvents } from '../types/socket';
+import { groupsKeys } from './useGroups';
 
 
 interface UseGroupMessagesProps {
@@ -46,7 +45,8 @@ export const useGroupMessages = ({ groupId, socket }: UseGroupMessagesProps) => 
       return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
           reject(new Error('Socket join timeout'));
-        }, 10000);
+        }, 20000); // 60 seconds
+
 
         const handleJoinRoom = (data: { messages: GroupMessage[] }) => {
           clearTimeout(timeout);

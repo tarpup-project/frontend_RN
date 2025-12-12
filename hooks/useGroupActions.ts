@@ -4,7 +4,7 @@ import * as Clipboard from 'expo-clipboard';
 import { toast } from 'sonner-native';
 import { api } from '@/api/client';
 import { UrlConstants } from '@/constants/apiUrls';
-import { subscribeToTopic, unsubscribeFromTopic } from '@/hooks/usePushNotifications';
+import { subscribeToGroupTopic, unsubscribeFromGroupTopic } from '@/utils/topicManager';
 
 interface ReportGroupData {
   groupID: string;
@@ -23,7 +23,7 @@ export const useGroupActions = () => {
     try {
       await api.post(UrlConstants.fetchInviteGroupDetails(groupID), {});
 
-      await subscribeToTopic(`group_${groupID}`);      
+      await subscribeToGroupTopic(groupID);
       toast.success("You have joined the group");
       return true;
     } catch (error) {
@@ -41,7 +41,7 @@ export const useGroupActions = () => {
       await api.post(UrlConstants.leaveGroup, { groupID });
       
       // Unsubscribe from group notifications
-      await unsubscribeFromTopic(`group_${groupID}`);
+      await unsubscribeFromGroupTopic(groupID);
       
       toast.success("You have left the group");
       return true;
