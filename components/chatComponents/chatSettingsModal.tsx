@@ -4,7 +4,9 @@ import {
   useActivePrompts,
   useDeleteActivePrompt,
 } from "@/hooks/useActivePrompts";
+import { useMatchAction, usePendingMatches } from "@/hooks/usePendingMatches";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import moment from "moment";
 import React, { useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
@@ -398,7 +400,9 @@ const ActivePromptsTab = ({
 
 const PendingMatchesTab = () => {
   const { isDark } = useTheme();
-  const [matches] = useState<PendingMatch[]>([]);
+  const router = useRouter();
+  const { data: matches = [], isLoading } = usePendingMatches();
+  const { mutateAsync } = useMatchAction();
   const [loadingAction, setLoadingAction] = useState<{
     id: string;
     type: string;
@@ -419,15 +423,22 @@ const PendingMatchesTab = () => {
 
   const handleAction = async (matchId: string, action: string) => {
     setLoadingAction({ id: matchId, type: action });
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const res: any = await mutateAsync({ matchId, action });
+      const groupId = res?.data?.group?.id || res?.data?.groupId || res?.groupId;
+      if (action !== "decline" && groupId) {
+        router.push(`/group-chat/${groupId}`);
+      }
+    } finally {
       setLoadingAction(null);
-    }, 2000);
+    }
   };
 
   return (
     <View style={styles.tabContent}>
-      {matches.length > 0 ? (
+      {isLoading ? (
+        <Text style={[styles.emptyText, dynamicStyles.subtitle]}>Loading matches...</Text>
+      ) : matches.length > 0 ? (
         matches.map((match) => (
           <View
             key={match.id}

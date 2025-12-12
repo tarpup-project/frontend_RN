@@ -1,19 +1,21 @@
   import AuthModal from "@/components/AuthModal";
-  import { Text } from "@/components/Themedtext";
-  import { useTheme } from "@/contexts/ThemeContext";
-  import { useAuthStore } from "@/state/authStore";
-  import { Ionicons } from "@expo/vector-icons";
-  import { useRouter } from "expo-router";
-  import { StatusBar } from "expo-status-bar";
-  import { useEffect, useRef, useState } from "react";
-  import { Animated, Image, Pressable, StyleSheet, View } from "react-native";
-  import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Text } from "@/components/Themedtext";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useAuthStore } from "@/state/authStore";
+import { useNotificationStore } from "@/state/notificationStore";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useEffect, useRef, useState } from "react";
+import { Animated, Image, Pressable, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
   const Header = () => {
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { isDark, toggleTheme } = useTheme();
     const { isAuthenticated } = useAuthStore();
+    const { personalNotifications, clearNotifications } = useNotificationStore();
     const [showAuthModal, setShowAuthModal] = useState(false);
 
     const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -41,6 +43,7 @@
       if (!isAuthenticated) {
         setShowAuthModal(true);
       } else {
+        clearNotifications('personal');
         router.push("/chat");
       }
     };
@@ -120,6 +123,13 @@
                     Chat
                   </Text>
                 </View>
+                {personalNotifications > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>
+                      {personalNotifications > 99 ? '99+' : personalNotifications}
+                    </Text>
+                  </View>
+                )}
                 
                 </Animated.View>
                 </Pressable>
@@ -166,6 +176,7 @@
       borderRadius: 20,
       paddingVertical: 8,
       paddingHorizontal: 14,
+      position: "relative",
     },
     chatContent: {
       flexDirection: "row",
@@ -175,6 +186,24 @@
     chatText: {
       fontSize: 13,
       fontWeight: "600",
+    },
+    badge: {
+      position: "absolute",
+      top: -14,
+      right: -17,
+      minWidth: 18,
+      height: 18,
+      borderRadius: 9,
+      backgroundColor: "#EF4444",
+      justifyContent: "center",
+      alignItems: "center",
+      paddingHorizontal: 4,
+    },
+
+    badgeText: {
+      color: "#FFFFFF",
+      fontSize: 10,
+      fontWeight: "700",
     },
   });
 

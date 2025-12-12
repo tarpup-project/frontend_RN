@@ -3,18 +3,18 @@ import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useCampus } from "@/hooks/useCampus";
-import moment from "moment";
 import { transformGroupForUI, useGroups } from "@/hooks/useGroups";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import moment from "moment";
 import { useState } from "react";
 import {
-  Image,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  View,
+    Image,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    View,
 } from "react-native";
 
 const iconMap: Record<string, string> = {
@@ -345,7 +345,7 @@ const Groups = () => {
                               group.rawGroup.category[0].icon
                             ) as any
                           }
-                          size={12}
+                          size={14}
                           color={group.rawGroup.category[0].colorHex}
                         />
                         <Text
@@ -530,13 +530,13 @@ const styles = StyleSheet.create({
   categoryBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 6,
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
   },
   categoryText: {
-    fontSize: 8,
+    fontSize: 10,
     fontWeight: "600",
   },
   matchBadge: {

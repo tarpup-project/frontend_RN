@@ -107,13 +107,13 @@ export default {
     extra: {
       router: {},
       "eas": {
-        "projectId": "2ce3d903-a4a5-461e-8d0e-25e247a22197"
+        "projectId": "9386a1c9-eed3-4a02-8943-efcecb53cc62"
       }
     },
 
     runtimeVersion: "1.0.0",
 
-    owner: "henrichh"
+    owner: "expo_travor"
   }
 };
 

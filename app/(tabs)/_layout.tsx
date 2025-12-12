@@ -59,7 +59,7 @@ export default function TabLayout() {
             )
           }}
         />
-        <Tabs.Screen
+        {/* <Tabs.Screen
         name="tarps"
         options={{
           title: "Tarps",
@@ -71,7 +71,7 @@ export default function TabLayout() {
             />
           )
         }}
-      />
+      /> */}
 
 <Tabs.Screen
   name="groups"
