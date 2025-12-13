@@ -3,6 +3,8 @@ import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useAuthStore } from "@/state/authStore";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments } from "expo-router";
+import messaging from "@react-native-firebase/messaging";
+import * as Notifications from "expo-notifications";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
@@ -11,6 +13,30 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Toaster } from "sonner-native";
 
+
+messaging().setBackgroundMessageHandler(async (remoteMessage: any) => {
+  const title =
+    remoteMessage?.notification?.title ||
+    remoteMessage?.data?.title ||
+    "Notification";
+  const body =
+    remoteMessage?.notification?.body ||
+    remoteMessage?.data?.body ||
+    "";
+  const data = remoteMessage?.data || {};
+
+  try {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: String(title),
+        body: String(body),
+        data,
+        sound: "default",
+      },
+      trigger: null,
+    });
+  } catch {}
+});
 
 SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient();

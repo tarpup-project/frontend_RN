@@ -65,7 +65,10 @@ export const useGroupDetails = (groupId: string) => {
     queryKey: groupsKeys.detail(groupId),
     queryFn: () => fetchGroupDetails(groupId),
     enabled: !!groupId,
-    staleTime: 1000 * 60 * 2,
+    staleTime: 1000 * 60 * 10,
+    gcTime: 1000 * 60 * 30,
+    refetchOnMount: false,
+    refetchOnReconnect: true,
     retry: 3,
   });
 };
