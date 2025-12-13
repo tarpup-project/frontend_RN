@@ -320,8 +320,39 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={0}
       >
-        <ChatLoadingState />
-        
+        <Header />
+        <View style={{ flex: 1 }}>
+          {finalGroupDetails ? (
+            <ChatHeader
+              groupDetails={{
+                id: finalGroupDetails.id,
+                name: finalGroupDetails.name,
+                members: finalGroupDetails.members,
+                score: finalGroupDetails.score,
+                shareLink: finalGroupDetails.shareLink,
+                isJoined: finalGroupDetails.isJoined,
+                isAdmin: finalGroupDetails.isAdmin,
+                isComplete: finalGroupDetails.isComplete,
+              }}
+              showDropdown={showDropdown}
+              onToggleDropdown={handleToggleDropdown}
+              onShowGroupInfo={handleShowGroupInfo}
+              onLeaveSuccess={() => router.back()}
+              navigateToProfile={navigateToProfile}
+            />
+          ) : (
+            <View style={[styles.centerContainer, { paddingTop: 16 }]}>
+              <Text style={[{ fontSize: 16 }, dynamicStyles.text]}>
+                Loading chat...
+              </Text>
+            </View>
+          )}
+
+          <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+            <ActivityIndicator size="small" color={dynamicStyles.text.color} />
+          </View>
+        </View>
+
         <MessageInput
           message={message}
           onChangeMessage={setMessage}
@@ -329,7 +360,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
           onAttachment={() => {}}
           onJoinGroup={handleJoinGroup}
           isJoining={isJoining}
-          isJoined={loadingState === "loading" ? true : (finalGroupDetails?.isJoined !== false)}
+          isJoined={finalGroupDetails?.isJoined !== false}
           selectedFile={selectedFile || null}
           onRemoveFile={removeFile}
           replyingTo={replyingTo || null}

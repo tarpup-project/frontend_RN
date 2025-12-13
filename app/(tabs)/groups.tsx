@@ -9,12 +9,12 @@ import { useRouter } from "expo-router";
 import moment from "moment";
 import { useState } from "react";
 import {
-    Image,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    View,
+  Image,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
 } from "react-native";
 
 const iconMap: Record<string, string> = {
@@ -248,37 +248,10 @@ const Groups = () => {
           )}
 
           {/* Error State */}
-          {!isLoading && isError && (
-            <View style={styles.centerContainer}>
-              <Ionicons
-                name="alert-circle-outline"
-                size={48}
-                color={isDark ? "#FF6B6B" : "#E74C3C"}
-              />
-              <Text style={[styles.errorText, dynamicStyles.text]}>
-                Failed to load groups
-              </Text>
-              <Text style={[styles.errorSubtext, dynamicStyles.subtitle]}>
-                Check your connection and try again
-              </Text>
-              <Pressable
-                style={[styles.retryButton, dynamicStyles.retryButton]}
-                onPress={() => refetch()}
-              >
-                <Text
-                  style={[
-                    styles.retryButtonText,
-                    dynamicStyles.retryButtonText,
-                  ]}
-                >
-                  Try Again
-                </Text>
-              </Pressable>
-            </View>
-          )}
+          {/* Error State suppressed: continue showing cached data if available */}
 
           {/* Empty State */}
-          {!isLoading && !isError && (!groups || groups.length === 0) && (
+          {!isLoading && (!groups || groups.length === 0) && (
             <View style={styles.centerContainer}>
               <Ionicons
                 name="people-outline"
@@ -296,7 +269,6 @@ const Groups = () => {
 
           {/* Groups List */}
           {!isLoading &&
-            !isError &&
             groups &&
             groups.length > 0 &&
             groups

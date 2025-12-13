@@ -14,7 +14,7 @@ export default {
       supportsTablet: true,
       backgroundColor: "#0a0a0a",
       bundleIdentifier: "com.Tarpup.app",
-      buildNumber: "17",
+      buildNumber: "49",
 
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
@@ -35,7 +35,7 @@ export default {
 
     android: {
       adaptiveIcon: {
-        backgroundColor: "#0a0a0a",
+        backgroundColor: "#FFFFFF",
         foregroundImage: "./assets/images/tarpup-light.png",
         backgroundImage: "./assets/images/tarpup-light.png",
         monochromeImage: "./assets/images/tarpup-light.png"

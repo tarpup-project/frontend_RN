@@ -1,6 +1,5 @@
 import { useAuthStore } from '@/state/authStore';
 import { registerTopicNotification, setupNotifications } from '@/utils/notifications';
-import type { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
 import messaging from '@react-native-firebase/messaging';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
@@ -12,10 +11,13 @@ export function usePushNotifications() {
   const router = useRouter();
   const { isAuthenticated, user } = useAuthStore();
   const [isInitialized, setIsInitialized] = useState(false);
+  const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
+  const [notification, setNotification] = useState<Notifications.Notification | null>(null);
   
   const notificationListener = useRef<Notifications.Subscription | undefined>(undefined);
   const responseListener = useRef<Notifications.Subscription | undefined>(undefined);
   const tokenRefreshUnsubscribe = useRef<(() => void) | null>(null);
+  const firebaseForegroundUnsubscribe = useRef<(() => void) | null>(null);
 
 
   useEffect(() => {
@@ -33,9 +35,8 @@ export function usePushNotifications() {
       const fcmToken = await setupNotifications();
       
       if (fcmToken) {
+        setExpoPushToken(fcmToken);
         setupForegroundNotificationHandler();
-        
-        setupBackgroundNotificationHandler();
         
         setupNotificationTapHandler();
 
@@ -67,21 +68,39 @@ export function usePushNotifications() {
 
 
   const setupForegroundNotificationHandler = () => {
+    // Expo notifications listener (notifications presented by OS)
     notificationListener.current = Notifications.addNotificationReceivedListener(
       (notification) => {
         console.log('📬 Notification received in foreground:', notification.request.content);
-       
+        setNotification(notification);
       }
     );
-  };
 
+    // Firebase foreground messages (data-only or non-presented notifications)
+    try {
+      firebaseForegroundUnsubscribe.current = messaging().onMessage(async (remoteMessage) => {
+        console.log('📬 Firebase onMessage (foreground):', remoteMessage);
 
-  const setupBackgroundNotificationHandler = () => {
+        const title = remoteMessage.notification?.title || remoteMessage.data?.title || 'Notification';
+        const body = remoteMessage.notification?.body || remoteMessage.data?.body || '';
+        const data = remoteMessage.data || {};
 
-    messaging().setBackgroundMessageHandler(async  (remoteMessage: FirebaseMessagingTypes.RemoteMessage) => {
-      console.log('📬 Background message received:', remoteMessage);
-
-    });
+        // Present a local notification so it shows while app is in foreground
+        try {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: String(title),
+              body: String(body),
+              data,
+              sound: 'default',
+            },
+            trigger: null,
+          });
+        } catch (err) {
+          console.log('❌ Failed to present local notification:', err);
+        }
+      });
+    } catch {}
   };
 
 
@@ -150,12 +169,18 @@ export function usePushNotifications() {
       if (responseListener.current) {
         responseListener.current.remove();
       }
+      if (firebaseForegroundUnsubscribe.current) {
+        try { firebaseForegroundUnsubscribe.current(); } catch {}
+        firebaseForegroundUnsubscribe.current = null;
+      }
    
     };
   }, []);
 
   return {
     isInitialized,
+    expoPushToken,
+    notification,
     subscribeToTopic,
     subscribeAndRegisterTopic,
     unsubscribeFromTopic

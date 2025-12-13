@@ -4,13 +4,13 @@ import { useAuthStore } from '@/state/authStore';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  AlertMessage,
-  Group,
-  GroupMessage,
-  MessageFile,
-  MessageType,
-  SendMessagePayload,
-  UserMessage
+    AlertMessage,
+    Group,
+    GroupMessage,
+    MessageFile,
+    MessageType,
+    SendMessagePayload,
+    UserMessage
 } from '../types/groups';
 import { SocketEvents } from '../types/socket';
 import { groupsKeys } from './useGroups';
@@ -62,8 +62,9 @@ export const useGroupMessages = ({ groupId, socket }: UseGroupMessagesProps) => 
       });
     },
     enabled: !!socket && !!user && !!groupId,
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 30, 
+    staleTime: 1000 * 60 * 15,
+    gcTime: 1000 * 60 * 30,
+    refetchOnMount: false,
     retry: 2,
   });
 
