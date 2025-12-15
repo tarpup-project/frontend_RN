@@ -1,91 +1,110 @@
 import { useAuthStore } from '@/state/authStore';
-import { registerTopicNotification, setupNotifications } from '@/utils/notifications';
+import { setupNotifications } from '@/utils/notifications';
 import messaging from '@react-native-firebase/messaging';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 
-
 export function usePushNotifications() {
   const router = useRouter();
   const { isAuthenticated, user } = useAuthStore();
+
   const [isInitialized, setIsInitialized] = useState(false);
-  const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
-  const [notification, setNotification] = useState<Notifications.Notification | null>(null);
-  
-  const notificationListener = useRef<Notifications.Subscription | undefined>(undefined);
-  const responseListener = useRef<Notifications.Subscription | undefined>(undefined);
-  const tokenRefreshUnsubscribe = useRef<(() => void) | null>(null);
+  const [fcmToken, setFcmToken] = useState<string | null>(null);
+  const [notification, setNotification] =
+    useState<Notifications.Notification | null>(null);
+
+  // Guards & subscriptions
+  const initializingRef = useRef(false);
+  const notificationListener = useRef<Notifications.Subscription | null>(null);
+  const responseListener = useRef<Notifications.Subscription | null>(null);
   const firebaseForegroundUnsubscribe = useRef<(() => void) | null>(null);
+  const tokenRefreshUnsubscribe = useRef<(() => void) | null>(null);
+  const handlersInitializedRef = useRef(false);
 
-
+  /* -------------------------------------------------------------------------- */
+  /*                             INITIALIZATION                                 */
+  /* -------------------------------------------------------------------------- */
   useEffect(() => {
-    if (isAuthenticated && user?.authToken && !isInitialized) {
-      initializeNotifications();
-    }
+    if (!isAuthenticated || !user?.authToken || isInitialized) return;
+    if (initializingRef.current) return;
+
+    initializingRef.current = true;
+    initializeNotifications();
   }, [isAuthenticated, user, isInitialized]);
 
-  const initializeNotifications = async () => {
-    if (!user?.authToken) return;
+  // Ensure handlers are active even before auth completes
+  useEffect(() => {
+    if (handlersInitializedRef.current) return;
+    try {
+      setupForegroundHandlers();
+      setupNotificationTapHandler();
+      handlersInitializedRef.current = true;
+    } catch (e) {}
+  }, []);
 
+  const initializeNotifications = async () => {
     try {
       console.log('🔔 Initializing push notifications...');
 
-      const fcmToken = await setupNotifications();
-      
-      if (fcmToken) {
-        setExpoPushToken(fcmToken);
-        setupForegroundNotificationHandler();
-        
-        setupNotificationTapHandler();
-
-        try {
-          tokenRefreshUnsubscribe.current = messaging().onTokenRefresh(async (newToken) => {
-            console.log('🔁 Refreshed FCM Token:', newToken);
-          });
-        } catch {}
-        
-        try {
-          await subscribeToTopic('all');
-          if (Platform.OS === 'android') {
-            await subscribeToTopic('android');
-          }
-          if (Platform.OS === 'ios') {
-            await subscribeToTopic('ios');
-          }
-        } catch {}
-
-        setIsInitialized(true);
-        console.log('✅ Push notifications initialized');
-      } else {
-        console.log('⚠️ Push notification initialization failed');
+      const token = await setupNotifications();
+      if (!token) {
+        console.log('⚠️ Notification setup failed');
+        initializingRef.current = false;
+        return;
       }
+
+      setFcmToken(token);
+
+      setupForegroundHandlers();
+      setupNotificationTapHandler();
+      setupTokenRefreshHandler();
+      await subscribeToDefaultTopics();
+
+      setIsInitialized(true);
+      console.log('✅ Push notifications initialized');
     } catch (error) {
-      console.error('❌ Error initializing push notifications:', error);
+      console.error('❌ Push notification init error:', error);
+      initializingRef.current = false;
     }
   };
 
+  /* -------------------------------------------------------------------------- */
+  /*                         FOREGROUND HANDLING                                 */
+  /* -------------------------------------------------------------------------- */
+  const setupForegroundHandlers = () => {
+    if (notificationListener.current || firebaseForegroundUnsubscribe.current) {
+      return;
+    }
 
-  const setupForegroundNotificationHandler = () => {
-    // Expo notifications listener (notifications presented by OS)
-    notificationListener.current = Notifications.addNotificationReceivedListener(
-      (notification) => {
-        console.log('📬 Notification received in foreground:', notification.request.content);
+    // Expo: listens to notifications already presented by the OS
+    notificationListener.current =
+      Notifications.addNotificationReceivedListener(notification => {
+        console.log(
+          '📬 Expo notification received:',
+          notification.request.content
+        );
         setNotification(notification);
-      }
-    );
+      });
 
-    // Firebase foreground messages (data-only or non-presented notifications)
-    try {
-      firebaseForegroundUnsubscribe.current = messaging().onMessage(async (remoteMessage) => {
+    // Firebase: handles foreground messages
+    firebaseForegroundUnsubscribe.current = messaging().onMessage(
+      async remoteMessage => {
         console.log('📬 Firebase onMessage (foreground):', remoteMessage);
 
-        const title = remoteMessage.notification?.title || remoteMessage.data?.title || 'Notification';
-        const body = remoteMessage.notification?.body || remoteMessage.data?.body || '';
         const data = remoteMessage.data || {};
+        const title =
+          remoteMessage.notification?.title ||
+          data?.title ||
+          'Notification';
+        const body =
+          remoteMessage.notification?.body ||
+          data?.body ||
+          '';
 
-        // Present a local notification so it shows while app is in foreground
+        // ✅ FIXED: Always show notification in foreground
+        // channelId moved to content, trigger set to null
         try {
           await Notifications.scheduleNotificationAsync({
             content: {
@@ -93,58 +112,83 @@ export function usePushNotifications() {
               body: String(body),
               data,
               sound: 'default',
+              ...(Platform.OS === 'android' && {
+                channelId: 'default',
+              }),
             },
-            trigger: null,
+            trigger: null, // null = show immediately on both platforms
           });
+          console.log('✅ Foreground notification scheduled');
         } catch (err) {
-          console.log('❌ Failed to present local notification:', err);
-        }
-      });
-    } catch {}
-  };
-
-
-  const setupNotificationTapHandler = () => {
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(
-      (response) => {
-        console.log('👆 Notification tapped:', response.notification.request.content);
-        
-        const data = response.notification.request.content.data;
-        
-        // Navigate based on notification type
-        if (data?.type === 'group' && data?.groupId) {
-          // Navigate to specific group chat
-          router.push(`/(tabs)/group-chat/${data.groupId}` as any);
-        } else if (data?.type === 'message' && data?.chatId) {
-          // Navigate to personal chat
-          router.push(`/(app)/messages/${data.chatId}` as any);
-        } else if (data?.screen) {
-          // Navigate to custom screen
-          router.push(data.screen as any);
-        } else {
-          // Default: Navigate to groups tab
-          router.push('/(tabs)/groups' as any);
+          console.error('❌ Foreground local notification error:', err);
         }
       }
     );
   };
+
+  /* -------------------------------------------------------------------------- */
+  /*                        NOTIFICATION TAP HANDLER                             */
+  /* -------------------------------------------------------------------------- */
+  const setupNotificationTapHandler = () => {
+    responseListener.current =
+      Notifications.addNotificationResponseReceivedListener(response => {
+        console.log(
+          '👆 Notification tapped:',
+          response.notification.request.content
+        );
+
+        const data = response.notification.request.content.data;
+
+        if (data?.type === 'group' && data?.groupId) {
+          router.push(`/(tabs)/group-chat/${data.groupId}` as any);
+        } else if (data?.type === 'message' && data?.chatId) {
+          router.push(`/(app)/messages/${data.chatId}` as any);
+        } else if (data?.screen) {
+          router.push(data.screen as any);
+        } else {
+          router.push('/(tabs)/groups' as any);
+        }
+      });
+  };
+
+  /* -------------------------------------------------------------------------- */
+  /*                          TOKEN REFRESH                                     */
+  /* -------------------------------------------------------------------------- */
+  const setupTokenRefreshHandler = () => {
+    tokenRefreshUnsubscribe.current = messaging().onTokenRefresh(
+      async newToken => {
+        console.log('🔁 FCM token refreshed:', newToken);
+        setFcmToken(newToken);
+        // Optional: send updated token to backend
+      }
+    );
+  };
+
+  /* -------------------------------------------------------------------------- */
+  /*                            TOPIC SUBSCRIPTION                               */
+  /* -------------------------------------------------------------------------- */
+  const subscribeToDefaultTopics = async () => {
+    try {
+      await messaging().subscribeToTopic('all');
+      if (Platform.OS === 'android') {
+        await messaging().subscribeToTopic('android');
+      }
+      if (Platform.OS === 'ios') {
+        await messaging().subscribeToTopic('ios');
+      }
+      console.log('🔔 Subscribed to default topics');
+    } catch (error) {
+      console.error('❌ Topic subscription error:', error);
+    }
+  };
+
   const subscribeToTopic = async (topic: string) => {
     try {
       await messaging().subscribeToTopic(topic);
       console.log(`🔔 Subscribed to topic: ${topic}`);
       return { success: true };
     } catch (error) {
-      console.error('❌ Failed to subscribe to topic:', error);
-      return { success: false, error };
-    }
-  };
-
-  const subscribeAndRegisterTopic = async (topic: string) => {
-    try {
-      await messaging().subscribeToTopic(topic);
-      await registerTopicNotification(topic);
-      return { success: true };
-    } catch (error) {
+      console.error('❌ Subscribe topic failed:', error);
       return { success: false, error };
     }
   };
@@ -155,34 +199,31 @@ export function usePushNotifications() {
       console.log(`🔕 Unsubscribed from topic: ${topic}`);
       return { success: true };
     } catch (error) {
-      console.error('❌ Failed to unsubscribe from topic:', error);
+      console.error('❌ Unsubscribe topic failed:', error);
       return { success: false, error };
     }
   };
 
-  // Cleanup on unmount or logout
+  /* -------------------------------------------------------------------------- */
+  /*                                CLEANUP                                     */
+  /* -------------------------------------------------------------------------- */
   useEffect(() => {
     return () => {
-      if (notificationListener.current) {
-        notificationListener.current.remove();
-      }
-      if (responseListener.current) {
-        responseListener.current.remove();
-      }
-      if (firebaseForegroundUnsubscribe.current) {
-        try { firebaseForegroundUnsubscribe.current(); } catch {}
-        firebaseForegroundUnsubscribe.current = null;
-      }
-   
+      notificationListener.current?.remove();
+      responseListener.current?.remove();
+      tokenRefreshUnsubscribe.current?.();
+      firebaseForegroundUnsubscribe.current?.();
     };
   }, []);
 
+  /* -------------------------------------------------------------------------- */
+  /*                                  API                                       */
+  /* -------------------------------------------------------------------------- */
   return {
     isInitialized,
-    expoPushToken,
+    fcmToken,
     notification,
     subscribeToTopic,
-    subscribeAndRegisterTopic,
-    unsubscribeFromTopic
+    unsubscribeFromTopic,
   };
 }

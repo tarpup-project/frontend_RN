@@ -2,7 +2,6 @@ import { api } from "@/api/client";
 import Header from "@/components/Header";
 import { Text } from "@/components/Themedtext";
 import { ChatHeader } from "@/components/chatComponents/ChatHeader";
-import { ChatLoadingState } from "@/components/chatComponents/ChatLoadingState";
 import { GroupInfoModal } from "@/components/chatComponents/GroupInfoModal";
 import { ImageModal } from "@/components/chatComponents/ImageModal";
 import { LinkConfirmModal } from "@/components/chatComponents/LinkConfirmModal";
@@ -21,16 +20,16 @@ import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    Keyboard,
-    KeyboardAvoidingView,
-    Linking,
-    Platform,
-    Pressable,
-    StyleSheet,
-    View,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Keyboard,
+  KeyboardAvoidingView,
+  Linking,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
@@ -162,6 +161,12 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     }
   }, [isFocused, markAsRead, refetchNotifications]);
 
+  useEffect(() => {
+    if (isFocused) {
+      markAsRead();
+      refetchNotifications();
+    }
+  }, [messages.length, isFocused, markAsRead, refetchNotifications]);
   useEffect(() => {
     console.log("🔍 showGroupInfo state changed:", showGroupInfo);
   }, [showGroupInfo]);
@@ -296,11 +301,13 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     console.log("🔍 showGroupInfo set to true"); 
   }, []);
 
+  const hasCachedMessages = useMemo(() => messages && messages.length > 0, [messages]);
+
   const loadingState = useMemo(() => {
-    if (groupLoading || isLoading) return "loading";
+    if (groupLoading || isLoading) return hasCachedMessages ? "ready" : "loading";
     if (!socket || !user) return "connecting";
-    if (groupError || error) return "error";
-    if (!finalGroupDetails) return "not-found";
+    if ((groupError || error) && !hasCachedMessages) return "error";
+    if (!finalGroupDetails && !hasCachedMessages) return "not-found";
     return "ready";
   }, [
     groupLoading,
@@ -310,6 +317,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     groupError,
     error,
     finalGroupDetails,
+    hasCachedMessages,
   ]);
 
 
@@ -517,7 +525,7 @@ const ErrorScreen = ({ message }: { message: string }) => {
           },
         ]}
       >
-        {message}
+        Network error
       </Text>
       <Pressable onPress={() => router.back()} style={{ marginTop: 16 }}>
         <Text style={{ color: "#007AFF" }}>Go Back</Text>

@@ -1,7 +1,7 @@
-import { useState } from 'react';
 import * as DocumentPicker from 'expo-document-picker';
-import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
+import * as ImagePicker from 'expo-image-picker';
+import { useState } from 'react';
 import { Alert, Platform } from 'react-native';
 
 interface FileData {
@@ -69,9 +69,9 @@ const compressImage = async (uri: string): Promise<string> => {
   try {
     const result = await ImageManipulator.manipulateAsync(
       uri,
-      [{ resize: { width: 1024, height: 1024 } }],
+      [{ resize: { width: 1920 } }],
       {
-        compress: 0.7,
+        compress: 0.9,
         format: ImageManipulator.SaveFormat.JPEG,
         base64: true,
       }
@@ -182,8 +182,7 @@ export const useFileUpload = () => {
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [16, 9],
+        allowsEditing: false,
         quality: 0.8,
         base64: false,
       });
@@ -224,8 +223,7 @@ export const useFileUpload = () => {
 
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [16, 9],
+        allowsEditing: false,
         quality: 0.8,
         base64: false, 
       });
