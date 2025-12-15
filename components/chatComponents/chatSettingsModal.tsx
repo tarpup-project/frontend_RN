@@ -448,11 +448,11 @@ const PendingMatchesTab = () => {
               <View style={styles.userInfo}>
                 <View style={styles.avatar}>
                   <Text style={styles.avatarText}>
-                    {match.owner?.fname?.[0] || "A"}
+                    {(match.request?.owner?.fname || match.group?.name || "U")[0]}
                   </Text>
                 </View>
                 <Text style={[styles.userName, dynamicStyles.text]}>
-                  {match.owner?.fname || "Anonymous"}
+                  {match.request?.owner?.fname || match.group?.name || "Unknown"}
                 </Text>
               </View>
               <View style={styles.scoreContainer}>
@@ -463,10 +463,13 @@ const PendingMatchesTab = () => {
             </View>
 
             <Text style={[styles.matchTitle, dynamicStyles.text]}>
-              {match.title}
+              {match.request?.title || match.group?.name || ""}
             </Text>
             <Text style={[styles.matchDescription, dynamicStyles.subtitle]}>
-              {match.description}
+              {match.request?.description || match.group?.description || ""}
+            </Text>
+            <Text style={[styles.matchCreated, dynamicStyles.subtitle]}>
+              {`Created: ${moment(match.createdAt).format("Do MMMM, YYYY h:mmA")}`}
             </Text>
 
             <View style={styles.matchActions}>
@@ -703,6 +706,10 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginBottom: 16,
     lineHeight: 16,
+  },
+  matchCreated: {
+    fontSize: 11,
+    marginTop: 6,
   },
   promptCard: {
     flexDirection: "row",

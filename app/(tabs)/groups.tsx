@@ -127,6 +127,18 @@ const getIconComponent = (iconName: string) => {
   return iconMap[normalizedName] || "pricetag-outline";
 };
 
+const makeHandleFromTitle = (title: string) => {
+  if (!title) return "";
+  const parts = title.trim().split(/\s+/).slice(0, 2);
+  const handle =
+    parts
+      .map((p, i) => (i === 1 ? p[0] : p))
+      .join("_")
+      .toLowerCase()
+      .replace(/[^a-z0-9_]/g, "") || title.toLowerCase().replace(/\s+/g, "_");
+  return `@${handle}`;
+};
+
 const Groups = () => {
   const { isDark } = useTheme();
   const {
@@ -291,10 +303,15 @@ const Groups = () => {
               })
               .map(transformGroupForUI)
               .map((group) => {
+                const isGeneral =
+                  (group.category || "").toLowerCase() === "general";
                 return (
                   <Pressable
                     key={group.id}
-                    style={[styles.groupCard, dynamicStyles.card]}
+                    style={[
+                      isGeneral ? styles.dmCard : styles.groupCard,
+                      dynamicStyles.card,
+                    ]}
                     onPress={() => {
                       router.push({
                         pathname: `/group-chat/${group.id}` as any,
@@ -304,150 +321,199 @@ const Groups = () => {
                       });
                     }}
                   >
-                    <View style={styles.topRow}>
-                      <View
-                        style={[
-                          styles.categoryBadge,
-                          dynamicStyles.categoryBadge,
-                        ]}
-                      >
-                        <Ionicons
-                          name={
-                            getIconComponent(
-                              group.rawGroup.category[0].icon
-                            ) as any
-                          }
-                          size={14}
-                          color={group.rawGroup.category[0].colorHex}
-                        />
-                        <Text
-                          style={[
-                            styles.categoryText,
-                            dynamicStyles.categoryBadgeText,
-                          ]}
-                        >
-                          {group.category}
-                        </Text>
+                    {isGeneral ? (
+                      <View style={styles.dmRow}>
+                        <View style={styles.dmLeft}>
+                          <View
+                            style={[
+                              styles.dmAvatar,
+                              {
+                                backgroundColor:
+                                  group.avatarColors[0] || "#4A90E2",
+                              },
+                            ]}
+                          >
+                            <Text style={styles.dmAvatarText}>
+                              {group.title?.[0]?.toUpperCase() || "U"}
+                            </Text>
+                          </View>
+                          <View style={styles.dmTextBlock}>
+                            <Text style={[styles.dmName, dynamicStyles.text]}>
+                              {group.title}
+                            </Text>
+                            <Text
+                              style={[styles.dmHandle, dynamicStyles.subtitle]}
+                            >
+                              {makeHandleFromTitle(group.title)}
+                            </Text>
+                            <Text
+                              numberOfLines={1}
+                              style={[styles.dmPreview, dynamicStyles.subtitle]}
+                            >
+                              {group.description || "Personal Chats"}
+                            </Text>
+                          </View>
+                        </View>
+                        <View style={styles.dmRight}>
+                          <Text style={[styles.dmTime, dynamicStyles.subtitle]}>
+                            {moment(
+                              group.rawGroup.lastMessageAt ||
+                                group.rawGroup.createdAt
+                            ).fromNow()}
+                          </Text>
+                          {group.unreadCount > 0 && (
+                            <View style={styles.dmUnreadBadge}>
+                              <Text style={styles.dmUnreadText}>
+                                {group.unreadCount}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
                       </View>
-
-                      <View
-                        style={[styles.matchBadge, dynamicStyles.matchBadge]}
-                      >
-                        <Ionicons
-                          name="star-outline"
-                          size={12}
-                          color={dynamicStyles.matchText.color}
-                        />
-                        <Text
-                          style={[styles.matchText, dynamicStyles.matchText]}
-                        >
-                          {group.matchPercentage} match
-                        </Text>
-                      </View>
-                    </View>
-
-                    <Text style={[styles.groupTitle, dynamicStyles.text]}>
-                      {group.title}
-                    </Text>
-                    <Text
-                      style={[styles.groupDescription, dynamicStyles.subtitle]}
-                    >
-                      {group.description}
-                    </Text>
-
-                    <View style={styles.membersRow}>
-                      <View style={styles.avatarsContainer}>
-                        {group.rawGroup.members
-                          .slice(0, 3)
-                          .map((member, index) => (
-                            <View
-                              key={member.id}
+                    ) : (
+                      <>
+                        <View style={styles.topRow}>
+                          <View
+                            style={[
+                              styles.categoryBadge,
+                              dynamicStyles.categoryBadge,
+                            ]}
+                          >
+                            {(() => {
+                              const cat = group.rawGroup.category?.[0];
+                              const iconName = getIconComponent(
+                                cat?.icon || "pricetag-outline"
+                              ) as any;
+                              const iconColor =
+                                cat?.colorHex ||
+                                (isDark ? "#FFFFFF" : "#000000");
+                              return (
+                                <Ionicons
+                                  name={iconName}
+                                  size={14}
+                                  color={iconColor}
+                                />
+                              );
+                            })()}
+                            <Text
                               style={[
-                                styles.avatar,
-                                {
-                                  backgroundColor: member.bgUrl
-                                    ? "transparent"
-                                    : group.avatarColors[index],
-                                },
-                                dynamicStyles.avatarBorder,
-                                index > 0 && { marginLeft: -8 },
+                                styles.categoryText,
+                                dynamicStyles.categoryBadgeText,
                               ]}
                             >
-                              {member.bgUrl ? (
-                                <Image
-                                  source={{ uri: member.bgUrl }}
-                                  style={styles.avatarImage}
-                                />
-                              ) : (
-                                <Text style={styles.avatarText}>
-                                  {member.fname[0].toUpperCase()}
-                                </Text>
-                              )}
-                            </View>
-                          ))}
-                        <Text
-                          style={[styles.membersText, dynamicStyles.subtitle]}
-                        >
-                          {group.members}{" "}
-                          {group.members === 1 ? "member" : "members"}
-                        </Text>
-                      </View>
-                    </View>
+                              {group.category}
+                            </Text>
+                          </View>
 
-                    <View style={styles.footerRow}>
-                      <View style={styles.activeRow}>
-                        <Ionicons
-                          name="time-outline"
-                          size={14}
-                          color={dynamicStyles.subtitle.color}
-                        />
-                        <Text
-                          style={[styles.activeText, dynamicStyles.subtitle]}
-                        >
-                          Active{" "}
-                          {moment(
-                            group.rawGroup.lastMessageAt ||
-                              group.rawGroup.createdAt
-                          ).fromNow()}
-                        </Text>
-                      </View>
+                          <View
+                            style={[styles.matchBadge, dynamicStyles.matchBadge]}
+                          >
+                            <Ionicons
+                              name="star-outline"
+                              size={12}
+                              color={dynamicStyles.matchText.color}
+                            />
+                            <Text
+                              style={[styles.matchText, dynamicStyles.matchText]}
+                            >
+                              {group.matchPercentage} match
+                            </Text>
+                          </View>
+                        </View>
 
-                      <View
-                        style={[styles.unreadBadge, dynamicStyles.unreadBadge]}
-                      >
-                        <Text
-                          style={[styles.unreadText, dynamicStyles.unreadText]}
-                        >
-                          {group.unreadCount} new messages
+                        <Text style={[styles.groupTitle, dynamicStyles.text]}>
+                          {group.title}
                         </Text>
-                      </View>
-                    </View>
+                        <Text
+                          style={[
+                            styles.groupDescription,
+                            dynamicStyles.subtitle,
+                          ]}
+                        >
+                          {group.description}
+                        </Text>
 
-                    {/* <Pressable
-                    style={[styles.openButton, dynamicStyles.openButton]}
-                    onPress={() => {
-                      router.push({
-                        pathname: `/group-chat/${group.id}` as any,
-                        params: { 
-                          groupData: JSON.stringify(group.rawGroup) 
-                        }
-                      });
-                    }}
-                  >
-                    <Ionicons
-                      name="chatbubble-outline"
-                      size={16}
-                      color={dynamicStyles.openButtonText.color}
-                    />
-                    <Text
-                      style={[
-                        styles.openButtonText,
-                        dynamicStyles.openButtonText,
-                      ]}
-                    >
-                      Open Chat
-                    </Text>
-                  </Pressable> */}
+                        <View style={styles.membersRow}>
+                          <View style={styles.avatarsContainer}>
+                            {group.rawGroup.members
+                              .slice(0, 3)
+                              .map((member, index) => (
+                                <View
+                                  key={member.id}
+                                  style={[
+                                    styles.avatar,
+                                    {
+                                      backgroundColor: member.bgUrl
+                                        ? "transparent"
+                                        : group.avatarColors[index],
+                                    },
+                                    dynamicStyles.avatarBorder,
+                                    index > 0 && { marginLeft: -8 },
+                                  ]}
+                                >
+                                  {member.bgUrl ? (
+                                    <Image
+                                      source={{ uri: member.bgUrl }}
+                                      style={styles.avatarImage}
+                                    />
+                                  ) : (
+                                    <Text style={styles.avatarText}>
+                                      {member.fname[0].toUpperCase()}
+                                    </Text>
+                                  )}
+                                </View>
+                              ))}
+                            <Text
+                              style={[
+                                styles.membersText,
+                                dynamicStyles.subtitle,
+                              ]}
+                            >
+                              {group.members}{" "}
+                              {group.members === 1 ? "member" : "members"}
+                            </Text>
+                          </View>
+                        </View>
+
+                        <View style={styles.footerRow}>
+                          <View style={styles.activeRow}>
+                            <Ionicons
+                              name="time-outline"
+                              size={14}
+                              color={dynamicStyles.subtitle.color}
+                            />
+                            <Text
+                              style={[
+                                styles.activeText,
+                                dynamicStyles.subtitle,
+                              ]}
+                            >
+                              Active{" "}
+                              {moment(
+                                group.rawGroup.lastMessageAt ||
+                                  group.rawGroup.createdAt
+                              ).fromNow()}
+                            </Text>
+                          </View>
+
+                          <View
+                            style={[
+                              styles.unreadBadge,
+                              dynamicStyles.unreadBadge,
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.unreadText,
+                                dynamicStyles.unreadText,
+                              ]}
+                            >
+                              {group.unreadCount} new messages
+                            </Text>
+                          </View>
+                        </View>
+                      </>
+                    )}
                   </Pressable>
                 );
               })}
@@ -487,6 +553,11 @@ const styles = StyleSheet.create({
   groupsList: {
     gap: 16,
     marginBottom: 50,
+  },
+  dmCard: {
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
   },
   groupCard: {
     padding: 16,
@@ -627,6 +698,66 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
     marginTop: 4,
+  },
+  dmRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  dmLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+  },
+  dmAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  dmAvatarText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  dmTextBlock: {
+    flex: 1,
+  },
+  dmName: {
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  dmHandle: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+  dmPreview: {
+    fontSize: 12,
+    marginTop: 4,
+  },
+  dmRight: {
+    alignItems: "flex-end",
+    gap: 8,
+    marginLeft: 12,
+  },
+  dmTime: {
+    fontSize: 11,
+  },
+  dmUnreadBadge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "#d94a4a",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 6,
+  },
+  dmUnreadText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "700",
   },
 });
 

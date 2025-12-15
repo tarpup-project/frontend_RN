@@ -7,14 +7,14 @@ import { Platform } from 'react-native';
 
 
 Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-      shouldShowBanner: true,
-      shouldShowList: true,
-    }),
-  });
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldSetBadge: true,
+  }),
+});
 
 
 export async function requestNotificationPermissions(): Promise<boolean> {
@@ -75,6 +75,12 @@ export async function getFCMToken(): Promise<string | null> {
       return null;
     }
 
+    try {
+      await messaging().registerDeviceForRemoteMessages();
+    } catch (e) {}
+    try {
+      await messaging().setAutoInitEnabled(true);
+    } catch (e) {}
     const token = await messaging().getToken();
     console.log('✅ FCM Token obtained:', token);
     return token;
@@ -105,8 +111,8 @@ export async function setupNotifications(): Promise<string | null> {
     try {
       await api.post(UrlConstants.sendUserNotification, {
         token: fcmToken,
-        title: 'Hello World',
-        body: 'Hello User, you just got a notification',
+        title: 'Welcome',
+        body: 'Take your time to go through the app and get to know us better',
       });
       console.log('📨 Sent FCM token to backend');
     } catch (err) {
@@ -125,8 +131,8 @@ export async function registerTopicNotification(topic: string): Promise<void> {
   try {
     await api.post(UrlConstants.sendTopicNotification, {
       topic,
-      title: 'Hello World',
-      body: 'Hello User, you just got a notification',
+      title: 'Thank you',
+      body: 'For joining our community',
     });
   } catch (error) {
   }

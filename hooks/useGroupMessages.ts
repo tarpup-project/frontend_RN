@@ -4,13 +4,13 @@ import { useAuthStore } from '@/state/authStore';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-    AlertMessage,
-    Group,
-    GroupMessage,
-    MessageFile,
-    MessageType,
-    SendMessagePayload,
-    UserMessage
+  AlertMessage,
+  Group,
+  GroupMessage,
+  MessageFile,
+  MessageType,
+  SendMessagePayload,
+  UserMessage
 } from '../types/groups';
 import { SocketEvents } from '../types/socket';
 import { groupsKeys } from './useGroups';
@@ -62,9 +62,8 @@ export const useGroupMessages = ({ groupId, socket }: UseGroupMessagesProps) => 
       });
     },
     enabled: !!socket && !!user && !!groupId,
-    staleTime: 1000 * 60 * 15,
-    gcTime: 1000 * 60 * 30,
-    refetchOnMount: false,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30, 
     retry: 2,
   });
 
@@ -79,57 +78,87 @@ export const useGroupMessages = ({ groupId, socket }: UseGroupMessagesProps) => 
 
   // Listen for new messages and update cache
   useEffect(() => {
-    if (!socket || !user || !groupId || socketReadyRef.current) return;
+    if (!socket || !user || !groupId) return;
 
-    socketReadyRef.current = true;
+    const handleNewMessage = (data: any) => {
+      const incomingRoomId = String(
+        data?.roomID ??
+          data?.roomId ??
+          data?.groupID ??
+          data?.groupId ??
+          data?.room ??
+          data?.group ??
+          ''
+      );
+      if (incomingRoomId && incomingRoomId !== String(groupId)) return;
 
-    const handleNewMessage = (data: SendMessagePayload) => {
-      if (data.roomID !== groupId) return;
+      const contentId =
+        data?.content?.id ??
+        data?.id ??
+        `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      const contentMessage =
+        data?.content?.message ?? data?.message ?? data?.text ?? '';
+      const sender = data?.sender ?? data?.user ?? {};
+      const createdAt = data?.createdAt || new Date().toISOString();
+      const file = data?.file;
+      const replyingTo = data?.replyingTo;
+      const type =
+        data?.messageType ??
+        (sender?.id ? MessageType.USER : MessageType.ALERT);
 
-      let newMessage: GroupMessage;
-      
-      if (data.messageType === MessageType.USER) {
-        newMessage = {
-          messageType: MessageType.USER,
-          content: data.content,
-          sender: {
-            id: data.sender.id,
-            fname: data.sender.fname,
-          },
-          file: data.file,
-          replyingTo: data.replyingTo as UserMessage,
-          createdAt: data.createdAt || new Date().toISOString(),
-        } as UserMessage;
-      } else {
-        newMessage = {
-          messageType: MessageType.ALERT,
-          content: data.content,
-          sender: {
-            id: data.sender.id,
-            fname: data.sender.fname,
-          },
-          createdAt: data.createdAt || new Date().toISOString(),
-        } as AlertMessage;
-      }
+      const base = {
+        content: { id: contentId, message: contentMessage },
+        createdAt,
+      };
 
-      // Update React Query cache
+      const newMessage: GroupMessage =
+        type === MessageType.USER
+          ? ({
+              messageType: MessageType.USER,
+              ...base,
+              sender: {
+                id: sender?.id,
+                fname: sender?.fname,
+              },
+              file,
+              replyingTo: replyingTo as UserMessage,
+            } as UserMessage)
+          : ({
+              messageType: MessageType.ALERT,
+              ...base,
+              sender: {
+                id: sender?.id,
+                fname: sender?.fname,
+              },
+            } as AlertMessage);
+
       queryClient.setQueryData<GroupMessage[]>(
         ['groups', 'messages', groupId],
         (oldMessages = []) => {
-          const exists = oldMessages.find(msg => msg.content.id === newMessage.content.id);
+          const exists = oldMessages.find(
+            (msg) => msg.content.id === newMessage.content.id
+          );
           if (exists) return oldMessages;
           return [...oldMessages, newMessage];
         }
       );
     };
 
-    socket.on(SocketEvents.GROUP_ROOM_MESSAGE, handleNewMessage);
+    const eventNames = [
+      SocketEvents.GROUP_ROOM_MESSAGE,
+      'groupRoomMessage',
+      'messageGroupRoom',
+      'group_message',
+      'groupMessage',
+      'newMessage',
+      'message',
+    ];
+    eventNames.forEach((evt) => socket.on(evt as any, handleNewMessage));
 
     return () => {
-      socket.off(SocketEvents.GROUP_ROOM_MESSAGE, handleNewMessage);
-      socketReadyRef.current = false;
+      eventNames.forEach((evt) => socket.off(evt as any, handleNewMessage));
     };
-  }, [socket, user, groupId, queryClient]);
+  }, [socket, user?.id, groupId, queryClient]);
 
   const sendMessage = useCallback(async ({ 
     message, 
