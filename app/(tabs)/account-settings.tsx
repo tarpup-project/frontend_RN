@@ -1,9 +1,9 @@
 import { api } from "@/api/client";
 import Header from "@/components/Header";
-import { Loader } from "@/components/Loader";
 import { Text } from "@/components/Themedtext";
 import { UrlConstants } from "@/constants/apiUrls";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useCampus } from "@/hooks/useCampus";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -13,8 +13,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  TextInput,
-  View,
+  View
 } from "react-native";
 import { toast } from "sonner-native";
 
@@ -27,6 +26,7 @@ interface NotificationSettings {
 const AccountSettings = () => {
   const { isDark } = useTheme();
   const { user, logout } = useAuthStore();
+  const { selectedUniversity } = useCampus();
 
   const [isLoading, setIsLoading] = useState(false);
   const [isPasswordLoading, setIsPasswordLoading] = useState(false);
@@ -293,7 +293,7 @@ const AccountSettings = () => {
               style={[styles.input, styles.disabledInput, dynamicStyles.input]}
             >
               <Text style={[styles.disabledText, dynamicStyles.subtitle]}>
-                University of South Florida
+                {selectedUniversity?.name || "Unknown University"}
               </Text>
             </View>
             <Text style={[styles.hint, dynamicStyles.subtitle]}>
@@ -302,140 +302,9 @@ const AccountSettings = () => {
           </View>
         </View>
 
-        {/* Password & Security */}
-        <View style={[styles.section, dynamicStyles.card]}>
-          <View style={styles.sectionTitleRow}>
-          <Ionicons name="lock-closed-outline" size={20} color={dynamicStyles.text.color} />
-            <Text style={[styles.sectionTitle, dynamicStyles.text]}>
-              Password & Security
-            </Text>
-          </View>
+        {/* Password & Security component commented out by request */}
 
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, dynamicStyles.text]}>
-              Current Password
-            </Text>
-            <View style={styles.passwordInputContainer}>
-              <TextInput
-                style={[
-                  styles.input,
-                  styles.passwordInput,
-                  dynamicStyles.input,
-                ]}
-                value={currentPassword}
-                onChangeText={setCurrentPassword}
-                placeholder="Enter current password"
-                placeholderTextColor={dynamicStyles.subtitle.color}
-                secureTextEntry={!showCurrentPassword}
-              />
-              <Pressable
-                style={styles.eyeIcon}
-                onPress={() => setShowCurrentPassword(!showCurrentPassword)}
-              >
-                <Ionicons
-                  name={showCurrentPassword ? "eye-outline" : "eye-off-outline"}
-                  size={20}
-                  color={dynamicStyles.subtitle.color}
-                />
-              </Pressable>
-            </View>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, dynamicStyles.text]}>New Password</Text>
-            <View style={styles.passwordInputContainer}>
-              <TextInput
-                style={[
-                  styles.input,
-                  styles.passwordInput,
-                  dynamicStyles.input,
-                ]}
-                value={newPassword}
-                onChangeText={setNewPassword}
-                placeholder="Enter new password"
-                placeholderTextColor={dynamicStyles.subtitle.color}
-                secureTextEntry={!showNewPassword}
-              />
-              <Pressable
-                style={styles.eyeIcon}
-                onPress={() => setShowNewPassword(!showNewPassword)}
-              >
-                <Ionicons
-                  name={showNewPassword ? "eye-outline" : "eye-off-outline"}
-                  size={20}
-                  color={dynamicStyles.subtitle.color}
-                />
-              </Pressable>
-            </View>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, dynamicStyles.text]}>
-              Confirm New Password
-            </Text>
-            <View style={styles.passwordInputContainer}>
-              <TextInput
-                style={[
-                  styles.input,
-                  styles.passwordInput,
-                  dynamicStyles.input,
-                ]}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                placeholder="Confirm new password"
-                placeholderTextColor={dynamicStyles.subtitle.color}
-                secureTextEntry={!showConfirmPassword}
-              />
-              <Pressable
-                style={styles.eyeIcon}
-                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-              >
-                <Ionicons
-                  name={showConfirmPassword ? "eye-outline" : "eye-off-outline"}
-                  size={20}
-                  color={dynamicStyles.subtitle.color}
-                />
-              </Pressable>
-            </View>
-          </View>
-
-          <Pressable
-            style={[
-              styles.updateButton,
-              dynamicStyles.updateButton,
-              isPasswordLoading && styles.updateButtonDisabled,
-            ]}
-            onPress={handlePasswordUpdate}
-            disabled={isPasswordLoading}
-          >
-            {isPasswordLoading ? (
-              <Loader
-                color={dynamicStyles.updateButtonText.color}
-                text="Updating..."
-                textStyle={dynamicStyles.updateButtonText}
-              />
-            ) : (
-              <Text
-                style={[
-                  styles.updateButtonText,
-                  dynamicStyles.updateButtonText,
-                ]}
-              >
-                Update Password
-              </Text>
-            )}
-          </Pressable>
-
-          {/* Two-Factor Authentication */}
-          <ToggleSwitch
-            value={twoFactorEnabled}
-            onValueChange={setTwoFactorEnabled}
-            label="Two-Factor Authentication"
-            description="Add an extra layer of security"
-          />
-        </View>
-
-        {/* Privacy Settings */}
+        {/* Privacy Settings (commented out by request)
         <View style={[styles.section, dynamicStyles.card]}>
           <View style={styles.sectionTitleRow}>
           <Ionicons name="shield-outline" size={20} color={dynamicStyles.text.color} />
@@ -472,6 +341,7 @@ const AccountSettings = () => {
             description="Share data for improved matching"
           />
         </View>
+        */}
 
         {/* Data & Account Management */}
         <View style={[styles.section, dynamicStyles.card]}>
@@ -518,7 +388,7 @@ const AccountSettings = () => {
         </View>
 
         {/* Save Settings Button */}
-        <View style={styles.saveButtonContainer}>
+        {/* <View style={styles.saveButtonContainer}>
           <Pressable
             style={[
               styles.saveButton,
@@ -542,7 +412,7 @@ const AccountSettings = () => {
               </Text>
             )}
           </Pressable>
-        </View>
+        </View> */}
       </ScrollView>
     </View>
   );

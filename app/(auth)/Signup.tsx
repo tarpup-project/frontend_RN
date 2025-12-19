@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -338,56 +339,60 @@ const Signup = () => {
           </View>
 
           {/* Checkboxes */}
-          <View style={styles.checkboxContainer}>
-            <Pressable
-              style={[styles.checkboxRow]}
-              onPress={() => setIsAdult(!isAdult)}
-            >
-              <View
-                style={[
-                  styles.checkbox,
-                  dynamicStyles.checkbox,
-                  isAdult && dynamicStyles.checkedBox,
-                ]}
-              >
-                {isAdult && (
-                  <Ionicons
-                    name="checkmark"
-                    size={10}
-                    color={isDark ? "#0a0a0a" : "#FFFFFF"}
-                  />
-                )}
-              </View>
-              <Text style={[styles.checkboxText, dynamicStyles.text]}>
-                I am 18 or above
-              </Text>
-            </Pressable>
+<View style={styles.checkboxContainer}>
+  <Pressable
+    style={styles.checkboxRow}
+    onPress={() => setIsAdult(!isAdult)}
+  >
+    <View
+      style={[
+        styles.checkbox,
+        dynamicStyles.checkbox,
+        isAdult && dynamicStyles.checkedBox,
+      ]}
+    >
+      {isAdult && (
+        <Ionicons
+          name="checkmark"
+          size={10}
+          color={isDark ? "#0a0a0a" : "#FFFFFF"}
+        />
+      )}
+    </View>
 
-            <Pressable
-              style={[styles.checkboxRow]}
-              onPress={() => setAcceptsResponsibility(!acceptsResponsibility)}
-            >
-              <View
-                style={[
-                  styles.checkbox,
-                  dynamicStyles.checkbox,
-                  acceptsResponsibility && dynamicStyles.checkedBox,
-                ]}
-              >
-                {acceptsResponsibility && (
-                  <Ionicons
-                    name="checkmark"
-                    size={10}
-                    color={isDark ? "#0a0a0a" : "#FFFFFF"}
-                  />
-                )}
-              </View>
-              <Text style={[styles.checkboxText, dynamicStyles.text]}>
-                I accept responsibility for my safety when meeting or chatting
-                with others.
-              </Text>
-            </Pressable>
-          </View>
+    <Text style={[styles.checkboxText, dynamicStyles.text]}>
+      By clicking{" "}
+      <Text style={{ fontWeight: "600" }}>
+        "Send verification code"
+      </Text>{" "}
+      you agree to our{" "}
+      <Text
+        style={{ color: "#1E90FF" }}
+        onPress={(e) => {
+          e.stopPropagation();
+          Linking.openURL(
+            "https://github.com/tarpup-project/Terms-of-Service/blob/main/README.md"
+          );
+        }}
+      >
+        Terms of Service
+      </Text>
+      . Learn about our{" "}
+      <Text
+        style={{ color: "#1E90FF" }}
+        onPress={(e) => {
+          e.stopPropagation();
+          Linking.openURL(
+            "https://github.com/tarpup-project/Privacy-Policy/blob/main/README.md"
+          );
+        }}
+      >
+        Privacy Policy
+      </Text>
+      .
+    </Text>
+  </Pressable>
+</View>
 
           {!isLoading ? (
             <Pressable

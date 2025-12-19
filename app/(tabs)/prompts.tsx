@@ -449,6 +449,17 @@ const Prompts = () => {
                     !prompt.owner.profileVerified &&
                     " (unverified)"}
                 </Text>
+                <Pressable
+                  style={[
+                    styles.blockButton,
+                  ]}
+                  onPress={() => {
+                    toast.success("Report request is been reviewed");
+                  }}
+                >
+                  <Ionicons name="ban-outline" size={14} color="#FFFFFF" />
+                  <Text style={[styles.blockButtonText,{color: isDark ? "#fa0909ff" : "#ef0f0fff" }]}>Report</Text>
+                </Pressable>
               </View>
             ))}
         </View>
@@ -459,10 +470,10 @@ const Prompts = () => {
         onClose={() => setShowAuthModal(false)}
       />
       <Modal
-  visible={!!showFullImage}
-  transparent={true}
-  animationType="fade"
-  onRequestClose={() => setShowFullImage(null)}
+        visible={!!showFullImage}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowFullImage(null)}
 >
   <Pressable
     style={styles.imageModalOverlay}
@@ -550,13 +561,26 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   promptsList: { padding: 16, gap: 16 },
-  promptCard: { padding: 16, borderRadius: 12, borderWidth: 1 },
+  promptCard: { padding: 16, borderRadius: 12, borderWidth: 1, position: "relative" },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 12,
   },
+  blockButton: {
+    position: "absolute",
+    bottom: 7,
+    right: 12,
+    height: 32,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  blockButtonText: { color: "#FFFFFF", fontSize: 10, fontWeight: "700" },
   categoryBadgesContainer: {
     flexDirection: "row",
     gap: 6,
@@ -635,6 +659,24 @@ const styles = StyleSheet.create({
     maxWidth: 500,
     maxHeight: 500,
   },
+  blockModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+  },
+  blockModalSheet: {
+    width: 260,
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  blockOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  blockOptionText: { fontSize: 14, fontWeight: "700" },
   emptyText: { fontSize: 14 },
 });
 

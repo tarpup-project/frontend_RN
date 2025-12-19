@@ -1,8 +1,8 @@
 import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
-  useActivePrompts,
-  useDeleteActivePrompt,
+    useActivePrompts,
+    useDeleteActivePrompt,
 } from "@/hooks/useActivePrompts";
 import { useMatchAction, usePendingMatches } from "@/hooks/usePendingMatches";
 import { Ionicons } from "@expo/vector-icons";
@@ -27,14 +27,19 @@ interface ActivePrompt {
 
 interface PendingMatch {
   id: string;
-  title: string;
-  description: string;
   similarityScore: number;
-  type: "request" | "group";
   createdAt: string;
-  owner?: {
-    fname: string;
-    id: string;
+  request?: {
+    title: string;
+    description: string;
+    owner: {
+      fname: string;
+      id: string;
+    };
+  };
+  group?: {
+    name: string;
+    description: string;
   };
 }
 
@@ -437,42 +442,57 @@ const PendingMatchesTab = () => {
   return (
     <View style={styles.tabContent}>
       {isLoading ? (
-        <Text style={[styles.emptyText, dynamicStyles.subtitle]}>Loading matches...</Text>
+        <Text style={[styles.emptyText, dynamicStyles.subtitle]}>
+          Loading matches...
+        </Text>
       ) : matches.length > 0 ? (
-        matches.map((match) => (
-          <View
-            key={match.id}
-            style={[styles.matchCard, dynamicStyles.matchCard]}
-          >
-            <View style={styles.matchHeader}>
-              <View style={styles.userInfo}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>
-                    {(match.request?.owner?.fname || match.group?.name || "U")[0]}
+        matches.map((match) => {
+          const title = match.request?.title || match.group?.name || "Untitled";
+          const description =
+            match.request?.description ||
+            match.group?.description ||
+            "No description";
+          const ownerName = match.request?.owner?.fname || "Anonymous";
+          const ownerInitial = ownerName[0] || "A";
+
+          return (
+            <View
+              key={match.id}
+              style={[styles.matchCard, dynamicStyles.matchCard]}
+            >
+              <View style={styles.matchHeader}>
+                <View style={styles.userInfo}>
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>{ownerInitial}</Text>
+                  </View>
+                  <Text style={[styles.userName, dynamicStyles.text]}>
+                    {ownerName}
                   </Text>
                 </View>
-                <Text style={[styles.userName, dynamicStyles.text]}>
-                  {match.request?.owner?.fname || match.group?.name || "Unknown"}
-                </Text>
+                <View style={styles.scoreContainer}>
+                  <Text style={styles.scoreText}>
+                    {match.similarityScore}% Match
+                  </Text>
+                </View>
               </View>
-              <View style={styles.scoreContainer}>
-                <Text style={styles.scoreText}>
-                  {match.similarityScore}% Match
-                </Text>
-              </View>
-            </View>
 
-            <Text style={[styles.matchTitle, dynamicStyles.text]}>
-              {match.request?.title || match.group?.name || ""}
-            </Text>
-            <Text style={[styles.matchDescription, dynamicStyles.subtitle]}>
-              {match.request?.description || match.group?.description || ""}
-            </Text>
-            <Text style={[styles.matchCreated, dynamicStyles.subtitle]}>
-              {`Created: ${moment(match.createdAt).format("Do MMMM, YYYY h:mmA")}`}
-            </Text>
+              <Text style={[styles.matchTitle, dynamicStyles.text]}>
+                {title}
+              </Text>
+              <Text style={[styles.matchDescription, dynamicStyles.subtitle]}>
+                {description}
+              </Text>
+              <Text
+                style={[
+                  styles.matchDescription,
+                  dynamicStyles.subtitle,
+                  { fontSize: 12, marginTop: 8, marginBottom: 12 },
+                ]}
+              >
+                Created: {moment(match.createdAt).format("Do MMMM, YYYY h:mmA")}
+              </Text>
 
-            <View style={styles.matchActions}>
+              <View style={styles.matchActions}>
               <View style={styles.actionRow}>
                 <Pressable
                   style={[styles.actionButton, { backgroundColor: "#3B82F6" }]}
@@ -525,7 +545,8 @@ const PendingMatchesTab = () => {
               </Pressable>
             </View>
           </View>
-        ))
+        );
+      })
       ) : (
         <Text style={[styles.emptyText, dynamicStyles.subtitle]}>
           No pending matches found.
@@ -706,10 +727,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginBottom: 16,
     lineHeight: 16,
-  },
-  matchCreated: {
-    fontSize: 11,
-    marginTop: 6,
   },
   promptCard: {
     flexDirection: "row",

@@ -1,9 +1,8 @@
 import { Text } from "@/components/Themedtext";
-import * as Clipboard from 'expo-clipboard';
 import { useTheme } from "@/contexts/ThemeContext";
-import { saveUserData } from "@/utils/storage";
 import { useAuth } from "@/hooks/useAuth";
 import { Ionicons } from "@expo/vector-icons";
+import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import {
@@ -295,7 +294,9 @@ const VerifyEmail = () => {
             </View>
           )}
           <Text style={[styles.spam, dynamicStyles.subtitle]}>
-            Didn't Receive it? Please check your spam or junk folder.
+            Didn&apos;t receive it? Please check your{" "}
+            <Text style={{ fontWeight: "700" }}>Spam</Text> or{" "}
+            <Text style={{ fontWeight: "700" }}>Junk</Text> folder.
           </Text>
 
           <Pressable

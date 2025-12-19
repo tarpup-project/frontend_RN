@@ -13,8 +13,8 @@ import { useMatchActions } from "@/hooks/useMatchActions";
 import { usePersonalChat } from "@/hooks/usePersonalChat";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -47,8 +47,6 @@ const Chat = () => {
   } | null>(null);
   const [currentMessageId, setCurrentMessageId] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [processedMatchStatus, setProcessedMatchStatus] = useState<Record<string, 'accepted' | 'declined'>>({});
-  const MATCH_ACTIONS_KEY = "match_actions_status";
 
   const {
     messages,
@@ -59,9 +57,31 @@ const Chat = () => {
     clearMessages,
   } = usePersonalChat();
 
-  const { handleMatchAction: processMatchAction, isLoading: isMatchLoading, joinPublicGroup } =
+  const { handleMatchAction: processMatchAction, isLoading: isMatchLoading } =
     useMatchActions();
 
+  const [matchActionStates, setMatchActionStates] = useState<Record<string, "accepted" | "declined">>({});
+  const MATCH_STATE_KEY = "tarpai_match_actions";
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const saved = await SecureStore.getItemAsync(MATCH_STATE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && typeof parsed === "object") {
+            setMatchActionStates(parsed);
+          }
+        }
+      } catch {}
+    })();
+  }, []);
+
+  const persistMatchStates = async (states: Record<string, "accepted" | "declined">) => {
+    try {
+      await SecureStore.setItemAsync(MATCH_STATE_KEY, JSON.stringify(states));
+    } catch {}
+  };
   const quickStartOptions = [
     { icon: "car-outline", text: "I need a ride to downtown" },
     { icon: "home-outline", text: "Looking for a roommate" },
@@ -199,29 +219,17 @@ const Chat = () => {
     matchId: string,
     action: "private" | "public" | "decline"
   ) => {
+    const status = action === "decline" ? "declined" : "accepted";
+    setMatchActionStates((prev) => {
+      const updated: Record<string, "accepted" | "declined"> = { ...prev, [matchId]: status };
+      void persistMatchStates(updated);
+      return updated;
+    });
     const result = await processMatchAction(matchId, action);
 
     if (result.status === "ok") {
-      const status = action === "decline" ? "declined" : action === "private" ? "accepted" : undefined;
-      if (status !== undefined) {
-  setProcessedMatchStatus(prev => {
-    const next: Record<string, "accepted" | "declined"> = {
-      ...prev,
-      [matchId]: status,
-    };
-    AsyncStorage.setItem(MATCH_ACTIONS_KEY, JSON.stringify(next)).catch(() => {});
-    return next;
-  });
-}
-
-
-      if (result.groupId) {
-        if (action === "public") {
-          await joinPublicGroup(result.groupId);
-        }
+      if (action !== "decline" && result.groupId) {
         router.push(`/group-chat/${result.groupId}`);
-      } else if (!status) {
-        Alert.alert("Success", result.message || "Action processed");
       }
     } else {
       Alert.alert("Error", result.message || "Failed to process action");
@@ -285,130 +293,125 @@ const Chat = () => {
     }
   };
 
-  const renderMatchButtons = (matchId: string) => (
-    <View style={styles.matchButtonsContainer}>
-      <View style={styles.matchButtonRow}>
+  const renderMatchButtons = (matchId: string) => {
+    const state = matchActionStates[matchId];
+    if (state === "accepted") {
+      return (
+        <View style={styles.matchButtonsContainer}>
+          <View style={[styles.statusChip, { backgroundColor: "#10B981" }]}>
+            <Text style={[styles.statusChipText, { color: "#FFFFFF" }]}>
+              Accepted
+            </Text>
+          </View>
+        </View>
+      );
+    }
+    if (state === "declined") {
+      return (
+        <View style={styles.matchButtonsContainer}>
+          <View style={[styles.statusChip, { backgroundColor: "#EF4444" }]}>
+            <Text style={[styles.statusChipText, { color: "#FFFFFF" }]}>
+              Declined
+            </Text>
+          </View>
+        </View>
+      );
+    }
+    return (
+      <View style={styles.matchButtonsContainer}>
+        <View style={styles.matchButtonRow}>
+          <Pressable
+            style={[
+              styles.matchButton,
+              dynamicStyles.matchButton,
+              { backgroundColor: "#3B82F6" },
+            ]}
+            onPress={() => onMatchAction(matchId, "private")}
+            disabled={isMatchLoading}
+          >
+            <Text style={[styles.matchButtonText, { color: "#FFFFFF" }]}>
+              Private Chat
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[
+              styles.matchButton,
+              dynamicStyles.matchButton,
+              { backgroundColor: "#10B981" },
+            ]}
+            onPress={() => onMatchAction(matchId, "public")}
+            disabled={isMatchLoading}
+          >
+            <Text style={[styles.matchButtonText, { color: "#FFFFFF" }]}>
+              Create Group
+            </Text>
+          </Pressable>
+        </View>
         <Pressable
           style={[
             styles.matchButton,
             dynamicStyles.matchButton,
-            { backgroundColor: "#3B82F6" },
+            { borderColor: "#EF4444" },
           ]}
-          onPress={() => onMatchAction(matchId, "private")}
+          onPress={() => onMatchAction(matchId, "decline")}
           disabled={isMatchLoading}
         >
-          <Text style={[styles.matchButtonText, { color: "#FFFFFF" }]}>
-            Private Chat
-          </Text>
-        </Pressable>
-        <Pressable
-          style={[
-            styles.matchButton,
-            dynamicStyles.matchButton,
-            { backgroundColor: "#10B981" },
-          ]}
-          onPress={() => onMatchAction(matchId, "public")}
-          disabled={isMatchLoading}
-        >
-          <Text style={[styles.matchButtonText, { color: "#FFFFFF" }]}>
-            Create Group
+          <Text style={[styles.matchButtonText, { color: "#EF4444" }]}>
+            Decline
           </Text>
         </Pressable>
       </View>
-      <Pressable
-        style={[
-          styles.matchButton,
-          dynamicStyles.matchButton,
-          { borderColor: "#EF4444" },
-        ]}
-        onPress={() => onMatchAction(matchId, "decline")}
-        disabled={isMatchLoading}
-      >
-        <Text style={[styles.matchButtonText, { color: "#EF4444" }]}>
-          Decline
-        </Text>
-      </Pressable>
-    </View>
-  );
+    );
+  };
 
   const parseMessageForActions = (content: string) => {
-    const patterns = [
-      /<MatchButton[^>]*id=["']([^"']+)["'][^>]*\/>/,
-      /<MatchButton[^>]*id=["']([^"']+)["'][^>]*>[\s\S]*?<\/MatchButton>/,
-      /<MatchButton[^>]*id=([^\s"'/>]+)[^>]*\/?>(?:<\/MatchButton>)?/
-    ];
-    let match: RegExpMatchArray | null = null;
-    let pattern: RegExp | null = null;
-    for (const p of patterns) {
-      const m = content.match(p);
-      if (m) {
-        match = m;
-        pattern = p;
-        break;
-      }
-    }
+    const matchButtonPattern = /<MatchButton[^>]*id="([^"]*)"[^>]*\/>/;
+    const match = content.match(matchButtonPattern);
+    const userProfileTag = content.match(/<UserProfile[^>]*\/>/);
+    const requestDetailsTag = content.match(/<RequestDetails[^>]*\/>/);
 
-    let cleaned = content;
-    let matchId: string | undefined;
-    if (match && pattern) {
-      matchId = match[1];
-      cleaned = cleaned.replace(pattern, "").trim();
-    }
-
-    const userTag = cleaned.match(/<UserProfile([\s\S]*?)\/>/);
-    const reqTag = cleaned.match(/<RequestDetails([\s\S]*?)\/>/);
-    const campusGroupTag = cleaned.match(/<CampusGroup([\s\S]*?)\/>/);
-    const parseAttrs = (s?: string) => {
-      const attrs: Record<string, string> = {};
-      if (!s) return attrs;
-      const regex = /(\w+)=["']([^"']+)["']/g;
-      let am: RegExpExecArray | null;
-      while ((am = regex.exec(s)) !== null) {
-        attrs[am[1]] = am[2];
-      }
-      return attrs;
+    const extractAttr = (src: string | null, name: string) => {
+      if (!src) return undefined;
+      const m = src.match(new RegExp(`${name}="([^"]*)"`, "i"));
+      return m ? m[1] : undefined;
     };
-    const userAttrs = parseAttrs(userTag?.[1]);
-    const reqAttrs = parseAttrs(reqTag?.[1]);
-    const campusAttrs = parseAttrs(campusGroupTag?.[1]);
 
-    if (userTag || reqTag || campusGroupTag) {
-      const summaryParts: string[] = [];
-      if (userAttrs.fname || userAttrs.campusName) {
-        summaryParts.push(`${userAttrs.fname || "A student"}${userAttrs.campusName ? ` from ${userAttrs.campusName}` : ""}`);
+    const fname = extractAttr(userProfileTag ? userProfileTag[0] : null, "fname");
+    const campusName = extractAttr(userProfileTag ? userProfileTag[0] : null, "campusName");
+    const description = extractAttr(requestDetailsTag ? requestDetailsTag[0] : null, "description");
+
+    const normalizedDesc = (() => {
+      if (!description) return "";
+      let d = description;
+      d = d.replace(/requesting connection with the group organizer/gi, "connecting with the group organizers");
+      return d;
+    })();
+
+    const descriptiveText = (() => {
+      if (fname || campusName || normalizedDesc) {
+        const who = fname ? fname : "Someone";
+        const from = campusName ? ` from ${campusName}` : "";
+        const action = normalizedDesc ? `: ${normalizedDesc}` : "";
+        return `${who}${from} is interested in your activity${action}`.trim();
       }
-      if (reqAttrs.title || reqAttrs.description) {
-        const detail = `${reqAttrs.title || ""}${reqAttrs.description ? ` — ${reqAttrs.description}` : ""}`.trim();
-        if (detail) {
-          summaryParts.push(`is interested in: ${detail}`);
-        }
-      }
-      if (campusAttrs.title || campusAttrs.description || campusAttrs.userFname) {
-        const heading = campusAttrs.title ? `${campusAttrs.title}` : "A group";
-        const by = campusAttrs.userFname ? ` by ${campusAttrs.userFname}` : "";
-        const desc = campusAttrs.description ? ` — ${campusAttrs.description}` : "";
-        summaryParts.push(`${heading}${by}${desc}`.trim());
-      }
-      cleaned = cleaned
-        .replace(/<UserProfile[\s\S]*?\/>/g, "")
-        .replace(/<RequestDetails[\s\S]*?\/>/g, "")
-        .replace(/<CampusGroup[\s\S]*?\/>/g, "")
+      const cleaned = content
+        .replace(matchButtonPattern, "")
+        .replace(/<[^>]+>/g, "")
         .trim();
-      const summary = summaryParts.join(" ").trim();
-      if (summary) {
-        cleaned = `${summary}${cleaned ? `\n\n${cleaned}` : ""}`.trim();
-      }
+      return cleaned;
+    })();
+
+    if (match) {
+      const matchId = match[1];
+      return {
+        hasMatchButtons: true,
+        matchId,
+        textContent: descriptiveText,
+      };
     }
-
-    cleaned = cleaned
-      .replace(/<([A-Za-z][\w-]*)[^>]*\/>/g, "")
-      .replace(/<([A-Za-z][\w-]*)[^>]*>[\s\S]*?<\/\1>/g, "")
-      .trim();
-
     return {
-      hasMatchButtons: !!matchId,
-      matchId,
-      textContent: cleaned,
+      hasMatchButtons: false,
+      textContent: descriptiveText,
     };
   };
 
@@ -450,30 +453,9 @@ const Chat = () => {
             {messageData.textContent}
           </Text>
 
-          {messageData.hasMatchButtons && messageData.matchId && (
-            processedMatchStatus[messageData.matchId]
-              ? (
-                  <Pressable
-                    style={[
-                      styles.matchButton,
-                      dynamicStyles.matchButton,
-                      {
-                        backgroundColor:
-                          processedMatchStatus[messageData.matchId] === 'accepted'
-                            ? '#10B981'
-                            : '#EF4444',
-                        opacity: 0.7,
-                      },
-                    ]}
-                    disabled
-                  >
-                    <Text style={[styles.matchButtonText, { color: '#FFFFFF' }]}> 
-                      {processedMatchStatus[messageData.matchId] === 'accepted' ? 'Accepted' : 'Declined'}
-                    </Text>
-                  </Pressable>
-                )
-              : renderMatchButtons(messageData.matchId)
-          )}
+          {messageData.hasMatchButtons &&
+            messageData.matchId &&
+            renderMatchButtons(messageData.matchId)}
 
           {/* Image display */}
           {msg.imageUrl && (
@@ -541,20 +523,6 @@ const Chat = () => {
 
   useEffect(() => {
     markAsRead();
-  }, []);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const stored = await AsyncStorage.getItem(MATCH_ACTIONS_KEY);
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (parsed && typeof parsed === "object") {
-            setProcessedMatchStatus(parsed);
-          }
-        }
-      } catch (e) {}
-    })();
   }, []);
 
   return (
@@ -962,6 +930,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   matchButtonText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  statusChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignSelf: "flex-start",
+  },
+  statusChipText: {
     fontSize: 12,
     fontWeight: "600",
   },
