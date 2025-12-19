@@ -4,6 +4,7 @@ import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useCampus } from "@/hooks/useCampus";
 import { transformGroupForUI, useGroups } from "@/hooks/useGroups";
+import { useNotificationStore } from "@/state/notificationStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import moment from "moment";
@@ -140,6 +141,7 @@ const Groups = () => {
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
   const { selectedUniversity } = useCampus();
   const router = useRouter();
+  const { groupUnreadById } = useNotificationStore();
 
   const handleManualRefresh = async () => {
     setIsManualRefreshing(true);
@@ -322,6 +324,7 @@ const Groups = () => {
                 const isGeneral =
                   !group.rawGroup.category?.length ||
                   (group.category || "").toLowerCase() === "general";
+                const unread = Math.max(0, groupUnreadById[group.id] ?? group.unreadCount ?? 0);
                 if (isGeneral) {
                   const handle =
                     "@" +
@@ -358,9 +361,11 @@ const Groups = () => {
                             <Text style={[styles.dmName, dynamicStyles.text]}>
                               {group.title}
                             </Text>
-                            <Text style={[styles.dmTime, dynamicStyles.subtitle]}>
-                              {when}
-                            </Text>
+                            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                              <Text style={[styles.dmTime, dynamicStyles.subtitle]}>
+                                {when}
+                              </Text>
+                            </View>
                           </View>
                           <Text style={[styles.dmHandle, dynamicStyles.subtitle]}>
                             {handle}
@@ -370,6 +375,13 @@ const Groups = () => {
                       <Text style={[styles.dmMessage, dynamicStyles.subtitle]}>
                         {group.description || "No description"}
                       </Text>
+                      {unread > 0 && (
+                        <View style={[styles.dmUnreadBadge, dynamicStyles.unreadBadge]}>
+                          <Text style={[styles.unreadText, dynamicStyles.unreadText]}>
+                            {unread}
+                          </Text>
+                        </View>
+                      )}
                     </Pressable>
                   );
                 }
@@ -500,7 +512,7 @@ const Groups = () => {
                         <Text
                           style={[styles.unreadText, dynamicStyles.unreadText]}
                         >
-                          {group.unreadCount} new messages
+                          {unread} new messages
                         </Text>
                       </View>
                     </View>
@@ -640,6 +652,14 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "600",
   },
+  dmUnreadBadge: {
+    position: "absolute",
+    bottom: 8,
+    right: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
   openButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -659,6 +679,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     gap: 8,
+    position: "relative",
   },
   dmHeader: {
     flexDirection: "row",

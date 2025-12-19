@@ -78,6 +78,21 @@ class UrlConstants {
 
   // Tarps
   static uploadTarps = `/tarps/upload`;
+  static fetchPeopleMessage = (userID: string) => `/tarps/people/message/${userID}`;
+  static fetchPeopleMessages = (userID: string) => `/tarps/people/message/${userID}`;
+  static tarpNavigateToUser = (params: { locationID: string; startingLat?: number; startingLng?: number; startingLocation?: string }) => {
+    const q = new URLSearchParams({
+      locationID: params.locationID,
+      ...(params.startingLat !== undefined ? { startingLat: String(params.startingLat) } : {}),
+      ...(params.startingLng !== undefined ? { startingLng: String(params.startingLng) } : {}),
+      ...(params.startingLocation ? { startingLocation: params.startingLocation } : {}),
+    });
+    return `/tarps/people/navigate?${q.toString()}`;
+  };
+  static tarpLikePost = `/tarps/posts/like`;
+  static tarpPostComments = (postImageID: string) => `/tarps/posts/${postImageID}/comments`;
+  static tarpToggleFriend = `/tarps/user/friend`;
+  static tarpToggleFollow = `/tarps/user/follow`;
 
   static groupsRoute = `${this.baseUrl}/groups`;
 }

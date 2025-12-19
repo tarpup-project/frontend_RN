@@ -1,17 +1,18 @@
 import { api } from '@/api/client';
 import { UrlConstants } from '@/constants/apiUrls';
 import { useAuthStore } from '@/state/authStore';
+import { useNotificationStore } from '@/state/notificationStore';
 import { storage } from '@/utils/storage';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  AlertMessage,
-  Group,
-  GroupMessage,
-  MessageFile,
-  MessageType,
-  SendMessagePayload,
-  UserMessage
+    AlertMessage,
+    Group,
+    GroupMessage,
+    MessageFile,
+    MessageType,
+    SendMessagePayload,
+    UserMessage
 } from '../types/groups';
 import { SocketEvents } from '../types/socket';
 import { groupsKeys } from './useGroups';
@@ -273,6 +274,10 @@ export const useGroupMessages = ({ groupId, socket }: UseGroupMessagesProps) => 
           return old.map(g => (g.id === groupId ? { ...g, unread: 0 } : g));
         });
       queryClient.invalidateQueries({ queryKey: groupsKeys.all });
+      try {
+        const { clearGroupUnread } = useNotificationStore.getState();
+        clearGroupUnread(groupId);
+      } catch {}
     } catch (err) {
       console.error('Failed to mark messages as read:', err);
     }

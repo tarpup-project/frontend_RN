@@ -60,6 +60,19 @@ export default function TabLayout() {
           }}
         />
       
+        <Tabs.Screen
+        name="tarps"
+        options={{
+          title: "Tarps",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "location" : "location-outline"}
+              size={28}
+              color={color}
+            />
+          )
+        }}
+      />
 
 <Tabs.Screen
   name="groups"
