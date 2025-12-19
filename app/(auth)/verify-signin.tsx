@@ -288,6 +288,12 @@ const VerifySignIn = () => {
             </View>
           )}
 
+          <Text style={[styles.spam, dynamicStyles.subtitle]}>
+            Didn&apos;t receive it? Please check your{" "}
+            <Text style={{ fontWeight: "700" }}>Spam</Text> or{" "}
+            <Text style={{ fontWeight: "700" }}>Junk</Text> folder.
+          </Text>
+
           <Pressable
             style={styles.resendContainer}
             onPress={handleResendCode}
@@ -454,7 +460,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   spam: {
-    fontSize: 9,
+    fontSize: 11,
     textAlign: "center",
     marginTop: 10,
   },

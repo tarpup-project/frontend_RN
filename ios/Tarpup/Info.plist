@@ -54,7 +54,7 @@
       <true/>
     </dict>
     <key>NSCameraUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your camera</string>
+    <string>Camera access allows $(PRODUCT_NAME) to let you take photos for your profile, post items, and share images in conversations to connect with people who share your interests.</string>
     <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
     <string>Tarpup uses your location to display accurate map markers.</string>
     <key>NSLocationAlwaysUsageDescription</key>

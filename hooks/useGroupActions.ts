@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { Share } from 'react-native';
-import * as Clipboard from 'expo-clipboard';
-import { toast } from 'sonner-native';
 import { api } from '@/api/client';
 import { UrlConstants } from '@/constants/apiUrls';
 import { subscribeToGroupTopic, unsubscribeFromGroupTopic } from '@/utils/topicManager';
+import * as Clipboard from 'expo-clipboard';
+import { useState } from 'react';
+import { Share } from 'react-native';
+import { toast } from 'sonner-native';
 
 interface ReportGroupData {
   groupID: string;
@@ -23,7 +23,7 @@ export const useGroupActions = () => {
     try {
       await api.post(UrlConstants.fetchInviteGroupDetails(groupID), {});
 
-      await subscribeToGroupTopic(groupID);
+      await subscribeToGroupTopic(groupID);      
       toast.success("You have joined the group");
       return true;
     } catch (error) {
