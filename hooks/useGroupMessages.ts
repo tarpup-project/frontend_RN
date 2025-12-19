@@ -1,6 +1,7 @@
 import { api } from '@/api/client';
 import { UrlConstants } from '@/constants/apiUrls';
 import { useAuthStore } from '@/state/authStore';
+import { storage } from '@/utils/storage';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -42,11 +43,14 @@ export const useGroupMessages = ({ groupId, socket }: UseGroupMessagesProps) => 
         throw new Error('Socket or user not available');
       }
 
-      return new Promise((resolve, reject) => {
+      const cached = (await storage.getObject<GroupMessage[]>(`group.messages.${groupId}`)) || [];
+      return new Promise((resolve) => {
         const timeout = setTimeout(() => {
-          reject(new Error('Socket join timeout'));
-        }, 20000); // 60 seconds
-
+          try {
+            socket.off('joinGroupRoom', handleJoinRoom as any);
+          } catch {}
+          resolve(cached);
+        }, 20000);
 
         const handleJoinRoom = (data: { messages: GroupMessage[] }) => {
           clearTimeout(timeout);
@@ -66,6 +70,33 @@ export const useGroupMessages = ({ groupId, socket }: UseGroupMessagesProps) => 
     gcTime: 1000 * 60 * 30, 
     retry: 2,
   });
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const cached = await storage.getObject<GroupMessage[]>(`group.messages.${groupId}`);
+        if (!cancelled && cached && Array.isArray(cached) && cached.length) {
+          queryClient.setQueryData<GroupMessage[]>(['groups', 'messages', groupId], cached);
+        }
+      } catch (e) {
+        // ignore cache read errors
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [groupId, queryClient]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        await storage.setObject(`group.messages.${groupId}`, messages);
+      } catch (e) {
+        // ignore cache write errors
+      }
+    })();
+  }, [groupId, messages]);
 
   useEffect(() => {
     console.log('📊 Cache state:', {

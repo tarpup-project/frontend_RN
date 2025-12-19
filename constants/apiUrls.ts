@@ -78,12 +78,6 @@ class UrlConstants {
 
   // Tarps
   static uploadTarps = `/tarps/upload`;
-  static peopleMessage = (userID: string) => `/tarps/people/message/${userID}`;
-  static fetchPeopleMessages = (userID: string) => `/tarps/people/message/${userID}`;
-  static peopleNavigate = (locationID: string, startingLat: number, startingLng: number, startingLocation: string) =>
-    `/tarps/people/navigate?locationID=${encodeURIComponent(locationID)}&startingLat=${encodeURIComponent(
-      String(startingLat)
-    )}&startingLng=${encodeURIComponent(String(startingLng))}&startingLocation=${encodeURIComponent(startingLocation)}`;
 
   static groupsRoute = `${this.baseUrl}/groups`;
 }

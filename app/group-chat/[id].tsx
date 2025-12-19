@@ -20,7 +20,6 @@ import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    ActivityIndicator,
     Alert,
     Animated,
     Keyboard,
@@ -29,7 +28,7 @@ import {
     Platform,
     Pressable,
     StyleSheet,
-    View,
+    View
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
@@ -295,75 +294,6 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     console.log("🔍 showGroupInfo set to true"); 
   }, []);
 
-  const loadingState = useMemo(() => {
-    if (groupLoading || isLoading) return "loading";
-    if (!socket || !user) return "connecting";
-    if (groupError || error) return "error";
-    if (!finalGroupDetails) return "not-found";
-    return "ready";
-  }, [
-    groupLoading,
-    isLoading,
-    socket,
-    user,
-    groupError,
-    error,
-    finalGroupDetails,
-  ]);
-
-
-  if (loadingState === "loading") {
-    return (
-      <KeyboardAvoidingView
-        style={[styles.container, dynamicStyles.container]}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={0}
-      >
-        <Header />
-        <View style={{ flex: 1 }}>
-          {finalGroupDetails && (
-            <ChatHeader
-              groupDetails={{
-                id: finalGroupDetails.id,
-                name: finalGroupDetails.name,
-                members: finalGroupDetails.members,
-                score: finalGroupDetails.score,
-                shareLink: finalGroupDetails.shareLink,
-                isJoined: finalGroupDetails.isJoined,
-                isAdmin: finalGroupDetails.isAdmin,
-                isComplete: finalGroupDetails.isComplete,
-              }}
-              showDropdown={showDropdown}
-              onToggleDropdown={handleToggleDropdown}
-              onShowGroupInfo={handleShowGroupInfo}
-              onLeaveSuccess={() => router.back()}
-              navigateToProfile={navigateToProfile}
-            />
-          )}
-          <View style={{ flex: 1 }} />
-        </View>
-        <MessageInput
-          message={message}
-          onChangeMessage={setMessage}
-          onSend={handleSend}
-          onAttachment={() => {}}
-          onJoinGroup={handleJoinGroup}
-          isJoining={isJoining}
-          isJoined={loadingState === "loading" ? true : (finalGroupDetails?.isJoined !== false)}
-          selectedFile={selectedFile || null}
-          onRemoveFile={removeFile}
-          replyingTo={replyingTo || null}
-          onCancelReply={cancelReply}
-          selectImage={selectImage}
-          selectImageFromCamera={selectImageFromCamera}
-          selectFile={selectFile}
-        />
-      </KeyboardAvoidingView>
-    );
-  }
-  
-
- 
   return (
       <KeyboardAvoidingView
         style={[styles.container, dynamicStyles.container]}
@@ -374,26 +304,16 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
         {/* Content area - can still lazy load */}
         <View style={{ flex: 1 }}>
 
-          
-          {loadingState === "connecting" && (
-            <View style={[styles.centerContainer, { flex: 1 }]}>
-              <ActivityIndicator size="large" color={dynamicStyles.text.color} />
-              <Text style={[{ marginTop: 12, fontSize: 16 }, dynamicStyles.text]}>
-                Connecting...
-              </Text>
-            </View>
-          )}
-          
-          {loadingState === "error" && (
+          {Boolean(groupError || error) && (
             <ErrorScreen message={String(groupError || error || "Failed to load chat")} />
           )}
           
-          {loadingState === "not-found" && (
+          {!groupLoading && !finalGroupDetails && (
             <ErrorScreen message="Group not found" />
           )}
           
-          {loadingState === "ready" && (
-            <>
+          <>
+            {finalGroupDetails && (
               <ChatHeader
                 groupDetails={{
                   id: finalGroupDetails.id,
@@ -411,18 +331,20 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
                 onLeaveSuccess={() => router.back()}
                 navigateToProfile={navigateToProfile}
               />
-    
-              <MessageList
-                messages={messages}
-                userId={user?.id}
-                onReply={startReply}
-                onImagePress={setShowImageModal}
-                onLinkPress={handleLinkPress}
-                scrollToMessage={scrollToMessage}
-                messageRefs={messageRefs}
-                navigateToProfile={navigateToProfile}
-              />
-    
+            )}
+
+            <MessageList
+              messages={messages}
+              userId={user?.id}
+              onReply={startReply}
+              onImagePress={setShowImageModal}
+              onLinkPress={handleLinkPress}
+              scrollToMessage={scrollToMessage}
+              messageRefs={messageRefs}
+              navigateToProfile={navigateToProfile}
+            />
+
+            {finalGroupDetails && (
               <GroupInfoModal
                 visible={showGroupInfo}
                 groupDetails={{
@@ -439,28 +361,28 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
                 onClose={() => setShowGroupInfo(false)}
                 navigateToProfile={navigateToProfile}
               />
-    
-              <ImageModal
-                imageUrl={showImageModal}
-                visible={!!showImageModal}
-                onClose={() => setShowImageModal(null)}
+            )}
+
+            <ImageModal
+              imageUrl={showImageModal}
+              visible={!!showImageModal}
+              onClose={() => setShowImageModal(null)}
+            />
+
+            <LinkConfirmModal
+              url={linkToConfirm}
+              visible={!!linkToConfirm}
+              onConfirm={confirmOpenLink}
+              onCancel={() => setLinkToConfirm(null)}
+            />
+
+            {showDropdown && (
+              <Pressable
+                style={styles.overlay}
+                onPress={() => setShowDropdown(false)}
               />
-    
-              <LinkConfirmModal
-                url={linkToConfirm}
-                visible={!!linkToConfirm}
-                onConfirm={confirmOpenLink}
-                onCancel={() => setLinkToConfirm(null)}
-              />
-    
-              {showDropdown && (
-                <Pressable
-                  style={styles.overlay}
-                  onPress={() => setShowDropdown(false)}
-                />
-              )}
-            </>
-          )}
+            )}
+          </>
         </View>
     
         {/* MessageInput - ALWAYS VISIBLE */}
