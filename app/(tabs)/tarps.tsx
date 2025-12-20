@@ -6,12 +6,13 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Image as ExpoImage } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
+import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
 import * as MediaLibrary from "expo-media-library";
 import { StatusBar } from "expo-status-bar";
 import moment from "moment";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Dimensions, InteractionManager, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import uuid from "react-native-uuid";
@@ -146,6 +147,14 @@ export default function TarpsScreen() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [isFriending, setIsFriending] = useState(false);
   const [commentText, setCommentText] = useState("");
+  const [replyingToID, setReplyingToID] = useState<string | null>(null);
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
+  const [pendingCommentsImageID, setPendingCommentsImageID] = useState<string | null>(null);
+  
+  const [friendStatus, setFriendStatus] = useState<"not_friends" | "pending" | "friends">("not_friends");
+  const [currentImages, setCurrentImages] = useState<string[]>([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [currentImageIds, setCurrentImageIds] = useState<string[]>([]);
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [following, setFollowing] = useState(false);
@@ -163,8 +172,74 @@ export default function TarpsScreen() {
     return v != null ? String(v) : null;
   };
   const extractUserId = (item: any): string | null => {
-    const v = item?.owner?.id ?? item?.user?.id ?? item?.createdBy?.id ?? item?.author?.id;
+    const v =
+      item?.userID ??
+      item?.creator?.id ??
+      item?.owner?.id ??
+      item?.user?.id ??
+      item?.createdBy?.id ??
+      item?.author?.id;
     return v != null ? String(v) : null;
+  };
+  const resolveItemImageSet = (item: any): { urls: string[]; ids: (string | null)[] } => {
+    const urls: string[] = [];
+    const ids: (string | null)[] = [];
+    if (Array.isArray(item?.images) && item.images.length > 0) {
+      item.images.forEach((im: any) => {
+        const raw = typeof im === "string" ? im : im?.url;
+        const id = typeof im?.id === "string" || typeof im?.id === "number" ? String(im.id) : null;
+        if (typeof raw === "string" && raw.length > 0) {
+          const cleaned = raw.replace(/`/g, "").trim();
+          urls.push(cleaned);
+          ids.push(id);
+        }
+      });
+    } else {
+      const cover = extractImageUrl(item);
+      const fallbackId = extractImageId(item);
+      if (cover) {
+        urls.push(cover);
+        ids.push(fallbackId);
+      }
+    }
+    // Deduplicate by URL while preserving ID alignment
+    const seen = new Set<string>();
+    const finalUrls: string[] = [];
+    const finalIds: (string | null)[] = [];
+    urls.forEach((u, idx) => {
+      if (!seen.has(u)) {
+        seen.add(u);
+        finalUrls.push(u);
+        finalIds.push(ids[idx] ?? null);
+      }
+    });
+    return { urls: finalUrls, ids: finalIds };
+  };
+  const getCurrentImageId = (): string | null => {
+    const idx = currentImageIndex;
+    const id = currentImageIds[idx];
+    return id ?? (currentPostItem ? extractImageId(currentPostItem) : null);
+  };
+  const syncImageMeta = (idx: number) => {
+    if (!currentPostItem) return;
+    const imgMeta = Array.isArray(currentPostItem.images) ? currentPostItem.images[idx] : null;
+    const likedVal =
+      typeof imgMeta?.hasLiked === "boolean"
+        ? imgMeta.hasLiked
+        : extractLiked(currentPostItem);
+    const likeCountVal =
+      typeof imgMeta?.likes === "number"
+        ? imgMeta.likes
+        : extractLikeCount(currentPostItem);
+    const commentCountVal =
+      typeof imgMeta?.comments === "number"
+        ? imgMeta.comments
+        : Array.isArray(currentPostItem.comments)
+        ? currentPostItem.comments.length
+        : commentCount;
+    setLiked(!!likedVal);
+    setLikeCount(typeof likeCountVal === "number" ? likeCountVal : 0);
+    setCommentCount(typeof commentCountVal === "number" ? commentCountVal : 0);
   };
   const extractImageUrl = (item: any): string | null => {
     if (!item || typeof item !== "object") return null;
@@ -189,6 +264,8 @@ export default function TarpsScreen() {
       item?.city ??
       item?.owner?.locationName ??
       item?.owner?.location ??
+      item?.creator?.locationName ??
+      item?.creator?.location ??
       "";
     return typeof v === "string" && v.length > 0 ? v : "Location";
   };
@@ -200,54 +277,104 @@ export default function TarpsScreen() {
       item?.liked ??
       item?.owner?.likedByMe;
     if (typeof v === "boolean") return v;
+    if (Array.isArray(item?.images) && item.images[0] && typeof item.images[0]?.hasLiked === "boolean") {
+      return item.images[0].hasLiked;
+    }
     if (Array.isArray(item?.likes) && user?.id) return !!item.likes.find((u: any) => String(u?.id) === String(user.id));
     return false;
   };
   const extractLikeCount = (item: any): number => {
-    const cands = [item?.likesCount, item?.numLikes, item?.reactions?.likes, item?.likes?.length];
+    const cands = [
+      Array.isArray(item?.images) && item.images[0] && typeof item.images[0]?.likes === "number" ? item.images[0].likes : undefined,
+      item?.likesCount,
+      item?.numLikes,
+      item?.reactions?.likes,
+      item?.likes?.length,
+    ];
     const v = cands.find((x) => typeof x === "number");
     return typeof v === "number" && v >= 0 ? v : 0;
   };
   const extractFollowing = (item: any): boolean => {
-    const v = item?.isFollowing ?? item?.following ?? item?.owner?.isFollowing ?? item?.owner?.following;
+    const v = item?.isFollowing ?? item?.following ?? item?.owner?.isFollowing ?? item?.owner?.following ?? item?.creator?.isFollowing;
     return typeof v === "boolean" ? v : false;
   };
 
-  const openComments = async () => {
-    if (!currentPostItem) return;
-    const imageID = extractImageId(currentPostItem);
-    if (!imageID) {
-      toast.error("Unable to load comments");
-      return;
-    }
+  const openComments = () => {
+    const imageID = getCurrentImageId();
+    setPendingCommentsImageID(imageID ?? null);
+    setPreview(null);
+    InteractionManager.runAfterInteractions(() => {
+      setCommentsOpen(true);
+    });
+  };
+
+  const refreshComments = async () => {
+    const imageID = pendingCommentsImageID ?? getCurrentImageId();
+    if (!imageID) return;
     try {
+      setIsLoadingComments(true);
       const res = await api.get(UrlConstants.tarpPostComments(imageID));
       const list = (res as any)?.data?.data ?? (res as any)?.data?.comments ?? (res as any)?.data;
       setComments(Array.isArray(list) ? list : []);
       setCommentCount(Array.isArray(list) ? list.length : 0);
-      setCommentsOpen(true);
     } catch (e: any) {
       toast.error("Failed to fetch comments");
+    } finally {
+      setIsLoadingComments(false);
     }
   };
+
+  useEffect(() => {
+    if (!commentsOpen || isLoadingComments) return;
+    const imageID = pendingCommentsImageID;
+    if (!imageID) return;
+    let cancelled = false;
+    const run = async () => {
+      try {
+        setIsLoadingComments(true);
+        const res = await api.get(UrlConstants.tarpPostComments(imageID));
+        if (cancelled) return;
+        const list = (res as any)?.data?.data ?? (res as any)?.data?.comments ?? (res as any)?.data;
+        setComments(Array.isArray(list) ? list : []);
+        setCommentCount(Array.isArray(list) ? list.length : 0);
+      } catch (e: any) {
+        if (!cancelled) {
+          toast.error("Failed to fetch comments");
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingComments(false);
+        }
+      }
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [commentsOpen, pendingCommentsImageID]);
   const sendComment = async () => {
-    if (!currentPostItem) return;
-    const imageID = extractImageId(currentPostItem);
+    const imageID = getCurrentImageId();
     const msg = commentText.trim();
+    console.log("Comments:send", { imageID, msgLength: msg.length, replyingToID });
     if (!imageID || msg.length === 0) return;
     try {
-      await api.post(UrlConstants.tarpPostComments(imageID), { message: msg });
+      const body = { message: msg, ...(replyingToID ? { replyingToID } : {}) };
+      console.log("Comments:postRequest", { url: UrlConstants.tarpPostComments(imageID), body });
+      const res = await api.post(UrlConstants.tarpPostComments(imageID), body);
+      console.log("Comments:postResponse", { status: res?.status, data: (res as any)?.data });
       setCommentText("");
-      await openComments();
+      setReplyingToID(null);
+      await refreshComments();
       toast.success("Comment posted");
-    } catch {
+    } catch (e: any) {
+      console.log("Comments:postError", { status: e?.response?.status, data: e?.response?.data, message: e?.message });
       toast.error("Failed to post comment");
     }
   };
 
   const toggleLike = async (action: "like" | "unlike") => {
     if (!currentPostItem || isLiking) return;
-    const imageID = extractImageId(currentPostItem);
+    const imageID = getCurrentImageId();
     if (!imageID) return;
     try {
       setIsLiking(true);
@@ -266,14 +393,20 @@ export default function TarpsScreen() {
       setIsLiking(false);
     }
   };
-  const toggleFriend = async (action: "add" | "remove") => {
+  const toggleFriend = async (action: "friend" | "unfriend") => {
     if (!currentPostItem || isFriending) return;
     const userID = extractUserId(currentPostItem);
     if (!userID) return;
     try {
       setIsFriending(true);
       await api.post(UrlConstants.tarpToggleFriend, { userID, action });
-      toast.success(action === "add" ? "Friend request sent" : "Removed friend");
+      if (action === "friend") {
+        setFriendStatus("pending");
+        toast.success("Friend request sent");
+      } else {
+        setFriendStatus("not_friends");
+        toast.success("Unfriended");
+      }
     } catch {
       toast.error("Failed to toggle friend");
     } finally {
@@ -485,7 +618,7 @@ export default function TarpsScreen() {
         }
       }
       setServerPosts(mapped);
-      console.log("PostsInView:mappedSample", mapped[0]);
+      console.log("PostsInView:mappedSample", JSON.stringify(mapped[0], null, 2));
       console.log("PostsInView:loaded", { count: mapped.length });
     } catch (e: any) {
       console.log("PostsInView:error", { status: e?.response?.status, data: e?.response?.data, message: e?.message });
@@ -921,13 +1054,21 @@ export default function TarpsScreen() {
                     setLiked(extractLiked(item));
                     setLikeCount(extractLikeCount(item));
                     setFollowing(extractFollowing(item));
+                    setFriendStatus(typeof item?.isFriend === "string" ? item.isFriend : "not_friends");
                     setCommentCount(
                       typeof item?.commentsCount === "number"
                         ? item.commentsCount
                         : Array.isArray(item?.comments)
                         ? item.comments.length
+                        : Array.isArray(item?.images) && typeof item.images[0]?.comments === "number"
+                        ? item.images[0].comments
                         : 0
                     );
+                    const set = resolveItemImageSet(item);
+                    setCurrentImages(set.urls);
+                    setCurrentImageIds(set.ids.filter((x) => typeof x === "string") as string[]);
+                    setCurrentImageIndex(0);
+                    syncImageMeta(0);
                     setPreview({ uri: url });
                   }
                 }}
@@ -960,6 +1101,9 @@ export default function TarpsScreen() {
                       <Text style={{ color: "#fff", fontWeight: "700" }}>{p.owner?.fname?.[0]?.toUpperCase() || "F"}</Text>
                     </View>
                   )}
+                  <View style={styles.locBadge}>
+                    <Ionicons name="location-outline" size={14} color="#FFFFFF" />
+                  </View>
                 </View>
                 <View style={[styles.pointer, styles.pointerLight]} />
               </Marker>
@@ -970,16 +1114,46 @@ export default function TarpsScreen() {
         <StatusBar hidden />
         <Pressable style={styles.previewOverlay} onPress={() => setPreview(null)}>
           <Pressable style={styles.previewContent} onPress={(e) => e.stopPropagation()}>
-            {preview && (
-              <ExpoImage source={{ uri: preview.uri }} style={styles.previewImage} contentFit="cover" />
+            {currentImages.length > 0 ? (
+              <ScrollView
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onMomentumScrollEnd={(e) => {
+                  const w = Dimensions.get("window").width;
+                  const idx = Math.round(e.nativeEvent.contentOffset.x / w);
+                  setCurrentImageIndex(idx);
+                  syncImageMeta(idx);
+                }}
+              >
+                {currentImages.map((uri, i) => (
+                  <View key={`${uri}-${i}`} style={{ width: Dimensions.get("window").width, height: Dimensions.get("window").height }}>
+                    <ExpoImage source={{ uri }} style={styles.previewImage} contentFit="cover" />
+                  </View>
+                ))}
+              </ScrollView>
+            ) : (
+              preview && <ExpoImage source={{ uri: preview.uri }} style={styles.previewImage} contentFit="cover" />
             )}
-            <View style={[styles.previewHeader, { paddingTop: insets.top }]}>
+            <LinearGradient
+              colors={["rgba(0,0,0,0.6)", "rgba(0,0,0,0.35)", "transparent"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={styles.gradientTop}
+            />
+            <LinearGradient
+              colors={["transparent", "rgba(0,0,0,0.35)", "rgba(0,0,0,0.6)"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={styles.gradientBottom}
+            />
+            <View style={[styles.previewHeader, { paddingTop: insets.top + 10 }]}>
               <Pressable style={styles.headerIcon} onPress={() => setPreview(null)}>
                 <Ionicons name="close" size={20} color="#FFFFFF" />
               </Pressable>
               <View style={styles.headerCenter}>
                 <Text style={styles.headerTitle}>{currentPostItem ? extractLocationName(currentPostItem) : "Location"}</Text>
-                <Text style={styles.headerSub}>1 / 1</Text>
+                <Text style={styles.headerSub}>{currentImageIndex + 1} / {Math.max(1, currentImages.length || 1)}</Text>
               </View>
               <Pressable style={styles.headerIcon}>
                 <Ionicons name="ellipsis-vertical" size={18} color="#FFFFFF" />
@@ -988,18 +1162,22 @@ export default function TarpsScreen() {
 
             <View style={styles.previewTopRow}>
               <View style={styles.userRow}>
-                {currentPostItem?.owner && extractImageUrl(currentPostItem.owner) ? (
+                {currentPostItem?.creator && extractImageUrl(currentPostItem.creator) ? (
+                  <ExpoImage source={{ uri: extractImageUrl(currentPostItem.creator) as string }} style={styles.userAvatar} contentFit="cover" />
+                ) : currentPostItem?.owner && extractImageUrl(currentPostItem.owner) ? (
                   <ExpoImage source={{ uri: extractImageUrl(currentPostItem.owner) as string }} style={styles.userAvatar} contentFit="cover" />
                 ) : (
                   <View style={[styles.userAvatar, { alignItems: "center", justifyContent: "center" }]}>
                     <Text style={{ color: "#FFFFFF", fontWeight: "700" }}>
-                      {(currentPostItem?.owner?.fname?.[0] || currentPostItem?.author?.name?.[0] || "U")?.toUpperCase()}
+                      {(currentPostItem?.creator?.fname?.[0] || currentPostItem?.owner?.fname?.[0] || currentPostItem?.author?.name?.[0] || "U")?.toUpperCase()}
                     </Text>
                   </View>
                 )}
                 <View>
                   <Text style={styles.userName}>
-                    {(currentPostItem?.owner?.fname || currentPostItem?.author?.name || "User") as string}
+                    {currentPostItem?.creator
+                      ? `${currentPostItem.creator.fname || ""} ${currentPostItem.creator.lname || ""}`.trim() || (currentPostItem.creator.name as string)
+                      : (currentPostItem?.owner?.fname || (currentPostItem?.author?.name as string) || "User")}
                   </Text>
                   <Text style={styles.userTime}>
                     {currentPostItem?.createdAt ? moment(currentPostItem.createdAt).fromNow() : "2d ago"}
@@ -1007,9 +1185,15 @@ export default function TarpsScreen() {
                 </View>
               </View>
               <View style={styles.actionRow}>
-                <Pressable style={styles.friendBtn} onPress={() => toggleFriend("add")}><Text style={styles.friendText}>Friend</Text></Pressable>
+                <Pressable
+                  style={[styles.friendBtn, friendStatus === "pending" && styles.friendBtnPending]}
+                  disabled={friendStatus === "pending"}
+                  onPress={() => toggleFriend(friendStatus === "friends" ? "unfriend" : "friend")}
+                >
+                  <Text style={styles.friendText}>{friendStatus === "pending" ? "Pending" : friendStatus === "friends" ? "Unfriend" : "Friend"}</Text>
+                </Pressable>
                 <Pressable style={[styles.followBtn, following && styles.followBtnActive]} onPress={() => toggleFollow(following ? "unfollow" : "follow")}>
-                  <Text style={[styles.followText, following && { color: "#0a0a0a" }]}>{following ? "Followed" : "Follow"}</Text>
+                  <Text style={[styles.followText, following && { color: "#0a0a0a" }]}>{following ? "Following" : "Follow"}</Text>
                 </Pressable>
               </View>
             </View>
@@ -1024,38 +1208,147 @@ export default function TarpsScreen() {
               <Pressable style={styles.railCircle}><Ionicons name="share-social-outline" size={18} color="#FFFFFF" /></Pressable>
             </View>
 
-            <View style={styles.previewBadge}><Text style={styles.previewBadgeText}>Preview</Text></View>
+            
+            {currentPostItem?.caption ? (
+              <View style={styles.captionBox}>
+                <Text style={styles.captionText}>{currentPostItem.caption}</Text>
+              </View>
+            ) : null}
 
           </Pressable>
         </Pressable>
       </Modal>
       
-      <Modal visible={commentsOpen} transparent animationType="slide" onRequestClose={() => setCommentsOpen(false)}>
+      <Modal
+        visible={commentsOpen}
+        transparent
+        animationType="slide"
+        presentationStyle="overFullScreen"
+        hardwareAccelerated
+        statusBarTranslucent
+        onRequestClose={() => setCommentsOpen(false)}
+      >
         <Pressable style={styles.modalOverlay} onPress={() => setCommentsOpen(false)}>
           <Pressable style={[styles.shareSheet, isDark ? styles.sheetDark : styles.sheetLight]} onPress={(e) => e.stopPropagation()}>
+            <KeyboardAvoidingView
+              style={{ flex: 1 }}
+              behavior={Platform.OS === "ios" ? "padding" : "height"}
+              keyboardVerticalOffset={Platform.OS === "ios" ? insets.bottom + 24 : 40}
+            >
             <View style={styles.sheetHeader}>
-              <Text style={[styles.sheetTitle, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>Comments</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Text style={[styles.sheetTitle, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>Comments ({commentCount})</Text>
+                {isLoadingComments && <ActivityIndicator size="small" color={isDark ? "#FFFFFF" : "#0a0a0a"} />}
+              </View>
               <Pressable style={styles.headerIcon} onPress={() => setCommentsOpen(false)}>
                 <Ionicons name="close" size={20} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
               </Pressable>
             </View>
-            <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+            <ScrollView contentContainerStyle={{ padding: 16, paddingRight: 24, gap: 12 }} keyboardShouldPersistTaps="handled">
               {comments.length === 0 ? (
                 <Text style={{ color: isDark ? "#9AA0A6" : "#666" }}>No comments yet</Text>
               ) : (
-                comments.map((c: any, i: number) => (
-                  <View key={c?.id ?? i} style={{ gap: 4 }}>
-                    <Text style={{ color: isDark ? "#FFFFFF" : "#0a0a0a", fontWeight: "600" }}>
-                      {c?.user?.fname || c?.author?.name || "User"}
-                    </Text>
-                    <Text style={{ color: isDark ? "#FFFFFF" : "#0a0a0a" }}>
-                      {c?.message || c?.text || ""}
-                    </Text>
-                  </View>
-                ))
+                [...comments]
+                  .sort((a: any, b: any) => {
+                    const ta = new Date(a?.createdAt ?? 0).getTime();
+                    const tb = new Date(b?.createdAt ?? 0).getTime();
+                    return tb - ta;
+                  })
+                  .map((c: any, i: number) => {
+                    const displayName = c?.commenter
+                      ? `${c?.commenter?.fname ?? ""} ${c?.commenter?.lname ?? ""}`.trim() || "User"
+                      : c?.user?.name || c?.author?.name || c?.user?.fname || "User";
+                    const avatarUrl =
+                      c?.commenter?.bgUrl ||
+                      c?.user?.avatarUrl ||
+                      c?.author?.avatarUrl ||
+                      undefined;
+                    const initial =
+                      (c?.commenter?.fname?.[0] ||
+                        c?.user?.fname?.[0] ||
+                        c?.user?.name?.[0] ||
+                        "U")?.toUpperCase();
+                    const time = c?.createdAt ? moment(c.createdAt).fromNow() : "";
+                    return (
+                      <View key={c?.id ?? i} style={{ gap: 6 }}>
+                        <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
+                          {avatarUrl ? (
+                            <ExpoImage source={{ uri: avatarUrl }} style={styles.commentAvatar} contentFit="cover" />
+                          ) : (
+                            <View style={[styles.commentAvatar, { alignItems: "center", justifyContent: "center", backgroundColor: "#888" }]}>
+                              <Text style={{ color: "#fff", fontWeight: "700" }}>{initial}</Text>
+                            </View>
+                          )}
+                          <View style={[styles.commentBubble, isDark ? styles.commentBubbleDark : styles.commentBubbleLight]}>
+                            <Text style={[styles.commentName, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>{displayName}</Text>
+                            <Text style={[styles.commentText, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>{c?.message || c?.text || ""}</Text>
+                          </View>
+                        </View>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginLeft: 32 }}>
+                          <Text style={[styles.commentMeta, { color: isDark ? "#9AA0A6" : "#666" }]}>{time}</Text>
+                          <Pressable onPress={() => setReplyingToID(String(c?.id))}>
+                            <Text style={{ color: isDark ? "#9AA0A6" : "#666", textDecorationLine: "underline" }}>Reply</Text>
+                          </Pressable>
+                        </View>
+                        {Array.isArray(c?.replies) && c.replies.length > 0
+                          ? c.replies
+                              .slice()
+                              .sort((a: any, b: any) => {
+                                const ta = new Date(a?.createdAt ?? 0).getTime();
+                                const tb = new Date(b?.createdAt ?? 0).getTime();
+                                return ta - tb;
+                              })
+                              .map((r: any, ri: number) => {
+                                const rName = r?.commenter
+                                  ? `${r?.commenter?.fname ?? ""} ${r?.commenter?.lname ?? ""}`.trim() || "User"
+                                  : r?.user?.name || r?.author?.name || r?.user?.fname || "User";
+                                const rAvatarUrl =
+                                  r?.commenter?.bgUrl ||
+                                  r?.user?.avatarUrl ||
+                                  r?.author?.avatarUrl ||
+                                  undefined;
+                                const rInitial =
+                                  (r?.commenter?.fname?.[0] ||
+                                    r?.user?.fname?.[0] ||
+                                    r?.user?.name?.[0] ||
+                                    "U")?.toUpperCase();
+                                const rTime = r?.createdAt ? moment(r.createdAt).fromNow() : "";
+                                return (
+                                  <View key={r?.id ?? ri} style={{ gap: 6, marginLeft: 32 }}>
+                                    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
+                                      {rAvatarUrl ? (
+                                        <ExpoImage source={{ uri: rAvatarUrl }} style={styles.commentAvatar} contentFit="cover" />
+                                      ) : (
+                                        <View style={[styles.commentAvatar, { alignItems: "center", justifyContent: "center", backgroundColor: "#888" }]}>
+                                          <Text style={{ color: "#fff", fontWeight: "700" }}>{rInitial}</Text>
+                                        </View>
+                                      )}
+                                      <View style={[styles.commentBubble, isDark ? styles.commentBubbleDark : styles.commentBubbleLight]}>
+                                        <Text style={[styles.commentName, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>{rName}</Text>
+                                        <Text style={[styles.commentText, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>{r?.message || r?.text || ""}</Text>
+                                      </View>
+                                    </View>
+                                    <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginLeft: 32 }}>
+                                      <Text style={[styles.commentMeta, { color: isDark ? "#9AA0A6" : "#666" }]}>{rTime}</Text>
+                                    </View>
+                                  </View>
+                                );
+                              })
+                          : null}
+                      </View>
+                    );
+                  })
               )}
             </ScrollView>
-            <View style={{ padding: 14, borderTopWidth: 1, borderTopColor: isDark ? "#333" : "#E0E0E0" }}>
+            <View style={{ padding: 14, paddingBottom: insets.bottom + 8, borderTopWidth: 1, borderTopColor: isDark ? "#333" : "#E0E0E0" }}>
+              {replyingToID && (
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                  <Text style={{ color: isDark ? "#FFFFFF" : "#0a0a0a" }}>Replying…</Text>
+                  <Pressable onPress={() => setReplyingToID(null)}>
+                    <Text style={{ color: isDark ? "#9AA0A6" : "#666" }}>Cancel</Text>
+                  </Pressable>
+                </View>
+              )}
               <View style={[styles.chatInputBox, isDark ? styles.chatInputDark : styles.chatInputLight]}>
                 <TextInput
                   value={commentText}
@@ -1072,6 +1365,7 @@ export default function TarpsScreen() {
                 </Pressable>
               </View>
             </View>
+            </KeyboardAvoidingView>
           </Pressable>
         </Pressable>
       </Modal>
@@ -1148,26 +1442,26 @@ export default function TarpsScreen() {
 
       <View style={[styles.topBar, { top: insets.top + 8 }]}>
         <View style={styles.leftButtons}>
-          <Pressable
-            style={[styles.squareBtn, isDark ? styles.squareDark : styles.squareLight]}
-            onPress={() => {
-              const next = viewMode === "people" ? "posts" : "people";
-              setViewMode(next);
-              if (next === "posts") {
+          <View style={[styles.viewTogglePill, isDark ? styles.pillDark : styles.pillLight]}>
+            <Pressable
+              style={[styles.pillSeg, viewMode === "posts" ? (isDark ? styles.pillSegActiveDark : styles.pillSegActiveLight) : null]}
+              onPress={() => {
+                setViewMode("posts");
                 loadPostsInView(mapRegion || location);
-              } else {
+              }}
+            >
+              <Ionicons name="image-outline" size={18} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
+            </Pressable>
+            <Pressable
+              style={[styles.pillSeg, viewMode === "people" ? (isDark ? styles.pillSegActiveDark : styles.pillSegActiveLight) : null]}
+              onPress={() => {
+                setViewMode("people");
                 loadPeopleInView(mapRegion || location);
-              }
-            }}
-          >
-            <Ionicons name={viewMode === "posts" ? "image-outline" : "people-outline"} size={18} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
-          </Pressable>
-          <Pressable style={[styles.squareBtn, isDark ? styles.squareDark : styles.squareLight]} onPress={handleShareLocation}>
-            <Ionicons name="send-outline" size={18} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
-          </Pressable>
-          <Pressable style={[styles.squareBtn, isDark ? styles.squareDark : styles.squareLight]} onPress={clearSavedPosts}>
-            <Ionicons name="trash-outline" size={18} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
-          </Pressable>
+              }}
+            >
+              <Ionicons name="people-outline" size={18} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
+            </Pressable>
+          </View>
         </View>
         <Pressable
           style={[styles.myPostsBtn, isDark ? styles.myPostsDark : styles.myPostsLight]}
@@ -1192,13 +1486,31 @@ export default function TarpsScreen() {
         </Pressable>
       </View>
 
-      <Pressable style={[styles.uploadButton]} onPress={() => setPostOpen(true)}>
-        <Ionicons name="add" size={26} color="#0a0a0a" />
-      </Pressable>
+      {viewMode === "posts" ? (
+        <Pressable
+          style={[styles.uploadButton, isDark ? styles.uploadBtnDark : styles.uploadBtnLight]}
+          onPress={() => setPostOpen(true)}
+          accessibilityLabel="Post Photo"
+        >
+          <Ionicons name="add" size={24} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
+        </Pressable>
+      ) : (
+        <Pressable
+          style={[styles.uploadButton, isDark ? styles.uploadBtnDark : styles.uploadBtnLight]}
+          onPress={handleShareLocation}
+          accessibilityLabel="Share Location"
+        >
+          <Ionicons name="send-outline" size={20} color={isDark ? "#FFFFFF" : "#0a0a0a"} style={{ transform: [{ rotate: "-45deg" }] }} />
+        </Pressable>
+      )}
 
       <Modal visible={postOpen} transparent animationType="fade" onRequestClose={() => setPostOpen(false)}>
         <View style={styles.createOverlay}>
-          <View style={[styles.createSheet, isDark ? styles.sheetDark : styles.sheetLight]}>
+          <KeyboardAvoidingView
+            style={[styles.createSheet, isDark ? styles.sheetDark : styles.sheetLight]}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            keyboardVerticalOffset={Platform.OS === "ios" ? insets.bottom + 24 : 40}
+          >
             <View style={styles.sheetHeader}>
               <Text style={[styles.sheetTitle, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>Post Photo</Text>
               <Pressable style={styles.headerIcon} onPress={() => setPostOpen(false)}>
@@ -1294,7 +1606,7 @@ export default function TarpsScreen() {
             </ScrollView>
             </View>
 
-            <View style={styles.sheetFooter}>
+            <View style={[styles.sheetFooter, { paddingBottom: insets.bottom + 8 }]}>
               <Pressable style={[styles.cancelBtn]} onPress={() => setPostOpen(false)}>
                 <Text style={styles.cancelText}>Cancel</Text>
               </Pressable>
@@ -1309,7 +1621,7 @@ export default function TarpsScreen() {
                 )}
               </Pressable>
             </View>
-          </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
 
@@ -1623,6 +1935,30 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
   },
+  shareFab: {
+    backgroundColor: "#fbfbfbff",
+    right: 90,
+  },
+  uploadBtnDark: { backgroundColor: "#0a0a0a", borderWidth: 1, borderColor: "#333333" },
+  uploadBtnLight: { backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E0E0E0" },
+  viewTogglePill: {
+    flexDirection: "row",
+    gap: 6,
+    borderRadius: 24,
+    padding: 6,
+    borderWidth: 1,
+  },
+  pillDark: { backgroundColor: "#0f1115", borderColor: "#2a2e37" },
+  pillLight: { backgroundColor: "#F2F4F8", borderColor: "#E0E0E0" },
+  pillSeg: {
+    width: 44,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pillSegActiveDark: { backgroundColor: "#1A1A1A" },
+  pillSegActiveLight: { backgroundColor: "#EAF2FF" },
   createOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.6)",
@@ -1788,6 +2124,24 @@ const styles = StyleSheet.create({
   },
   pointerDark: { borderTopColor: "#1A1A1A" },
   pointerLight: { borderTopColor: "#FFFFFF" },
+  locBadge: {
+    position: "absolute",
+    bottom: -8,
+    right: -8,
+    backgroundColor: "#22C55E",
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    zIndex: 2,
+  },
   topBar: {
     position: "absolute",
     top: 20,
@@ -1863,9 +2217,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "rgba(0,0,0,0.35)",
   },
-  headerCenter: { alignItems: "center", gap: 2 },
-  headerTitle: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
-  headerSub: { color: "#FFFFFF", opacity: 0.8, fontSize: 12 },
+  headerCenter: { position: "absolute", top: 54, left: 0, right: 0, alignItems: "center", gap: 2 },
+  headerTitle: { color: "#FFFFFF", fontSize: 14, fontWeight: "700", width: "60%", textAlign: "center" },
+  headerSub: { color: "#FFFFFF", opacity: 0.8, fontSize: 12, width: "60%", textAlign: "center" },
   previewTopRow: {
     position: "absolute",
     top: 90,
@@ -1875,7 +2229,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  userRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  userRow: { flexDirection: "row", alignItems: "center", gap: 10, marginTop:20},
   userAvatar: {
     width: 36,
     height: 36,
@@ -1886,7 +2240,7 @@ const styles = StyleSheet.create({
   },
   userName: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
   userTime: { color: "#FFFFFF", fontSize: 12, opacity: 0.85 },
-  actionRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  actionRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop:20 },
   friendBtn: {
     height: 32,
     paddingHorizontal: 12,
@@ -1894,6 +2248,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
+  },
+  friendBtnPending: {
+    backgroundColor: "#CCCCCC",
   },
   friendText: { color: "#0a0a0a", fontSize: 12, fontWeight: "700" },
   followBtn: {
@@ -1939,6 +2296,37 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   previewBadgeText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
+  gradientTop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: "25%",
+  },
+  gradientBottom: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: "25%",
+  },
+  captionBox: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 24,
+    alignItems: "center",
+    paddingHorizontal: 16,
+  },
+  captionText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "center",
+    textShadowColor: "rgba(0,0,0,0.75)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
@@ -2047,6 +2435,24 @@ const styles = StyleSheet.create({
   },
   chatSendDark: { backgroundColor: "#0a0a0a", borderColor: "#333" },
   chatSendLight: { backgroundColor: "#FFFFFF", borderColor: "#E0E0E0" },
+  commentBubble: {
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    paddingRight: 18,
+    maxWidth: "85%",
+  },
+  commentBubbleDark: { backgroundColor: "#1A1A1A" },
+  commentBubbleLight: { backgroundColor: "#E9EAED" },
+  commentName: { fontSize: 13, fontWeight: "700", marginBottom: 4 },
+  commentText: { fontSize: 13 },
+  commentMeta: { fontSize: 12 },
+  commentAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "rgba(0,0,0,0.35)",
+  },
   dialogCard: {
     width: "99%",
     maxWidth: 990,
