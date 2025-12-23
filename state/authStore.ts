@@ -1,13 +1,25 @@
+import { jwtDecode } from 'jwt-decode';
 import { create } from "zustand";
 import { AuthUserInterface } from "../types/auth";
-import { jwtDecode } from 'jwt-decode';
 import {
   clearUserData,
   getAccessToken,
   getRefreshToken,
-  saveUserData,
   getUserData,
+  saveUserData,
 } from "../utils/storage";
+
+// Helper function to validate if an object is a valid AuthUserInterface
+const isValidAuthUser = (user: any): user is AuthUserInterface => {
+  return (
+    user &&
+    typeof user === 'object' &&
+    typeof user.id === 'string' &&
+    typeof user.fname === 'string' &&
+    typeof user.email === 'string' &&
+    typeof user.isStudent === 'boolean'
+  );
+};
 
 interface AuthState {
   user: AuthUserInterface | undefined;
@@ -88,7 +100,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         } catch (error) {
           console.log("❌ Token validation failed, falling back to stored user");
           const storedUser = await getUserData();
-          if (storedUser) {
+          if (isValidAuthUser(storedUser)) {
             set({
               user: storedUser,
               isAuthenticated: true,
@@ -96,6 +108,7 @@ export const useAuthStore = create<AuthState>((set) => ({
               isHydrated: true,
             });
           } else {
+            console.log("❌ Invalid stored user data, clearing storage");
             await clearUserData();
             set({
               user: undefined,
