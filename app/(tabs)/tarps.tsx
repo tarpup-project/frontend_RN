@@ -13,7 +13,7 @@ import { StatusBar } from "expo-status-bar";
 import moment from "moment";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Dimensions, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import uuid from "react-native-uuid";
 import io from "socket.io-client";
@@ -66,9 +66,9 @@ export default function TarpsScreen() {
     { id: string; latitude: number; longitude: number; imageUrl?: string; owner?: { id: string; fname: string; lname?: string; bgUrl?: string } }[]
   >([]);
   const mapRef = useRef<MapView | null>(null);
-  const [zoomedWorld, setZoomedWorld] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState<any | null>(null);
   const [personOpen, setPersonOpen] = useState(false);
+  const [currentZoomLevel, setCurrentZoomLevel] = useState(0); // Track zoom level for intelligent zooming
   const [loadingMessage, setLoadingMessage] = useState(false);
   const [loadingNavigate, setLoadingNavigate] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
@@ -173,8 +173,8 @@ export default function TarpsScreen() {
       setLocation({
         latitude: current.coords.latitude,
         longitude: current.coords.longitude,
-        latitudeDelta: 0.05,
-        longitudeDelta: 0.05,
+        latitudeDelta: 120, // Start with world view
+        longitudeDelta: 120, // Start with world view
       });
 
       const saved = await AsyncStorage.getItem("tarps.posts");
@@ -579,23 +579,14 @@ export default function TarpsScreen() {
 
   useEffect(() => {
     if (!location) return;
-    if (!zoomedWorld && mapRef.current) {
-      const world = {
-        latitude: location.latitude,
-        longitude: location.longitude,
-        latitudeDelta: 120,
-        longitudeDelta: 120,
-      } as NonNullable<typeof location>;
-      mapRef.current.animateToRegion(world, 600);
-      setZoomedWorld(true);
-    } else {
-      if (viewMode === "people") {
-        loadPeopleInView(location);
-      } else if (viewMode === "posts") {
-        loadPostsInView(location);
-      }
+    
+    // Load data for the current view mode
+    if (viewMode === "people") {
+      loadPeopleInView(location);
+    } else if (viewMode === "posts") {
+      loadPostsInView(location);
     }
-  }, [location, viewMode, zoomedWorld]);
+  }, [location, viewMode]);
 
   useEffect(() => {
     if (!chatOpen || !groupDetails || !user) return;
@@ -737,6 +728,110 @@ export default function TarpsScreen() {
 
   const chatKeyExtractor = useCallback((item: any, index: number) => item.id || index.toString(), []);
 
+  // Calculate optimal bounds for posts/people
+  const calculateOptimalBounds = (items: any[]) => {
+    if (items.length === 0) return null;
+    
+    const lats = items.map(item => item.latitude || item.lat || 0);
+    const lngs = items.map(item => item.longitude || item.lng || 0);
+    
+    const minLat = Math.min(...lats);
+    const maxLat = Math.max(...lats);
+    const minLng = Math.min(...lngs);
+    const maxLng = Math.max(...lngs);
+    
+    // Add padding around the bounds
+    const latPadding = (maxLat - minLat) * 0.1 || 0.01;
+    const lngPadding = (maxLng - minLng) * 0.1 || 0.01;
+    
+    return {
+      latitude: (minLat + maxLat) / 2,
+      longitude: (minLng + maxLng) / 2,
+      latitudeDelta: Math.max(0.01, (maxLat - minLat) + latPadding),
+      longitudeDelta: Math.max(0.01, (maxLng - minLng) + lngPadding),
+    };
+  };
+
+  // Intelligent zoom in - zoom to areas with posts/people
+  const handleZoomIn = () => {
+    if (!mapRef.current) return;
+    
+    const currentItems = viewMode === "posts" ? serverPosts : serverPeople;
+    const flatItems = viewMode === "posts" 
+      ? serverPosts.flatMap(p => p.items || [p])
+      : serverPeople;
+    
+    if (flatItems.length === 0) {
+      toast.error(`No ${viewMode} found to zoom to`);
+      return;
+    }
+
+    // Calculate bounds for current items and zoom in progressively
+    const bounds = calculateOptimalBounds(flatItems);
+    if (!bounds) return;
+
+    // Progressive zoom levels based on current zoom
+    let targetDelta;
+    if (currentZoomLevel === 0) {
+      // From world view, zoom to show all posts/people
+      targetDelta = Math.max(bounds.latitudeDelta, bounds.longitudeDelta);
+    } else {
+      // Zoom in closer to the posts/people area
+      targetDelta = Math.max(bounds.latitudeDelta * 0.5, 0.01);
+    }
+    
+    const newRegion = {
+      ...bounds,
+      latitudeDelta: targetDelta,
+      longitudeDelta: targetDelta,
+    };
+    
+    mapRef.current.animateToRegion(newRegion, 800);
+    setCurrentZoomLevel(prev => prev + 1);
+  };
+
+  // Intelligent zoom out - zoom out from posts/people areas
+  const handleZoomOut = () => {
+    if (!mapRef.current) return;
+    
+    const currentItems = viewMode === "posts" ? serverPosts : serverPeople;
+    const flatItems = viewMode === "posts" 
+      ? serverPosts.flatMap(p => p.items || [p])
+      : serverPeople;
+    
+    if (flatItems.length === 0) {
+      toast.error(`No ${viewMode} found to zoom from`);
+      return;
+    }
+
+    if (currentZoomLevel <= 0) {
+      // Already at world level, show all posts/people with maximum view
+      const bounds = calculateOptimalBounds(flatItems);
+      if (bounds) {
+        const worldRegion = {
+          ...bounds,
+          latitudeDelta: Math.max(bounds.latitudeDelta * 3, 120),
+          longitudeDelta: Math.max(bounds.longitudeDelta * 3, 120),
+        };
+        mapRef.current.animateToRegion(worldRegion, 800);
+      }
+      return;
+    }
+
+    // Zoom out while keeping posts/people in view
+    const bounds = calculateOptimalBounds(flatItems);
+    if (bounds) {
+      const targetDelta = Math.min(bounds.latitudeDelta * 2, 120);
+      const newRegion = {
+        ...bounds,
+        latitudeDelta: targetDelta,
+        longitudeDelta: targetDelta,
+      };
+      mapRef.current.animateToRegion(newRegion, 800);
+      setCurrentZoomLevel(prev => Math.max(prev - 1, 0));
+    }
+  };
+
   if (!location) {
     return (
       <View style={styles.center}>
@@ -750,11 +845,23 @@ export default function TarpsScreen() {
       <StatusBar style="light" />
       <MapView
         ref={mapRef}
+        provider={Platform.OS === 'ios' ? PROVIDER_DEFAULT : undefined}
         style={{ flex: 1 }}
         initialRegion={location}
         onRegionChangeComplete={(r) => {
           const reg = { latitude: r.latitude, longitude: r.longitude, latitudeDelta: r.latitudeDelta, longitudeDelta: r.longitudeDelta } as typeof location;
           setMapRegion(reg);
+          
+          // Update zoom level based on delta
+          const delta = r.latitudeDelta;
+          if (delta >= 100) setCurrentZoomLevel(0);
+          else if (delta >= 40) setCurrentZoomLevel(1);
+          else if (delta >= 15) setCurrentZoomLevel(2);
+          else if (delta >= 3) setCurrentZoomLevel(3);
+          else if (delta >= 0.5) setCurrentZoomLevel(4);
+          else if (delta >= 0.05) setCurrentZoomLevel(5);
+          else setCurrentZoomLevel(6);
+          
           if (viewMode === "posts") {
             setTimeout(() => {
               loadPostsInView(reg);
@@ -764,12 +871,22 @@ export default function TarpsScreen() {
             loadPeopleInView(reg);
           }
         }}
-        mapType="satellite"
-        showsCompass={false}
-        showsPointsOfInterests={false}
-        showsBuildings={false}
+        mapType={Platform.OS === 'ios' ? "hybridFlyover" : "satellite"}
+        showsCompass={Platform.OS === 'ios' ? true : false}
+        showsPointsOfInterests={Platform.OS === 'ios' ? true : false}
+        showsBuildings={Platform.OS === 'ios' ? true : false}
+        showsTraffic={false}
+        showsIndoors={Platform.OS === 'ios' ? true : false}
+        showsUserLocation={false}
+        followsUserLocation={false}
         toolbarEnabled={false}
         zoomControlEnabled={false}
+        pitchEnabled={Platform.OS === 'ios' ? true : false}
+        rotateEnabled={Platform.OS === 'ios' ? true : false}
+        scrollEnabled={true}
+        zoomEnabled={true}
+        maxZoomLevel={Platform.OS === 'ios' ? 20 : 18}
+        minZoomLevel={Platform.OS === 'ios' ? 3 : 5}
       >
         {viewMode === "posts"
           ? serverPosts
@@ -1024,6 +1141,22 @@ export default function TarpsScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Zoom Controls */}
+      <View style={[styles.zoomControls, { bottom: insets.bottom + 20 }]}>
+        <Pressable 
+          style={[styles.zoomButton, isDark ? styles.zoomButtonDark : styles.zoomButtonLight]} 
+          onPress={handleZoomIn}
+        >
+          <Ionicons name="add" size={20} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
+        </Pressable>
+        <Pressable 
+          style={[styles.zoomButton, isDark ? styles.zoomButtonDark : styles.zoomButtonLight]} 
+          onPress={handleZoomOut}
+        >
+          <Ionicons name="remove" size={20} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
+        </Pressable>
+      </View>
 
       <View style={[styles.topBar, { top: insets.top + 8 }]}>
         <View style={styles.leftButtons}>
@@ -2085,5 +2218,32 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#E0E0E0",
     backgroundColor: "#FFFFFF",
+  },
+  zoomControls: {
+    position: "absolute",
+    left: 16,
+    flexDirection: "column",
+    gap: 8,
+  },
+  zoomButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
+  zoomButtonDark: { 
+    backgroundColor: "#0a0a0a", 
+    borderColor: "#333333" 
+  },
+  zoomButtonLight: { 
+    backgroundColor: "#FFFFFF", 
+    borderColor: "#E0E0E0" 
   },
 });
