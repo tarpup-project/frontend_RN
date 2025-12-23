@@ -56,6 +56,12 @@ export default {
       "expo-router",
       "@react-native-firebase/app",
       "@react-native-firebase/messaging",
+      [
+        "@rnmapbox/maps",
+        {
+          RNMapboxMapsVersion: "11.0.0"
+        }
+      ],
 
       [
         "expo-splash-screen",

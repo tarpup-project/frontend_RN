@@ -6,13 +6,13 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Image as ExpoImage } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
 import * as MediaLibrary from "expo-media-library";
+import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import moment from "moment";
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Dimensions, InteractionManager, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Dimensions, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import uuid from "react-native-uuid";
@@ -23,6 +23,7 @@ export default function TarpsScreen() {
   const { isDark } = useTheme();
   const { user } = useAuthStore();
   const insets = useSafeAreaInsets();
+  const nav = useRouter();
   // Correct type for Map region
   const [location, setLocation] = useState<{
     latitude: number;
@@ -35,7 +36,6 @@ export default function TarpsScreen() {
     { id: number; image: string; latitude: number; longitude: number; userId?: string; createdAt?: number }[]
   >([]);
   const [showMine, setShowMine] = useState(false);
-  const [preview, setPreview] = useState<{ uri: string } | null>(null);
   const [postOpen, setPostOpen] = useState(false);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [recents, setRecents] = useState<MediaLibrary.Asset[]>([]);
@@ -75,7 +75,7 @@ export default function TarpsScreen() {
   const [groupDetails, setGroupDetails] = useState<any | null>(null);
   const [groupMessages, setGroupMessages] = useState<any[]>([]);
   const [chatText, setChatText] = useState("");
-  const chatScrollRef = useRef<ScrollView | null>(null);
+  const chatScrollRef = useRef<FlatList | null>(null);
   const socketRef = useRef<any | null>(null);
 
   const durationOptions = ["1 hour", "2 hours", "5 hours", "1 day"];
@@ -140,107 +140,9 @@ export default function TarpsScreen() {
     setShareModalVisible(true);
   };
 
-  const [currentPostItem, setCurrentPostItem] = useState<any | null>(null);
-  const [commentsOpen, setCommentsOpen] = useState(false);
-  const [comments, setComments] = useState<any[]>([]);
-  const [isLiking, setIsLiking] = useState(false);
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [isFriending, setIsFriending] = useState(false);
-  const [commentText, setCommentText] = useState("");
-  const [replyingToID, setReplyingToID] = useState<string | null>(null);
-  const [isLoadingComments, setIsLoadingComments] = useState(false);
-  const [pendingCommentsImageID, setPendingCommentsImageID] = useState<string | null>(null);
-  
-  const [friendStatus, setFriendStatus] = useState<"not_friends" | "pending" | "friends">("not_friends");
-  const [currentImages, setCurrentImages] = useState<string[]>([]);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [currentImageIds, setCurrentImageIds] = useState<string[]>([]);
-  const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(0);
-  const [following, setFollowing] = useState(false);
-  const [commentCount, setCommentCount] = useState(0);
 
-  const extractImageId = (item: any): string | null => {
-    const candidates: any[] = [
-      item?.imageId, item?.imageID, item?.postImageID, item?.postImageId,
-      Array.isArray(item?.images) ? item.images[0]?.id : null,
-      Array.isArray(item?.files) ? item.files[0]?.id : null,
-      Array.isArray(item?.medias) ? item.medias[0]?.id : null,
-      item?.id
-    ];
-    const v = candidates.find((x) => typeof x === "string" || typeof x === "number");
-    return v != null ? String(v) : null;
-  };
-  const extractUserId = (item: any): string | null => {
-    const v =
-      item?.userID ??
-      item?.creator?.id ??
-      item?.owner?.id ??
-      item?.user?.id ??
-      item?.createdBy?.id ??
-      item?.author?.id;
-    return v != null ? String(v) : null;
-  };
-  const resolveItemImageSet = (item: any): { urls: string[]; ids: (string | null)[] } => {
-    const urls: string[] = [];
-    const ids: (string | null)[] = [];
-    if (Array.isArray(item?.images) && item.images.length > 0) {
-      item.images.forEach((im: any) => {
-        const raw = typeof im === "string" ? im : im?.url;
-        const id = typeof im?.id === "string" || typeof im?.id === "number" ? String(im.id) : null;
-        if (typeof raw === "string" && raw.length > 0) {
-          const cleaned = raw.replace(/`/g, "").trim();
-          urls.push(cleaned);
-          ids.push(id);
-        }
-      });
-    } else {
-      const cover = extractImageUrl(item);
-      const fallbackId = extractImageId(item);
-      if (cover) {
-        urls.push(cover);
-        ids.push(fallbackId);
-      }
-    }
-    // Deduplicate by URL while preserving ID alignment
-    const seen = new Set<string>();
-    const finalUrls: string[] = [];
-    const finalIds: (string | null)[] = [];
-    urls.forEach((u, idx) => {
-      if (!seen.has(u)) {
-        seen.add(u);
-        finalUrls.push(u);
-        finalIds.push(ids[idx] ?? null);
-      }
-    });
-    return { urls: finalUrls, ids: finalIds };
-  };
-  const getCurrentImageId = (): string | null => {
-    const idx = currentImageIndex;
-    const id = currentImageIds[idx];
-    return id ?? (currentPostItem ? extractImageId(currentPostItem) : null);
-  };
-  const syncImageMeta = (idx: number) => {
-    if (!currentPostItem) return;
-    const imgMeta = Array.isArray(currentPostItem.images) ? currentPostItem.images[idx] : null;
-    const likedVal =
-      typeof imgMeta?.hasLiked === "boolean"
-        ? imgMeta.hasLiked
-        : extractLiked(currentPostItem);
-    const likeCountVal =
-      typeof imgMeta?.likes === "number"
-        ? imgMeta.likes
-        : extractLikeCount(currentPostItem);
-    const commentCountVal =
-      typeof imgMeta?.comments === "number"
-        ? imgMeta.comments
-        : Array.isArray(currentPostItem.comments)
-        ? currentPostItem.comments.length
-        : commentCount;
-    setLiked(!!likedVal);
-    setLikeCount(typeof likeCountVal === "number" ? likeCountVal : 0);
-    setCommentCount(typeof commentCountVal === "number" ? commentCountVal : 0);
-  };
+
+
   const extractImageUrl = (item: any): string | null => {
     if (!item || typeof item !== "object") return null;
     const cands: any[] = [
@@ -255,184 +157,11 @@ export default function TarpsScreen() {
     if (/^https?:\/\//i.test(raw)) return raw;
     return `${UrlConstants.baseUrl}${raw.startsWith("/") ? "" : "/"}${raw}`;
   };
-  const extractLocationName = (item: any): string => {
-    const v =
-      item?.locationName ??
-      item?.placeName ??
-      item?.location ??
-      item?.place ??
-      item?.city ??
-      item?.owner?.locationName ??
-      item?.owner?.location ??
-      item?.creator?.locationName ??
-      item?.creator?.location ??
-      "";
-    return typeof v === "string" && v.length > 0 ? v : "Location";
-  };
-  const extractLiked = (item: any): boolean => {
-    const v =
-      item?.likedByMe ??
-      item?.isLiked ??
-      item?.hasLiked ??
-      item?.liked ??
-      item?.owner?.likedByMe;
-    if (typeof v === "boolean") return v;
-    if (Array.isArray(item?.images) && item.images[0] && typeof item.images[0]?.hasLiked === "boolean") {
-      return item.images[0].hasLiked;
-    }
-    if (Array.isArray(item?.likes) && user?.id) return !!item.likes.find((u: any) => String(u?.id) === String(user.id));
-    return false;
-  };
-  const extractLikeCount = (item: any): number => {
-    const cands = [
-      Array.isArray(item?.images) && item.images[0] && typeof item.images[0]?.likes === "number" ? item.images[0].likes : undefined,
-      item?.likesCount,
-      item?.numLikes,
-      item?.reactions?.likes,
-      item?.likes?.length,
-    ];
-    const v = cands.find((x) => typeof x === "number");
-    return typeof v === "number" && v >= 0 ? v : 0;
-  };
-  const extractFollowing = (item: any): boolean => {
-    const v = item?.isFollowing ?? item?.following ?? item?.owner?.isFollowing ?? item?.owner?.following ?? item?.creator?.isFollowing;
-    return typeof v === "boolean" ? v : false;
-  };
 
-  const openComments = () => {
-    const imageID = getCurrentImageId();
-    setPendingCommentsImageID(imageID ?? null);
-    setPreview(null);
-    InteractionManager.runAfterInteractions(() => {
-      setCommentsOpen(true);
-    });
-  };
 
-  const refreshComments = async () => {
-    const imageID = pendingCommentsImageID ?? getCurrentImageId();
-    if (!imageID) return;
-    try {
-      setIsLoadingComments(true);
-      const res = await api.get(UrlConstants.tarpPostComments(imageID));
-      const list = (res as any)?.data?.data ?? (res as any)?.data?.comments ?? (res as any)?.data;
-      setComments(Array.isArray(list) ? list : []);
-      setCommentCount(Array.isArray(list) ? list.length : 0);
-    } catch (e: any) {
-      toast.error("Failed to fetch comments");
-    } finally {
-      setIsLoadingComments(false);
-    }
-  };
 
-  useEffect(() => {
-    if (!commentsOpen || isLoadingComments) return;
-    const imageID = pendingCommentsImageID;
-    if (!imageID) return;
-    let cancelled = false;
-    const run = async () => {
-      try {
-        setIsLoadingComments(true);
-        const res = await api.get(UrlConstants.tarpPostComments(imageID));
-        if (cancelled) return;
-        const list = (res as any)?.data?.data ?? (res as any)?.data?.comments ?? (res as any)?.data;
-        setComments(Array.isArray(list) ? list : []);
-        setCommentCount(Array.isArray(list) ? list.length : 0);
-      } catch (e: any) {
-        if (!cancelled) {
-          toast.error("Failed to fetch comments");
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoadingComments(false);
-        }
-      }
-    };
-    run();
-    return () => {
-      cancelled = true;
-    };
-  }, [commentsOpen, pendingCommentsImageID]);
-  const sendComment = async () => {
-    const imageID = getCurrentImageId();
-    const msg = commentText.trim();
-    console.log("Comments:send", { imageID, msgLength: msg.length, replyingToID });
-    if (!imageID || msg.length === 0) return;
-    try {
-      const body = { message: msg, ...(replyingToID ? { replyingToID } : {}) };
-      console.log("Comments:postRequest", { url: UrlConstants.tarpPostComments(imageID), body });
-      const res = await api.post(UrlConstants.tarpPostComments(imageID), body);
-      console.log("Comments:postResponse", { status: res?.status, data: (res as any)?.data });
-      setCommentText("");
-      setReplyingToID(null);
-      await refreshComments();
-      toast.success("Comment posted");
-    } catch (e: any) {
-      console.log("Comments:postError", { status: e?.response?.status, data: e?.response?.data, message: e?.message });
-      toast.error("Failed to post comment");
-    }
-  };
 
-  const toggleLike = async (action: "like" | "unlike") => {
-    if (!currentPostItem || isLiking) return;
-    const imageID = getCurrentImageId();
-    if (!imageID) return;
-    try {
-      setIsLiking(true);
-      await api.post(UrlConstants.tarpLikePost, { imageID, action });
-      if (action === "like") {
-        setLiked(true);
-        setLikeCount((c) => c + 1);
-      } else {
-        setLiked(false);
-        setLikeCount((c) => (c > 0 ? c - 1 : 0));
-      }
-      toast.success(action === "like" ? "Liked" : "Unliked");
-    } catch {
-      toast.error("Failed to update like");
-    } finally {
-      setIsLiking(false);
-    }
-  };
-  const toggleFriend = async (action: "friend" | "unfriend") => {
-    if (!currentPostItem || isFriending) return;
-    const userID = extractUserId(currentPostItem);
-    if (!userID) return;
-    try {
-      setIsFriending(true);
-      await api.post(UrlConstants.tarpToggleFriend, { userID, action });
-      if (action === "friend") {
-        setFriendStatus("pending");
-        toast.success("Friend request sent");
-      } else {
-        setFriendStatus("not_friends");
-        toast.success("Unfriended");
-      }
-    } catch {
-      toast.error("Failed to toggle friend");
-    } finally {
-      setIsFriending(false);
-    }
-  };
-  const toggleFollow = async (action: "follow" | "unfollow") => {
-    if (!currentPostItem || isFollowing) return;
-    const userID = extractUserId(currentPostItem);
-    if (!userID) return;
-    try {
-      setIsFollowing(true);
-      await api.post(UrlConstants.tarpToggleFollow, { userID, action });
-      setFollowing(action === "follow");
-      toast.success(action === "follow" ? "Following" : "Unfollowed");
-    } catch {
-      toast.error("Failed to toggle follow");
-    } finally {
-      setIsFollowing(false);
-    }
-  };
 
-  const clearSavedPosts = async () => {
-    await AsyncStorage.removeItem("tarps.posts");
-    setMarkers([]);
-  };
 
   // Request permission + get location
   useEffect(() => {
@@ -458,55 +187,9 @@ export default function TarpsScreen() {
     })();
   }, []);
 
-  // Upload image + add marker (saves to storage)
-  const uploadImage = async () => {
-    if (!location) return;
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 1,
-    });
 
-    if (!result.canceled) {
-      const uri = result.assets[0].uri;
-      const newItem = {
-        id: Date.now(),
-        image: uri,
-        latitude: location.latitude,
-        longitude: location.longitude,
-        userId: user?.id,
-        createdAt: Date.now(),
-      };
-      setMarkers((prev) => {
-        const next = [...prev, newItem];
-        AsyncStorage.setItem("tarps.posts", JSON.stringify(next));
-        return next;
-      });
-    }
-  };
 
-  // Simple clustering by proximity
-  const filtered = useMemo(() => {
-    if (showMine && user?.id) return markers.filter((m) => m.userId === user.id);
-    return markers;
-  }, [markers, showMine, user?.id]);
-
-  const clusters = useMemo(() => {
-    const t = 0.01; // threshold degrees
-    const groups: { lat: number; lng: number; items: typeof filtered }[] = [] as any;
-    filtered.forEach((m) => {
-      const g = groups.find((gr) => Math.abs(gr.lat - m.latitude) < t && Math.abs(gr.lng - m.longitude) < t);
-      if (g) {
-        g.items.push(m);
-        // keep centroid simple
-        g.lat = (g.lat * (g.items.length - 1) + m.latitude) / g.items.length;
-        g.lng = (g.lng * (g.items.length - 1) + m.longitude) / g.items.length;
-      } else {
-        groups.push({ lat: m.latitude, lng: m.longitude, items: [m] });
-      }
-    });
-    return groups;
-  }, [filtered]);
   
   const computeZoomLevel = (region: typeof location) => {
     if (!region) return 10;
@@ -732,18 +415,7 @@ export default function TarpsScreen() {
     }
   };
 
-  const pickFromLibrary = async () => {
-    const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsMultipleSelection: true,
-      selectionLimit: 10,
-      quality: 1,
-    });
-    if (!res.canceled) {
-      const uris = res.assets.map((a) => a.uri).slice(0, 10);
-      setSelectedImages(uris);
-    }
-  };
+
 
   const pickLocationPhoto = async () => {
     const res = await ImagePicker.launchImageLibraryAsync({
@@ -991,6 +663,80 @@ export default function TarpsScreen() {
       }
     });
   };
+
+  // Optimized chat messages with precomputed data for performance
+  const chatMessages = useMemo(() => {
+    return groupMessages.map((m: any, index: number) => {
+      const isOwn = m?.sender?.id === user?.id;
+      const displayName = selectedPerson?.owner?.fname || "User";
+      const initial = (displayName?.[0] ?? "U").toUpperCase();
+      const timeString = m?.createdAt ? moment(m.createdAt).fromNow() : "";
+      
+      return {
+        ...m,
+        isOwn,
+        displayName,
+        initial,
+        timeString,
+        id: m?.content?.id || index.toString()
+      };
+    });
+  }, [groupMessages, user?.id, selectedPerson?.owner?.fname]);
+
+  // Memoized chat row component
+  const ChatRow = useCallback(({ item }: { item: any }) => {
+    return (
+      <View style={{ gap: 6 }}>
+        <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
+          {!item.isOwn && (
+            <>
+              {selectedPerson?.imageUrl ? (
+                <ExpoImage source={{ uri: selectedPerson.imageUrl }} style={{ width: 24, height: 24, borderRadius: 12 }} contentFit="cover" />
+              ) : (
+                <View style={{ width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "#888" }}>
+                  <Text style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>{item.initial}</Text>
+                </View>
+              )}
+            </>
+          )}
+          <View style={[
+            { 
+              paddingHorizontal: 12, 
+              paddingVertical: 10, 
+              borderRadius: 12, 
+              flex: 1, 
+              marginRight: item.isOwn ? 0 : 16,
+              marginLeft: item.isOwn ? 16 : 0,
+              alignSelf: item.isOwn ? "flex-end" : "flex-start",
+              maxWidth: "80%"
+            },
+            item.isOwn 
+              ? { backgroundColor: "#0a0a0a" }
+              : isDark ? { backgroundColor: "#1A1A1A" } : { backgroundColor: "#F5F5F5" }
+          ]}>
+            {!item.isOwn && (
+              <Text style={{ fontSize: 12, fontWeight: "700", color: isDark ? "#FFFFFF" : "#0a0a0a", marginBottom: 2 }}>
+                {item.displayName}
+              </Text>
+            )}
+            <Text style={{ fontSize: 12, color: item.isOwn ? "#FFFFFF" : isDark ? "#FFFFFF" : "#0a0a0a" }}>
+              {item?.content?.message || item?.content || ""}
+            </Text>
+          </View>
+        </View>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginLeft: item.isOwn ? 16 : 32 }}>
+          <Text style={{ fontSize: 10, color: isDark ? "#9AA0A6" : "#666" }}>{item.timeString}</Text>
+        </View>
+      </View>
+    );
+  }, [isDark, selectedPerson?.imageUrl]);
+
+  const renderChatMessage = useCallback(({ item }: { item: any }) => (
+    <ChatRow item={item} />
+  ), [ChatRow]);
+
+  const chatKeyExtractor = useCallback((item: any, index: number) => item.id || index.toString(), []);
+
   if (!location) {
     return (
       <View style={styles.center}>
@@ -1034,42 +780,136 @@ export default function TarpsScreen() {
                 coordinate={{ latitude: p.latitude, longitude: p.longitude }}
                 onPress={() => {
                   if (p.count && p.count > 1 && Array.isArray(p.items)) {
-                    const bounds = {
-                      minLat: Math.min(...p.items.map((i: any) => Number(i.latitude ?? i.lat ?? p.latitude))),
-                      maxLat: Math.max(...p.items.map((i: any) => Number(i.latitude ?? i.lat ?? p.latitude))),
-                      minLng: Math.min(...p.items.map((i: any) => Number(i.longitude ?? i.lng ?? p.longitude))),
-                      maxLng: Math.max(...p.items.map((i: any) => Number(i.longitude ?? i.lng ?? p.longitude))),
-                    };
-                    const region = {
-                      latitude: (bounds.minLat + bounds.maxLat) / 2,
-                      longitude: (bounds.minLng + bounds.maxLng) / 2,
-                      latitudeDelta: Math.max(0.01, Math.abs(bounds.maxLat - bounds.minLat) * 1.5),
-                      longitudeDelta: Math.max(0.01, Math.abs(bounds.maxLng - bounds.minLng) * 1.5),
-                    } as any;
-                    mapRef.current?.animateToRegion(region, 500);
+                    // Check if posts are actually stacked (very close together) or just clustered
+                    const latDiff = Math.max(...p.items.map((i: any) => Number(i.latitude ?? i.lat ?? p.latitude))) - 
+                                   Math.min(...p.items.map((i: any) => Number(i.latitude ?? i.lat ?? p.latitude)));
+                    const lngDiff = Math.max(...p.items.map((i: any) => Number(i.longitude ?? i.lng ?? p.longitude))) - 
+                                   Math.min(...p.items.map((i: any) => Number(i.longitude ?? i.lng ?? p.longitude)));
+                    
+                    console.log("Multiple posts detected:", { count: p.count, latDiff, lngDiff, threshold: 0.001 });
+                    
+                    // If posts are very close together (stacked), open post preview with all items
+                    if (latDiff < 0.001 && lngDiff < 0.001) {
+                      console.log("Posts are stacked, opening combined preview");
+                      try {
+                        // Create a combined image set from all items in the stack
+                        const allUrls: string[] = [];
+                        const allIds: (string | null)[] = [];
+                        const allItems: any[] = [];
+                        
+                        p.items.forEach((item: any) => {
+                          const resolveItemImageSet = (item: any): { urls: string[]; ids: (string | null)[] } => {
+                            const urls: string[] = [];
+                            const ids: (string | null)[] = [];
+                            if (Array.isArray(item?.images) && item.images.length > 0) {
+                              item.images.forEach((im: any) => {
+                                const raw = typeof im === "string" ? im : im?.url;
+                                const id = typeof im?.id === "string" || typeof im?.id === "number" ? String(im.id) : null;
+                                if (typeof raw === "string" && raw.length > 0) {
+                                  const cleaned = raw.replace(/`/g, "").trim();
+                                  urls.push(cleaned);
+                                  ids.push(id);
+                                }
+                              });
+                            } else {
+                              const cover = extractImageUrl(item);
+                              const extractImageId = (item: any): string | null => {
+                                const candidates: any[] = [
+                                  item?.imageId, item?.imageID, item?.postImageID, item?.postImageId,
+                                  Array.isArray(item?.images) ? item.images[0]?.id : null,
+                                  Array.isArray(item?.files) ? item.files[0]?.id : null,
+                                  Array.isArray(item?.medias) ? item.medias[0]?.id : null,
+                                  item?.id
+                                ];
+                                const v = candidates.find((x) => typeof x === "string" || typeof x === "number");
+                                return v != null ? String(v) : null;
+                              };
+                              const fallbackId = extractImageId(item);
+                              if (cover) {
+                                urls.push(cover);
+                                ids.push(fallbackId);
+                              }
+                            }
+                            return { urls, ids };
+                          };
+                          
+                          const itemSet = resolveItemImageSet(item);
+                          allUrls.push(...itemSet.urls);
+                          allIds.push(...itemSet.ids);
+                          // Add the item for each of its images so we can track which item each image belongs to
+                          itemSet.urls.forEach(() => allItems.push(item));
+                        });
+                        
+                        // Use the first item as the primary item, but pass all images and items
+                        const primaryItem = p.items[0];
+                        const combinedSet = { urls: allUrls, ids: allIds };
+                        
+                        console.log("Combined set created:", { totalImages: allUrls.length, totalItems: allItems.length });
+                        nav.push(`/post/${primaryItem.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(primaryItem))}&images=${encodeURIComponent(JSON.stringify(combinedSet))}&allItems=${encodeURIComponent(JSON.stringify(allItems))}&idx=0`);
+                      } catch (error) {
+                        console.error("Failed to navigate to stacked posts:", error);
+                        toast.error("Failed to open posts");
+                      }
+                    } else {
+                      // Posts are spread out, zoom in to separate them
+                      console.log("Posts are spread out, zooming in to separate");
+                      const bounds = {
+                        minLat: Math.min(...p.items.map((i: any) => Number(i.latitude ?? i.lat ?? p.latitude))),
+                        maxLat: Math.max(...p.items.map((i: any) => Number(i.latitude ?? i.lat ?? p.latitude))),
+                        minLng: Math.min(...p.items.map((i: any) => Number(i.longitude ?? i.lng ?? p.longitude))),
+                        maxLng: Math.max(...p.items.map((i: any) => Number(i.longitude ?? i.lng ?? p.longitude))),
+                      };
+                      const region = {
+                        latitude: (bounds.minLat + bounds.maxLat) / 2,
+                        longitude: (bounds.minLng + bounds.maxLng) / 2,
+                        latitudeDelta: Math.max(0.01, Math.abs(bounds.maxLat - bounds.minLat) * 1.5),
+                        longitudeDelta: Math.max(0.01, Math.abs(bounds.maxLng - bounds.minLng) * 1.5),
+                      } as any;
+                      mapRef.current?.animateToRegion(region, 500);
+                    }
                   } else if (p.image && Array.isArray(p.items) && p.items.length > 0) {
                     const item = p.items[0];
-                    const url = extractImageUrl(item) ?? (p.image as string);
-                    setCurrentPostItem(item);
-                    setLiked(extractLiked(item));
-                    setLikeCount(extractLikeCount(item));
-                    setFollowing(extractFollowing(item));
-                    setFriendStatus(typeof item?.isFriend === "string" ? item.isFriend : "not_friends");
-                    setCommentCount(
-                      typeof item?.commentsCount === "number"
-                        ? item.commentsCount
-                        : Array.isArray(item?.comments)
-                        ? item.comments.length
-                        : Array.isArray(item?.images) && typeof item.images[0]?.comments === "number"
-                        ? item.images[0].comments
-                        : 0
-                    );
-                    const set = resolveItemImageSet(item);
-                    setCurrentImages(set.urls);
-                    setCurrentImageIds(set.ids.filter((x) => typeof x === "string") as string[]);
-                    setCurrentImageIndex(0);
-                    syncImageMeta(0);
-                    setPreview({ uri: url });
+                    try {
+                      const resolveItemImageSet = (item: any): { urls: string[]; ids: (string | null)[] } => {
+                        const urls: string[] = [];
+                        const ids: (string | null)[] = [];
+                        if (Array.isArray(item?.images) && item.images.length > 0) {
+                          item.images.forEach((im: any) => {
+                            const raw = typeof im === "string" ? im : im?.url;
+                            const id = typeof im?.id === "string" || typeof im?.id === "number" ? String(im.id) : null;
+                            if (typeof raw === "string" && raw.length > 0) {
+                              const cleaned = raw.replace(/`/g, "").trim();
+                              urls.push(cleaned);
+                              ids.push(id);
+                            }
+                          });
+                        } else {
+                          const cover = extractImageUrl(item);
+                          const extractImageId = (item: any): string | null => {
+                            const candidates: any[] = [
+                              item?.imageId, item?.imageID, item?.postImageID, item?.postImageId,
+                              Array.isArray(item?.images) ? item.images[0]?.id : null,
+                              Array.isArray(item?.files) ? item.files[0]?.id : null,
+                              Array.isArray(item?.medias) ? item.medias[0]?.id : null,
+                              item?.id
+                            ];
+                            const v = candidates.find((x) => typeof x === "string" || typeof x === "number");
+                            return v != null ? String(v) : null;
+                          };
+                          const fallbackId = extractImageId(item);
+                          if (cover) {
+                            urls.push(cover);
+                            ids.push(fallbackId);
+                          }
+                        }
+                        return { urls, ids };
+                      };
+                      const set = resolveItemImageSet(item);
+                      nav.push(`/post/${item.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(item))}&images=${encodeURIComponent(JSON.stringify(set))}&idx=0`);
+                    } catch (error) {
+                      console.error("Failed to navigate to post:", error);
+                      toast.error("Failed to open post");
+                    }
                   }
                 }}
               >
@@ -1109,335 +949,80 @@ export default function TarpsScreen() {
               </Marker>
             ))}
       </MapView>
-
-      <Modal visible={!!preview} transparent animationType="fade" onRequestClose={() => setPreview(null)}>
-        <StatusBar hidden />
-        <Pressable style={styles.previewOverlay} onPress={() => setPreview(null)}>
-          <Pressable style={styles.previewContent} onPress={(e) => e.stopPropagation()}>
-            {currentImages.length > 0 ? (
-              <ScrollView
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                onMomentumScrollEnd={(e) => {
-                  const w = Dimensions.get("window").width;
-                  const idx = Math.round(e.nativeEvent.contentOffset.x / w);
-                  setCurrentImageIndex(idx);
-                  syncImageMeta(idx);
-                }}
-              >
-                {currentImages.map((uri, i) => (
-                  <View key={`${uri}-${i}`} style={{ width: Dimensions.get("window").width, height: Dimensions.get("window").height }}>
-                    <ExpoImage source={{ uri }} style={styles.previewImage} contentFit="cover" />
-                  </View>
-                ))}
-              </ScrollView>
-            ) : (
-              preview && <ExpoImage source={{ uri: preview.uri }} style={styles.previewImage} contentFit="cover" />
-            )}
-            <LinearGradient
-              colors={["rgba(0,0,0,0.6)", "rgba(0,0,0,0.35)", "transparent"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-              style={styles.gradientTop}
-            />
-            <LinearGradient
-              colors={["transparent", "rgba(0,0,0,0.35)", "rgba(0,0,0,0.6)"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-              style={styles.gradientBottom}
-            />
-            <View style={[styles.previewHeader, { paddingTop: insets.top + 10 }]}>
-              <Pressable style={styles.headerIcon} onPress={() => setPreview(null)}>
-                <Ionicons name="close" size={20} color="#FFFFFF" />
-              </Pressable>
-              <View style={styles.headerCenter}>
-                <Text style={styles.headerTitle}>{currentPostItem ? extractLocationName(currentPostItem) : "Location"}</Text>
-                <Text style={styles.headerSub}>{currentImageIndex + 1} / {Math.max(1, currentImages.length || 1)}</Text>
-              </View>
-              <Pressable style={styles.headerIcon}>
-                <Ionicons name="ellipsis-vertical" size={18} color="#FFFFFF" />
-              </Pressable>
-            </View>
-
-            <View style={styles.previewTopRow}>
-              <View style={styles.userRow}>
-                {currentPostItem?.creator && extractImageUrl(currentPostItem.creator) ? (
-                  <ExpoImage source={{ uri: extractImageUrl(currentPostItem.creator) as string }} style={styles.userAvatar} contentFit="cover" />
-                ) : currentPostItem?.owner && extractImageUrl(currentPostItem.owner) ? (
-                  <ExpoImage source={{ uri: extractImageUrl(currentPostItem.owner) as string }} style={styles.userAvatar} contentFit="cover" />
-                ) : (
-                  <View style={[styles.userAvatar, { alignItems: "center", justifyContent: "center" }]}>
-                    <Text style={{ color: "#FFFFFF", fontWeight: "700" }}>
-                      {(currentPostItem?.creator?.fname?.[0] || currentPostItem?.owner?.fname?.[0] || currentPostItem?.author?.name?.[0] || "U")?.toUpperCase()}
-                    </Text>
-                  </View>
-                )}
-                <View>
-                  <Text style={styles.userName}>
-                    {currentPostItem?.creator
-                      ? `${currentPostItem.creator.fname || ""} ${currentPostItem.creator.lname || ""}`.trim() || (currentPostItem.creator.name as string)
-                      : (currentPostItem?.owner?.fname || (currentPostItem?.author?.name as string) || "User")}
-                  </Text>
-                  <Text style={styles.userTime}>
-                    {currentPostItem?.createdAt ? moment(currentPostItem.createdAt).fromNow() : "2d ago"}
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.actionRow}>
-                <Pressable
-                  style={[styles.friendBtn, friendStatus === "pending" && styles.friendBtnPending]}
-                  disabled={friendStatus === "pending"}
-                  onPress={() => toggleFriend(friendStatus === "friends" ? "unfriend" : "friend")}
-                >
-                  <Text style={styles.friendText}>{friendStatus === "pending" ? "Pending" : friendStatus === "friends" ? "Unfriend" : "Friend"}</Text>
-                </Pressable>
-                <Pressable style={[styles.followBtn, following && styles.followBtnActive]} onPress={() => toggleFollow(following ? "unfollow" : "follow")}>
-                  <Text style={[styles.followText, following && { color: "#0a0a0a" }]}>{following ? "Following" : "Follow"}</Text>
-                </Pressable>
-              </View>
-            </View>
-
-            <View style={styles.rightRail}>
-              <Pressable style={styles.railCircle} onPress={() => toggleLike(liked ? "unlike" : "like")}>
-                <Ionicons name={liked ? "heart" : "heart-outline"} size={20} color={liked ? "#FF3B30" : "#FFFFFF"} />
-              </Pressable>
-              <Text style={styles.railCount}>{likeCount}</Text>
-              <Pressable style={styles.railCircle} onPress={openComments}><Ionicons name="chatbubble-outline" size={18} color="#FFFFFF" /></Pressable>
-              <Text style={styles.railCount}>{commentCount}</Text>
-              <Pressable style={styles.railCircle}><Ionicons name="share-social-outline" size={18} color="#FFFFFF" /></Pressable>
-            </View>
-
-            
-            {currentPostItem?.caption ? (
-              <View style={styles.captionBox}>
-                <Text style={styles.captionText}>{currentPostItem.caption}</Text>
-              </View>
-            ) : null}
-
-          </Pressable>
-        </Pressable>
-      </Modal>
       
-      <Modal
-        visible={commentsOpen}
-        transparent
-        animationType="slide"
-        presentationStyle="overFullScreen"
-        hardwareAccelerated
-        statusBarTranslucent
-        onRequestClose={() => setCommentsOpen(false)}
-      >
-        <Pressable style={styles.modalOverlay} onPress={() => setCommentsOpen(false)}>
-          <Pressable style={[styles.shareSheet, isDark ? styles.sheetDark : styles.sheetLight]} onPress={(e) => e.stopPropagation()}>
+      <Modal visible={chatOpen} transparent animationType="fade" onRequestClose={() => setChatOpen(false)}>
+        <View style={styles.modalOverlay}>
+          <View
+            style={[
+              styles.shareSheet,
+              {
+                height: Dimensions.get("window").height * 0.70,
+              },
+              isDark ? styles.sheetDark : styles.sheetLight
+            ]}
+          >
             <KeyboardAvoidingView
               style={{ flex: 1 }}
               behavior={Platform.OS === "ios" ? "padding" : "height"}
-              keyboardVerticalOffset={Platform.OS === "ios" ? insets.bottom + 24 : 40}
+              keyboardVerticalOffset={Platform.OS === "ios" ? 240 : 240}
             >
-            <View style={styles.sheetHeader}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <Text style={[styles.sheetTitle, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>Comments ({commentCount})</Text>
-                {isLoadingComments && <ActivityIndicator size="small" color={isDark ? "#FFFFFF" : "#0a0a0a"} />}
+              <View style={styles.sheetHeader}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <Ionicons name="chatbubble-outline" size={18} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
+                  <Text style={[styles.sheetTitle, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
+                    Message {selectedPerson?.owner?.fname} {selectedPerson?.owner?.lname || ""}
+                  </Text>
+                </View>
+                <Pressable style={styles.headerIcon} onPress={() => setChatOpen(false)}>
+                  <Ionicons name="close" size={20} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
+                </Pressable>
               </View>
-              <Pressable style={styles.headerIcon} onPress={() => setCommentsOpen(false)}>
-                <Ionicons name="close" size={20} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
-              </Pressable>
-            </View>
-            <ScrollView contentContainerStyle={{ padding: 16, paddingRight: 24, gap: 12 }} keyboardShouldPersistTaps="handled">
-              {comments.length === 0 ? (
-                <Text style={{ color: isDark ? "#9AA0A6" : "#666" }}>No comments yet</Text>
-              ) : (
-                [...comments]
-                  .sort((a: any, b: any) => {
-                    const ta = new Date(a?.createdAt ?? 0).getTime();
-                    const tb = new Date(b?.createdAt ?? 0).getTime();
-                    return tb - ta;
-                  })
-                  .map((c: any, i: number) => {
-                    const displayName = c?.commenter
-                      ? `${c?.commenter?.fname ?? ""} ${c?.commenter?.lname ?? ""}`.trim() || "User"
-                      : c?.user?.name || c?.author?.name || c?.user?.fname || "User";
-                    const avatarUrl =
-                      c?.commenter?.bgUrl ||
-                      c?.user?.avatarUrl ||
-                      c?.author?.avatarUrl ||
-                      undefined;
-                    const initial =
-                      (c?.commenter?.fname?.[0] ||
-                        c?.user?.fname?.[0] ||
-                        c?.user?.name?.[0] ||
-                        "U")?.toUpperCase();
-                    const time = c?.createdAt ? moment(c.createdAt).fromNow() : "";
-                    return (
-                      <View key={c?.id ?? i} style={{ gap: 6 }}>
-                        <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
-                          {avatarUrl ? (
-                            <ExpoImage source={{ uri: avatarUrl }} style={styles.commentAvatar} contentFit="cover" />
-                          ) : (
-                            <View style={[styles.commentAvatar, { alignItems: "center", justifyContent: "center", backgroundColor: "#888" }]}>
-                              <Text style={{ color: "#fff", fontWeight: "700" }}>{initial}</Text>
-                            </View>
-                          )}
-                          <View style={[styles.commentBubble, isDark ? styles.commentBubbleDark : styles.commentBubbleLight]}>
-                            <Text style={[styles.commentName, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>{displayName}</Text>
-                            <Text style={[styles.commentText, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>{c?.message || c?.text || ""}</Text>
-                          </View>
-                        </View>
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginLeft: 32 }}>
-                          <Text style={[styles.commentMeta, { color: isDark ? "#9AA0A6" : "#666" }]}>{time}</Text>
-                          <Pressable onPress={() => setReplyingToID(String(c?.id))}>
-                            <Text style={{ color: isDark ? "#9AA0A6" : "#666", textDecorationLine: "underline" }}>Reply</Text>
-                          </Pressable>
-                        </View>
-                        {Array.isArray(c?.replies) && c.replies.length > 0
-                          ? c.replies
-                              .slice()
-                              .sort((a: any, b: any) => {
-                                const ta = new Date(a?.createdAt ?? 0).getTime();
-                                const tb = new Date(b?.createdAt ?? 0).getTime();
-                                return ta - tb;
-                              })
-                              .map((r: any, ri: number) => {
-                                const rName = r?.commenter
-                                  ? `${r?.commenter?.fname ?? ""} ${r?.commenter?.lname ?? ""}`.trim() || "User"
-                                  : r?.user?.name || r?.author?.name || r?.user?.fname || "User";
-                                const rAvatarUrl =
-                                  r?.commenter?.bgUrl ||
-                                  r?.user?.avatarUrl ||
-                                  r?.author?.avatarUrl ||
-                                  undefined;
-                                const rInitial =
-                                  (r?.commenter?.fname?.[0] ||
-                                    r?.user?.fname?.[0] ||
-                                    r?.user?.name?.[0] ||
-                                    "U")?.toUpperCase();
-                                const rTime = r?.createdAt ? moment(r.createdAt).fromNow() : "";
-                                return (
-                                  <View key={r?.id ?? ri} style={{ gap: 6, marginLeft: 32 }}>
-                                    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
-                                      {rAvatarUrl ? (
-                                        <ExpoImage source={{ uri: rAvatarUrl }} style={styles.commentAvatar} contentFit="cover" />
-                                      ) : (
-                                        <View style={[styles.commentAvatar, { alignItems: "center", justifyContent: "center", backgroundColor: "#888" }]}>
-                                          <Text style={{ color: "#fff", fontWeight: "700" }}>{rInitial}</Text>
-                                        </View>
-                                      )}
-                                      <View style={[styles.commentBubble, isDark ? styles.commentBubbleDark : styles.commentBubbleLight]}>
-                                        <Text style={[styles.commentName, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>{rName}</Text>
-                                        <Text style={[styles.commentText, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>{r?.message || r?.text || ""}</Text>
-                                      </View>
-                                    </View>
-                                    <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginLeft: 32 }}>
-                                      <Text style={[styles.commentMeta, { color: isDark ? "#9AA0A6" : "#666" }]}>{rTime}</Text>
-                                    </View>
-                                  </View>
-                                );
-                              })
-                          : null}
-                      </View>
-                    );
-                  })
-              )}
-            </ScrollView>
-            <View style={{ padding: 14, paddingBottom: insets.bottom + 8, borderTopWidth: 1, borderTopColor: isDark ? "#333" : "#E0E0E0" }}>
-              {replyingToID && (
-                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                  <Text style={{ color: isDark ? "#FFFFFF" : "#0a0a0a" }}>Replying…</Text>
-                  <Pressable onPress={() => setReplyingToID(null)}>
-                    <Text style={{ color: isDark ? "#9AA0A6" : "#666" }}>Cancel</Text>
+              
+              <FlatList
+                ref={chatScrollRef}
+                data={chatMessages}
+                renderItem={renderChatMessage}
+                keyExtractor={chatKeyExtractor}
+                style={{ flex: 1 }}
+                contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 16, gap: 12 }}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={true}
+                removeClippedSubviews={false}
+                maxToRenderPerBatch={10}
+                windowSize={10}
+                initialNumToRender={8}
+                ListEmptyComponent={
+                  <Text style={{ color: isDark ? "#9AA0A6" : "#666" }}>No messages yet</Text>
+                }
+              />
+              
+              <View style={[
+                styles.inputContainer, 
+                { 
+                  paddingBottom: insets.bottom,
+                  borderTopColor: isDark ? "#333" : "#E0E0E0",
+                  backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF"
+                }
+              ]}>
+                <View style={[styles.chatInputBox, isDark ? styles.chatInputDark : styles.chatInputLight]}>
+                  <TextInput
+                    value={chatText}
+                    onChangeText={setChatText}
+                    placeholder="Type a message..."
+                    placeholderTextColor={isDark ? "#888" : "#999"}
+                    style={[styles.chatInput, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}
+                  />
+                  <Pressable
+                    style={[styles.chatSendBtn, isDark ? styles.chatSendDark : styles.chatSendLight]}
+                    onPress={handleSendChat}
+                  >
+                    <Ionicons name="paper-plane-outline" size={18} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
                   </Pressable>
                 </View>
-              )}
-              <View style={[styles.chatInputBox, isDark ? styles.chatInputDark : styles.chatInputLight]}>
-                <TextInput
-                  value={commentText}
-                  onChangeText={setCommentText}
-                  placeholder="Write a comment..."
-                  placeholderTextColor={isDark ? "#888" : "#999"}
-                  style={[styles.chatInput, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}
-                />
-                <Pressable
-                  style={[styles.chatSendBtn, isDark ? styles.chatSendDark : styles.chatSendLight]}
-                  onPress={sendComment}
-                >
-                  <Ionicons name="paper-plane-outline" size={18} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
-                </Pressable>
               </View>
-            </View>
             </KeyboardAvoidingView>
-          </Pressable>
-        </Pressable>
-      </Modal>
-      
-      <Modal visible={chatOpen} transparent animationType="fade" onRequestClose={() => setChatOpen(false)}>
-        <Pressable style={styles.createOverlay} onPress={() => setChatOpen(false)}>
-          <Pressable style={[styles.dialogCard, isDark ? styles.sheetDark : styles.sheetLight]} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.sheetHeader}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <Ionicons name="chatbubble-outline" size={18} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
-                <Text style={[styles.sheetTitle, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
-                  Message {selectedPerson?.owner?.fname} {selectedPerson?.owner?.lname || ""}
-                </Text>
-              </View>
-              <Pressable style={styles.headerIcon} onPress={() => setChatOpen(false)}>
-                <Ionicons name="close" size={20} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
-              </Pressable>
-            </View>
-            <ScrollView ref={chatScrollRef} style={{ maxHeight: 360, paddingHorizontal: 14, paddingTop: 14 }}>
-              {groupMessages.map((m, i) => {
-                const isOwn = m?.sender?.id === user?.id;
-                return (
-                  <View key={m?.content?.id || i} style={{ marginBottom: 10 }}>
-                    {!isOwn && (
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                        {selectedPerson?.imageUrl ? (
-                          <ExpoImage source={{ uri: selectedPerson.imageUrl }} style={{ width: 20, height: 20, borderRadius: 10 }} />
-                        ) : (
-                          <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: "#888", alignItems: "center", justifyContent: "center" }}>
-                            <Text style={{ color: "#fff", fontSize: 10, fontWeight: "700" }}>{selectedPerson?.owner?.fname?.[0]?.toUpperCase() || "F"}</Text>
-                          </View>
-                        )}
-                        <Text style={{ color: isDark ? "#FFFFFF" : "#0a0a0a", fontWeight: "600" }}>
-                          {selectedPerson?.owner?.fname}
-                        </Text>
-                      </View>
-                    )}
-                    <View
-                      style={[
-                        { paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, maxWidth: "80%" },
-                        isOwn
-                          ? { alignSelf: "flex-end", backgroundColor: "#0a0a0a" }
-                          : { alignSelf: "flex-start", backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5" },
-                      ]}
-                    >
-                      <Text style={{ color: isOwn ? "#FFFFFF" : isDark ? "#FFFFFF" : "#0a0a0a" }}>
-                        {m?.content?.message || m?.content || ""}
-                      </Text>
-                    </View>
-                  </View>
-                );
-              })}
-            </ScrollView>
-            <View style={{ padding: 14, borderTopWidth: 1, borderTopColor: "#2a2e37" }}>
-              <View style={[styles.chatInputBox, isDark ? styles.chatInputDark : styles.chatInputLight]}>
-                <TextInput
-                  value={chatText}
-                  onChangeText={setChatText}
-                  placeholder="Type a message..."
-                  placeholderTextColor={isDark ? "#888" : "#999"}
-                  style={[styles.chatInput, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}
-                />
-                <Pressable
-                  style={[styles.chatSendBtn, isDark ? styles.chatSendDark : styles.chatSendLight]}
-                  onPress={handleSendChat}
-                >
-                  <Ionicons name="paper-plane-outline" size={18} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
-                </Pressable>
-              </View>
-            </View>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
 
       <View style={[styles.topBar, { top: insets.top + 8 }]}>
@@ -1450,7 +1035,7 @@ export default function TarpsScreen() {
                 loadPostsInView(mapRegion || location);
               }}
             >
-              <Ionicons name="image-outline" size={18} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
+              <Ionicons name="image-outline" size={18} color={viewMode === "posts" ? "#FFFFFF" : (isDark ? "#FFFFFF" : "#0a0a0a")} />
             </Pressable>
             <Pressable
               style={[styles.pillSeg, viewMode === "people" ? (isDark ? styles.pillSegActiveDark : styles.pillSegActiveLight) : null]}
@@ -1459,7 +1044,7 @@ export default function TarpsScreen() {
                 loadPeopleInView(mapRegion || location);
               }}
             >
-              <Ionicons name="people-outline" size={18} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
+              <Ionicons name="people-outline" size={18} color={viewMode === "people" ? "#FFFFFF" : (isDark ? "#FFFFFF" : "#0a0a0a")} />
             </Pressable>
           </View>
         </View>
@@ -1467,16 +1052,60 @@ export default function TarpsScreen() {
           style={[styles.myPostsBtn, isDark ? styles.myPostsDark : styles.myPostsLight]}
           onPress={() => {
             const allItems = serverPosts.flatMap((p) => Array.isArray(p.items) ? p.items : []);
+            const extractUserId = (item: any): string | null => {
+              const v =
+                item?.userID ??
+                item?.creator?.id ??
+                item?.owner?.id ??
+                item?.user?.id ??
+                item?.createdBy?.id ??
+                item?.author?.id;
+              return v != null ? String(v) : null;
+            };
             const mine = allItems.find((it: any) => extractUserId(it) === String(user?.id));
             if (!mine) {
               toast.error("No posts found");
               return;
             }
-            const url = extractImageUrl(mine);
-            if (url) {
-              setCurrentPostItem(mine);
-              setPreview({ uri: url });
-            } else {
+            try {
+              const resolveItemImageSet = (item: any): { urls: string[]; ids: (string | null)[] } => {
+                const urls: string[] = [];
+                const ids: (string | null)[] = [];
+                if (Array.isArray(item?.images) && item.images.length > 0) {
+                  item.images.forEach((im: any) => {
+                    const raw = typeof im === "string" ? im : im?.url;
+                    const id = typeof im?.id === "string" || typeof im?.id === "number" ? String(im.id) : null;
+                    if (typeof raw === "string" && raw.length > 0) {
+                      const cleaned = raw.replace(/`/g, "").trim();
+                      urls.push(cleaned);
+                      ids.push(id);
+                    }
+                  });
+                } else {
+                  const cover = extractImageUrl(mine);
+                  const extractImageId = (item: any): string | null => {
+                    const candidates: any[] = [
+                      item?.imageId, item?.imageID, item?.postImageID, item?.postImageId,
+                      Array.isArray(item?.images) ? item.images[0]?.id : null,
+                      Array.isArray(item?.files) ? item.files[0]?.id : null,
+                      Array.isArray(item?.medias) ? item.medias[0]?.id : null,
+                      item?.id
+                    ];
+                    const v = candidates.find((x) => typeof x === "string" || typeof x === "number");
+                    return v != null ? String(v) : null;
+                  };
+                  const fallbackId = extractImageId(mine);
+                  if (cover) {
+                    urls.push(cover);
+                    ids.push(fallbackId);
+                  }
+                }
+                return { urls, ids };
+              };
+              const set = resolveItemImageSet(mine);
+              nav.push(`/post/${mine.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(mine))}&images=${encodeURIComponent(JSON.stringify(set))}&idx=0`);
+            } catch (error) {
+              console.error("Failed to navigate to post:", error);
               toast.error("Unable to open post");
             }
           }}
@@ -1957,8 +1586,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  pillSegActiveDark: { backgroundColor: "#1A1A1A" },
-  pillSegActiveLight: { backgroundColor: "#EAF2FF" },
+  pillSegActiveDark: { 
+    backgroundColor: "#3b82f6", 
+    shadowColor: "#3b82f6",
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4
+  },
+  pillSegActiveLight: { 
+    backgroundColor: "#3b82f6", 
+    shadowColor: "#3b82f6",
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3
+  },
   createOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.6)",
@@ -2198,17 +1841,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  previewHeader: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 80,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 14,
-  },
   headerIcon: {
     width: 44,
     height: 44,
@@ -2217,19 +1849,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "rgba(0,0,0,0.35)",
   },
-  headerCenter: { position: "absolute", top: 54, left: 0, right: 0, alignItems: "center", gap: 2 },
-  headerTitle: { color: "#FFFFFF", fontSize: 14, fontWeight: "700", width: "60%", textAlign: "center" },
-  headerSub: { color: "#FFFFFF", opacity: 0.8, fontSize: 12, width: "60%", textAlign: "center" },
-  previewTopRow: {
-    position: "absolute",
-    top: 90,
-    left: 14,
-    right: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  userRow: { flexDirection: "row", alignItems: "center", gap: 10, marginTop:20},
   userAvatar: {
     width: 36,
     height: 36,
@@ -2237,95 +1856,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.35)",
     alignItems: "center",
     justifyContent: "center",
-  },
-  userName: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
-  userTime: { color: "#FFFFFF", fontSize: 12, opacity: 0.85 },
-  actionRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop:20 },
-  friendBtn: {
-    height: 32,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  friendBtnPending: {
-    backgroundColor: "#CCCCCC",
-  },
-  friendText: { color: "#0a0a0a", fontSize: 12, fontWeight: "700" },
-  followBtn: {
-    height: 32,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: "#1877F2",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  followBtnActive: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-  },
-  followText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
-  rightRail: {
-    position: "absolute",
-    right: 14,
-    top: 160,
-    alignItems: "center",
-    gap: 10,
-  },
-  railCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "rgba(0,0,0,0.35)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  railCount: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
-  previewBadge: {
-    position: "absolute",
-    left: "50%",
-    top: "50%",
-    transform: [{ translateX: -40 }, { translateY: -12 }],
-    backgroundColor: "rgba(0,0,0,0.45)",
-    paddingHorizontal: 10,
-    height: 24,
-    borderRadius: 6,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  previewBadgeText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
-  gradientTop: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: "25%",
-  },
-  gradientBottom: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: "25%",
-  },
-  captionBox: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 24,
-    alignItems: "center",
-    paddingHorizontal: 16,
-  },
-  captionText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "600",
-    textAlign: "center",
-    textShadowColor: "rgba(0,0,0,0.75)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
   },
   modalOverlay: {
     flex: 1,
@@ -2435,24 +1965,6 @@ const styles = StyleSheet.create({
   },
   chatSendDark: { backgroundColor: "#0a0a0a", borderColor: "#333" },
   chatSendLight: { backgroundColor: "#FFFFFF", borderColor: "#E0E0E0" },
-  commentBubble: {
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    paddingRight: 18,
-    maxWidth: "85%",
-  },
-  commentBubbleDark: { backgroundColor: "#1A1A1A" },
-  commentBubbleLight: { backgroundColor: "#E9EAED" },
-  commentName: { fontSize: 13, fontWeight: "700", marginBottom: 4 },
-  commentText: { fontSize: 13 },
-  commentMeta: { fontSize: 12 },
-  commentAvatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "rgba(0,0,0,0.35)",
-  },
   dialogCard: {
     width: "99%",
     maxWidth: 990,
@@ -2567,5 +2079,11 @@ const styles = StyleSheet.create({
   },
   dropdownItemLight: {
     borderBottomColor: '#f0f0f0',
+  },
+  inputContainer: {
+    padding: 14,
+    borderTopWidth: 1,
+    borderTopColor: "#E0E0E0",
+    backgroundColor: "#FFFFFF",
   },
 });

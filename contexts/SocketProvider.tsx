@@ -1,9 +1,9 @@
-import { api } from '@/api/client';
-import { UrlConstants } from '@/constants/apiUrls';
-import { useAuthStore } from '@/state/authStore';
-import { SocketEvents, SocketInterface, SocketState } from '@/types/socket';
-import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { UrlConstants } from '@/constants/apiUrls';
+import { api } from '@/api/client';
+import { useAuthStore } from '@/state/authStore';
+import { SocketInterface, SocketState, SocketEvents } from '@/types/socket';
 
 // Socket Context
 const SocketContext = createContext<SocketInterface | undefined>(undefined);
@@ -103,48 +103,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         }));
       }
     });
-    
-    const handleIncomingGroupMessage = (data: any) => {
-      try {
-        const roomID = String(
-          data?.roomID ??
-          data?.roomId ??
-          data?.groupID ??
-          data?.groupId ??
-          ''
-        );
-        const sender = data?.sender ?? data?.user ?? {};
-        const senderId = sender?.id ? String(sender.id) : '';
-        const messageType = String(data?.messageType ?? '').toLowerCase();
-        if (
-          user?.id &&
-          senderId &&
-          senderId !== String(user.id) && // ignore self
-          roomID &&
-          messageType === 'user' // only count user messages
-        ) {
-          // increment per-group unread and tab badge
-          import('@/state/notificationStore').then(({ useNotificationStore }) => {
-            const { incrementGroupUnread } = useNotificationStore.getState();
-            incrementGroupUnread(roomID, 1);
-          });
-        }
-      } catch (e) {
-        // ignore handler errors
-      }
-    };
-    
-    newSocket.on(SocketEvents.GROUP_ROOM_MESSAGE, handleIncomingGroupMessage as any);
-    // also listen to possible alias event names for robustness
-    const aliasEvents = [
-      'groupRoomMessage',
-      'messageGroupRoom',
-      'group_message',
-      'groupMessage',
-      'newMessage',
-      'message',
-    ];
-    aliasEvents.forEach(evt => newSocket.on(evt as any, handleIncomingGroupMessage as any));
 
     setSocket(newSocket);
   };
