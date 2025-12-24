@@ -1164,7 +1164,15 @@ console.log(
                 }}
               >
                 <View style={[styles.markerContainer, isDark ? styles.markerDark : styles.markerLight]}>
-                  <ExpoImage source={{ uri: p.image as string }} style={styles.markerImage} contentFit="cover" cachePolicy="none" />
+                  <ExpoImage 
+                    source={{ uri: p.image as string }} 
+                    style={styles.markerImage} 
+                    contentFit="cover" 
+                    cachePolicy="none"
+                    placeholder={require("@/assets/images/peop.png")}
+                    placeholderContentFit="cover"
+                    transition={200}
+                  />
                   {!!p.count && p.count > 1 && (
                     <View style={styles.countBadge}>
                       <Text style={styles.countText}>{p.count >= 1000 ? `${Math.floor(p.count/1000)}k` : `${p.count}`}</Text>
@@ -1187,7 +1195,15 @@ console.log(
             >
               <View style={[styles.markerContainer, isDark ? styles.markerDark : styles.markerLight]}>
                 {p.imageUrl ? (
-                  <ExpoImage source={{ uri: p.imageUrl }} style={styles.markerImage} contentFit="cover" cachePolicy="none" />
+                  <ExpoImage 
+                    source={{ uri: p.imageUrl }} 
+                    style={styles.markerImage} 
+                    contentFit="cover" 
+                    cachePolicy="none"
+                    placeholder={isDark ? require("@/assets/images/peop.png") : require("@/assets/images/peop.png")}
+                    placeholderContentFit="cover"
+                    transition={200}
+                  />
                 ) : (
                   <View style={[styles.markerImage, { alignItems: "center", justifyContent: "center", backgroundColor: "#888" }]}>
                     <Text style={{ color: "#fff", fontWeight: "700" }}>{p.owner?.fname?.[0]?.toUpperCase() || "F"}</Text>
@@ -1394,7 +1410,15 @@ console.log(
                   }}
                 >
                   <View style={[styles.markerContainer, isDark ? styles.markerDark : styles.markerLight]}>
-                    <ExpoImage source={{ uri: p.image as string }} style={styles.markerImage} contentFit="cover" cachePolicy="none" />
+                    <ExpoImage 
+                      source={{ uri: p.image as string }} 
+                      style={styles.markerImage} 
+                      contentFit="cover" 
+                      cachePolicy="none"
+                      placeholder={require("@/assets/images/peop.png")}
+                      placeholderContentFit="cover"
+                      transition={200}
+                    />
                     {!!p.count && p.count > 1 && (
                       <View style={styles.countBadge}>
                         <Text style={styles.countText}>{p.count >= 1000 ? `${Math.floor(p.count/1000)}k` : `${p.count}`}</Text>
@@ -1415,7 +1439,15 @@ console.log(
                 >
                   <View style={[styles.markerContainer, isDark ? styles.markerDark : styles.markerLight]}>
                     {p.imageUrl ? (
-                      <ExpoImage source={{ uri: p.imageUrl }} style={styles.markerImage} contentFit="cover" cachePolicy="none" />
+                      <ExpoImage 
+                        source={{ uri: p.imageUrl }} 
+                        style={styles.markerImage} 
+                        contentFit="cover" 
+                        cachePolicy="none"
+                        placeholder={isDark ? require("@/assets/images/peop.png") : require("@/assets/images/peop.png")}
+                        placeholderContentFit="cover"
+                        transition={200}
+                      />
                     ) : (
                       <View style={[styles.markerImage, { alignItems: "center", justifyContent: "center", backgroundColor: "#888" }]}>
                         <Text style={{ color: "#fff", fontWeight: "700" }}>{p.owner?.fname?.[0]?.toUpperCase() || "F"}</Text>
