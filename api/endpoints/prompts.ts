@@ -1,11 +1,10 @@
-import { api } from '../client';
 import { UrlConstants } from '../../constants/apiUrls';
 import {
-  Category,
-  AllPromptsResponse,
-  SubmitRequestPayload,
-  SubmitRequestResponse,
+    AllPromptsResponse,
+    Category,
+    SubmitRequestResponse
 } from '../../types/prompts';
+import { api } from '../client';
 
 export class PromptsAPI {
 
@@ -30,6 +29,9 @@ export class PromptsAPI {
     );    
     const response = await api.get<{ data: AllPromptsResponse }>(url);
     
+    // Console log the entire response JSON stringified
+    console.log('Prompts API Response:', JSON.stringify(response, null, 2));
+    
     return response.data.data;
   }
 
@@ -48,5 +50,9 @@ export class PromptsAPI {
 
   static async joinPublicGroup(groupID: string): Promise<void> {
     await api.post(UrlConstants.fetchGroupDetails(groupID), {});
+  }
+
+  static async reportPrompt(promptID: string): Promise<void> {
+    await api.post(`/activities/requests/report/${promptID}`, {});
   }
 }

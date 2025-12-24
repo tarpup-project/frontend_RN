@@ -54,7 +54,7 @@
       <true/>
     </dict>
     <key>NSCameraUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your camera</string>
+    <string>Allow $(PRODUCT_NAME) use your camera to take photos for your profile, listings, and in-app connections.</string>
     <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
     <string>Tarpup uses your location to display accurate map markers.</string>
     <key>NSLocationAlwaysUsageDescription</key>
@@ -64,9 +64,9 @@
     <key>NSMicrophoneUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your microphone</string>
     <key>NSPhotoLibraryAddUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to save photos</string>
+    <string>Allow $(PRODUCT_NAME) use photo library access to save images from your profile, listings, and connections to your device.</string>
     <key>NSPhotoLibraryUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your photos</string>
+    <string>Allow $(PRODUCT_NAME) use photo library access to save images from your profile, listings, and connections to your device.</string>
     <key>NSUserActivityTypes</key>
     <array>
       <string>$(PRODUCT_BUNDLE_IDENTIFIER).expo.index_route</string>

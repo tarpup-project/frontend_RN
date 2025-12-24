@@ -13,13 +13,13 @@ import { router } from "expo-router";
 import moment from "moment";
 import React, { useMemo, useState } from "react";
 import {
-  Image,
-  Modal,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  View,
+    Image,
+    Modal,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    View,
 } from "react-native";
 import { toast } from "sonner-native";
 
@@ -75,6 +75,7 @@ const Prompts = () => {
   const { user, isAuthenticated } = useAuthStore();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showFullImage, setShowFullImage] = useState<string | null>(null);
+  const [showReportModal, setShowReportModal] = useState<string | null>(null);
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>(
     {}
   );
@@ -93,6 +94,7 @@ const Prompts = () => {
     isSubmitting,
     submitRequest,
     joinPublicGroup,
+    reportPrompt,
     refresh,
   } = usePrompts({
     campusID: selectedUniversity?.id,
@@ -453,12 +455,13 @@ const Prompts = () => {
                   style={[
                     styles.blockButton,
                   ]}
-                  onPress={() => {
-                    toast.success("Report request is been reviewed");
-                  }}
+                  onPress={() => setShowReportModal(prompt.id)}
                 >
-                  <Ionicons name="ban-outline" size={14} color="#FFFFFF" />
-                  <Text style={[styles.blockButtonText,{color: isDark ? "#fa0909ff" : "#ef0f0fff" }]}>Report</Text>
+                  <Ionicons 
+                    name="information-circle-outline" 
+                    size={18} 
+                    color={isDark ? "#fa0909ff" : "#ef0f0fff"} 
+                  />
                 </Pressable>
               </View>
             ))}
@@ -500,6 +503,78 @@ const Prompts = () => {
     )}
   </Pressable>
 </Modal>
+
+      {/* Report Modal */}
+      <Modal
+        visible={!!showReportModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowReportModal(null)}
+      >
+        <Pressable
+          style={styles.reportModalOverlay}
+          onPress={() => setShowReportModal(null)}
+        >
+          <Pressable
+            onPress={(e) => e.stopPropagation()}
+            style={[
+              styles.reportModalSheet,
+              isDark ? styles.reportModalSheetDark : styles.reportModalSheetLight
+            ]}
+          >
+            <Pressable
+              style={[
+                styles.reportOption,
+                { borderBottomWidth: 1, borderBottomColor: isDark ? "#333" : "#E0E0E0" }
+              ]}
+              onPress={async () => {
+                setShowReportModal(null);
+                try {
+                  if (showReportModal) {
+                    await reportPrompt(showReportModal);
+                    toast.success("This prompt has been reported and is being reviewed.");
+                  }
+                } catch (err: any) {
+                  toast.error(err?.message || "Failed to report prompt");
+                }
+              }}
+            >
+              <Ionicons 
+                name="flag-outline" 
+                size={20} 
+                color="#FF3B30" 
+              />
+              <Text style={[styles.reportOptionText, { color: "#FF3B30" }]}>
+                Report
+              </Text>
+            </Pressable>
+            
+            <Pressable
+              style={styles.reportOption}
+              onPress={async () => {
+                setShowReportModal(null);
+                try {
+                  if (showReportModal) {
+                    await reportPrompt(showReportModal);
+                    toast.success("Prompts from this user has been blocked from your page.");
+                  }
+                } catch (err: any) {
+                  toast.error(err?.message || "Failed to block user");
+                }
+              }}
+            >
+              <Ionicons 
+                name="ban-outline" 
+                size={20} 
+                color="#FF3B30" 
+              />
+              <Text style={[styles.reportOptionText, { color: "#FF3B30" }]}>
+                Block
+              </Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 };
@@ -570,15 +645,13 @@ const styles = StyleSheet.create({
   },
   blockButton: {
     position: "absolute",
-    bottom: 7,
+    bottom: 12,
     right: 12,
+    width: 32,
     height: 32,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    flexDirection: "row",
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
   },
   blockButtonText: { color: "#FFFFFF", fontSize: 10, fontWeight: "700" },
   categoryBadgesContainer: {
@@ -658,6 +731,38 @@ const styles = StyleSheet.create({
     height: "90%",
     maxWidth: 500,
     maxHeight: 500,
+  },
+  reportModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+  },
+  reportModalSheet: {
+    width: 200,
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  reportModalSheetDark: {
+    backgroundColor: "#1A1A1A",
+    borderColor: "#333333",
+  },
+  reportModalSheetLight: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#E0E0E0",
+  },
+  reportOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  reportOptionText: { 
+    fontSize: 16, 
+    fontWeight: "600" 
   },
   blockModalOverlay: {
     flex: 1,
