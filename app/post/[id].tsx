@@ -23,6 +23,8 @@ import {
     TextInput,
     View
 } from "react-native";
+import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
+import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
 
@@ -38,6 +40,11 @@ export default function PostPreviewScreen() {
   const [currentImageIds, setCurrentImageIds] = useState<(string | null)[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [allPostItems, setAllPostItems] = useState<any[]>([]); // Track all items for stacked posts
+  const [serverPosts, setServerPosts] = useState<any[]>([]); // All posts from server
+  const [viewedPosts, setViewedPosts] = useState<Set<string>>(new Set()); // Track viewed posts
+  const [unseenPosts, setUnseenPosts] = useState<any[]>([]); // Posts not yet viewed
+  const [currentPostIndex, setCurrentPostIndex] = useState(0); // Index in unseen posts
+  const translateY = useSharedValue(0);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [comments, setComments] = useState<any[]>([]);
   const [commentText, setCommentText] = useState("");
@@ -55,11 +62,13 @@ export default function PostPreviewScreen() {
       const rawItem = typeof params.item === "string" ? params.item : undefined;
       const rawImages = typeof params.images === "string" ? params.images : undefined;
       const rawAllItems = typeof params.allItems === "string" ? params.allItems : undefined;
+      const rawServerPosts = typeof params.serverPosts === "string" ? params.serverPosts : undefined;
       const openCommentsParam = params.openComments === "true";
       
       const parsedItem = rawItem ? JSON.parse(decodeURIComponent(rawItem)) : null;
       const parsedImages = rawImages ? JSON.parse(decodeURIComponent(rawImages)) : null;
       const parsedAllItems = rawAllItems ? JSON.parse(decodeURIComponent(rawAllItems)) : [];
+      const parsedServerPosts = rawServerPosts ? JSON.parse(decodeURIComponent(rawServerPosts)) : [];
       
       const urls: string[] = Array.isArray(parsedImages?.urls) ? parsedImages.urls.filter((u: any) => typeof u === "string") : [];
       const ids: (string | null)[] = Array.isArray(parsedImages?.ids) ? parsedImages.ids.map((x: any) => (x != null ? String(x) : null)) : [];
@@ -68,12 +77,29 @@ export default function PostPreviewScreen() {
       setCurrentImages(urls.length > 0 ? urls : parsedItem ? [extractImageUrl(parsedItem) as string].filter(Boolean) : []);
       setCurrentImageIds(ids.length > 0 ? ids : parsedItem ? [extractImageId(parsedItem)] : []);
       setAllPostItems(parsedAllItems.length > 0 ? parsedAllItems : [parsedItem].filter(Boolean));
+      setServerPosts(parsedServerPosts);
+      
+      // Mark current post as viewed and set up unseen posts
+      if (parsedItem?.id) {
+        setViewedPosts(new Set([parsedItem.id]));
+        
+        // Filter out current post and create unseen posts list
+        const unseenPostsList = parsedServerPosts
+          .filter((post: any) => post.id !== parsedItem.id)
+          .flatMap((post: any) => post.items || [post])
+          .filter((item: any) => item.id && item.id !== parsedItem.id);
+        
+        setUnseenPosts(unseenPostsList);
+        console.log("Unseen posts available:", unseenPostsList.length);
+      }
       
       console.log("Post screen initialized:", { 
         hasAllItems: parsedAllItems.length > 0, 
         allItemsCount: parsedAllItems.length,
         imagesCount: urls.length,
-        isStackedPost: parsedAllItems.length > 1
+        isStackedPost: parsedAllItems.length > 1,
+        serverPostsCount: parsedServerPosts.length,
+        unseenPostsCount: parsedServerPosts.filter((p: any) => p.id !== parsedItem?.id).length
       });
       
       const idx = typeof params.idx === "string" ? Number(params.idx) : 0;
@@ -105,7 +131,7 @@ export default function PostPreviewScreen() {
       toast.error("Failed to open post");
       router.back();
     }
-  }, [params.item, params.images, params.allItems, params.idx, params.openComments]);
+  }, [params.item, params.images, params.allItems, params.idx, params.openComments, params.serverPosts]);
 
   useEffect(() => {
     if (!commentsOpen) return;
@@ -308,6 +334,93 @@ export default function PostPreviewScreen() {
     }
   };
 
+  const switchToNextUnseenPost = () => {
+    if (unseenPosts.length === 0) {
+      toast.success("No more unseen posts");
+      return;
+    }
+
+    // Get next unseen post that hasn't been viewed
+    let nextPost = null;
+    let nextIndex = currentPostIndex;
+    
+    for (let i = 0; i < unseenPosts.length; i++) {
+      const candidateIndex = (currentPostIndex + i + 1) % unseenPosts.length;
+      const candidate = unseenPosts[candidateIndex];
+      
+      if (candidate?.id && !viewedPosts.has(candidate.id)) {
+        nextPost = candidate;
+        nextIndex = candidateIndex;
+        break;
+      }
+    }
+    
+    if (!nextPost) {
+      toast.success("All posts have been viewed");
+      return;
+    }
+    
+    // Mark as viewed
+    setViewedPosts(prev => new Set([...prev, nextPost.id]));
+    setCurrentPostIndex(nextIndex);
+    
+    // Update current post data
+    setCurrentPostItem(nextPost);
+    const imageUrl = extractImageUrl(nextPost);
+    const imageId = extractImageId(nextPost);
+    
+    setCurrentImages(imageUrl ? [imageUrl] : []);
+    setCurrentImageIds(imageId ? [imageId] : []);
+    setCurrentImageIndex(0);
+    setAllPostItems([nextPost]);
+    
+    // Update post metadata
+    setLiked(extractLiked(nextPost));
+    setLikeCount(extractLikeCount(nextPost));
+    setFollowing(extractFollowing(nextPost));
+    setFriendStatus(typeof nextPost?.isFriend === "string" ? nextPost.isFriend : "not_friends");
+    setCommentCount(
+      typeof nextPost?.commentsCount === "number"
+        ? nextPost.commentsCount
+        : Array.isArray(nextPost?.comments)
+        ? nextPost.comments.length
+        : 0
+    );
+    
+    console.log("Switched to next unseen post:", { 
+      postId: nextPost.id, 
+      viewedCount: viewedPosts.size + 1,
+      remainingUnseen: unseenPosts.filter(p => !viewedPosts.has(p.id) && p.id !== nextPost.id).length
+    });
+  };
+
+  // Gesture handler for vertical swipe up
+  const panGesture = Gesture.Pan()
+    .onUpdate((event) => {
+      // Only allow upward swipes
+      if (event.translationY < 0) {
+        translateY.value = event.translationY;
+      }
+    })
+    .onEnd((event) => {
+      const swipeThreshold = -100; // Minimum swipe distance
+      const velocityThreshold = -500; // Minimum swipe velocity
+      
+      if (event.translationY < swipeThreshold || event.velocityY < velocityThreshold) {
+        // Trigger switch to next post
+        runOnJS(switchToNextUnseenPost)();
+      }
+      
+      // Reset animation
+      translateY.value = withSpring(0);
+    });
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateY: translateY.value }],
+    };
+  });
+
   const sendComment = async () => {
     const imageID = getCurrentImageId();
     const msg = commentText.trim();
@@ -498,121 +611,134 @@ export default function PostPreviewScreen() {
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style="light" />
-      <View style={{ flex: 1, backgroundColor: "#000" }}>
-        {currentImages.length > 0 ? (
-          <ScrollView
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onMomentumScrollEnd={(e) => {
-              const w = Dimensions.get("window").width;
-              const idx = Math.round(e.nativeEvent.contentOffset.x / w);
-              setCurrentImageIndex(idx);
-              syncImageMeta(idx);
-            }}
-          >
-            {currentImages.map((uri, i) => (
-              <View key={`${uri}-${i}`} style={{ width: Dimensions.get("window").width, height: Dimensions.get("window").height }}>
-                <ExpoImage source={{ uri }} style={styles.previewImage} contentFit="cover" />
-              </View>
-            ))}
-          </ScrollView>
-        ) : (
-          getCurrentPostItem() && (
-            <ExpoImage source={{ uri: extractImageUrl(getCurrentPostItem()) as string }} style={styles.previewImage} contentFit="cover" />
-          )
-        )}
-
-        <LinearGradient
-          colors={["rgba(0,0,0,0.6)", "rgba(0,0,0,0.35)", "transparent"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={styles.gradientTop}
-        />
-        <LinearGradient
-          colors={["transparent", "rgba(0,0,0,0.35)", "rgba(0,0,0,0.6)"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={styles.gradientBottom}
-        />
-
-        <View style={[styles.previewHeader, { paddingTop: insets.top + 10 }]}>
-          <Pressable style={styles.headerIcon} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={20} color="#FFFFFF" />
-          </Pressable>
-          <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>{getCurrentPostItem() ? extractLocationName(getCurrentPostItem()) : "Location"}</Text>
-            <Text style={styles.headerSub}>{currentImageIndex + 1} / {Math.max(1, currentImages.length || 1)}</Text>
-          </View>
-          <Pressable style={styles.headerIcon} onPress={() => toast.success("Options coming soon")}>
-            <Ionicons name="ellipsis-vertical" size={18} color="#FFFFFF" />
-          </Pressable>
-        </View>
-        <View style={styles.previewTopRow}>
-          <View style={styles.userRow}>
-            {getCurrentPostItem()?.creator && extractImageUrl(getCurrentPostItem().creator) ? (
-              <ExpoImage source={{ uri: extractImageUrl(getCurrentPostItem().creator) as string }} style={styles.userAvatar} contentFit="cover" />
-            ) : getCurrentPostItem()?.owner && extractImageUrl(getCurrentPostItem().owner) ? (
-              <ExpoImage source={{ uri: extractImageUrl(getCurrentPostItem().owner) as string }} style={styles.userAvatar} contentFit="cover" />
+      <GestureDetector gesture={panGesture}>
+        <Animated.View style={[{ flex: 1 }, animatedStyle]}>
+          <View style={{ flex: 1, backgroundColor: "#000" }}>
+            {currentImages.length > 0 ? (
+              <ScrollView
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onMomentumScrollEnd={(e) => {
+                  const w = Dimensions.get("window").width;
+                  const idx = Math.round(e.nativeEvent.contentOffset.x / w);
+                  setCurrentImageIndex(idx);
+                  syncImageMeta(idx);
+                }}
+              >
+                {currentImages.map((uri, i) => (
+                  <View key={`${uri}-${i}`} style={{ width: Dimensions.get("window").width, height: Dimensions.get("window").height }}>
+                    <ExpoImage source={{ uri }} style={styles.previewImage} contentFit="cover" />
+                  </View>
+                ))}
+              </ScrollView>
             ) : (
-              <View style={[styles.userAvatar, { alignItems: "center", justifyContent: "center" }]}>
-                <Text style={{ color: "#FFFFFF", fontWeight: "700" }}>
-                  {(getCurrentPostItem()?.creator?.fname?.[0] || getCurrentPostItem()?.owner?.fname?.[0] || getCurrentPostItem()?.author?.name?.[0] || "U")?.toUpperCase()}
-                </Text>
+              getCurrentPostItem() && (
+                <ExpoImage source={{ uri: extractImageUrl(getCurrentPostItem()) as string }} style={styles.previewImage} contentFit="cover" />
+              )
+            )}
+
+            <LinearGradient
+              colors={["rgba(0,0,0,0.6)", "rgba(0,0,0,0.35)", "transparent"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={styles.gradientTop}
+            />
+            <LinearGradient
+              colors={["transparent", "rgba(0,0,0,0.35)", "rgba(0,0,0,0.6)"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={styles.gradientBottom}
+            />
+
+            <View style={[styles.previewHeader, { paddingTop: insets.top + 10 }]}>
+              <Pressable style={styles.headerIcon} onPress={() => router.back()}>
+                <Ionicons name="chevron-back" size={20} color="#FFFFFF" />
+              </Pressable>
+              <View style={styles.headerCenter}>
+                <Text style={styles.headerTitle}>{getCurrentPostItem() ? extractLocationName(getCurrentPostItem()) : "Location"}</Text>
+                <Text style={styles.headerSub}>{currentImageIndex + 1} / {Math.max(1, currentImages.length || 1)}</Text>
+              </View>
+              <Pressable style={styles.headerIcon} onPress={() => toast.success("Options coming soon")}>
+                <Ionicons name="ellipsis-vertical" size={18} color="#FFFFFF" />
+              </Pressable>
+            </View>
+            
+            {/* Swipe up indicator */}
+            {unseenPosts.filter(p => !viewedPosts.has(p.id)).length > 0 && (
+              <View style={styles.swipeIndicator}>
+                <Ionicons name="chevron-up" size={20} color="#FFFFFF" />
+                <Text style={styles.swipeText}>Swipe up for more posts</Text>
               </View>
             )}
-            <View style={styles.userInfo}>
-              <Text style={styles.userName} numberOfLines={1} ellipsizeMode="tail">
-                {getCurrentPostItem()?.creator
-                  ? `${getCurrentPostItem().creator.fname || ""} ${getCurrentPostItem().creator.lname || ""}`.trim() || (getCurrentPostItem().creator.name as string)
-                  : (getCurrentPostItem()?.owner?.fname || (getCurrentPostItem()?.author?.name as string) || "User")}
-              </Text>
-              <Text style={styles.userTime}>
-                {getCurrentPostItem()?.createdAt ? moment(getCurrentPostItem().createdAt).fromNow() : ""}
-              </Text>
+            
+            <View style={styles.previewTopRow}>
+              <View style={styles.userRow}>
+                {getCurrentPostItem()?.creator && extractImageUrl(getCurrentPostItem().creator) ? (
+                  <ExpoImage source={{ uri: extractImageUrl(getCurrentPostItem().creator) as string }} style={styles.userAvatar} contentFit="cover" />
+                ) : getCurrentPostItem()?.owner && extractImageUrl(getCurrentPostItem().owner) ? (
+                  <ExpoImage source={{ uri: extractImageUrl(getCurrentPostItem().owner) as string }} style={styles.userAvatar} contentFit="cover" />
+                ) : (
+                  <View style={[styles.userAvatar, { alignItems: "center", justifyContent: "center" }]}>
+                    <Text style={{ color: "#FFFFFF", fontWeight: "700" }}>
+                      {(getCurrentPostItem()?.creator?.fname?.[0] || getCurrentPostItem()?.owner?.fname?.[0] || getCurrentPostItem()?.author?.name?.[0] || "U")?.toUpperCase()}
+                    </Text>
+                  </View>
+                )}
+                <View style={styles.userInfo}>
+                  <Text style={styles.userName} numberOfLines={1} ellipsizeMode="tail">
+                    {getCurrentPostItem()?.creator
+                      ? `${getCurrentPostItem().creator.fname || ""} ${getCurrentPostItem().creator.lname || ""}`.trim() || (getCurrentPostItem().creator.name as string)
+                      : (getCurrentPostItem()?.owner?.fname || (getCurrentPostItem()?.author?.name as string) || "User")}
+                  </Text>
+                  <Text style={styles.userTime}>
+                    {getCurrentPostItem()?.createdAt ? moment(getCurrentPostItem().createdAt).fromNow() : ""}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.actionRow}>
+                <Pressable
+                  style={[styles.friendBtn, friendStatus === "pending" && styles.friendBtnPending]}
+                  disabled={friendStatus === "pending"}
+                  onPress={() => toggleFriend(friendStatus === "friends" ? "unfriend" : "friend")}
+                >
+                  <Text style={styles.friendText}>{friendStatus === "pending" ? "Pending" : friendStatus === "friends" ? "Unfriend" : "Friend"}</Text>
+                </Pressable>
+                <Pressable style={[styles.followBtn, following && styles.followBtnActive]} onPress={() => toggleFollow(following ? "unfollow" : "follow")}>
+                  <Text style={[styles.followText, following && { color: "#0a0a0a" }]}>{following ? "Following" : "Follow"}</Text>
+                </Pressable>
+              </View>
             </View>
-          </View>
-          <View style={styles.actionRow}>
-            <Pressable
-              style={[styles.friendBtn, friendStatus === "pending" && styles.friendBtnPending]}
-              disabled={friendStatus === "pending"}
-              onPress={() => toggleFriend(friendStatus === "friends" ? "unfriend" : "friend")}
-            >
-              <Text style={styles.friendText}>{friendStatus === "pending" ? "Pending" : friendStatus === "friends" ? "Unfriend" : "Friend"}</Text>
-            </Pressable>
-            <Pressable style={[styles.followBtn, following && styles.followBtnActive]} onPress={() => toggleFollow(following ? "unfollow" : "follow")}>
-              <Text style={[styles.followText, following && { color: "#0a0a0a" }]}>{following ? "Following" : "Follow"}</Text>
-            </Pressable>
-          </View>
-        </View>
 
-        <View style={styles.rightRail}>
-          <Pressable style={styles.railCircle} onPress={() => toggleLike(liked ? "unlike" : "like")}>
-            <Ionicons name={liked ? "heart" : "heart-outline"} size={20} color={liked ? "#FF3B30" : "#FFFFFF"} />
-          </Pressable>
-          <Text style={styles.railCount}>{likeCount}</Text>
-          <Pressable style={styles.railCircle} onPress={() => setCommentsOpen(true)}>
-            <Ionicons name="chatbubble-outline" size={18} color="#FFFFFF" />
-          </Pressable>
-          <Text style={styles.railCount}>{commentCount}</Text>
-          <Pressable style={styles.railCircle} onPress={() => toast.success("Share coming soon")}>
-            <Ionicons name="share-social-outline" size={18} color="#FFFFFF" />
-          </Pressable>
-        </View>
+            <View style={styles.rightRail}>
+              <Pressable style={styles.railCircle} onPress={() => toggleLike(liked ? "unlike" : "like")}>
+                <Ionicons name={liked ? "heart" : "heart-outline"} size={20} color={liked ? "#FF3B30" : "#FFFFFF"} />
+              </Pressable>
+              <Text style={styles.railCount}>{likeCount}</Text>
+              <Pressable style={styles.railCircle} onPress={() => setCommentsOpen(true)}>
+                <Ionicons name="chatbubble-outline" size={18} color="#FFFFFF" />
+              </Pressable>
+              <Text style={styles.railCount}>{commentCount}</Text>
+              <Pressable style={styles.railCircle} onPress={() => toast.success("Share coming soon")}>
+                <Ionicons name="share-social-outline" size={18} color="#FFFFFF" />
+              </Pressable>
+            </View>
 
-        {getCurrentPostItem()?.caption ? (
-          <View style={styles.captionBox}>
-            <Text style={styles.captionUser}>
-              {getCurrentPostItem()?.creator
-                ? `${getCurrentPostItem().creator.fname || ""} ${getCurrentPostItem().creator.lname || ""}`.trim() || (getCurrentPostItem().creator.name as string)
-                : (getCurrentPostItem()?.owner?.fname || (getCurrentPostItem()?.author?.name as string) || "User")}
-            </Text>
-            <Text style={styles.captionText}>{getCurrentPostItem().caption}</Text>
+            {getCurrentPostItem()?.caption ? (
+              <View style={styles.captionBox}>
+                <Text style={styles.captionUser}>
+                  {getCurrentPostItem()?.creator
+                    ? `${getCurrentPostItem().creator.fname || ""} ${getCurrentPostItem().creator.lname || ""}`.trim() || (getCurrentPostItem().creator.name as string)
+                    : (getCurrentPostItem()?.owner?.fname || (getCurrentPostItem()?.author?.name as string) || "User")}
+                </Text>
+                <Text style={styles.captionText}>{getCurrentPostItem().caption}</Text>
+              </View>
+            ) : null}
           </View>
-        ) : null}
-      </View>
+        </Animated.View>
+      </GestureDetector>
 
       <Modal
         visible={commentsOpen}
@@ -704,7 +830,7 @@ export default function PostPreviewScreen() {
         </View>
         </View>
       </Modal>
-    </View>
+    </GestureHandlerRootView>
   );
 }
 
@@ -775,5 +901,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end",
+  },
+  swipeIndicator: {
+    position: "absolute",
+    top: "50%",
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    zIndex: 10,
+  },
+  swipeText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "600",
+    textShadowColor: "rgba(0,0,0,0.75)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+    marginTop: 4,
   },
 });

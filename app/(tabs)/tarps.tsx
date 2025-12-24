@@ -1081,7 +1081,7 @@ console.log(
                         const primaryItem = p.items[0];
                         const combinedSet = { urls: allUrls, ids: allIds };
                         
-                        nav.push(`/post/${primaryItem.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(primaryItem))}&images=${encodeURIComponent(JSON.stringify(combinedSet))}&allItems=${encodeURIComponent(JSON.stringify(allItems))}&idx=0`);
+                        nav.push(`/post/${primaryItem.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(primaryItem))}&images=${encodeURIComponent(JSON.stringify(combinedSet))}&allItems=${encodeURIComponent(JSON.stringify(allItems))}&idx=0&serverPosts=${encodeURIComponent(JSON.stringify(serverPosts))}`);
                       } catch (error) {
                         console.error("Failed to navigate to stacked posts:", error);
                         toast.error("Failed to open posts");
@@ -1155,7 +1155,7 @@ console.log(
                         return { urls, ids };
                       };
                       const set = resolveItemImageSet(item);
-                      nav.push(`/post/${item.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(item))}&images=${encodeURIComponent(JSON.stringify(set))}&idx=0`);
+                      nav.push(`/post/${item.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(item))}&images=${encodeURIComponent(JSON.stringify(set))}&idx=0&serverPosts=${encodeURIComponent(JSON.stringify(serverPosts))}`);
                     } catch (error) {
                       console.error("Failed to navigate to post:", error);
                       toast.error("Failed to open post");
@@ -1329,7 +1329,7 @@ console.log(
                           const combinedSet = { urls: allUrls, ids: allIds };
                           
                           console.log("Combined set created:", { totalImages: allUrls.length, totalItems: allItems.length });
-                          nav.push(`/post/${primaryItem.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(primaryItem))}&images=${encodeURIComponent(JSON.stringify(combinedSet))}&allItems=${encodeURIComponent(JSON.stringify(allItems))}&idx=0`);
+                          nav.push(`/post/${primaryItem.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(primaryItem))}&images=${encodeURIComponent(JSON.stringify(combinedSet))}&allItems=${encodeURIComponent(JSON.stringify(allItems))}&idx=0&serverPosts=${encodeURIComponent(JSON.stringify(serverPosts))}`);
                         } catch (error) {
                           console.error("Failed to navigate to stacked posts:", error);
                           toast.error("Failed to open posts");
@@ -1401,7 +1401,7 @@ console.log(
                           return { urls, ids };
                         };
                         const set = resolveItemImageSet(item);
-                        nav.push(`/post/${item.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(item))}&images=${encodeURIComponent(JSON.stringify(set))}&idx=0`);
+                        nav.push(`/post/${item.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(item))}&images=${encodeURIComponent(JSON.stringify(set))}&idx=0&serverPosts=${encodeURIComponent(JSON.stringify(serverPosts))}`);
                       } catch (error) {
                         console.error("Failed to navigate to post:", error);
                         toast.error("Failed to open post");
@@ -1639,7 +1639,7 @@ console.log(
                 return { urls, ids };
               };
               const set = resolveItemImageSet(mine);
-              nav.push(`/post/${mine.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(mine))}&images=${encodeURIComponent(JSON.stringify(set))}&idx=0`);
+              nav.push(`/post/${mine.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(mine))}&images=${encodeURIComponent(JSON.stringify(set))}&idx=0&serverPosts=${encodeURIComponent(JSON.stringify(serverPosts))}`);
             } catch (error) {
               console.error("Failed to navigate to post:", error);
               toast.error("Unable to open post");
