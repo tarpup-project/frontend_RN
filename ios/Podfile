@@ -38,6 +38,9 @@ target 'Tarpup' do
 
   config = use_native_modules!(config_command)
 
+  # Exclude Mapbox GL from iOS builds
+  config[:dependencies].delete('@react-native-mapbox-gl/maps') if config[:dependencies]
+
   use_frameworks! :linkage => podfile_properties['ios.useFrameworks'].to_sym if podfile_properties['ios.useFrameworks']
   use_frameworks! :linkage => ENV['USE_FRAMEWORKS'].to_sym if ENV['USE_FRAMEWORKS']
 

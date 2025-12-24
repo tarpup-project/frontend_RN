@@ -151,10 +151,10 @@
 
 
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { UrlConstants } from '../constants/apiUrls';
 import { jwtDecode } from 'jwt-decode';
-import { clearUserData, getAccessToken, saveAccessToken, getRefreshToken, saveSocketToken } from '../utils/storage';
+import { UrlConstants } from '../constants/apiUrls';
 import { useAuthStore } from '../state/authStore';
+import { clearUserData, getAccessToken, getRefreshToken, saveAccessToken, saveSocketToken } from '../utils/storage';
 
 interface TokenPayload {
   exp: number;
@@ -205,6 +205,7 @@ const processQueue = (error: any, token: string | null = null) => {
 
 api.interceptors.request.use(
   async (config) => {
+    // Skip token refresh for refresh endpoint
     if (config.url?.includes('/refresh')) {
       return config;
     }
@@ -212,18 +213,18 @@ api.interceptors.request.use(
     const accessToken = await getAccessToken();
     const refreshToken = await getRefreshToken();
 
+    // Only attempt proactive refresh if we have both tokens and aren't already refreshing
     if (accessToken && refreshToken && !isRefreshing && shouldRefreshToken(accessToken, 5)) {
       isRefreshing = true;
 
       try {
         console.log('🔄 Proactively refreshing token...');
-        console.log('📍 Refresh URL:', `${UrlConstants.baseUrl}${UrlConstants.refreshToken}`);
-        console.log('🔑 Using refreshToken:', refreshToken?.substring(0, 20) + '...');
         const refreshResponse = await axios.post(
           `${UrlConstants.baseUrl}${UrlConstants.refreshToken}`,
           {},
           {
-            headers: { Authorization: `Bearer ${refreshToken}` }
+            headers: { Authorization: `Bearer ${refreshToken}` },
+            timeout: 10000 // 10 second timeout for refresh
           }
         );        
 
@@ -231,17 +232,26 @@ api.interceptors.request.use(
           await saveAccessToken(refreshResponse.data.data.authTokens.accessToken);
           await saveSocketToken(refreshResponse.data.data.authTokens.socketToken);
           config.headers.Authorization = `Bearer ${refreshResponse.data.data.authTokens.accessToken}`;
+          console.log('✅ Token refreshed successfully');
         }
-      } catch (error) {
-        console.log('❌ Proactive refresh failed, using current token');
+      } catch (error: any) {
+        console.log('❌ Proactive refresh failed:', error.message);
+        // If refresh fails, clear tokens to prevent infinite loops
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          console.log('🚫 Refresh token invalid, clearing auth data');
+          await clearUserData();
+          useAuthStore.getState().setUser(undefined);
+        }
       } finally {
         isRefreshing = false;
       }
     }
 
+    // Add access token to request if available
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
+    
     return config;
   },
   (error) => Promise.reject(error)
@@ -252,7 +262,9 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as ExtendedAxiosRequestConfig;
 
+    // Handle 401 errors with token refresh
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+      // If already refreshing, queue the request
       if (isRefreshing) {
         return new Promise(function (resolve, reject) {
           failedQueue.push({ resolve, reject });
@@ -271,26 +283,29 @@ api.interceptors.response.use(
           throw new Error('No refresh token available');
         }
 
+        console.log('🔄 Attempting token refresh due to 401...');
         const refreshResponse = await axios.post(
           `${UrlConstants.baseUrl}${UrlConstants.refreshToken}`,
           {},
           {
-            headers: {
-              Authorization: `Bearer ${refreshToken}`
-            }
+            headers: { Authorization: `Bearer ${refreshToken}` },
+            timeout: 10000
           }
         );
 
         if (refreshResponse.data?.data?.authTokens) {
           await saveAccessToken(refreshResponse.data.data.authTokens.accessToken);
           await saveSocketToken(refreshResponse.data.data.authTokens.socketToken);
+          console.log('✅ Token refresh successful, retrying original request');
         }
 
         processQueue(null);
         return api(originalRequest);
-      } catch (err) {
+      } catch (err: any) {
+        console.log('❌ Token refresh failed:', err.message);
         processQueue(err, null);
 
+        // Clear auth data on refresh failure
         await clearUserData();
         useAuthStore.getState().setUser(undefined);
 
@@ -298,6 +313,12 @@ api.interceptors.response.use(
       } finally {
         isRefreshing = false;
       }
+    }
+
+    // Handle network errors
+    if (!error.response) {
+      console.log('🌐 Network error detected:', error.message);
+      error.code = 'NETWORK_ERROR';
     }
 
     return Promise.reject(error);
