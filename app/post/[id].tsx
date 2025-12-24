@@ -10,18 +10,18 @@ import { StatusBar } from "expo-status-bar";
 import moment from "moment";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Dimensions,
-    FlatList,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View
+  ActivityIndicator,
+  Dimensions,
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
 } from "react-native";
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
@@ -41,21 +41,100 @@ export default function PostPreviewScreen() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [allPostItems, setAllPostItems] = useState<any[]>([]); // Track all items for stacked posts
   const [serverPosts, setServerPosts] = useState<any[]>([]); // All posts from server
+  const [globalPosts, setGlobalPosts] = useState<any[]>([]); // All posts from world view
   const [viewedPosts, setViewedPosts] = useState<Set<string>>(new Set()); // Track viewed posts
-  const [unseenPosts, setUnseenPosts] = useState<any[]>([]); // Posts not yet viewed
-  const [currentPostIndex, setCurrentPostIndex] = useState(0); // Index in unseen posts
+  const [allAvailablePosts, setAllAvailablePosts] = useState<any[]>([]); // All posts available for browsing
+  const [currentPostIndex, setCurrentPostIndex] = useState(0); // Index in all available posts
+  const [isLoadingGlobalPosts, setIsLoadingGlobalPosts] = useState(false);
   const translateY = useSharedValue(0);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [comments, setComments] = useState<any[]>([]);
   const [commentText, setCommentText] = useState("");
   const [replyingToID, setReplyingToID] = useState<string | null>(null);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
+  const [isSendingComment, setIsSendingComment] = useState(false);
   const commentsScrollRef = useRef<FlatList | null>(null);
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [following, setFollowing] = useState(false);
   const [friendStatus, setFriendStatus] = useState<"not_friends" | "pending" | "friends">("not_friends");
   const [commentCount, setCommentCount] = useState(0);
+
+  const loadGlobalPosts = async () => {
+    if (isLoadingGlobalPosts) return;
+    
+    try {
+      setIsLoadingGlobalPosts(true);
+      
+      // World view parameters - covers the entire globe
+      const worldViewport = {
+        minLat: -90,
+        maxLat: 90,
+        minLng: -180,
+        maxLng: 180,
+        zoomLevel: 1 // World zoom level
+      };
+      
+      const query = new URLSearchParams({
+        minLat: worldViewport.minLat.toString(),
+        maxLat: worldViewport.maxLat.toString(),
+        minLng: worldViewport.minLng.toString(),
+        maxLng: worldViewport.maxLng.toString(),
+        zoomLevel: worldViewport.zoomLevel.toString(),
+      });
+      
+      const url = `/tarps/posts?${query.toString()}`;
+      console.log("Loading global posts:", { url, viewport: worldViewport });
+      
+      const res = await api.get(url);
+      console.log("Global posts response:", { status: res?.status, ok: res?.status >= 200 && res?.status < 300 });
+      
+      const list = (res as any).data?.data || (res as any).data?.posts || (res as any).data;
+      console.log("Global posts raw data:", { isArray: Array.isArray(list), length: Array.isArray(list) ? list.length : undefined });
+      
+      // Process the posts similar to loadPostsInView
+      const resolveImageUrl = (item: any): string | null => {
+        if (!item || typeof item !== "object") return null;
+        const candidates: any[] = [
+          item.imageUrl, item.photoUrl, item.image, item.coverUrl, item.thumbnail, item.thumbUrl, item.bgUrl, item.url,
+          item?.image?.url, item?.photo?.url,
+          Array.isArray(item.images) ? (typeof item.images[0] === "string" ? item.images[0] : item.images[0]?.url) : null,
+          Array.isArray(item.files) ? (typeof item.files[0] === "string" ? item.files[0] : item.files[0]?.url) : null,
+          Array.isArray(item.medias) ? (typeof item.medias[0] === "string" ? item.medias[0] : item.medias[0]?.url) : null,
+        ];
+        const raw = candidates.find((v) => typeof v === "string" && v.length > 0) ?? null;
+        if (!raw) return null;
+        if (/^https?:\/\//i.test(raw)) return raw;
+        return `${UrlConstants.baseUrl}${raw.startsWith("/") ? "" : "/"}${raw}`;
+      };
+      
+      let mapped: any[] = [];
+      if (Array.isArray(list)) {
+        const looksLikeGrid = list.length > 0 && typeof list[0]?.avgLat === "number" && typeof list[0]?.avgLng === "number" && "result" in list[0];
+        if (looksLikeGrid) {
+          // Grid format - flatten all items
+          mapped = list.flatMap((cell: any) => {
+            const items = Array.isArray(cell.result) ? cell.result : [];
+            return items.filter((item: any) => resolveImageUrl(item));
+          });
+        } else {
+          // Direct posts format
+          mapped = list.filter((p: any) => resolveImageUrl(p));
+        }
+      }
+      
+      setGlobalPosts(mapped);
+      console.log("Global posts loaded:", { count: mapped.length });
+      
+      return mapped;
+    } catch (e: any) {
+      console.log("Global posts error:", { status: e?.response?.status, data: e?.response?.data, message: e?.message });
+      toast.error("Failed to load global posts");
+      return [];
+    } finally {
+      setIsLoadingGlobalPosts(false);
+    }
+  };
 
   useEffect(() => {
     try {
@@ -79,19 +158,35 @@ export default function PostPreviewScreen() {
       setAllPostItems(parsedAllItems.length > 0 ? parsedAllItems : [parsedItem].filter(Boolean));
       setServerPosts(parsedServerPosts);
       
-      // Mark current post as viewed and set up unseen posts
-      if (parsedItem?.id) {
-        setViewedPosts(new Set([parsedItem.id]));
-        
-        // Filter out current post and create unseen posts list
-        const unseenPostsList = parsedServerPosts
-          .filter((post: any) => post.id !== parsedItem.id)
-          .flatMap((post: any) => post.items || [post])
-          .filter((item: any) => item.id && item.id !== parsedItem.id);
-        
-        setUnseenPosts(unseenPostsList);
-        console.log("Unseen posts available:", unseenPostsList.length);
-      }
+      // Load global posts for browsing
+      loadGlobalPosts().then((globalPostsList) => {
+        // Mark current post as viewed and set up all available posts
+        if (parsedItem?.id) {
+          setViewedPosts(new Set([parsedItem.id]));
+          
+          // Combine server posts and global posts, remove duplicates
+          const allPosts = [
+            ...(Array.isArray(parsedServerPosts) ? parsedServerPosts : []), 
+            ...(Array.isArray(globalPostsList) ? globalPostsList : [])
+          ]
+            .flatMap((post: any) => post.items || [post])
+            .filter((item: any, index: any, arr: any) => 
+              item.id && arr.findIndex((p: any) => p.id === item.id) === index
+            );
+          
+          setAllAvailablePosts(allPosts);
+          
+          // Find current post index in the combined list
+          const currentIndex = allPosts.findIndex((post: any) => post.id === parsedItem.id);
+          setCurrentPostIndex(currentIndex >= 0 ? currentIndex : 0);
+          
+          console.log("All posts setup:", { 
+            totalPosts: allPosts.length,
+            currentIndex: currentIndex >= 0 ? currentIndex : 0,
+            currentPostId: parsedItem.id
+          });
+        }
+      });
       
       console.log("Post screen initialized:", { 
         hasAllItems: parsedAllItems.length > 0, 
@@ -99,7 +194,7 @@ export default function PostPreviewScreen() {
         imagesCount: urls.length,
         isStackedPost: parsedAllItems.length > 1,
         serverPostsCount: parsedServerPosts.length,
-        unseenPostsCount: parsedServerPosts.filter((p: any) => p.id !== parsedItem?.id).length
+        loadingGlobalPosts: true
       });
       
       const idx = typeof params.idx === "string" ? Number(params.idx) : 0;
@@ -334,81 +429,106 @@ export default function PostPreviewScreen() {
     }
   };
 
-  const switchToNextUnseenPost = () => {
-    if (unseenPosts.length === 0) {
-      toast.success("No more unseen posts");
+  const navigateToPost = (direction: 'next' | 'previous') => {
+    if (allAvailablePosts.length === 0) {
+      toast.success("No posts available");
       return;
     }
 
-    // Get next unseen post that hasn't been viewed
-    let nextPost = null;
-    let nextIndex = currentPostIndex;
-    
-    for (let i = 0; i < unseenPosts.length; i++) {
-      const candidateIndex = (currentPostIndex + i + 1) % unseenPosts.length;
-      const candidate = unseenPosts[candidateIndex];
+    if (direction === 'next') {
+      // Swipe up - go to next unviewed post
+      let foundUnviewed = false;
+      let newIndex = currentPostIndex;
       
-      if (candidate?.id && !viewedPosts.has(candidate.id)) {
-        nextPost = candidate;
-        nextIndex = candidateIndex;
-        break;
+      // Look for next unviewed post
+      for (let i = 1; i <= allAvailablePosts.length; i++) {
+        const candidateIndex = (currentPostIndex + i) % allAvailablePosts.length;
+        const candidate = allAvailablePosts[candidateIndex];
+        
+        if (candidate && !viewedPosts.has(candidate.id)) {
+          newIndex = candidateIndex;
+          foundUnviewed = true;
+          break;
+        }
       }
+      
+      if (!foundUnviewed) {
+        toast.success("🎉 You've seen all the posts! Great exploring!");
+        return;
+      }
+      
+      const targetPost = allAvailablePosts[newIndex];
+      updateCurrentPost(targetPost, newIndex, 'next');
+      
+    } else {
+      // Swipe down - go to previous post (allow reviewing viewed posts)
+      const newIndex = currentPostIndex === 0 ? allAvailablePosts.length - 1 : currentPostIndex - 1;
+      const targetPost = allAvailablePosts[newIndex];
+      
+      if (!targetPost) {
+        toast.error("Post not found");
+        return;
+      }
+      
+      updateCurrentPost(targetPost, newIndex, 'previous');
     }
-    
-    if (!nextPost) {
-      toast.success("All posts have been viewed");
-      return;
-    }
-    
+  };
+
+  const updateCurrentPost = (targetPost: any, newIndex: number, direction: 'next' | 'previous') => {
     // Mark as viewed
-    setViewedPosts(prev => new Set([...prev, nextPost.id]));
-    setCurrentPostIndex(nextIndex);
+    setViewedPosts(prev => new Set([...prev, targetPost.id]));
+    setCurrentPostIndex(newIndex);
     
     // Update current post data
-    setCurrentPostItem(nextPost);
-    const imageUrl = extractImageUrl(nextPost);
-    const imageId = extractImageId(nextPost);
+    setCurrentPostItem(targetPost);
+    const imageUrl = extractImageUrl(targetPost);
+    const imageId = extractImageId(targetPost);
     
     setCurrentImages(imageUrl ? [imageUrl] : []);
     setCurrentImageIds(imageId ? [imageId] : []);
     setCurrentImageIndex(0);
-    setAllPostItems([nextPost]);
+    setAllPostItems([targetPost]);
     
     // Update post metadata
-    setLiked(extractLiked(nextPost));
-    setLikeCount(extractLikeCount(nextPost));
-    setFollowing(extractFollowing(nextPost));
-    setFriendStatus(typeof nextPost?.isFriend === "string" ? nextPost.isFriend : "not_friends");
+    setLiked(extractLiked(targetPost));
+    setLikeCount(extractLikeCount(targetPost));
+    setFollowing(extractFollowing(targetPost));
+    setFriendStatus(typeof targetPost?.isFriend === "string" ? targetPost.isFriend : "not_friends");
     setCommentCount(
-      typeof nextPost?.commentsCount === "number"
-        ? nextPost.commentsCount
-        : Array.isArray(nextPost?.comments)
-        ? nextPost.comments.length
+      typeof targetPost?.commentsCount === "number"
+        ? targetPost.commentsCount
+        : Array.isArray(targetPost?.comments)
+        ? targetPost.comments.length
         : 0
     );
     
-    console.log("Switched to next unseen post:", { 
-      postId: nextPost.id, 
+    const unviewedCount = allAvailablePosts.filter(p => !viewedPosts.has(p.id) && p.id !== targetPost.id).length;
+    
+    console.log(`Navigated ${direction}:`, { 
+      postId: targetPost.id, 
+      newIndex,
+      totalPosts: allAvailablePosts.length,
       viewedCount: viewedPosts.size + 1,
-      remainingUnseen: unseenPosts.filter(p => !viewedPosts.has(p.id) && p.id !== nextPost.id).length
+      remainingUnviewed: unviewedCount
     });
   };
 
-  // Gesture handler for vertical swipe up
+  // Gesture handler for vertical swipe (both up and down)
   const panGesture = Gesture.Pan()
     .onUpdate((event) => {
-      // Only allow upward swipes
-      if (event.translationY < 0) {
-        translateY.value = event.translationY;
-      }
+      // Allow both upward and downward swipes
+      translateY.value = event.translationY;
     })
     .onEnd((event) => {
-      const swipeThreshold = -100; // Minimum swipe distance
-      const velocityThreshold = -500; // Minimum swipe velocity
+      const swipeThreshold = 100; // Minimum swipe distance
+      const velocityThreshold = 500; // Minimum swipe velocity
       
-      if (event.translationY < swipeThreshold || event.velocityY < velocityThreshold) {
-        // Trigger switch to next post
-        runOnJS(switchToNextUnseenPost)();
+      if (event.translationY < -swipeThreshold || event.velocityY < -velocityThreshold) {
+        // Swipe up - next post
+        runOnJS(navigateToPost)('next');
+      } else if (event.translationY > swipeThreshold || event.velocityY > velocityThreshold) {
+        // Swipe down - previous post
+        runOnJS(navigateToPost)('previous');
       }
       
       // Reset animation
@@ -424,12 +544,18 @@ export default function PostPreviewScreen() {
   const sendComment = async () => {
     const imageID = getCurrentImageId();
     const msg = commentText.trim();
-    if (!imageID || msg.length === 0) return;
+    
+    // Prevent double submissions
+    if (!imageID || msg.length === 0 || isSendingComment) return;
+    
     try {
+      setIsSendingComment(true);
       const body = { message: msg, ...(replyingToID ? { replyingToID } : {}) };
       await api.post(UrlConstants.tarpPostComments(imageID), body);
       setCommentText("");
       setReplyingToID(null);
+      
+      // Refresh comments
       try {
         setIsLoadingComments(true);
         const res = await api.get(UrlConstants.tarpPostComments(imageID));
@@ -441,6 +567,8 @@ export default function PostPreviewScreen() {
       toast.success("Comment posted");
     } catch {
       toast.error("Failed to post comment");
+    } finally {
+      setIsSendingComment(false);
     }
   };
   // Removed scroll control functions for performance
@@ -666,11 +794,38 @@ export default function PostPreviewScreen() {
               </Pressable>
             </View>
             
-            {/* Swipe up indicator */}
-            {unseenPosts.filter(p => !viewedPosts.has(p.id)).length > 0 && (
-              <View style={styles.swipeIndicator}>
-                <Ionicons name="chevron-up" size={20} color="#FFFFFF" />
-                <Text style={styles.swipeText}>Swipe up for more posts</Text>
+            {/* Swipe indicators */}
+            {allAvailablePosts.length > 1 && (
+              <View style={styles.swipeIndicators}>
+                {/* Show up indicator only if there are unviewed posts */}
+                {allAvailablePosts.some(p => !viewedPosts.has(p.id)) && (
+                  <View style={styles.swipeIndicator}>
+                    <Ionicons name="chevron-up" size={20} color="#FFFFFF" />
+                    <Text style={styles.swipeText}>
+                      Swipe up for next post ({allAvailablePosts.filter(p => !viewedPosts.has(p.id)).length} remaining)
+                    </Text>
+                  </View>
+                )}
+                {/* Show down indicator only if we're not at the first post */}
+                {currentPostIndex > 0 && (
+                  <View style={[styles.swipeIndicator, { marginTop: 20 }]}>
+                    <Ionicons name="chevron-down" size={20} color="#FFFFFF" />
+                    <Text style={styles.swipeText}>Swipe down to review previous posts</Text>
+                  </View>
+                )}
+                {/* Show completion message if all posts viewed */}
+                {allAvailablePosts.length > 0 && allAvailablePosts.every(p => viewedPosts.has(p.id)) && (
+                  <View style={[styles.swipeIndicator, { marginTop: 20 }]}>
+                    <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                    <Text style={[styles.swipeText, { color: "#4CAF50" }]}>All posts viewed! 🎉</Text>
+                  </View>
+                )}
+                {isLoadingGlobalPosts && (
+                  <View style={[styles.swipeIndicator, { marginTop: 20 }]}>
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <Text style={styles.swipeText}>Loading global posts...</Text>
+                  </View>
+                )}
               </View>
             )}
             
@@ -819,10 +974,19 @@ export default function PostPreviewScreen() {
                     style={[styles.chatInput, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}
                   />
                   <Pressable
-                    style={[styles.chatSendBtn, isDark ? styles.chatSendDark : styles.chatSendLight]}
+                    style={[
+                      styles.chatSendBtn, 
+                      isDark ? styles.chatSendDark : styles.chatSendLight,
+                      isSendingComment && { opacity: 0.6 }
+                    ]}
                     onPress={sendComment}
+                    disabled={isSendingComment || commentText.trim().length === 0}
                   >
-                    <Ionicons name="paper-plane-outline" size={18} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
+                    {isSendingComment ? (
+                      <ActivityIndicator size="small" color={isDark ? "#FFFFFF" : "#0a0a0a"} />
+                    ) : (
+                      <Ionicons name="paper-plane-outline" size={18} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
+                    )}
                   </Pressable>
                 </View>
               </View>
@@ -902,13 +1066,17 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end",
   },
-  swipeIndicator: {
+  swipeIndicators: {
     position: "absolute",
     top: "50%",
     left: 0,
     right: 0,
     alignItems: "center",
     zIndex: 10,
+    transform: [{ translateY: -40 }],
+  },
+  swipeIndicator: {
+    alignItems: "center",
   },
   swipeText: {
     color: "#FFFFFF",
