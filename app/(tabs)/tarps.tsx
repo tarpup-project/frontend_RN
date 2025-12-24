@@ -130,6 +130,13 @@ export default function TarpsScreen() {
   const [selectedPerson, setSelectedPerson] = useState<any | null>(null);
   const [personOpen, setPersonOpen] = useState(false);
   const [currentZoomLevel, setCurrentZoomLevel] = useState(0); // Track zoom level for intelligent zooming
+  const [zoomHistory, setZoomHistory] = useState<Array<{
+    latitude: number;
+    longitude: number;
+    latitudeDelta: number;
+    longitudeDelta: number;
+    zoomLevel?: number; // For Mapbox
+  }>>([]);
   const [loadingMessage, setLoadingMessage] = useState(false);
   const [loadingNavigate, setLoadingNavigate] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
@@ -377,7 +384,17 @@ export default function TarpsScreen() {
       const url = peopleUrl(vp);
       console.log("PeopleInView:request", { url, ...vp });
       const res = await api.get(url);
+      console.log("PeopleInView:response", { status: res?.status, ok: res?.status >= 200 && res?.status < 300 });
+console.log(
+  "PeopleInView:rawData",
+  JSON.stringify(res?.data, null, 2)
+);
       const list = (res as any).data?.data || (res as any).data?.people || (res as any).data;
+      console.log("PeopleInView:listResolved", {
+        isArray: Array.isArray(list),
+        length: Array.isArray(list) ? list.length : undefined,
+        sample: Array.isArray(list) ? list[0] : list,
+      });
       const resolveImageUrl = (item: any): string | null => {
         if (!item || typeof item !== "object") return null;
         const candidates: any[] = [
@@ -416,6 +433,7 @@ export default function TarpsScreen() {
             .filter((p: any) => !isNaN(p.latitude) && !isNaN(p.longitude))
         : [];
       setServerPeople(mapped);
+      console.log("PeopleInView:mappedSample", JSON.stringify(mapped[0], null, 2));
       console.log("PeopleInView:loaded", { count: mapped.length });
     } catch (e: any) {
       console.log("PeopleInView:error", { status: e?.response?.status, data: e?.response?.data, message: e?.message });
@@ -424,27 +442,42 @@ export default function TarpsScreen() {
   };
 
   const handleLoadMessages = async () => {
-    if (!selectedPerson?.owner?.id) return;
+    if (!selectedPerson?.owner?.id) {
+      console.log("No selected person or owner ID");
+      return;
+    }
     if (!user) {
       toast.error("Please sign in to message");
       return;
     }
+    
     try {
       setLoadingMessage(true);
       setChatOpen(true);
       setPersonOpen(false);
+      
+      console.log("Loading messages for user:", selectedPerson.owner.id);
       const res = await api.get(UrlConstants.fetchPeopleMessages(String(selectedPerson.owner.id)));
       const data = (res as any)?.data?.data || (res as any)?.data;
+      
+      console.log("Messages response:", data);
       setGroupDetails(data?.groupDetails || null);
       setGroupMessages(Array.isArray(data?.messages) ? data.messages : []);
+      
       setTimeout(() => {
         if (chatScrollRef.current) {
           chatScrollRef.current.scrollToEnd({ animated: true });
         }
-      }, 10);
+      }, 100);
     } catch (e: any) {
-      console.log("PeopleMessage:error", { status: e?.response?.status, data: e?.response?.data, message: e?.message });
+      console.log("PeopleMessage:error", { 
+        status: e?.response?.status, 
+        data: e?.response?.data, 
+        message: e?.message,
+        stack: e?.stack 
+      });
       toast.error("Failed to load messages");
+      setChatOpen(false); // Close chat on error
     } finally {
       setLoadingMessage(false);
     }
@@ -718,6 +751,10 @@ export default function TarpsScreen() {
 
   // Optimized chat messages with precomputed data for performance
   const chatMessages = useMemo(() => {
+    if (!groupMessages || !Array.isArray(groupMessages)) {
+      return [];
+    }
+    
     return groupMessages.map((m: any, index: number) => {
       const isOwn = m?.sender?.id === user?.id;
       const displayName = selectedPerson?.owner?.fname || "User";
@@ -730,23 +767,31 @@ export default function TarpsScreen() {
         displayName,
         initial,
         timeString,
-        id: m?.content?.id || index.toString()
+        id: m?.content?.id || `msg-${index}`
       };
     });
   }, [groupMessages, user?.id, selectedPerson?.owner?.fname]);
 
   // Memoized chat row component
   const ChatRow = useCallback(({ item }: { item: any }) => {
+    if (!item) {
+      return null;
+    }
+    
     return (
       <View style={{ gap: 6 }}>
         <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
           {!item.isOwn && (
             <>
               {selectedPerson?.imageUrl ? (
-                <ExpoImage source={{ uri: selectedPerson.imageUrl }} style={{ width: 24, height: 24, borderRadius: 12 }} contentFit="cover" />
+                <ExpoImage 
+                  source={{ uri: selectedPerson.imageUrl }} 
+                  style={{ width: 24, height: 24, borderRadius: 12 }} 
+                  contentFit="cover" 
+                />
               ) : (
                 <View style={{ width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "#888" }}>
-                  <Text style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>{item.initial}</Text>
+                  <Text style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>{item.initial || "U"}</Text>
                 </View>
               )}
             </>
@@ -766,7 +811,7 @@ export default function TarpsScreen() {
               ? { backgroundColor: "#0a0a0a" }
               : isDark ? { backgroundColor: "#1A1A1A" } : { backgroundColor: "#F5F5F5" }
           ]}>
-            {!item.isOwn && (
+            {!item.isOwn && item.displayName && (
               <Text style={{ fontSize: 12, fontWeight: "700", color: isDark ? "#FFFFFF" : "#0a0a0a", marginBottom: 2 }}>
                 {item.displayName}
               </Text>
@@ -777,7 +822,7 @@ export default function TarpsScreen() {
           </View>
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginLeft: item.isOwn ? 16 : 32 }}>
-          <Text style={{ fontSize: 10, color: isDark ? "#9AA0A6" : "#666" }}>{item.timeString}</Text>
+          <Text style={{ fontSize: 10, color: isDark ? "#9AA0A6" : "#666" }}>{item.timeString || ""}</Text>
         </View>
       </View>
     );
@@ -835,7 +880,22 @@ export default function TarpsScreen() {
       
       // Progressive zoom levels for Mapbox GL
       const zoomLevels = [2, 5, 8, 11, 14, 16, 18];
-      const targetZoom = zoomLevels[Math.min(currentZoomLevel, zoomLevels.length - 1)];
+      
+      if (currentZoomLevel >= zoomLevels.length - 1) {
+        toast.error("Already at maximum zoom level");
+        return;
+      }
+      
+      // Record current state before zooming in
+      setZoomHistory(prev => [...prev, {
+        latitude: mapboxCamera.centerCoordinate[1],
+        longitude: mapboxCamera.centerCoordinate[0],
+        latitudeDelta: 0, // Not used for Mapbox
+        longitudeDelta: 0, // Not used for Mapbox
+        zoomLevel: zoomLevels[currentZoomLevel]
+      }]);
+      
+      const targetZoom = zoomLevels[currentZoomLevel + 1];
       
       setMapboxCamera({
         centerCoordinate: [centerLng, centerLat],
@@ -843,21 +903,38 @@ export default function TarpsScreen() {
         animationDuration: 800,
       });
       
-      setCurrentZoomLevel(prev => Math.min(prev + 1, zoomLevels.length - 1));
+      setCurrentZoomLevel(prev => prev + 1);
     } else if (mapRef.current) {
-      // Apple Maps or fallback MapView logic
-      // Apple Maps zoom in logic
+      // Apple Maps zoom in logic - record current state before zooming
       const bounds = calculateOptimalBounds(flatItems);
       if (!bounds) return;
 
-      // Progressive zoom levels based on current zoom
+      // Record current map state before zooming in
+      const currentRegion = mapRegion || location;
+      if (currentRegion) {
+        setZoomHistory(prev => [...prev, {
+          latitude: currentRegion.latitude,
+          longitude: currentRegion.longitude,
+          latitudeDelta: currentRegion.latitudeDelta,
+          longitudeDelta: currentRegion.longitudeDelta
+        }]);
+      }
+
       let targetDelta;
+      
       if (currentZoomLevel === 0) {
         // From world view, zoom to show all posts/people
         targetDelta = Math.max(bounds.latitudeDelta, bounds.longitudeDelta);
+        setCurrentZoomLevel(1);
+      } else if (currentZoomLevel === 1) {
+        // Second level - tighter view of posts/people
+        targetDelta = Math.max(bounds.latitudeDelta * 0.8, 0.1);
+        setCurrentZoomLevel(2);
       } else {
-        // Zoom in closer to the posts/people area
-        targetDelta = Math.max(bounds.latitudeDelta * 0.5, 0.01);
+        // Progressive zoom in - each step halves the view
+        const currentDelta = bounds.latitudeDelta * Math.pow(0.5, currentZoomLevel - 2);
+        targetDelta = Math.max(currentDelta * 0.5, 0.01);
+        setCurrentZoomLevel(prev => prev + 1);
       }
       
       const newRegion = {
@@ -867,76 +944,45 @@ export default function TarpsScreen() {
       };
       
       mapRef.current.animateToRegion(newRegion, 800);
-      setCurrentZoomLevel(prev => prev + 1);
     }
   };
 
-  // Intelligent zoom out - zoom out from posts/people areas
+  // Intelligent zoom out - use recorded zoom history to go back exactly
   const handleZoomOut = () => {
-    const currentItems = viewMode === "posts" ? serverPosts : serverPeople;
-    const flatItems = viewMode === "posts" 
-      ? serverPosts.flatMap(p => p.items || [p])
-      : serverPeople;
-    
-    if (flatItems.length === 0) {
-      toast.error(`No ${viewMode} found to zoom from`);
+    // Check if we have zoom history to go back to
+    if (zoomHistory.length === 0) {
+      toast.error("No zoom history to go back to");
       return;
     }
 
+    // Get the last recorded state and remove it from history
+    const previousState = zoomHistory[zoomHistory.length - 1];
+    setZoomHistory(prev => prev.slice(0, -1));
+
     if (Platform.OS === 'android' && useMapboxGL) {
-      // Mapbox GL zoom out logic using state
-      if (currentZoomLevel <= 0) {
-        // Already at minimum zoom, show world view
-        setMapboxCamera({
-          centerCoordinate: [0, 0],
-          zoomLevel: 1,
-          animationDuration: 800,
-        });
-        return;
-      }
-
-      const bounds = calculateOptimalBounds(flatItems);
-      if (bounds) {
-        const zoomLevels = [1, 3, 6, 9, 12, 15, 17];
-        const targetZoom = zoomLevels[Math.max(currentZoomLevel - 1, 0)];
-        
-        setMapboxCamera({
-          centerCoordinate: [bounds.longitude, bounds.latitude],
-          zoomLevel: targetZoom,
-          animationDuration: 800,
-        });
-        
-        setCurrentZoomLevel(prev => Math.max(prev - 1, 0));
-      }
+      // Mapbox GL zoom out using recorded history
+      setMapboxCamera({
+        centerCoordinate: [previousState.longitude, previousState.latitude],
+        zoomLevel: previousState.zoomLevel || 1,
+        animationDuration: 800,
+      });
+      
+      // Update current zoom level based on history
+      setCurrentZoomLevel(prev => Math.max(prev - 1, 0));
     } else if (mapRef.current) {
-      // Apple Maps or fallback MapView logic
-      // Apple Maps zoom out logic
-      if (currentZoomLevel <= 0) {
-        // Already at world level, show all posts/people with maximum view
-        const bounds = calculateOptimalBounds(flatItems);
-        if (bounds) {
-          const worldRegion = {
-            ...bounds,
-            latitudeDelta: Math.max(bounds.latitudeDelta * 3, 120),
-            longitudeDelta: Math.max(bounds.longitudeDelta * 3, 120),
-          };
-          mapRef.current.animateToRegion(worldRegion, 800);
-        }
-        return;
-      }
-
-      // Zoom out while keeping posts/people in view
-      const bounds = calculateOptimalBounds(flatItems);
-      if (bounds) {
-        const targetDelta = Math.min(bounds.latitudeDelta * 2, 120);
-        const newRegion = {
-          ...bounds,
-          latitudeDelta: targetDelta,
-          longitudeDelta: targetDelta,
-        };
-        mapRef.current.animateToRegion(newRegion, 800);
-        setCurrentZoomLevel(prev => Math.max(prev - 1, 0));
-      }
+      // Apple Maps zoom out using recorded history
+      const newRegion = {
+        latitude: previousState.latitude,
+        longitude: previousState.longitude,
+        latitudeDelta: previousState.latitudeDelta,
+        longitudeDelta: previousState.longitudeDelta,
+      };
+      
+      mapRef.current.animateToRegion(newRegion, 800);
+      setMapRegion(newRegion);
+      
+      // Update current zoom level
+      setCurrentZoomLevel(prev => Math.max(prev - 1, 0));
     }
   };
 
@@ -1042,6 +1088,15 @@ export default function TarpsScreen() {
                       }
                     } else {
                       // Zoom to separate posts
+                      // Record current state before zooming in
+                      setZoomHistory(prev => [...prev, {
+                        latitude: mapboxCamera.centerCoordinate[1],
+                        longitude: mapboxCamera.centerCoordinate[0],
+                        latitudeDelta: 0, // Not used for Mapbox
+                        longitudeDelta: 0, // Not used for Mapbox
+                        zoomLevel: mapboxCamera.zoomLevel
+                      }]);
+                      
                       const bounds = {
                         minLat: Math.min(...p.items.map((i: any) => Number(i.latitude ?? i.lat ?? p.latitude))),
                         maxLat: Math.max(...p.items.map((i: any) => Number(i.latitude ?? i.lat ?? p.latitude))),
@@ -1157,16 +1212,7 @@ export default function TarpsScreen() {
             const reg = { latitude: r.latitude, longitude: r.longitude, latitudeDelta: r.latitudeDelta, longitudeDelta: r.longitudeDelta } as typeof location;
             setMapRegion(reg);
             
-            // Update zoom level based on delta
-            const delta = r.latitudeDelta;
-            if (delta >= 100) setCurrentZoomLevel(0);
-            else if (delta >= 40) setCurrentZoomLevel(1);
-            else if (delta >= 15) setCurrentZoomLevel(2);
-            else if (delta >= 3) setCurrentZoomLevel(3);
-            else if (delta >= 0.5) setCurrentZoomLevel(4);
-            else if (delta >= 0.05) setCurrentZoomLevel(5);
-            else setCurrentZoomLevel(6);
-            
+            // Load data for the current view mode (removed automatic zoom level updates)
             if (viewMode === "posts") {
               setTimeout(() => {
                 loadPostsInView(reg);
@@ -1275,6 +1321,18 @@ export default function TarpsScreen() {
                       } else {
                         // Posts are spread out, zoom in to separate them
                         console.log("Posts are spread out, zooming in to separate");
+                        
+                        // Record current state before zooming in
+                        const currentRegion = mapRegion || location;
+                        if (currentRegion) {
+                          setZoomHistory(prev => [...prev, {
+                            latitude: currentRegion.latitude,
+                            longitude: currentRegion.longitude,
+                            latitudeDelta: currentRegion.latitudeDelta,
+                            longitudeDelta: currentRegion.longitudeDelta
+                          }]);
+                        }
+                        
                         const bounds = {
                           minLat: Math.min(...p.items.map((i: any) => Number(i.latitude ?? i.lat ?? p.latitude))),
                           maxLat: Math.max(...p.items.map((i: any) => Number(i.latitude ?? i.lat ?? p.latitude))),
@@ -1393,7 +1451,7 @@ export default function TarpsScreen() {
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                   <Ionicons name="chatbubble-outline" size={18} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
                   <Text style={[styles.sheetTitle, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
-                    Message {selectedPerson?.owner?.fname} {selectedPerson?.owner?.lname || ""}
+                    Message {selectedPerson?.owner?.fname || "User"} {selectedPerson?.owner?.lname || ""}
                   </Text>
                 </View>
                 <Pressable style={styles.headerIcon} onPress={() => setChatOpen(false)}>
@@ -1401,23 +1459,30 @@ export default function TarpsScreen() {
                 </Pressable>
               </View>
               
-              <FlatList
-                ref={chatScrollRef}
-                data={chatMessages}
-                renderItem={renderChatMessage}
-                keyExtractor={chatKeyExtractor}
-                style={{ flex: 1 }}
-                contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 16, gap: 12 }}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={true}
-                removeClippedSubviews={false}
-                maxToRenderPerBatch={10}
-                windowSize={10}
-                initialNumToRender={8}
-                ListEmptyComponent={
-                  <Text style={{ color: isDark ? "#9AA0A6" : "#666" }}>No messages yet</Text>
-                }
-              />
+              {chatMessages && chatMessages.length >= 0 ? (
+                <FlatList
+                  ref={chatScrollRef}
+                  data={chatMessages}
+                  renderItem={renderChatMessage}
+                  keyExtractor={chatKeyExtractor}
+                  style={{ flex: 1 }}
+                  contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 16, gap: 12 }}
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={true}
+                  removeClippedSubviews={false}
+                  maxToRenderPerBatch={10}
+                  windowSize={10}
+                  initialNumToRender={8}
+                  ListEmptyComponent={
+                    <Text style={{ color: isDark ? "#9AA0A6" : "#666" }}>No messages yet</Text>
+                  }
+                />
+              ) : (
+                <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+                  <ActivityIndicator size="large" color={isDark ? "#FFFFFF" : "#0a0a0a"} />
+                  <Text style={{ color: isDark ? "#9AA0A6" : "#666", marginTop: 10 }}>Loading messages...</Text>
+                </View>
+              )}
               
               <View style={[
                 styles.inputContainer, 
@@ -1938,9 +2003,9 @@ export default function TarpsScreen() {
                 </View>
               ) : null}
               <Text style={[styles.inputLabel, { color: isDark ? "#FFFFFF" : "#0a0a0a", paddingHorizontal: 0 }]}>Last shared photo:</Text>
-              {(selectedPerson?.owner?.bgUrl || selectedPerson?.imageUrl) ? (
+              {selectedPerson?.owner?.bgUrl ? (
                 <ExpoImage
-                  source={{ uri: (selectedPerson?.owner?.bgUrl || selectedPerson?.imageUrl) as string }}
+                  source={{ uri: selectedPerson.owner.bgUrl }}
                   style={{ width: "92%", height: 160, borderRadius: 16, alignSelf: "center" }}
                   contentFit="cover"
                 />
