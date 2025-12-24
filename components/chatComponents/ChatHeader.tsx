@@ -5,11 +5,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
-  Image,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
+    Image,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 
 interface ChatHeaderProps {
@@ -70,7 +70,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
       <Pressable style={styles.headerInfo} onPress={onToggleDropdown}>
         <View style={styles.avatarsContainer}>
-          {groupDetails.members
+          {(groupDetails.members || [])
             .slice(0, 3)
             .map((member: GroupMember, index: number) => {
               const colors = ["#FF6B9D", "#4A90E2", "#9C27B0", "#00D084"];
@@ -96,7 +96,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                         style={styles.avatarImage}
                       />
                     ) : (
-                      <Text style={styles.avatarText}>{member.fname[0]}</Text>
+                      <Text style={styles.avatarText}>{(member.fname || 'U')[0]}</Text>
                     )}
                   </View>
                 </Pressable>
@@ -110,13 +110,13 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           </Text>
           <View style={styles.headerSubtitle}>
             <Text style={[styles.membersCount, dynamicStyles.subtitle]}>
-              {groupDetails.members.length} members
+              {(groupDetails.members || []).length} members
             </Text>
             <View style={styles.dot} />
             <View style={styles.ratingContainer}>
               <Ionicons name="star" size={12} color="#FFD700" />
               <Text style={[styles.ratingText, dynamicStyles.subtitle]}>
-                {groupDetails.score}%
+                {groupDetails.score || 0}%
               </Text>
             </View>
           </View>

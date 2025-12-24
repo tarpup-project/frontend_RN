@@ -19,6 +19,51 @@ import uuid from "react-native-uuid";
 import io from "socket.io-client";
 import { toast } from "sonner-native";
 
+// Conditional Mapbox GL imports for Android only
+let MapboxGL: any = null;
+let useMapboxGL = false;
+
+if (Platform.OS === 'android') {
+  try {
+    console.log('🔄 Attempting to load Mapbox GL for Android...');
+    const MapboxGLModule = require('@react-native-mapbox-gl/maps');
+    console.log('🔍 Raw MapboxGL module:', MapboxGLModule);
+    console.log('🔍 MapboxGL keys:', Object.keys(MapboxGLModule));
+    
+    // Try different possible structures
+    if (MapboxGLModule.default) {
+      MapboxGL = MapboxGLModule.default;
+      console.log('🔍 Using default export, keys:', Object.keys(MapboxGL));
+    } else {
+      MapboxGL = MapboxGLModule;
+      console.log('🔍 Using direct export, keys:', Object.keys(MapboxGL));
+    }
+    
+    // Initialize Mapbox GL for Android
+    const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
+    console.log('🔍 Token available:', !!token);
+    
+    if (token) {
+      if (MapboxGL.setAccessToken) {
+        MapboxGL.setAccessToken(token);
+        useMapboxGL = true;
+        console.log('✅ Mapbox GL initialized for Android with token:', token.substring(0, 20) + '...');
+      } else {
+        console.error('❌ setAccessToken method not found');
+        console.log('Available methods:', Object.keys(MapboxGL));
+      }
+    } else {
+      console.error('❌ Mapbox token not found in environment variables');
+    }
+  } catch (error) {
+    console.error('❌ Failed to load Mapbox GL module:', error);
+    console.log('📱 Falling back to Google Maps for Android');
+    useMapboxGL = false;
+  }
+} else {
+  console.log('🍎 iOS detected - using Apple Maps (Mapbox disabled)');
+}
+
 export default function TarpsScreen() {
   const { isDark } = useTheme();
   const { user } = useAuthStore();
@@ -66,6 +111,22 @@ export default function TarpsScreen() {
     { id: string; latitude: number; longitude: number; imageUrl?: string; owner?: { id: string; fname: string; lname?: string; bgUrl?: string } }[]
   >([]);
   const mapRef = useRef<MapView | null>(null);
+  const [mapboxCamera, setMapboxCamera] = useState({
+    centerCoordinate: [0, 0] as [number, number],
+    zoomLevel: 1,
+    animationDuration: 0,
+  });
+
+  // Update Mapbox GL camera when location changes
+  useEffect(() => {
+    if (Platform.OS === 'android' && location && useMapboxGL) {
+      setMapboxCamera({
+        centerCoordinate: [location.longitude, location.latitude],
+        zoomLevel: 1,
+        animationDuration: 1000,
+      });
+    }
+  }, [location, useMapboxGL]);
   const [selectedPerson, setSelectedPerson] = useState<any | null>(null);
   const [personOpen, setPersonOpen] = useState(false);
   const [currentZoomLevel, setCurrentZoomLevel] = useState(0); // Track zoom level for intelligent zooming
@@ -754,8 +815,6 @@ export default function TarpsScreen() {
 
   // Intelligent zoom in - zoom to areas with posts/people
   const handleZoomIn = () => {
-    if (!mapRef.current) return;
-    
     const currentItems = viewMode === "posts" ? serverPosts : serverPeople;
     const flatItems = viewMode === "posts" 
       ? serverPosts.flatMap(p => p.items || [p])
@@ -766,34 +825,54 @@ export default function TarpsScreen() {
       return;
     }
 
-    // Calculate bounds for current items and zoom in progressively
-    const bounds = calculateOptimalBounds(flatItems);
-    if (!bounds) return;
+    if (Platform.OS === 'android' && useMapboxGL) {
+      // Mapbox GL zoom in logic using state
+      const bounds = calculateOptimalBounds(flatItems);
+      if (!bounds) return;
 
-    // Progressive zoom levels based on current zoom
-    let targetDelta;
-    if (currentZoomLevel === 0) {
-      // From world view, zoom to show all posts/people
-      targetDelta = Math.max(bounds.latitudeDelta, bounds.longitudeDelta);
-    } else {
-      // Zoom in closer to the posts/people area
-      targetDelta = Math.max(bounds.latitudeDelta * 0.5, 0.01);
+      const centerLat = bounds.latitude;
+      const centerLng = bounds.longitude;
+      
+      // Progressive zoom levels for Mapbox GL
+      const zoomLevels = [2, 5, 8, 11, 14, 16, 18];
+      const targetZoom = zoomLevels[Math.min(currentZoomLevel, zoomLevels.length - 1)];
+      
+      setMapboxCamera({
+        centerCoordinate: [centerLng, centerLat],
+        zoomLevel: targetZoom,
+        animationDuration: 800,
+      });
+      
+      setCurrentZoomLevel(prev => Math.min(prev + 1, zoomLevels.length - 1));
+    } else if (mapRef.current) {
+      // Apple Maps or fallback MapView logic
+      // Apple Maps zoom in logic
+      const bounds = calculateOptimalBounds(flatItems);
+      if (!bounds) return;
+
+      // Progressive zoom levels based on current zoom
+      let targetDelta;
+      if (currentZoomLevel === 0) {
+        // From world view, zoom to show all posts/people
+        targetDelta = Math.max(bounds.latitudeDelta, bounds.longitudeDelta);
+      } else {
+        // Zoom in closer to the posts/people area
+        targetDelta = Math.max(bounds.latitudeDelta * 0.5, 0.01);
+      }
+      
+      const newRegion = {
+        ...bounds,
+        latitudeDelta: targetDelta,
+        longitudeDelta: targetDelta,
+      };
+      
+      mapRef.current.animateToRegion(newRegion, 800);
+      setCurrentZoomLevel(prev => prev + 1);
     }
-    
-    const newRegion = {
-      ...bounds,
-      latitudeDelta: targetDelta,
-      longitudeDelta: targetDelta,
-    };
-    
-    mapRef.current.animateToRegion(newRegion, 800);
-    setCurrentZoomLevel(prev => prev + 1);
   };
 
   // Intelligent zoom out - zoom out from posts/people areas
   const handleZoomOut = () => {
-    if (!mapRef.current) return;
-    
     const currentItems = viewMode === "posts" ? serverPosts : serverPeople;
     const flatItems = viewMode === "posts" 
       ? serverPosts.flatMap(p => p.items || [p])
@@ -804,31 +883,60 @@ export default function TarpsScreen() {
       return;
     }
 
-    if (currentZoomLevel <= 0) {
-      // Already at world level, show all posts/people with maximum view
+    if (Platform.OS === 'android' && useMapboxGL) {
+      // Mapbox GL zoom out logic using state
+      if (currentZoomLevel <= 0) {
+        // Already at minimum zoom, show world view
+        setMapboxCamera({
+          centerCoordinate: [0, 0],
+          zoomLevel: 1,
+          animationDuration: 800,
+        });
+        return;
+      }
+
       const bounds = calculateOptimalBounds(flatItems);
       if (bounds) {
-        const worldRegion = {
-          ...bounds,
-          latitudeDelta: Math.max(bounds.latitudeDelta * 3, 120),
-          longitudeDelta: Math.max(bounds.longitudeDelta * 3, 120),
-        };
-        mapRef.current.animateToRegion(worldRegion, 800);
+        const zoomLevels = [1, 3, 6, 9, 12, 15, 17];
+        const targetZoom = zoomLevels[Math.max(currentZoomLevel - 1, 0)];
+        
+        setMapboxCamera({
+          centerCoordinate: [bounds.longitude, bounds.latitude],
+          zoomLevel: targetZoom,
+          animationDuration: 800,
+        });
+        
+        setCurrentZoomLevel(prev => Math.max(prev - 1, 0));
       }
-      return;
-    }
+    } else if (mapRef.current) {
+      // Apple Maps or fallback MapView logic
+      // Apple Maps zoom out logic
+      if (currentZoomLevel <= 0) {
+        // Already at world level, show all posts/people with maximum view
+        const bounds = calculateOptimalBounds(flatItems);
+        if (bounds) {
+          const worldRegion = {
+            ...bounds,
+            latitudeDelta: Math.max(bounds.latitudeDelta * 3, 120),
+            longitudeDelta: Math.max(bounds.longitudeDelta * 3, 120),
+          };
+          mapRef.current.animateToRegion(worldRegion, 800);
+        }
+        return;
+      }
 
-    // Zoom out while keeping posts/people in view
-    const bounds = calculateOptimalBounds(flatItems);
-    if (bounds) {
-      const targetDelta = Math.min(bounds.latitudeDelta * 2, 120);
-      const newRegion = {
-        ...bounds,
-        latitudeDelta: targetDelta,
-        longitudeDelta: targetDelta,
-      };
-      mapRef.current.animateToRegion(newRegion, 800);
-      setCurrentZoomLevel(prev => Math.max(prev - 1, 0));
+      // Zoom out while keeping posts/people in view
+      const bounds = calculateOptimalBounds(flatItems);
+      if (bounds) {
+        const targetDelta = Math.min(bounds.latitudeDelta * 2, 120);
+        const newRegion = {
+          ...bounds,
+          latitudeDelta: targetDelta,
+          longitudeDelta: targetDelta,
+        };
+        mapRef.current.animateToRegion(newRegion, 800);
+        setCurrentZoomLevel(prev => Math.max(prev - 1, 0));
+      }
     }
   };
 
@@ -843,73 +951,41 @@ export default function TarpsScreen() {
   return (
     <View style={{ flex: 1 }}>
       <StatusBar style="light" />
-      <MapView
-        ref={mapRef}
-        provider={Platform.OS === 'ios' ? PROVIDER_DEFAULT : undefined}
-        style={{ flex: 1 }}
-        initialRegion={location}
-        onRegionChangeComplete={(r) => {
-          const reg = { latitude: r.latitude, longitude: r.longitude, latitudeDelta: r.latitudeDelta, longitudeDelta: r.longitudeDelta } as typeof location;
-          setMapRegion(reg);
+      {/* Conditional Map Rendering: Mapbox GL for Android (if available), Apple Maps for iOS */}
+      {Platform.OS === 'android' && useMapboxGL && MapboxGL ? (
+        // Mapbox GL for Android (when available)
+        <MapboxGL.MapView
+          style={{ flex: 1 }}
+          styleURL={MapboxGL.StyleURL?.Satellite || 'mapbox://styles/mapbox/satellite-v9'}
+          onRegionDidChange={() => {
+            // Handle region changes for Mapbox GL
+          }}
+        >
+          <MapboxGL.Camera
+            centerCoordinate={mapboxCamera.centerCoordinate}
+            zoomLevel={mapboxCamera.zoomLevel}
+            animationDuration={mapboxCamera.animationDuration}
+          />
           
-          // Update zoom level based on delta
-          const delta = r.latitudeDelta;
-          if (delta >= 100) setCurrentZoomLevel(0);
-          else if (delta >= 40) setCurrentZoomLevel(1);
-          else if (delta >= 15) setCurrentZoomLevel(2);
-          else if (delta >= 3) setCurrentZoomLevel(3);
-          else if (delta >= 0.5) setCurrentZoomLevel(4);
-          else if (delta >= 0.05) setCurrentZoomLevel(5);
-          else setCurrentZoomLevel(6);
-          
-          if (viewMode === "posts") {
-            setTimeout(() => {
-              loadPostsInView(reg);
-            }, 250);
-          }
-          if (viewMode === "people") {
-            loadPeopleInView(reg);
-          }
-        }}
-        mapType={Platform.OS === 'ios' ? "hybridFlyover" : "satellite"}
-        showsCompass={Platform.OS === 'ios' ? true : false}
-        showsPointsOfInterests={Platform.OS === 'ios' ? true : false}
-        showsBuildings={Platform.OS === 'ios' ? true : false}
-        showsTraffic={false}
-        showsIndoors={Platform.OS === 'ios' ? true : false}
-        showsUserLocation={false}
-        followsUserLocation={false}
-        toolbarEnabled={false}
-        zoomControlEnabled={false}
-        pitchEnabled={Platform.OS === 'ios' ? true : false}
-        rotateEnabled={Platform.OS === 'ios' ? true : false}
-        scrollEnabled={true}
-        zoomEnabled={true}
-        maxZoomLevel={Platform.OS === 'ios' ? 20 : 18}
-        minZoomLevel={Platform.OS === 'ios' ? 3 : 5}
-      >
-        {viewMode === "posts"
-          ? serverPosts
-              .filter((p) => !!p.image)
-              .map((p) => (
-              <Marker
+          {/* Posts Markers for Mapbox GL */}
+          {viewMode === "posts" && serverPosts
+            .filter((p) => !!p.image)
+            .map((p) => (
+              <MapboxGL.PointAnnotation
                 key={p.id}
-                coordinate={{ latitude: p.latitude, longitude: p.longitude }}
-                onPress={() => {
+                id={p.id}
+                coordinate={[p.longitude, p.latitude]}
+                onSelected={() => {
+                  // Same logic as Apple Maps marker press
                   if (p.count && p.count > 1 && Array.isArray(p.items)) {
-                    // Check if posts are actually stacked (very close together) or just clustered
                     const latDiff = Math.max(...p.items.map((i: any) => Number(i.latitude ?? i.lat ?? p.latitude))) - 
                                    Math.min(...p.items.map((i: any) => Number(i.latitude ?? i.lat ?? p.latitude)));
                     const lngDiff = Math.max(...p.items.map((i: any) => Number(i.longitude ?? i.lng ?? p.longitude))) - 
                                    Math.min(...p.items.map((i: any) => Number(i.longitude ?? i.lng ?? p.longitude)));
                     
-                    console.log("Multiple posts detected:", { count: p.count, latDiff, lngDiff, threshold: 0.001 });
-                    
-                    // If posts are very close together (stacked), open post preview with all items
                     if (latDiff < 0.001 && lngDiff < 0.001) {
-                      console.log("Posts are stacked, opening combined preview");
+                      // Handle stacked posts
                       try {
-                        // Create a combined image set from all items in the stack
                         const allUrls: string[] = [];
                         const allIds: (string | null)[] = [];
                         const allItems: any[] = [];
@@ -953,38 +1029,40 @@ export default function TarpsScreen() {
                           const itemSet = resolveItemImageSet(item);
                           allUrls.push(...itemSet.urls);
                           allIds.push(...itemSet.ids);
-                          // Add the item for each of its images so we can track which item each image belongs to
                           itemSet.urls.forEach(() => allItems.push(item));
                         });
                         
-                        // Use the first item as the primary item, but pass all images and items
                         const primaryItem = p.items[0];
                         const combinedSet = { urls: allUrls, ids: allIds };
                         
-                        console.log("Combined set created:", { totalImages: allUrls.length, totalItems: allItems.length });
                         nav.push(`/post/${primaryItem.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(primaryItem))}&images=${encodeURIComponent(JSON.stringify(combinedSet))}&allItems=${encodeURIComponent(JSON.stringify(allItems))}&idx=0`);
                       } catch (error) {
                         console.error("Failed to navigate to stacked posts:", error);
                         toast.error("Failed to open posts");
                       }
                     } else {
-                      // Posts are spread out, zoom in to separate them
-                      console.log("Posts are spread out, zooming in to separate");
+                      // Zoom to separate posts
                       const bounds = {
                         minLat: Math.min(...p.items.map((i: any) => Number(i.latitude ?? i.lat ?? p.latitude))),
                         maxLat: Math.max(...p.items.map((i: any) => Number(i.latitude ?? i.lat ?? p.latitude))),
                         minLng: Math.min(...p.items.map((i: any) => Number(i.longitude ?? i.lng ?? p.longitude))),
                         maxLng: Math.max(...p.items.map((i: any) => Number(i.longitude ?? i.lng ?? p.longitude))),
                       };
-                      const region = {
-                        latitude: (bounds.minLat + bounds.maxLat) / 2,
-                        longitude: (bounds.minLng + bounds.maxLng) / 2,
-                        latitudeDelta: Math.max(0.01, Math.abs(bounds.maxLat - bounds.minLat) * 1.5),
-                        longitudeDelta: Math.max(0.01, Math.abs(bounds.maxLng - bounds.minLng) * 1.5),
-                      } as any;
-                      mapRef.current?.animateToRegion(region, 500);
+                      const centerLat = (bounds.minLat + bounds.maxLat) / 2;
+                      const centerLng = (bounds.minLng + bounds.maxLng) / 2;
+                      const latDelta = Math.max(0.01, Math.abs(bounds.maxLat - bounds.minLat) * 1.5);
+                      
+                      // Calculate zoom level from latitude delta and update camera state
+                      const zoomLevel = Math.max(1, Math.min(18, Math.log2(360 / latDelta)));
+                      
+                      setMapboxCamera({
+                        centerCoordinate: [centerLng, centerLat],
+                        zoomLevel: zoomLevel,
+                        animationDuration: 500,
+                      });
                     }
                   } else if (p.image && Array.isArray(p.items) && p.items.length > 0) {
+                    // Handle single post
                     const item = p.items[0];
                     try {
                       const resolveItemImageSet = (item: any): { urls: string[]; ids: (string | null)[] } => {
@@ -1038,34 +1116,262 @@ export default function TarpsScreen() {
                     </View>
                   )}
                 </View>
-                <View style={[styles.pointer, styles.pointerLight]} />
-              </Marker>
-            ))
-          : serverPeople.map((p) => (
-              <Marker
-                key={p.id}
-                coordinate={{ latitude: p.latitude, longitude: p.longitude }}
-                onPress={() => {
-                  setSelectedPerson(p);
-                  setPersonOpen(true);
-                }}
-              >
-                <View style={[styles.markerContainer, isDark ? styles.markerDark : styles.markerLight]}>
-                  {p.imageUrl ? (
-                    <ExpoImage source={{ uri: p.imageUrl }} style={styles.markerImage} contentFit="cover" cachePolicy="none" />
-                  ) : (
-                    <View style={[styles.markerImage, { alignItems: "center", justifyContent: "center", backgroundColor: "#888" }]}>
-                      <Text style={{ color: "#fff", fontWeight: "700" }}>{p.owner?.fname?.[0]?.toUpperCase() || "F"}</Text>
-                    </View>
-                  )}
-                  <View style={styles.locBadge}>
-                    <Ionicons name="location-outline" size={14} color="#FFFFFF" />
-                  </View>
-                </View>
-                <View style={[styles.pointer, styles.pointerLight]} />
-              </Marker>
+              </MapboxGL.PointAnnotation>
             ))}
-      </MapView>
+          
+          {/* People Markers for Mapbox GL */}
+          {viewMode === "people" && serverPeople.map((p) => (
+            <MapboxGL.PointAnnotation
+              key={p.id}
+              id={p.id}
+              coordinate={[p.longitude, p.latitude]}
+              onSelected={() => {
+                setSelectedPerson(p);
+                setPersonOpen(true);
+              }}
+            >
+              <View style={[styles.markerContainer, isDark ? styles.markerDark : styles.markerLight]}>
+                {p.imageUrl ? (
+                  <ExpoImage source={{ uri: p.imageUrl }} style={styles.markerImage} contentFit="cover" cachePolicy="none" />
+                ) : (
+                  <View style={[styles.markerImage, { alignItems: "center", justifyContent: "center", backgroundColor: "#888" }]}>
+                    <Text style={{ color: "#fff", fontWeight: "700" }}>{p.owner?.fname?.[0]?.toUpperCase() || "F"}</Text>
+                  </View>
+                )}
+                <View style={styles.locBadge}>
+                  <Ionicons name="location-outline" size={14} color="#FFFFFF" />
+                </View>
+              </View>
+            </MapboxGL.PointAnnotation>
+          ))}
+        </MapboxGL.MapView>
+      ) : (
+        // Fallback to regular MapView for iOS or when Mapbox GL is not available on Android
+        // Apple Maps for iOS
+        <MapView
+          ref={mapRef}
+          provider={PROVIDER_DEFAULT}
+          style={{ flex: 1 }}
+          initialRegion={location}
+          onRegionChangeComplete={(r) => {
+            const reg = { latitude: r.latitude, longitude: r.longitude, latitudeDelta: r.latitudeDelta, longitudeDelta: r.longitudeDelta } as typeof location;
+            setMapRegion(reg);
+            
+            // Update zoom level based on delta
+            const delta = r.latitudeDelta;
+            if (delta >= 100) setCurrentZoomLevel(0);
+            else if (delta >= 40) setCurrentZoomLevel(1);
+            else if (delta >= 15) setCurrentZoomLevel(2);
+            else if (delta >= 3) setCurrentZoomLevel(3);
+            else if (delta >= 0.5) setCurrentZoomLevel(4);
+            else if (delta >= 0.05) setCurrentZoomLevel(5);
+            else setCurrentZoomLevel(6);
+            
+            if (viewMode === "posts") {
+              setTimeout(() => {
+                loadPostsInView(reg);
+              }, 250);
+            }
+            if (viewMode === "people") {
+              loadPeopleInView(reg);
+            }
+          }}
+          mapType="hybridFlyover"
+          showsCompass={true}
+          showsPointsOfInterests={true}
+          showsBuildings={true}
+          showsTraffic={false}
+          showsIndoors={true}
+          showsUserLocation={false}
+          followsUserLocation={false}
+          toolbarEnabled={false}
+          zoomControlEnabled={false}
+          pitchEnabled={true}
+          rotateEnabled={true}
+          scrollEnabled={true}
+          zoomEnabled={true}
+          maxZoomLevel={20}
+          minZoomLevel={3}
+        >
+          {viewMode === "posts"
+            ? serverPosts
+                .filter((p) => !!p.image)
+                .map((p) => (
+                <Marker
+                  key={p.id}
+                  coordinate={{ latitude: p.latitude, longitude: p.longitude }}
+                  onPress={() => {
+                    if (p.count && p.count > 1 && Array.isArray(p.items)) {
+                      // Check if posts are actually stacked (very close together) or just clustered
+                      const latDiff = Math.max(...p.items.map((i: any) => Number(i.latitude ?? i.lat ?? p.latitude))) - 
+                                     Math.min(...p.items.map((i: any) => Number(i.latitude ?? i.lat ?? p.latitude)));
+                      const lngDiff = Math.max(...p.items.map((i: any) => Number(i.longitude ?? i.lng ?? p.longitude))) - 
+                                     Math.min(...p.items.map((i: any) => Number(i.longitude ?? i.lng ?? p.longitude)));
+                      
+                      console.log("Multiple posts detected:", { count: p.count, latDiff, lngDiff, threshold: 0.001 });
+                      
+                      // If posts are very close together (stacked), open post preview with all items
+                      if (latDiff < 0.001 && lngDiff < 0.001) {
+                        console.log("Posts are stacked, opening combined preview");
+                        try {
+                          // Create a combined image set from all items in the stack
+                          const allUrls: string[] = [];
+                          const allIds: (string | null)[] = [];
+                          const allItems: any[] = [];
+                          
+                          p.items.forEach((item: any) => {
+                            const resolveItemImageSet = (item: any): { urls: string[]; ids: (string | null)[] } => {
+                              const urls: string[] = [];
+                              const ids: (string | null)[] = [];
+                              if (Array.isArray(item?.images) && item.images.length > 0) {
+                                item.images.forEach((im: any) => {
+                                  const raw = typeof im === "string" ? im : im?.url;
+                                  const id = typeof im?.id === "string" || typeof im?.id === "number" ? String(im.id) : null;
+                                  if (typeof raw === "string" && raw.length > 0) {
+                                    const cleaned = raw.replace(/`/g, "").trim();
+                                    urls.push(cleaned);
+                                    ids.push(id);
+                                  }
+                                });
+                              } else {
+                                const cover = extractImageUrl(item);
+                                const extractImageId = (item: any): string | null => {
+                                  const candidates: any[] = [
+                                    item?.imageId, item?.imageID, item?.postImageID, item?.postImageId,
+                                    Array.isArray(item?.images) ? item.images[0]?.id : null,
+                                    Array.isArray(item?.files) ? item.files[0]?.id : null,
+                                    Array.isArray(item?.medias) ? item.medias[0]?.id : null,
+                                    item?.id
+                                  ];
+                                  const v = candidates.find((x) => typeof x === "string" || typeof x === "number");
+                                  return v != null ? String(v) : null;
+                                };
+                                const fallbackId = extractImageId(item);
+                                if (cover) {
+                                  urls.push(cover);
+                                  ids.push(fallbackId);
+                                }
+                              }
+                              return { urls, ids };
+                            };
+                            
+                            const itemSet = resolveItemImageSet(item);
+                            allUrls.push(...itemSet.urls);
+                            allIds.push(...itemSet.ids);
+                            // Add the item for each of its images so we can track which item each image belongs to
+                            itemSet.urls.forEach(() => allItems.push(item));
+                          });
+                          
+                          // Use the first item as the primary item, but pass all images and items
+                          const primaryItem = p.items[0];
+                          const combinedSet = { urls: allUrls, ids: allIds };
+                          
+                          console.log("Combined set created:", { totalImages: allUrls.length, totalItems: allItems.length });
+                          nav.push(`/post/${primaryItem.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(primaryItem))}&images=${encodeURIComponent(JSON.stringify(combinedSet))}&allItems=${encodeURIComponent(JSON.stringify(allItems))}&idx=0`);
+                        } catch (error) {
+                          console.error("Failed to navigate to stacked posts:", error);
+                          toast.error("Failed to open posts");
+                        }
+                      } else {
+                        // Posts are spread out, zoom in to separate them
+                        console.log("Posts are spread out, zooming in to separate");
+                        const bounds = {
+                          minLat: Math.min(...p.items.map((i: any) => Number(i.latitude ?? i.lat ?? p.latitude))),
+                          maxLat: Math.max(...p.items.map((i: any) => Number(i.latitude ?? i.lat ?? p.latitude))),
+                          minLng: Math.min(...p.items.map((i: any) => Number(i.longitude ?? i.lng ?? p.longitude))),
+                          maxLng: Math.max(...p.items.map((i: any) => Number(i.longitude ?? i.lng ?? p.longitude))),
+                        };
+                        const region = {
+                          latitude: (bounds.minLat + bounds.maxLat) / 2,
+                          longitude: (bounds.minLng + bounds.maxLng) / 2,
+                          latitudeDelta: Math.max(0.01, Math.abs(bounds.maxLat - bounds.minLat) * 1.5),
+                          longitudeDelta: Math.max(0.01, Math.abs(bounds.maxLng - bounds.minLng) * 1.5),
+                        } as any;
+                        mapRef.current?.animateToRegion(region, 500);
+                      }
+                    } else if (p.image && Array.isArray(p.items) && p.items.length > 0) {
+                      const item = p.items[0];
+                      try {
+                        const resolveItemImageSet = (item: any): { urls: string[]; ids: (string | null)[] } => {
+                          const urls: string[] = [];
+                          const ids: (string | null)[] = [];
+                          if (Array.isArray(item?.images) && item.images.length > 0) {
+                            item.images.forEach((im: any) => {
+                              const raw = typeof im === "string" ? im : im?.url;
+                              const id = typeof im?.id === "string" || typeof im?.id === "number" ? String(im.id) : null;
+                              if (typeof raw === "string" && raw.length > 0) {
+                                const cleaned = raw.replace(/`/g, "").trim();
+                                urls.push(cleaned);
+                                ids.push(id);
+                              }
+                            });
+                          } else {
+                            const cover = extractImageUrl(item);
+                            const extractImageId = (item: any): string | null => {
+                              const candidates: any[] = [
+                                item?.imageId, item?.imageID, item?.postImageID, item?.postImageId,
+                                Array.isArray(item?.images) ? item.images[0]?.id : null,
+                                Array.isArray(item?.files) ? item.files[0]?.id : null,
+                                Array.isArray(item?.medias) ? item.medias[0]?.id : null,
+                                item?.id
+                              ];
+                              const v = candidates.find((x) => typeof x === "string" || typeof x === "number");
+                              return v != null ? String(v) : null;
+                            };
+                            const fallbackId = extractImageId(item);
+                            if (cover) {
+                              urls.push(cover);
+                              ids.push(fallbackId);
+                            }
+                          }
+                          return { urls, ids };
+                        };
+                        const set = resolveItemImageSet(item);
+                        nav.push(`/post/${item.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(item))}&images=${encodeURIComponent(JSON.stringify(set))}&idx=0`);
+                      } catch (error) {
+                        console.error("Failed to navigate to post:", error);
+                        toast.error("Failed to open post");
+                      }
+                    }
+                  }}
+                >
+                  <View style={[styles.markerContainer, isDark ? styles.markerDark : styles.markerLight]}>
+                    <ExpoImage source={{ uri: p.image as string }} style={styles.markerImage} contentFit="cover" cachePolicy="none" />
+                    {!!p.count && p.count > 1 && (
+                      <View style={styles.countBadge}>
+                        <Text style={styles.countText}>{p.count >= 1000 ? `${Math.floor(p.count/1000)}k` : `${p.count}`}</Text>
+                      </View>
+                    )}
+                  </View>
+                  <View style={[styles.pointer, styles.pointerLight]} />
+                </Marker>
+              ))
+            : serverPeople.map((p) => (
+                <Marker
+                  key={p.id}
+                  coordinate={{ latitude: p.latitude, longitude: p.longitude }}
+                  onPress={() => {
+                    setSelectedPerson(p);
+                    setPersonOpen(true);
+                  }}
+                >
+                  <View style={[styles.markerContainer, isDark ? styles.markerDark : styles.markerLight]}>
+                    {p.imageUrl ? (
+                      <ExpoImage source={{ uri: p.imageUrl }} style={styles.markerImage} contentFit="cover" cachePolicy="none" />
+                    ) : (
+                      <View style={[styles.markerImage, { alignItems: "center", justifyContent: "center", backgroundColor: "#888" }]}>
+                        <Text style={{ color: "#fff", fontWeight: "700" }}>{p.owner?.fname?.[0]?.toUpperCase() || "F"}</Text>
+                      </View>
+                    )}
+                    <View style={styles.locBadge}>
+                      <Ionicons name="location-outline" size={14} color="#FFFFFF" />
+                    </View>
+                  </View>
+                  <View style={[styles.pointer, styles.pointerLight]} />
+                </Marker>
+              ))}
+        </MapView>
+      )}
       
       <Modal visible={chatOpen} transparent animationType="fade" onRequestClose={() => setChatOpen(false)}>
         <View style={styles.modalOverlay}>

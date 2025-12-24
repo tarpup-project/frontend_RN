@@ -133,6 +133,7 @@ const Groups = () => {
     data: groups,
     isLoading,
     isError,
+    error,
     refetch,
     // isRefetching,
   } = useGroups();
@@ -256,14 +257,21 @@ const Groups = () => {
                 color={isDark ? "#FF6B6B" : "#E74C3C"}
               />
               <Text style={[styles.errorText, dynamicStyles.text]}>
-                Failed to load groups
+                Unable to load groups
               </Text>
               <Text style={[styles.errorSubtext, dynamicStyles.subtitle]}>
-                Check your connection and try again
+                {(() => {
+                  // Import and use error utility
+                  const getErrorMessage = require('@/utils/errorUtils').getErrorMessage;
+                  return getErrorMessage(error);
+                })()}
               </Text>
               <Pressable
                 style={[styles.retryButton, dynamicStyles.retryButton]}
-                onPress={() => refetch()}
+                onPress={() => {
+                  console.log('🔄 Manual retry triggered');
+                  refetch();
+                }}
               >
                 <Text
                   style={[

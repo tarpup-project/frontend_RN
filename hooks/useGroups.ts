@@ -1,12 +1,12 @@
-import { useQuery } from '@tanstack/react-query';
 import { api } from '@/api/client';
-import moment from "moment";
-import { subscribeToAllUserGroups, subscribeToGroupTopic, unsubscribeFromGroupTopic } from '@/utils/topicManager';
-import { useEffect } from 'react';
-import { useAuthStore } from '@/state/authStore';
 import { UrlConstants } from '@/constants/apiUrls';
-import { useCampus } from './useCampus';
+import { useAuthStore } from '@/state/authStore';
 import { Group, GroupsResponse } from '@/types/groups';
+import { subscribeToAllUserGroups, subscribeToGroupTopic, unsubscribeFromGroupTopic } from '@/utils/topicManager';
+import { useQuery } from '@tanstack/react-query';
+import moment from "moment";
+import { useEffect } from 'react';
+import { useCampus } from './useCampus';
 
 
 export const groupsKeys = {
@@ -20,25 +20,69 @@ export const groupsKeys = {
 };
 
 const fetchGroups = async (campusId?: string): Promise<Group[]> => {
-  const response = await api.get<GroupsResponse>(
-    UrlConstants.fetchAllGroups(campusId)
-  );
-  return response.data.data;
+  try {
+    console.log('🔄 Fetching groups for campus:', campusId || 'all');
+    const response = await api.get<GroupsResponse>(
+      UrlConstants.fetchAllGroups(campusId)
+    );
+    
+    if (!response.data || !response.data.data) {
+      console.warn('⚠️ Invalid response structure:', response.data);
+      return [];
+    }
+    
+    console.log('✅ Groups fetched successfully:', response.data.data.length);
+    return response.data.data;
+  } catch (error: any) {
+    // Use the error utility for consistent logging
+    const { logError } = await import('@/utils/errorUtils');
+    logError('Fetch groups', error);
+    
+    // Re-throw to let React Query handle retries
+    throw error;
+  }
 };
 
 export const useGroups = () => {
   const { selectedUniversity } = useCampus();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, isHydrated } = useAuthStore();
   
   const query = useQuery({
     queryKey: groupsKeys.list(selectedUniversity?.id),
     queryFn: () => fetchGroups(selectedUniversity?.id),
-    enabled: true,
-    staleTime: 1000 * 60 * 5,
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    refetchInterval: 5000, 
-    refetchIntervalInBackground: true,
+    enabled: isAuthenticated && isHydrated, // Only fetch when authenticated and hydrated
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 30, // Keep in cache for 30 minutes
+    retry: async (failureCount, error: any) => {
+      // Use the error utility to determine if we should retry
+      const { isRetryableError } = await import('@/utils/errorUtils');
+      
+      if (!isRetryableError(error)) {
+        console.log('🚫 Non-retryable error - stopping retries');
+        return false;
+      }
+      
+      // Retry up to 3 times for retryable errors
+      if (failureCount < 3) {
+        console.log(`🔄 Retry attempt ${failureCount + 1}/3`);
+        return true;
+      }
+      
+      return false;
+    },
+    retryDelay: (attemptIndex) => {
+      const delay = Math.min(1000 * 2 ** attemptIndex, 10000); // Max 10 seconds
+      console.log(`⏱️ Retrying in ${delay}ms`);
+      return delay;
+    },
+    refetchInterval: 30000, // Reduced from 5 seconds to 30 seconds
+    refetchIntervalInBackground: false, // Don't refetch in background
+    refetchOnWindowFocus: true, // Refetch when app comes back to focus
+    refetchOnReconnect: true, // Refetch when network reconnects
+    // Return stale data while refetching
+    refetchOnMount: 'always',
+    // Keep previous data while loading new data
+    placeholderData: (previousData) => previousData,
   });
 
   useEffect(() => {
@@ -138,4 +182,5 @@ const getCategoryIcon = (iconName?: string): string => {
   return iconMap[iconName || ''] || 'pricetag-outline';
 };
 
-export { getTimeAgo}
+export { getTimeAgo };
+
