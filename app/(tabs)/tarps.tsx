@@ -817,7 +817,9 @@ console.log(
               </Text>
             )}
             <Text style={{ fontSize: 12, color: item.isOwn ? "#FFFFFF" : isDark ? "#FFFFFF" : "#0a0a0a" }}>
-              {item?.content?.message || item?.content || ""}
+              {typeof item?.content === "string"
+                ? item.content
+                : (item?.content?.message ?? item?.content?.text ?? "")}
             </Text>
           </View>
         </View>
