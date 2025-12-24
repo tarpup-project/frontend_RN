@@ -54,7 +54,7 @@
       <true/>
     </dict>
     <key>NSCameraUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) use your camera to upload photos to your profile, listings, and in-app connections.</string>
+    <string>Allow $(PRODUCT_NAME) use your camera to upload photos from your library and save photos to your library.</string>
     <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
     <string>Tarpup uses your location to display accurate map markers.</string>
     <key>NSLocationAlwaysUsageDescription</key>
