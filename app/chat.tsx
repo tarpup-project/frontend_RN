@@ -86,7 +86,6 @@ const Chat = () => {
     { icon: "car-outline", text: "I need a ride to downtown" },
     { icon: "home-outline", text: "Looking for a roommate" },
     { icon: "people-outline", text: "Want to join a Study group" },
-    { icon: "heart-outline", text: "Find a Date" },
     { icon: "book-outline", text: "Need to Sell My textbooks" },
   ];
 
