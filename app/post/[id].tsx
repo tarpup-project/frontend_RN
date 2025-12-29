@@ -46,6 +46,19 @@ export default function PostPreviewScreen() {
   const [allAvailablePosts, setAllAvailablePosts] = useState<any[]>([]); // All posts available for browsing
   const [currentPostIndex, setCurrentPostIndex] = useState(0); // Index in all available posts
   const [isLoadingGlobalPosts, setIsLoadingGlobalPosts] = useState(false);
+  const [arrowVisible, setArrowVisible] = useState(true);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [userStats, setUserStats] = useState<{
+    prompts: number;
+    posts: number;
+    followers: number;
+    followings: number;
+    totalMatches: number;
+    activeGroups: number;
+    avgCompatibility: number;
+    interests: string[];
+  } | null>(null);
+  const [isLoadingUserStats, setIsLoadingUserStats] = useState(false);
   const translateY = useSharedValue(0);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [comments, setComments] = useState<any[]>([]);
@@ -59,6 +72,27 @@ export default function PostPreviewScreen() {
   const [following, setFollowing] = useState(false);
   const [friendStatus, setFriendStatus] = useState<"not_friends" | "pending" | "friends">("not_friends");
   const [commentCount, setCommentCount] = useState(0);
+
+  // Function to fetch user stats
+  const fetchUserStats = async () => {
+    if (isLoadingUserStats) return;
+    
+    try {
+      setIsLoadingUserStats(true);
+      const response = await api.get('/user/stats');
+      console.log('User stats response:', JSON.stringify(response, null, 2));
+      
+      if (response.data?.status === 'success' && response.data?.data) {
+        setUserStats(response.data.data);
+      } else {
+        console.log('Failed to load user stats:', response.data);
+      }
+    } catch (error: any) {
+      console.error('Error fetching user stats:', error);
+    } finally {
+      setIsLoadingUserStats(false);
+    }
+  };
 
   const loadGlobalPosts = async () => {
     if (isLoadingGlobalPosts) return;
@@ -227,6 +261,15 @@ export default function PostPreviewScreen() {
       router.back();
     }
   }, [params.item, params.images, params.allItems, params.idx, params.openComments, params.serverPosts]);
+
+  // Blinking arrow effect
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setArrowVisible(prev => !prev);
+    }, 800); // Blink every 800ms
+
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (!commentsOpen) return;
@@ -794,43 +837,32 @@ export default function PostPreviewScreen() {
               </Pressable>
             </View>
             
-            {/* Swipe indicators */}
+            {/* Blinking arrow for navigation hint */}
             {allAvailablePosts.length > 1 && (
-              <View style={styles.swipeIndicators}>
-                {/* Show up indicator only if there are unviewed posts */}
-                {allAvailablePosts.some(p => !viewedPosts.has(p.id)) && (
-                  <View style={styles.swipeIndicator}>
-                    <Ionicons name="chevron-up" size={20} color="#FFFFFF" />
-                    <Text style={styles.swipeText}>
-                      Swipe up for next post ({allAvailablePosts.filter(p => !viewedPosts.has(p.id)).length} remaining)
-                    </Text>
-                  </View>
-                )}
-                {/* Show down indicator only if we're not at the first post */}
-                {currentPostIndex > 0 && (
-                  <View style={[styles.swipeIndicator, { marginTop: 20 }]}>
-                    <Ionicons name="chevron-down" size={20} color="#FFFFFF" />
-                    <Text style={styles.swipeText}>Swipe down to review previous posts</Text>
-                  </View>
-                )}
-                {/* Show completion message if all posts viewed */}
-                {allAvailablePosts.length > 0 && allAvailablePosts.every(p => viewedPosts.has(p.id)) && (
-                  <View style={[styles.swipeIndicator, { marginTop: 20 }]}>
-                    <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                    <Text style={[styles.swipeText, { color: "#4CAF50" }]}>All posts viewed! 🎉</Text>
-                  </View>
-                )}
-                {isLoadingGlobalPosts && (
-                  <View style={[styles.swipeIndicator, { marginTop: 20 }]}>
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                    <Text style={styles.swipeText}>Loading global posts...</Text>
-                  </View>
+              <View style={styles.blinkingArrow}>
+                {arrowVisible && (
+                  <Ionicons 
+                    name="chevron-up" 
+                    size={24} 
+                    color="#FFFFFF" 
+                    style={{
+                      textShadowColor: "rgba(0,0,0,0.75)",
+                      textShadowOffset: { width: 0, height: 1 },
+                      textShadowRadius: 3,
+                    }}
+                  />
                 )}
               </View>
             )}
             
             <View style={styles.previewTopRow}>
-              <View style={styles.userRow}>
+              <Pressable 
+                style={styles.userRow}
+                onPress={() => {
+                  setShowProfileModal(true);
+                  fetchUserStats();
+                }}
+              >
                 {getCurrentPostItem()?.creator && extractImageUrl(getCurrentPostItem().creator) ? (
                   <ExpoImage source={{ uri: extractImageUrl(getCurrentPostItem().creator) as string }} style={styles.userAvatar} contentFit="cover" />
                 ) : getCurrentPostItem()?.owner && extractImageUrl(getCurrentPostItem().owner) ? (
@@ -852,7 +884,7 @@ export default function PostPreviewScreen() {
                     {getCurrentPostItem()?.createdAt ? moment(getCurrentPostItem().createdAt).fromNow() : ""}
                   </Text>
                 </View>
-              </View>
+              </Pressable>
               <View style={styles.actionRow}>
                 <Pressable
                   style={[styles.friendBtn, friendStatus === "pending" && styles.friendBtnPending]}
@@ -883,11 +915,11 @@ export default function PostPreviewScreen() {
 
             {getCurrentPostItem()?.caption ? (
               <View style={styles.captionBox}>
-                <Text style={styles.captionUser}>
+                {/* <Text style={styles.captionUser}>
                   {getCurrentPostItem()?.creator
                     ? `${getCurrentPostItem().creator.fname || ""} ${getCurrentPostItem().creator.lname || ""}`.trim() || (getCurrentPostItem().creator.name as string)
                     : (getCurrentPostItem()?.owner?.fname || (getCurrentPostItem()?.author?.name as string) || "User")}
-                </Text>
+                </Text> */}
                 <Text style={styles.captionText}>{getCurrentPostItem().caption}</Text>
               </View>
             ) : null}
@@ -994,6 +1026,138 @@ export default function PostPreviewScreen() {
         </View>
         </View>
       </Modal>
+
+      {/* User Profile Modal */}
+      <Modal
+        visible={showProfileModal}
+        animationType="fade"
+        presentationStyle="overFullScreen"
+        transparent
+        onRequestClose={() => {
+          setShowProfileModal(false);
+          setUserStats(null); // Reset stats when closing
+        }}
+      >
+        <View style={styles.profileModalOverlay}>
+          <View style={[styles.profileModalContent, isDark ? styles.profileModalDark : styles.profileModalLight]}>
+            {/* Header */}
+            <View style={styles.profileModalHeader}>
+              <Text style={[styles.profileModalTitle, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
+                User Profile
+              </Text>
+              <Pressable 
+                style={styles.profileCloseButton} 
+                onPress={() => {
+                  setShowProfileModal(false);
+                  setUserStats(null); // Reset stats when closing
+                }}
+              >
+                <Ionicons name="close" size={24} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
+              </Pressable>
+            </View>
+
+            {/* Profile Info */}
+            <View style={styles.profileInfo}>
+              {/* Avatar */}
+              <View style={styles.profileAvatarContainer}>
+                {getCurrentPostItem()?.creator && extractImageUrl(getCurrentPostItem().creator) ? (
+                  <ExpoImage 
+                    source={{ uri: extractImageUrl(getCurrentPostItem().creator) as string }} 
+                    style={styles.profileAvatar} 
+                    contentFit="cover" 
+                  />
+                ) : getCurrentPostItem()?.owner && extractImageUrl(getCurrentPostItem().owner) ? (
+                  <ExpoImage 
+                    source={{ uri: extractImageUrl(getCurrentPostItem().owner) as string }} 
+                    style={styles.profileAvatar} 
+                    contentFit="cover" 
+                  />
+                ) : (
+                  <View style={[styles.profileAvatar, { alignItems: "center", justifyContent: "center", backgroundColor: "#888" }]}>
+                    <Text style={{ color: "#FFFFFF", fontWeight: "700", fontSize: 32 }}>
+                      {(getCurrentPostItem()?.creator?.fname?.[0] || getCurrentPostItem()?.owner?.fname?.[0] || getCurrentPostItem()?.author?.name?.[0] || "U")?.toUpperCase()}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Name */}
+              <Text style={[styles.profileName, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
+                {getCurrentPostItem()?.creator
+                  ? `${getCurrentPostItem().creator.fname || ""} ${getCurrentPostItem().creator.lname || ""}`.trim() || (getCurrentPostItem().creator.name as string)
+                  : (getCurrentPostItem()?.owner?.fname || (getCurrentPostItem()?.author?.name as string) || "User")}
+              </Text>
+
+              {/* Location */}
+              <Text style={[styles.profileLocation, { color: isDark ? "#9AA0A6" : "#666" }]}>
+                {extractLocationName(getCurrentPostItem())}
+              </Text>
+
+              {/* Stats */}
+              <View style={styles.profileStats}>
+                <View style={styles.profileStat}>
+                  <Text style={[styles.profileStatNumber, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
+                    {isLoadingUserStats ? "..." : userStats?.posts || 0}
+                  </Text>
+                  <Text style={[styles.profileStatLabel, { color: isDark ? "#9AA0A6" : "#666" }]}>Posts</Text>
+                </View>
+                <View style={styles.profileStat}>
+                  <Text style={[styles.profileStatNumber, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
+                    {isLoadingUserStats ? "..." : userStats?.followers || 0}
+                  </Text>
+                  <Text style={[styles.profileStatLabel, { color: isDark ? "#9AA0A6" : "#666" }]}>Followers</Text>
+                </View>
+                <View style={styles.profileStat}>
+                  <Text style={[styles.profileStatNumber, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
+                    {isLoadingUserStats ? "..." : userStats?.followings || 0}
+                  </Text>
+                  <Text style={[styles.profileStatLabel, { color: isDark ? "#9AA0A6" : "#666" }]}>Following</Text>
+                </View>
+              </View>
+
+              {/* Loading indicator for stats */}
+              {isLoadingUserStats && (
+                <View style={styles.statsLoadingContainer}>
+                  <ActivityIndicator size="small" color={isDark ? "#FFFFFF" : "#0a0a0a"} />
+                  <Text style={[styles.statsLoadingText, { color: isDark ? "#9AA0A6" : "#666" }]}>
+                    Loading stats...
+                  </Text>
+                </View>
+              )}
+
+              {/* Action Buttons */}
+              <View style={styles.profileActions}>
+                <Pressable
+                  style={[styles.profileActionButton, styles.addFriendButton]}
+                  onPress={() => toggleFriend(friendStatus === "friends" ? "unfriend" : "friend")}
+                >
+                  <Ionicons name="heart-outline" size={16} color="#FFFFFF" />
+                  <Text style={styles.addFriendText}>
+                    {friendStatus === "pending" ? "Pending" : friendStatus === "friends" ? "Unfriend" : "Add Friend"}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.profileActionButton, styles.followButton]}
+                  onPress={() => toggleFollow(following ? "unfollow" : "follow")}
+                >
+                  <Ionicons name="person-add-outline" size={16} color="#0a0a0a" />
+                  <Text style={styles.profileFollowText}>{following ? "Following" : "Follow"}</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            {/* Recent Activity */}
+            <View style={styles.recentActivity}>
+              <Text style={[styles.recentActivityTitle, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
+                Recent Activity
+              </Text>
+              <Text style={[styles.recentActivityText, { color: isDark ? "#9AA0A6" : "#666" }]}>
+                Last posted {getCurrentPostItem()?.createdAt ? moment(getCurrentPostItem().createdAt).fromNow() : "recently"} at {extractLocationName(getCurrentPostItem())}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </GestureHandlerRootView>
   );
 }
@@ -1066,25 +1230,149 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end",
   },
-  swipeIndicators: {
+  blinkingArrow: {
     position: "absolute",
-    top: "50%",
-    left: 0,
-    right: 0,
+    bottom: 120,
+    right: 20,
     alignItems: "center",
+    justifyContent: "center",
     zIndex: 10,
-    transform: [{ translateY: -40 }],
   },
-  swipeIndicator: {
+  profileModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  profileModalContent: {
+    width: "95%",
+    maxWidth: 400,
+    borderRadius: 20,
+    padding: 0,
+    overflow: "hidden",
+  },
+  profileModalDark: {
+    backgroundColor: "#1A1A1A",
+  },
+  profileModalLight: {
+    backgroundColor: "#FFFFFF",
+  },
+  profileModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.1)",
+  },
+  profileModalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  profileCloseButton: {
+    padding: 4,
+  },
+  profileInfo: {
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+  },
+  profileAvatarContainer: {
+    marginBottom: 16,
+  },
+  profileAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 3,
+    borderColor: "rgba(255,255,255,0.2)",
+  },
+  profileName: {
+    fontSize: 24,
+    fontWeight: "700",
+    marginBottom: 4,
+    textAlign: "center",
+  },
+  profileLocation: {
+    fontSize: 14,
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  profileStats: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    width: "100%",
+    marginBottom: 24,
+  },
+  profileStat: {
     alignItems: "center",
   },
-  swipeText: {
-    color: "#FFFFFF",
+  profileStatNumber: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 2,
+  },
+  profileStatLabel: {
     fontSize: 12,
+  },
+  profileActions: {
+    flexDirection: "row",
+    gap: 12,
+    width: "100%",
+  },
+  profileActionButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 6,
+  },
+  addFriendButton: {
+    backgroundColor: "#333333",
+    borderWidth: 1,
+    borderColor: "#555555",
+  },
+  followButton: {
+    backgroundColor: "#FFFFFF",
+  },
+  addFriendText: {
+    color: "#FFFFFF",
+    fontSize: 14,
     fontWeight: "600",
-    textShadowColor: "rgba(0,0,0,0.75)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
-    marginTop: 4,
+  },
+  profileFollowText: {
+    color: "#0a0a0a",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  recentActivity: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.1)",
+  },
+  recentActivityTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  recentActivityText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  statsLoadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+  },
+  statsLoadingText: {
+    fontSize: 12,
   },
 });
