@@ -1,4 +1,5 @@
 import { CacheStatus } from "@/components/CacheStatus";
+import { CachedImage } from "@/components/CachedImage";
 import Header from "@/components/Header";
 import NewChatModal from "@/components/NewChatModal";
 import NewGroupModal from "@/components/NewGroupModal";
@@ -6,18 +7,19 @@ import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useCampus } from "@/hooks/useCampus";
+import { useImagePreloader } from "@/hooks/useImagePreloader";
 import { useUnifiedGroups } from "@/hooks/useUnifiedGroups";
+import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import moment from "moment";
 import React, { useState } from "react";
 import {
-    Image,
     Pressable,
     RefreshControl,
     ScrollView,
     StyleSheet,
-    View,
+    View
 } from "react-native";
 
 const GroupSkeletonCard = ({ isDark }: { isDark: boolean }) => {
@@ -111,6 +113,9 @@ const Groups = () => {
   const [showCacheStatus, setShowCacheStatus] = useState(false);
   const { selectedUniversity } = useCampus();
   const router = useRouter();
+
+  // Preload profile pictures for better performance
+  useImagePreloader(groups || []);
 
   const handleManualRefresh = async () => {
     setIsManualRefreshing(true);
@@ -311,9 +316,12 @@ const Groups = () => {
                           ]}
                         >
                           {member.bgUrl ? (
-                            <Image
-                              source={{ uri: member.bgUrl }}
+                            <CachedImage
+                              uri={member.bgUrl}
                               style={styles.dmAvatarSmallImage}
+                              fallbackText={(member.fname?.[0] || member.name?.[0] || "U")}
+                              fallbackColor={(group.avatarColors?.[index] || ["#FF6B9D", "#4A90E2", "#9C27B0"][index] || "#ff5f6d")}
+                              cacheKey={`avatar_${member.id || index}_small`}
                             />
                           ) : (
                             <Text style={styles.dmAvatarSmallText}>
@@ -327,9 +335,12 @@ const Groups = () => {
                     // Single avatar for 1-on-1 chats
                     <View style={[styles.dmAvatar, { backgroundColor: "#ff5f6d" }]}>
                       {displayMembers[0]?.bgUrl ? (
-                        <Image
-                          source={{ uri: displayMembers[0].bgUrl }}
+                        <CachedImage
+                          uri={displayMembers[0].bgUrl}
                           style={styles.dmAvatarImage}
+                          fallbackText={initial}
+                          fallbackColor="#ff5f6d"
+                          cacheKey={`avatar_${displayMembers[0].id}_large`}
                         />
                       ) : (
                         <Text style={styles.dmAvatarText}>{initial}</Text>
@@ -510,9 +521,12 @@ const Groups = () => {
                       ]}
                     >
                       {member.bgUrl ? (
-                        <Image
-                          source={{ uri: member.bgUrl }}
+                        <CachedImage
+                          uri={member.bgUrl}
                           style={styles.avatarImage}
+                          fallbackText={member.fname[0].toUpperCase()}
+                          fallbackColor={group.avatarColors?.[index] || "#E0E0E0"}
+                          cacheKey={`avatar_${member.id}_group`}
                         />
                       ) : (
                         <Text style={styles.avatarText}>

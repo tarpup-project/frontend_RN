@@ -3,16 +3,16 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useRef } from "react";
 import {
-  ActionSheetIOS,
-  ActivityIndicator,
-  Alert,
-  Image,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    ActionSheetIOS,
+    ActivityIndicator,
+    Alert,
+    Image,
+    Platform,
+    Pressable,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
 
 interface MessageInputProps {
@@ -30,6 +30,7 @@ interface MessageInputProps {
   selectImage: () => void;
   selectImageFromCamera: () => void;
   selectFile: () => void;
+  isSending?: boolean; // Add this prop to track sending state
 }
 
 export const MessageInput: React.FC<MessageInputProps> = ({
@@ -47,9 +48,39 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   selectImage,
   selectImageFromCamera,
   selectFile,
+  isSending = false, // Default to false
 }) => {
   const { isDark } = useTheme();
   const textInputRef = useRef<TextInput>(null);
+  const [isLocalSending, setIsLocalSending] = React.useState(false);
+  const lastSendTime = useRef<number>(0);
+
+  const handleSend = async () => {
+    const now = Date.now();
+    
+    // Prevent double-sending within 1 second
+    if (now - lastSendTime.current < 1000) {
+      console.log('🚫 Preventing double-send');
+      return;
+    }
+    
+    // Check if already sending or no content
+    if (isLocalSending || isSending || (!message.trim() && !selectedFile)) {
+      return;
+    }
+    
+    setIsLocalSending(true);
+    lastSendTime.current = now;
+    
+    try {
+      await onSend();
+    } finally {
+      // Reset local sending state after a short delay
+      setTimeout(() => {
+        setIsLocalSending(false);
+      }, 500);
+    }
+  };
 
   const dynamicStyles = {
     input: {
@@ -200,16 +231,23 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             style={[
               styles.sendButton,
               dynamicStyles.sendButton,
-              !message.trim() && !selectedFile && { opacity: 0.5 },
+              (!message.trim() && !selectedFile) || isLocalSending || isSending ? { opacity: 0.5 } : {},
             ]}
-            onPress={onSend}
-            disabled={!message.trim() && !selectedFile}
+            onPress={handleSend}
+            disabled={(!message.trim() && !selectedFile) || isLocalSending || isSending}
           >
-            <Ionicons
-              name="send"
-              size={20}
-              color={dynamicStyles.sendIcon.color}
-            />
+            {isLocalSending || isSending ? (
+              <ActivityIndicator
+                size="small"
+                color={dynamicStyles.sendIcon.color}
+              />
+            ) : (
+              <Ionicons
+                name="send"
+                size={20}
+                color={dynamicStyles.sendIcon.color}
+              />
+            )}
           </Pressable>
         )}
       </View>
