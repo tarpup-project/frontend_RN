@@ -19,8 +19,10 @@ import { toast } from 'sonner-native';
 const CacheManagementScreen = () => {
   const { isDark } = useTheme();
   const router = useRouter();
+  const { clearImageCache, getCacheSize } = useImageCacheManager();
   const [cacheStats, setCacheStats] = useState<any>(null);
   const [syncStatus, setSyncStatus] = useState<any>(null);
+  const [imageCacheSize, setImageCacheSize] = useState<string>('0 B');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const dynamicStyles = {
@@ -48,8 +50,12 @@ const CacheManagementScreen = () => {
     },
   };
 
-  const updateStats = () => {
+  const updateStats = async () => {
     setCacheStats(CacheUtils.getCacheStats());
+    
+    // Get image cache size
+    const size = await getCacheSize();
+    setImageCacheSize(size);
     
     // Only get sync status if the manager is ready
     if (offlineSyncManager.isReady()) {
@@ -79,17 +85,37 @@ const CacheManagementScreen = () => {
   const handleClearAllCache = () => {
     Alert.alert(
       'Clear All Cache',
-      'This will remove all cached data and you may experience slower loading times. Continue?',
+      'This will remove all cached data including images and you may experience slower loading times. Continue?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Clear',
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
             CacheUtils.clearAll();
             StorageUtils.clearCache();
+            await clearImageCache();
             updateStats();
-            toast.success('Cache cleared successfully');
+            toast.success('All cache cleared successfully');
+          },
+        },
+      ]
+    );
+  };
+
+  const handleClearImageCache = () => {
+    Alert.alert(
+      'Clear Image Cache',
+      'This will remove all cached profile pictures and images. They will need to be downloaded again.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: async () => {
+            await clearImageCache();
+            updateStats();
+            toast.success('Image cache cleared successfully');
           },
         },
       ]
@@ -251,6 +277,37 @@ const CacheManagementScreen = () => {
           </View>
         </View>
 
+        {/* Image Cache Statistics */}
+        <View style={[styles.card, dynamicStyles.card]}>
+          <Text style={[styles.cardTitle, dynamicStyles.text]}>
+            Image Cache
+          </Text>
+          
+          <View style={styles.imageCacheContainer}>
+            <View style={styles.imageCacheInfo}>
+              <Ionicons name="images" size={24} color="#4ECDC4" />
+              <View style={styles.imageCacheText}>
+                <Text style={[styles.imageCacheSize, dynamicStyles.text]}>
+                  {imageCacheSize}
+                </Text>
+                <Text style={[styles.imageCacheLabel, dynamicStyles.subtitle]}>
+                  Profile pictures cached
+                </Text>
+              </View>
+            </View>
+            
+            <Pressable
+              style={[styles.actionButton, dynamicStyles.button]}
+              onPress={handleClearImageCache}
+            >
+              <Ionicons name="trash" size={16} color={dynamicStyles.text.color} />
+              <Text style={[styles.actionButtonText, dynamicStyles.text]}>
+                Clear Images
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+
         {/* Offline Queue */}
         {syncStatus?.queuedActions && syncStatus.queuedActions.length > 0 && (
           <View style={[styles.card, dynamicStyles.card]}>
@@ -352,6 +409,13 @@ const CacheManagementScreen = () => {
               <Ionicons name="refresh" size={16} color="#51CF66" />
               <Text style={[styles.tipText, dynamicStyles.subtitle]}>
                 Pull to refresh updates stale data
+              </Text>
+            </View>
+            
+            <View style={styles.tip}>
+              <Ionicons name="images" size={16} color="#4ECDC4" />
+              <Text style={[styles.tipText, dynamicStyles.subtitle]}>
+                Profile pictures are cached for instant loading
               </Text>
             </View>
           </View>
@@ -492,6 +556,28 @@ const styles = StyleSheet.create({
   tipText: {
     fontSize: 14,
     flex: 1,
+  },
+  imageCacheContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  imageCacheInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  imageCacheText: {
+    flex: 1,
+  },
+  imageCacheSize: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  imageCacheLabel: {
+    fontSize: 12,
+    marginTop: 2,
   },
 });
 

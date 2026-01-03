@@ -69,7 +69,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   } = useGroupDetails(groupId);
   const finalGroupDetails = passedGroupData || groupDetails;
 
-  const { messages, isLoading, error, sendMessage, markAsRead, isCached, isRefreshing } =
+  const { messages, isLoading, error, sendMessage, markAsRead, isCached, isRefreshing, isSending } =
     useEnhancedGroupMessages({ groupId, socket: socket && user ? socket : undefined });
 
   const { refetchNotifications } = useNotifications();
@@ -395,6 +395,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
           selectImage={selectImage}
           selectImageFromCamera={selectImageFromCamera}
           selectFile={selectFile}
+          isSending={isSending}
         />
       </KeyboardAvoidingView>
   );
