@@ -10,8 +10,8 @@ import { MessageList } from "@/components/chatComponents/MessageList";
 import { UrlConstants } from "@/constants/apiUrls";
 import { GroupSocketProvider, useGroupSocket } from "@/contexts/SocketProvider";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useEnhancedGroupMessages, useMessageReply } from "@/hooks/useEnhancedGroupMessages";
 import { useFileUpload } from "@/hooks/useFileUpload";
-import { useGroupMessages, useMessageReply } from "@/hooks/useGroupMessages";
 import { useGroupDetails } from "@/hooks/useGroups";
 import { useNotifications } from "@/hooks/useNotification";
 import { useAuthStore } from "@/state/authStore";
@@ -69,8 +69,8 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   } = useGroupDetails(groupId);
   const finalGroupDetails = passedGroupData || groupDetails;
 
-  const { messages, isLoading, error, sendMessage, markAsRead } =
-    useGroupMessages({ groupId, socket: socket && user ? socket : undefined });
+  const { messages, isLoading, error, sendMessage, markAsRead, isCached, isRefreshing } =
+    useEnhancedGroupMessages({ groupId, socket: socket && user ? socket : undefined });
 
   const { refetchNotifications } = useNotifications();
 
@@ -326,6 +326,8 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
             onShowGroupInfo={handleShowGroupInfo}
             onLeaveSuccess={() => router.back()}
             navigateToProfile={navigateToProfile}
+            isCached={isCached}
+            isRefreshing={isRefreshing}
           />
 
           <MessageList

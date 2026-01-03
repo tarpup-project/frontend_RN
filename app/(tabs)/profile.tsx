@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import { ReferralCard } from "@/components/ReferralCard";
 import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -10,15 +11,15 @@ import { router } from "expo-router";
 import moment from "moment";
 import React, { useState } from "react";
 import {
-  Alert,
-  Image,
-  Modal,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  Share,
-  StyleSheet,
-  View,
+    Alert,
+    Image,
+    Modal,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    Share,
+    StyleSheet,
+    View,
 } from "react-native";
 import { toast } from "sonner-native";
 
@@ -274,68 +275,8 @@ const Profile = () => {
           </Pressable>
         </View>
 
-        {/* Referrals Section */}
-        <View style={[styles.referralsCard, dynamicStyles.card]}>
-          <Text style={[styles.sectionTitle, dynamicStyles.text]}>
-            Referrals
-          </Text>
-
-          <View style={styles.referralStats}>
-            <View style={[styles.iconBackground, dynamicStyles.iconBackground]}>
-            <Ionicons
-  name="people-outline"
-  size={18}
-  color={dynamicStyles.subtitle.color}
-/>
-            </View>
-            <Text style={[styles.referralCount, dynamicStyles.text]}>
-              <Text style={{ color: "#FFFFFF" }}>
-                {new Intl.NumberFormat("en-US").format(user.refferals ?? 0)}
-              </Text>
-              <Text style={[{ color: dynamicStyles.subtitle.color }]}>
-                {" "}
-                Total Referrals
-              </Text>
-            </Text>
-          </View>
-
-          <Text style={[styles.referralDescription, dynamicStyles.subtitle]}>
-            Share your unique link and earn rewards when friends join!
-          </Text>
-
-          <View
-            style={[
-              styles.referralLinkContainer,
-              dynamicStyles.referralLinkContainer,
-            ]}
-          >
-            <Text
-              style={[styles.referralLink, dynamicStyles.text]}
-              numberOfLines={1}
-            >
-              {referralLink}
-            </Text>
-            <Pressable
-              style={styles.copyButton}
-              onPress={handleCopyReferralLink}
-              disabled={copyLoading}
-            >
-              <Ionicons
-                name={copyLoading ? "hourglass-outline" : "copy-outline"}
-                size={18}
-                color={dynamicStyles.text.color}
-              />
-            </Pressable>
-          </View>
-
-          <Pressable
-            style={styles.shareButton}
-            onPress={handleShareReferralLink}
-          >
-            <Ionicons name="share-social-outline" size={18} color="#FFFFFF" />
-            <Text style={styles.shareButtonText}>Share</Text>
-          </Pressable>
-        </View>
+        {/* Enhanced Referrals Section */}
+        <ReferralCard showStats={true} compact={false} />
 
         {/* Activity Stats */}
         <View style={styles.section}>

@@ -15,6 +15,16 @@ export interface GroupMember {
     createdAt: string;
   }
   
+  export interface LastMessage {
+    id: string;
+    content: string;
+    sender: {
+      id: string;
+      fname: string;
+      lname?: string;
+    };
+  }
+
   export interface Group {
     id: string;
     name: string;
@@ -27,6 +37,7 @@ export interface GroupMember {
     isAdmin?: boolean;
     category: Category[];
     members: GroupMember[];
+    messages: LastMessage[];
     lastMessageAt?: string;
     createdAt: string;
     updatedAt: string;

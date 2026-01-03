@@ -154,6 +154,7 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import { UrlConstants } from '../constants/apiUrls';
 import { useAuthStore } from '../state/authStore';
+import { secureTokenStorage } from '../utils/secureTokenStorage';
 import { clearUserData, getAccessToken, getRefreshToken, saveAccessToken, saveSocketToken } from '../utils/storage';
 
 interface TokenPayload {
@@ -178,16 +179,17 @@ const api = axios.create({
 let isRefreshing = false;
 let failedQueue: any[] = [];
 
-const shouldRefreshToken = (token: string, bufferMinutes: number = 5): boolean => {
+const shouldRefreshToken = (token: string, bufferMinutes: number = 1): boolean => {
   try {
     const decoded = jwtDecode<TokenPayload>(token);
     const expiryTime = decoded.exp * 1000;
     const now = Date.now();
     const bufferTime = bufferMinutes * 60 * 1000;
 
+    // Only refresh if token expires in less than 1 minute (instead of 5)
     return (expiryTime - now) < bufferTime;
   } catch {
-    return true;
+    return false; // Don't refresh if we can't decode the token
   }
 };
 
@@ -210,40 +212,47 @@ api.interceptors.request.use(
       return config;
     }
 
-    const accessToken = await getAccessToken();
-    const refreshToken = await getRefreshToken();
+    // Try to get valid access token from secure storage first
+    let accessToken = await secureTokenStorage.getValidAccessToken();
+    
+    // Fallback to regular storage for backward compatibility
+    if (!accessToken) {
+      accessToken = await getAccessToken();
+      const refreshToken = await getRefreshToken();
 
-    // Only attempt proactive refresh if we have both tokens and aren't already refreshing
-    if (accessToken && refreshToken && !isRefreshing && shouldRefreshToken(accessToken, 5)) {
-      isRefreshing = true;
-
-      try {
-        console.log('🔄 Proactively refreshing token...');
-        const refreshResponse = await axios.post(
-          `${UrlConstants.baseUrl}${UrlConstants.refreshToken}`,
-          {},
-          {
-            headers: { Authorization: `Bearer ${refreshToken}` },
-            timeout: 10000 // 10 second timeout for refresh
+      // If we have tokens in regular storage, migrate to secure storage
+      if (accessToken && refreshToken) {
+        try {
+          await secureTokenStorage.saveTokens(accessToken, refreshToken);
+          console.log('🔄 Migrated tokens to secure storage');
+        } catch (error) {
+          console.warn('⚠️ Failed to migrate tokens to secure storage:', error);
+        }
+      }
+      
+      // Only check if we should refresh if we have both tokens
+      if (accessToken && refreshToken && shouldRefreshToken(accessToken, 1)) {
+        console.log('🔄 Token expires very soon, attempting proactive refresh...');
+        try {
+          const refreshResponse = await axios.post(
+            `${UrlConstants.baseUrl}${UrlConstants.refreshToken}`,
+            {},
+            {
+              headers: { Authorization: `Bearer ${refreshToken}` },
+              timeout: 10000
+            }
+          );
+          
+          if (refreshResponse.data?.data?.authTokens) {
+            await saveAccessToken(refreshResponse.data.data.authTokens.accessToken);
+            await saveSocketToken(refreshResponse.data.data.authTokens.socketToken);
+            accessToken = refreshResponse.data.data.authTokens.accessToken;
+            console.log('✅ Proactive refresh successful');
           }
-        );        
-
-        if (refreshResponse.data?.data?.authTokens) {
-          await saveAccessToken(refreshResponse.data.data.authTokens.accessToken);
-          await saveSocketToken(refreshResponse.data.data.authTokens.socketToken);
-          config.headers.Authorization = `Bearer ${refreshResponse.data.data.authTokens.accessToken}`;
-          console.log('✅ Token refreshed successfully');
+        } catch (error) {
+          console.log('❌ Proactive refresh failed, using current token');
+          // Continue with current token
         }
-      } catch (error: any) {
-        console.log('❌ Proactive refresh failed:', error.message);
-        // If refresh fails, clear tokens to prevent infinite loops
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          console.log('🚫 Refresh token invalid, clearing auth data');
-          await clearUserData();
-          useAuthStore.getState().setUser(undefined);
-        }
-      } finally {
-        isRefreshing = false;
       }
     }
 
@@ -277,13 +286,24 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
+        console.log('🔄 Attempting token refresh due to 401...');
+        
+        // Try secure token refresh first
+        const refreshed = await secureTokenStorage.refreshTokens();
+        
+        if (refreshed) {
+          console.log('✅ Secure token refresh successful, retrying original request');
+          processQueue(null);
+          return api(originalRequest);
+        }
+
+        // Fallback to regular token refresh
         const refreshToken = await getRefreshToken();
 
         if (!refreshToken) {
           throw new Error('No refresh token available');
         }
 
-        console.log('🔄 Attempting token refresh due to 401...');
         const refreshResponse = await axios.post(
           `${UrlConstants.baseUrl}${UrlConstants.refreshToken}`,
           {},
@@ -307,6 +327,7 @@ api.interceptors.response.use(
 
         // Clear auth data on refresh failure
         await clearUserData();
+        await secureTokenStorage.clearTokens();
         useAuthStore.getState().setUser(undefined);
 
         return Promise.reject(err);

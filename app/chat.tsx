@@ -8,9 +8,9 @@ import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
 import { UrlConstants } from "@/constants/apiUrls";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useEnhancedPersonalChat } from "@/hooks/useEnhancedPersonalChat";
 import { useImageUpload } from "@/hooks/useImageUpload";
 import { useMatchActions } from "@/hooks/useMatchActions";
-import { usePersonalChat } from "@/hooks/usePersonalChat";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -55,7 +55,9 @@ const Chat = () => {
     sendMessage,
     markAsRead,
     clearMessages,
-  } = usePersonalChat();
+    isCached,
+    isRefreshing,
+  } = useEnhancedPersonalChat();
 
   const { handleMatchAction: processMatchAction, isLoading: isMatchLoading } =
     useMatchActions();
@@ -532,7 +534,7 @@ const Chat = () => {
     >
       {/* Header */}
       <View style={[styles.header, dynamicStyles.header]}>
-        {isLoading ? (
+        {isLoading && !isCached ? (
           <>
             <Skeleton width={120} height={20} />
             <View style={styles.headerActions}>
@@ -543,9 +545,19 @@ const Chat = () => {
           </>
         ) : (
           <>
-            <Text style={[styles.headerTitle, dynamicStyles.text]}>
-              Chat with TarpAI
-            </Text>
+            <View style={styles.headerTitleContainer}>
+              <Text style={[styles.headerTitle, dynamicStyles.text]}>
+                Chat with TarpAI
+              </Text>
+              {/* {isCached && isRefreshing && (
+                <View style={styles.refreshIndicator}>
+                  <ActivityIndicator size="small" color={dynamicStyles.subtitle.color} />
+                  <Text style={[styles.refreshText, dynamicStyles.subtitle]}>
+                    Syncing...
+                  </Text>
+                </View>
+              )} */}
+            </View>
             <View style={styles.headerActions}>
               <Pressable
                 style={styles.settingsButton}
@@ -589,7 +601,7 @@ const Chat = () => {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {isLoading ? (
+        {isLoading && !isCached ? (
           <>
             <QuickStartSkeleton />
             {Array(4)
@@ -774,6 +786,21 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 14,
     fontWeight: "600",
+  },
+  headerTitleContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  refreshIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  refreshText: {
+    fontSize: 10,
+    fontStyle: 'italic',
   },
   headerActions: {
     flexDirection: "row",

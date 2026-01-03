@@ -1,13 +1,16 @@
+import { CacheStatus } from "@/components/CacheStatus";
 import Header from "@/components/Header";
+import NewChatModal from "@/components/NewChatModal";
+import NewGroupModal from "@/components/NewGroupModal";
 import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useCampus } from "@/hooks/useCampus";
-import { transformGroupForUI, useGroups } from "@/hooks/useGroups";
+import { useUnifiedGroups } from "@/hooks/useUnifiedGroups";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import moment from "moment";
-import { useState } from "react";
+import React, { useState } from "react";
 import {
     Image,
     Pressable,
@@ -16,19 +19,6 @@ import {
     StyleSheet,
     View,
 } from "react-native";
-
-const iconMap: Record<string, string> = {
-  "briefcase-business": "briefcase-outline",
-  "users-round": "people-outline",
-  "gamepad-2": "game-controller-outline",
-  gift: "gift-outline",
-  "shopping-bag": "bag-outline",
-  "party-popper": "balloon-outline",
-  car: "car-outline",
-  "bed-double": "bed-outline",
-  volleyball: "football-outline",
-  "book-open-text": "book-outline",
-};
 
 const GroupSkeletonCard = ({ isDark }: { isDark: boolean }) => {
   return (
@@ -101,55 +91,75 @@ const GroupSkeletonCard = ({ isDark }: { isDark: boolean }) => {
   );
 };
 
-const getGroupIconByCategory = (categoryName: string) => {
-  console.log("Input category name:", categoryName);
-  const categoryIconMap: Record<string, string> = {
-    giveaway: "gift-outline",
-    sports: "football-outline",
-    games: "game-controller-outline",
-    friends: "people-outline",
-    market: "storefront-outline",
-    party: "wine-outline",
-    rides: "car-outline",
-    roommates: "home-outline",
-    dating: "heart-outline",
-    "study group": "book-outline",
-  };
-
-  const normalized = categoryName.toLowerCase().trim();
-
-  const result = categoryIconMap[normalized] || "pricetag-outline";
-  return result;
-};
-
-const getIconComponent = (iconName: string) => {
-  const normalizedName = iconName.toLowerCase();
-  return iconMap[normalizedName] || "pricetag-outline";
-};
-
 const Groups = () => {
   const { isDark } = useTheme();
+  const { user } = useAuthStore(); // Get current user for message comparison
   const {
-    data: groups,
+    groups,
+    uiGroups,
     isLoading,
-    isError,
     error,
-    refetch,
-    // isRefetching,
-  } = useGroups();
-  const [dropdownVisible, setDropdownVisible] = useState<string | null>(null);
+    refresh,
+    markAsRead,
+    isCached,
+    hasData,
+  } = useUnifiedGroups();
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+  const [showComposeMenu, setShowComposeMenu] = useState(false);
+  const [showNewChatModal, setShowNewChatModal] = useState(false);
+  const [showNewGroupModal, setShowNewGroupModal] = useState(false);
+  const [showCacheStatus, setShowCacheStatus] = useState(false);
   const { selectedUniversity } = useCampus();
   const router = useRouter();
 
   const handleManualRefresh = async () => {
     setIsManualRefreshing(true);
-    await refetch();
+    await refresh();
     setIsManualRefreshing(false);
   };
 
-  const toggleDropdown = (groupId: string) => {
-    setDropdownVisible(dropdownVisible === groupId ? null : groupId);
+  const handleNewChat = () => {
+    setShowComposeMenu(false);
+    setShowNewChatModal(true);
+  };
+
+  const handleChatCreated = (chatData: any) => {
+    console.log('Chat created successfully:', chatData);
+    
+    // Navigate to the group chat screen using the created chat/group ID
+    if (chatData.id || chatData._id) {
+      const chatId = chatData.id || chatData._id;
+      router.push({
+        pathname: `/group-chat/${chatId}` as any,
+        params: {
+          groupData: JSON.stringify(chatData),
+        },
+      });
+    } else {
+      console.error('No chat ID found in created chat data');
+    }
+  };
+
+  const handleNewGroup = () => {
+    setShowComposeMenu(false);
+    setShowNewGroupModal(true);
+  };
+
+  const handleGroupCreated = (groupData: any) => {
+    console.log('Group created successfully:', groupData);
+    
+    // Navigate to the group chat screen using the created group ID
+    if (groupData.id || groupData._id) {
+      const groupId = groupData.id || groupData._id;
+      router.push({
+        pathname: `/group-chat/${groupId}` as any,
+        params: {
+          groupData: JSON.stringify(groupData),
+        },
+      });
+    } else {
+      console.error('No group ID found in created group data');
+    }
   };
 
   const dynamicStyles = {
@@ -169,70 +179,461 @@ const Groups = () => {
     avatarBorder: {
       borderColor: isDark ? "#0a0a0a" : "#FFFFFF",
     },
-    openButton: {
-      backgroundColor: isDark ? "#FFFFFF" : "#000000",
-    },
-    openButtonText: {
-      color: isDark ? "#0a0a0a" : "#FFFFFF",
-    },
-    categoryBadge: {
-      backgroundColor: isDark ? "#FFFFFF" : "#000000",
-    },
-    categoryBadgeText: {
-      color: isDark ? "#0a0a0a" : "#FFFFFF",
-    },
-    matchBadge: {
-      backgroundColor: isDark ? "#234a29" : "#c3f3d5",
-    },
-    matchText: {
-      color: isDark ? "#FFFFFF" : "#0a0a0a",
-    },
-    unreadBadge: {
-      backgroundColor: isDark ? "#532325" : "#f7cacf",
-    },
-    unreadText: {
-      color: isDark ? "#FFFFFF" : "#0a0a0a",
-    },
     retryButton: {
       backgroundColor: isDark ? "#FFFFFF" : "#000000",
     },
     retryButtonText: {
       color: isDark ? "#0a0a0a" : "#FFFFFF",
     },
-    dropdown: {
-      backgroundColor: isDark ? "#1a1a1a" : "#FFFFFF",
-      borderColor: isDark ? "#333333" : "#E0E0E0",
-    },
-    dropdownItem: {
-      backgroundColor: isDark ? "#1a1a1a" : "#FFFFFF",
-    },
-    dropdownText: {
-      color: isDark ? "#FFFFFF" : "#0a0a0a",
-    },
-    dropdownDanger: {
-      color: isDark ? "#FF6B6B" : "#E74C3C",
-    },
+  };
+
+  const getTextColorForBackground = (bgColor: string) => {
+    // Remove # if present
+    const color = bgColor.replace('#', '');
+    
+    // Convert to RGB
+    const r = parseInt(color.substring(0, 2), 16);
+    const g = parseInt(color.substring(2, 4), 16);
+    const b = parseInt(color.substring(4, 6), 16);
+    
+    // Calculate luminance
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    
+    // For light backgrounds, use a darker version of the same color
+    if (luminance > 0.7) {
+      // Create a darker version by reducing RGB values
+      const darkR = Math.max(0, r - 100);
+      const darkG = Math.max(0, g - 100);
+      const darkB = Math.max(0, b - 100);
+      return `rgb(${darkR}, ${darkG}, ${darkB})`;
+    }
+    
+    // For dark backgrounds, use white
+    return "#FFFFFF";
+  };
+
+  const renderGroupsList = () => {
+    if (!uiGroups || !Array.isArray(uiGroups) || uiGroups.length === 0) {
+      return null;
+    }
+
+    return uiGroups
+      .slice()
+      .sort((a: any, b: any) => {
+        // Sort by unread count first, then by activity time
+        if (a.unreadCount > 0 && b.unreadCount === 0) return -1;
+        if (a.unreadCount === 0 && b.unreadCount > 0) return 1;
+        if (a.unreadCount > 0 && b.unreadCount > 0) {
+          return b.unreadCount - a.unreadCount;
+        }
+        
+        // Sort by last message time or created time
+        const aTime = a.rawGroup.lastMessageAt || a.rawGroup.createdAt || 0;
+        const bTime = b.rawGroup.lastMessageAt || b.rawGroup.createdAt || 0;
+        return bTime - aTime;
+      })
+      .map((group: any) => {
+        const isGeneral = (group.category || "").toLowerCase() === "general";
+        
+        if (isGeneral) {
+          const when = moment(
+            group.rawGroup.lastMessageAt || group.rawGroup.createdAt
+          ).fromNow();
+          const initial = group.title?.[0]?.toUpperCase() || "G";
+          
+          // For general category (personal chats), show the last message instead of description
+          let displayMessage = "No messages yet";
+          
+          if (group.rawGroup.messages && group.rawGroup.messages.length > 0) {
+            const lastMessage = group.rawGroup.messages[group.rawGroup.messages.length - 1];
+            if (lastMessage) {
+              // Format the last message
+              const senderName = lastMessage.sender?.fname || lastMessage.senderName || "Someone";
+              const messageContent = lastMessage.content || lastMessage.message || "";
+              
+              if (messageContent) {
+                // Show "You: message" if it's from the current user, otherwise "Name: message"
+                const isFromCurrentUser = lastMessage.sender?.id === user?.id || 
+                                         lastMessage.senderId === user?.id;
+                const prefix = isFromCurrentUser ? "You" : senderName;
+                displayMessage = `${prefix}: ${messageContent}`;
+              }
+            }
+          } else if (group.rawGroup.lastMessage) {
+            // Fallback to lastMessage field if messages array is not available
+            const lastMsg = group.rawGroup.lastMessage;
+            if (typeof lastMsg === 'string') {
+              displayMessage = lastMsg;
+            } else if (lastMsg.content || lastMsg.message) {
+              const senderName = lastMsg.sender?.fname || lastMsg.senderName || "Someone";
+              const messageContent = lastMsg.content || lastMsg.message;
+              const isFromCurrentUser = lastMsg.sender?.id === user?.id || 
+                                       lastMsg.senderId === user?.id;
+              const prefix = isFromCurrentUser ? "You" : senderName;
+              displayMessage = `${prefix}: ${messageContent}`;
+            }
+          }
+          
+          // Get up to 3 members for profile pictures
+          const displayMembers = group.rawGroup.members?.slice(0, 3) || [];
+          
+          return (
+            <Pressable
+              key={group.id}
+              style={[styles.dmCard, dynamicStyles.card]}
+              onPress={() => {
+                router.push({
+                  pathname: `/group-chat/${group.id}` as any,
+                  params: {
+                    groupData: JSON.stringify(group.rawGroup),
+                  },
+                });
+              }}
+            >
+              <View style={styles.dmHeader}>
+                <View style={styles.dmAvatarContainer}>
+                  {displayMembers.length > 1 ? (
+                    // Multiple profile pictures for groups
+                    <View style={styles.multipleAvatars}>
+                      {displayMembers.map((member: any, index: number) => (
+                        <View
+                          key={member.id || index}
+                          style={[
+                            styles.dmAvatarSmall,
+                            {
+                              backgroundColor: member.bgUrl
+                                ? "transparent"
+                                : (group.avatarColors?.[index] || ["#FF6B9D", "#4A90E2", "#9C27B0"][index] || "#ff5f6d"),
+                              zIndex: displayMembers.length - index,
+                              marginLeft: index > 0 ? -16 : 0,
+                            },
+                            dynamicStyles.avatarBorder,
+                          ]}
+                        >
+                          {member.bgUrl ? (
+                            <Image
+                              source={{ uri: member.bgUrl }}
+                              style={styles.dmAvatarSmallImage}
+                            />
+                          ) : (
+                            <Text style={styles.dmAvatarSmallText}>
+                              {(member.fname?.[0] || member.name?.[0] || "U").toUpperCase()}
+                            </Text>
+                          )}
+                        </View>
+                      ))}
+                    </View>
+                  ) : (
+                    // Single avatar for 1-on-1 chats
+                    <View style={[styles.dmAvatar, { backgroundColor: "#ff5f6d" }]}>
+                      {displayMembers[0]?.bgUrl ? (
+                        <Image
+                          source={{ uri: displayMembers[0].bgUrl }}
+                          style={styles.dmAvatarImage}
+                        />
+                      ) : (
+                        <Text style={styles.dmAvatarText}>{initial}</Text>
+                      )}
+                    </View>
+                  )}
+                </View>
+                <View style={styles.dmContentContainer}>
+                  <View style={styles.dmHeaderRow}>
+                    <View style={styles.dmNameContainer}>
+                      <Text style={[styles.dmName, dynamicStyles.text]}>
+                        {group.title}
+                      </Text>
+                      {/* Only show member count for group chats (more than 2 members) */}
+                      {group.members > 2 && (
+                        <View style={[styles.memberCountBadge, { 
+                          backgroundColor: isDark ? "#2A2A2A" : "#F5F5F5",
+                          borderColor: isDark ? "#444444" : "#E0E0E0"
+                        }]}>
+                          <Ionicons name="people" size={12} color={isDark ? "#FFFFFF" : "#000000"} />
+                          <Text style={[styles.memberCountText, { color: isDark ? "#FFFFFF" : "#000000" }]}>
+                            {group.members}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    <View style={styles.dmTimeContainer}>
+                      <Text style={[styles.dmTime, dynamicStyles.subtitle]}>
+                        {when}
+                      </Text>
+                    </View>
+                  </View>
+                  {/* Last message and counter on same line */}
+                  <View style={styles.dmMessageRow}>
+                    <Text 
+                      style={[styles.dmMessage, dynamicStyles.subtitle]}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {displayMessage}
+                    </Text>
+                    {group.unreadCount > 0 && (
+                      <View style={[styles.newMessagesBadge, { backgroundColor: "#EF4444" }]}>
+                        <Text style={[styles.newMessagesText, { color: "#FFFFFF" }]}>
+                          {group.unreadCount}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              </View>
+            </Pressable>
+          );
+        }
+        
+        return (
+          <Pressable
+            key={group.id}
+            style={[styles.groupCard, dynamicStyles.card]}
+            onPress={() => {
+              router.push({
+                pathname: `/group-chat/${group.id}` as any,
+                params: {
+                  groupData: JSON.stringify(group.rawGroup),
+                },
+              });
+            }}
+          >
+            <View style={styles.topRow}>
+              <View style={styles.badgesRow}>
+                <View
+                  style={[
+                    styles.categoryBadge,
+                    { 
+                      backgroundColor: group.rawGroup.category[0]?.bgColorHex || "#2563EB",
+                      borderWidth: 1,
+                      borderColor: "rgba(0,0,0,0.1)"
+                    }
+                  ]}
+                >
+                  <Ionicons
+                    name="home-outline"
+                    size={10}
+                    color={getTextColorForBackground(group.rawGroup.category[0]?.bgColorHex || "#2563EB")}
+                  />
+                  <Text
+                    style={[
+                      styles.categoryText,
+                      { 
+                        color: getTextColorForBackground(group.rawGroup.category[0]?.bgColorHex || "#2563EB"),
+                        fontWeight: "700",
+                        fontSize: 9,
+                      }
+                    ]}
+                  >
+                    {group.category?.toUpperCase()}
+                  </Text>
+                </View>
+                
+                <View
+                  style={[
+                    styles.statusBadge,
+                    { 
+                      backgroundColor: "#10B981",
+                      borderWidth: 1,
+                      borderColor: "rgba(0,0,0,0.1)"
+                    }
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.statusText,
+                      { 
+                        color: "#FFFFFF",
+                        fontWeight: "700",
+                      }
+                    ]}
+                  >
+                    Completed
+                  </Text>
+                </View>
+              </View>
+
+              <View
+                style={[
+                  styles.matchBadge, 
+                  { 
+                    backgroundColor: "#3B82F6",
+                    borderWidth: 1,
+                    borderColor: "rgba(0,0,0,0.1)"
+                  }
+                ]}
+              >
+                <Ionicons
+                  name="star"
+                  size={10}
+                  color="#FFFFFF"
+                />
+                <Text
+                  style={[
+                    styles.matchText, 
+                    { 
+                      color: "#FFFFFF",
+                      fontWeight: "700",
+                    }
+                  ]}
+                >
+                  {group.matchPercentage}% match
+                </Text>
+              </View>
+            </View>
+
+            <Text style={[styles.groupTitle, dynamicStyles.text]}>
+              {group.title}
+            </Text>
+            <Text
+              style={[styles.groupDescription, dynamicStyles.subtitle]}
+            >
+              {group.description}
+            </Text>
+
+            <View style={styles.membersRow}>
+              <View style={styles.avatarsContainer}>
+                {group.rawGroup.members
+                  .slice(0, 3)
+                  .map((member: any, index: number) => (
+                    <View
+                      key={member.id}
+                      style={[
+                        styles.avatar,
+                        {
+                          backgroundColor: member.bgUrl
+                            ? "transparent"
+                            : group.avatarColors?.[index] || "#E0E0E0",
+                        },
+                        dynamicStyles.avatarBorder,
+                        index > 0 && { marginLeft: -8 },
+                      ]}
+                    >
+                      {member.bgUrl ? (
+                        <Image
+                          source={{ uri: member.bgUrl }}
+                          style={styles.avatarImage}
+                        />
+                      ) : (
+                        <Text style={styles.avatarText}>
+                          {member.fname[0].toUpperCase()}
+                        </Text>
+                      )}
+                    </View>
+                  ))}
+                <Text
+                  style={[styles.membersText, dynamicStyles.subtitle]}
+                >
+                  {group.members}{" "}
+                  {group.members === 1 ? "member" : "members"}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.footerRow}>
+              <View style={styles.activeRow}>
+                <Ionicons
+                  name="time-outline"
+                  size={14}
+                  color={dynamicStyles.subtitle.color}
+                />
+                <Text
+                  style={[styles.activeText, dynamicStyles.subtitle]}
+                >
+                  Active{" "}
+                  {moment(
+                    group.rawGroup.lastMessageAt ||
+                      group.rawGroup.createdAt
+                  ).fromNow()}
+                </Text>
+              </View>
+
+              <View
+                style={[styles.unreadBadge, { backgroundColor: "#EF4444" }]}
+              >
+                <Text
+                  style={[styles.unreadText, { color: "#FFFFFF" }]}
+                >
+                  {group.unreadCount} new messages
+                </Text>
+              </View>
+            </View>
+          </Pressable>
+        );
+      });
   };
 
   return (
     <View style={[styles.container, dynamicStyles.container]}>
       <Header />
 
-      <ScrollView
-        style={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={isManualRefreshing}
-            onRefresh={handleManualRefresh}
-          />
-        }
+      <Pressable 
+        style={{ flex: 1 }}
+        onPress={() => showComposeMenu && setShowComposeMenu(false)}
       >
+        <ScrollView
+          style={styles.content}
+          refreshControl={
+            <RefreshControl
+              refreshing={isManualRefreshing}
+              onRefresh={handleManualRefresh}
+            />
+          }
+        >
         <View style={styles.headerSection}>
-          <Text style={[styles.pageTitle, dynamicStyles.text]}>
-            Your Groups
-          </Text>
+          <View style={styles.headerRow}>
+            <Text style={[styles.pageTitle, dynamicStyles.text]}>
+              Chats
+            </Text>
+            <View style={styles.composeContainer}>
+              <Pressable 
+                style={styles.composeButton}
+                onPress={() => setShowComposeMenu(!showComposeMenu)}
+              >
+                <Ionicons name="create-outline" size={20} color={dynamicStyles.text.color} />
+              </Pressable>
+              
+              {showComposeMenu && (
+                <View style={[styles.composeMenu, {
+                  backgroundColor: isDark ? "#1a1a1a" : "#FFFFFF",
+                  borderColor: isDark ? "#333333" : "#E0E0E0",
+                }]}>
+                  <Pressable 
+                    style={[styles.menuItem, {
+                      borderBottomColor: isDark ? "#333333" : "#E0E0E0",
+                      borderBottomWidth: 1,
+                    }]}
+                    onPress={handleNewChat}
+                  >
+                    <Ionicons 
+                      name="chatbubble-outline" 
+                      size={18} 
+                      color={dynamicStyles.text.color} 
+                    />
+                    <Text style={[styles.menuText, dynamicStyles.text]}>
+                      New Chat
+                    </Text>
+                  </Pressable>
+                  
+                  <Pressable 
+                    style={[styles.menuItem, { borderBottomWidth: 0 }]}
+                    onPress={handleNewGroup}
+                  >
+                    <Ionicons 
+                      name="people-outline" 
+                      size={18} 
+                      color={dynamicStyles.text.color} 
+                    />
+                    <Text style={[styles.menuText, dynamicStyles.text]}>
+                      New Group
+                    </Text>
+                  </Pressable>
+                </View>
+              )}
+            </View>
+          </View>
           <Text style={[styles.pageSubtitle, dynamicStyles.subtitle]}>
-            AI-matched groups you've joined
+            Prompt-matched groups and direct messages
             {selectedUniversity && ` • ${selectedUniversity.name}`}
           </Text>
         </View>
@@ -249,8 +650,8 @@ const Groups = () => {
           )}
 
           {/* Error State */}
-          {!isLoading && isError && (
-            <View style={styles.centerContainer}>
+          {!isLoading && error && !hasData ? (
+            <View style={styles.centerContainer} key="error-state">
               <Ionicons
                 name="alert-circle-outline"
                 size={48}
@@ -260,17 +661,13 @@ const Groups = () => {
                 Unable to load groups
               </Text>
               <Text style={[styles.errorSubtext, dynamicStyles.subtitle]}>
-                {(() => {
-                  // Import and use error utility
-                  const getErrorMessage = require('@/utils/errorUtils').getErrorMessage;
-                  return getErrorMessage(error);
-                })()}
+                Something went wrong
               </Text>
               <Pressable
                 style={[styles.retryButton, dynamicStyles.retryButton]}
                 onPress={() => {
                   console.log('🔄 Manual retry triggered');
-                  refetch();
+                  refresh();
                 }}
               >
                 <Text
@@ -283,10 +680,44 @@ const Groups = () => {
                 </Text>
               </Pressable>
             </View>
-          )}
+          ) : null}
+
+          {/* Cached Data with Error State */}
+          {!isLoading && error && hasData ? (
+            <View style={[styles.cacheNotice, {
+              backgroundColor: isDark ? "#2A2A2A" : "#F5F5F5",
+              borderColor: isDark ? "#444444" : "#E0E0E0",
+            }]}>
+              <Ionicons
+                name="cloud-offline-outline"
+                size={16}
+                color={isDark ? "#CCCCCC" : "#666666"}
+              />
+              <Text style={[styles.cacheNoticeText, {
+                color: isDark ? "#CCCCCC" : "#666666",
+              }]}>
+                Showing cached data - network unavailable
+              </Text>
+              <Pressable
+                style={[styles.retrySmallButton, {
+                  backgroundColor: isDark ? "#444444" : "#E0E0E0",
+                }]}
+                onPress={() => {
+                  console.log('🔄 Manual retry from cache notice');
+                  refresh();
+                }}
+              >
+                <Text style={[styles.retrySmallButtonText, {
+                  color: isDark ? "#FFFFFF" : "#000000",
+                }]}>
+                  Retry
+                </Text>
+              </Pressable>
+            </View>
+          ) : null}
 
           {/* Empty State */}
-          {!isLoading && !isError && (!groups || groups.length === 0) && (
+          {!isLoading && !error && (!groups || !Array.isArray(groups) || groups.length === 0) && !hasData ? (
             <View style={styles.centerContainer}>
               <Ionicons
                 name="people-outline"
@@ -300,223 +731,47 @@ const Groups = () => {
                 Join or create a group to get started
               </Text>
             </View>
-          )}
+          ) : null}
 
           {/* Groups List */}
-          {!isLoading &&
-            !isError &&
-            groups &&
-            groups.length > 0 &&
-            groups
-              .slice()
-              .sort((a, b) => {
-                if (a.unread > 0 && b.unread === 0) return -1;
-                if (a.unread === 0 && b.unread > 0) return 1;
-
-                if (a.unread > 0 && b.unread > 0) {
-                  return b.unread - a.unread;
-                }
-
-                const dateA = new Date(
-                  a.lastMessageAt || a.createdAt
-                ).getTime();
-                const dateB = new Date(
-                  b.lastMessageAt || b.createdAt
-                ).getTime();
-                return dateB - dateA;
-              })
-              .map(transformGroupForUI)
-              .map((group) => {
-                const isGeneral =
-                  !group.rawGroup.category?.length ||
-                  (group.category || "").toLowerCase() === "general";
-                if (isGeneral) {
-                  const handle =
-                    "@" +
-                    group.title
-                      .toLowerCase()
-                      .replace(/[^a-z0-9\s]/g, "")
-                      .trim()
-                      .replace(/\s+/g, "_")
-                      .slice(0, 20);
-                  const when = moment(
-                    group.rawGroup.lastMessageAt || group.rawGroup.createdAt
-                  ).fromNow();
-                  const initial =
-                    group.title?.[0]?.toUpperCase() || "G";
-                  return (
-                    <Pressable
-                      key={group.id}
-                      style={[styles.dmCard, dynamicStyles.card]}
-                      onPress={() => {
-                        router.push({
-                          pathname: `/group-chat/${group.id}` as any,
-                          params: {
-                            groupData: JSON.stringify(group.rawGroup),
-                          },
-                        });
-                      }}
-                    >
-                      <View style={styles.dmHeader}>
-                        <View style={styles.dmAvatar}>
-                          <Text style={styles.dmAvatarText}>{initial}</Text>
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <View style={styles.dmHeaderRow}>
-                            <Text style={[styles.dmName, dynamicStyles.text]}>
-                              {group.title}
-                            </Text>
-                            <Text style={[styles.dmTime, dynamicStyles.subtitle]}>
-                              {when}
-                            </Text>
-                          </View>
-                          <Text style={[styles.dmHandle, dynamicStyles.subtitle]}>
-                            {handle}
-                          </Text>
-                        </View>
-                      </View>
-                      <Text style={[styles.dmMessage, dynamicStyles.subtitle]}>
-                        {group.description || "No description"}
-                      </Text>
-                    </Pressable>
-                  );
-                }
-                return (
-                  <Pressable
-                    key={group.id}
-                    style={[styles.groupCard, dynamicStyles.card]}
-                    onPress={() => {
-                      router.push({
-                        pathname: `/group-chat/${group.id}` as any,
-                        params: {
-                          groupData: JSON.stringify(group.rawGroup),
-                        },
-                      });
-                    }}
-                  >
-                    <View style={styles.topRow}>
-                      <View
-                        style={[
-                          styles.categoryBadge,
-                          dynamicStyles.categoryBadge,
-                        ]}
-                      >
-                        <Ionicons
-                          name={
-                            getIconComponent(
-                              group.rawGroup.category[0]?.icon || "pricetag-outline"
-                            ) as any
-                          }
-                          size={12}
-                          color={group.rawGroup.category[0]?.colorHex || "#888"}
-                        />
-                        <Text
-                          style={[
-                            styles.categoryText,
-                            dynamicStyles.categoryBadgeText,
-                          ]}
-                        >
-                          {group.category}
-                        </Text>
-                      </View>
- 
-                      <View
-                        style={[styles.matchBadge, dynamicStyles.matchBadge]}
-                      >
-                        <Ionicons
-                          name="star-outline"
-                          size={12}
-                          color={dynamicStyles.matchText.color}
-                        />
-                        <Text
-                          style={[styles.matchText, dynamicStyles.matchText]}
-                        >
-                          {group.matchPercentage} match
-                        </Text>
-                      </View>
-                    </View>
- 
-                    <Text style={[styles.groupTitle, dynamicStyles.text]}>
-                      {group.title}
-                    </Text>
-                    <Text
-                      style={[styles.groupDescription, dynamicStyles.subtitle]}
-                    >
-                      {group.description}
-                    </Text>
- 
-                    <View style={styles.membersRow}>
-                      <View style={styles.avatarsContainer}>
-                        {group.rawGroup.members
-                          .slice(0, 3)
-                          .map((member, index) => (
-                            <View
-                              key={member.id}
-                              style={[
-                                styles.avatar,
-                                {
-                                  backgroundColor: member.bgUrl
-                                    ? "transparent"
-                                    : group.avatarColors[index],
-                                },
-                                dynamicStyles.avatarBorder,
-                                index > 0 && { marginLeft: -8 },
-                              ]}
-                            >
-                              {member.bgUrl ? (
-                                <Image
-                                  source={{ uri: member.bgUrl }}
-                                  style={styles.avatarImage}
-                                />
-                              ) : (
-                                <Text style={styles.avatarText}>
-                                  {member.fname[0].toUpperCase()}
-                                </Text>
-                              )}
-                            </View>
-                          ))}
-                        <Text
-                          style={[styles.membersText, dynamicStyles.subtitle]}
-                        >
-                          {group.members}{" "}
-                          {group.members === 1 ? "member" : "members"}
-                        </Text>
-                      </View>
-                    </View>
- 
-                    <View style={styles.footerRow}>
-                      <View style={styles.activeRow}>
-                        <Ionicons
-                          name="time-outline"
-                          size={14}
-                          color={dynamicStyles.subtitle.color}
-                        />
-                        <Text
-                          style={[styles.activeText, dynamicStyles.subtitle]}
-                        >
-                          Active{" "}
-                          {moment(
-                            group.rawGroup.lastMessageAt ||
-                              group.rawGroup.createdAt
-                          ).fromNow()}
-                        </Text>
-                      </View>
- 
-                      <View
-                        style={[styles.unreadBadge, dynamicStyles.unreadBadge]}
-                      >
-                        <Text
-                          style={[styles.unreadText, dynamicStyles.unreadText]}
-                        >
-                          {group.unreadCount} new messages
-                        </Text>
-                      </View>
-                    </View>
-                  </Pressable>
-                );
-              })}
+          {!isLoading && (groups && Array.isArray(groups) && groups.length > 0) || hasData ? (
+            <>{renderGroupsList()}</>
+          ) : null}
         </View>
       </ScrollView>
+      </Pressable>
+      
+      {/* New Chat Modal */}
+      <NewChatModal
+        visible={showNewChatModal}
+        onClose={() => setShowNewChatModal(false)}
+        onChatCreated={handleChatCreated}
+      />
+      
+      {/* New Group Modal */}
+      <NewGroupModal
+        visible={showNewGroupModal}
+        onClose={() => setShowNewGroupModal(false)}
+        onGroupCreated={handleGroupCreated}
+      />
+      
+      {/* Cache Status */}
+      <CacheStatus
+        visible={showCacheStatus}
+        onPress={() => {
+          setShowCacheStatus(false);
+          router.push('/cache-management');
+        }}
+      />
+      
+      {/* Long press to show cache status */}
+      <Pressable
+        style={styles.cacheToggle}
+        onLongPress={() => setShowCacheStatus(!showCacheStatus)}
+        delayLongPress={2000}
+      >
+        <View style={{ width: 20, height: 20 }} />
+      </Pressable>
     </View>
   );
 };
@@ -540,10 +795,49 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 24,
   },
-  pageTitle: {
-    fontSize: 15,
-    fontWeight: "bold",
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 4,
+  },
+  composeContainer: {
+    position: "relative",
+  },
+  composeButton: {
+    padding: 4,
+  },
+  composeMenu: {
+    position: "absolute",
+    top: 35,
+    right: 0,
+    minWidth: 140,
+    borderRadius: 12,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 1000,
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  menuText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  pageTitle: {
+    fontSize: 24,
+    fontWeight: "700",
   },
   pageSubtitle: {
     fontSize: 12,
@@ -563,29 +857,71 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+  badgesRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   categoryBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    gap: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 6,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  statusText: {
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
   categoryText: {
-    fontSize: 8,
-    fontWeight: "600",
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+    textAlign: "center",
   },
   matchBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 12,
+    gap: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   matchText: {
-    fontSize: 10,
-    fontWeight: "600",
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 0.2,
   },
   groupTitle: {
     fontSize: 16,
@@ -648,20 +984,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "600",
   },
-  openButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    marginTop: 4,
-  },
-  openButtonText: {
-    fontSize: 11,
-    fontWeight: "700",
-  },
   dmCard: {
     padding: 14,
     borderRadius: 12,
@@ -673,24 +995,126 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
+  dmContentContainer: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  dmAvatarContainer: {
+    width: 56,
+    height: 56,
+    position: "relative",
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "center",
+  },
   dmAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#ff5f6d",
+    overflow: "hidden",
   },
-  dmAvatarText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
+  dmAvatarImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
+  dmAvatarText: { 
+    color: "#FFFFFF", 
+    fontSize: 18, 
+    fontWeight: "700" 
+  },
+  multipleAvatars: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  dmAvatarSmall: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    overflow: "hidden",
+  },
+  dmAvatarSmallImage: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  dmAvatarSmallText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700",
+  },
   dmHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  dmName: { fontSize: 14, fontWeight: "700" },
-  dmTime: { fontSize: 11 },
-  dmHandle: { fontSize: 11 },
-  dmMessage: { fontSize: 12 },
+  dmNameContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
+  },
+  dmTimeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  dmName: { 
+    fontSize: 14, 
+    fontWeight: "700" 
+  },
+  memberCountBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  memberCountText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  dmTime: { 
+    fontSize: 11 
+  },
+  dmMessage: { 
+    fontSize: 12,
+    flex: 1,
+    marginRight: 8,
+  },
+  dmMessageRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  dmFooter: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+  },
+  newMessagesBadge: {
+    backgroundColor: "#EF4444",
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 8,
+    flexShrink: 0,
+  },
+  newMessagesText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
   errorText: {
     fontSize: 18,
     fontWeight: "600",
@@ -720,6 +1144,37 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
     marginTop: 4,
+  },
+  cacheToggle: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    width: 20,
+    height: 20,
+  },
+  cacheNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 8,
+  },
+  cacheNoticeText: {
+    fontSize: 12,
+    flex: 1,
+  },
+  retrySmallButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  retrySmallButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
 

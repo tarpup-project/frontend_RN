@@ -2,12 +2,9 @@ import { api } from '@/api/client';
 import { UrlConstants } from '@/constants/apiUrls';
 import { useAuthStore } from '@/state/authStore';
 import { Group, GroupsResponse } from '@/types/groups';
-import { subscribeToAllUserGroups, subscribeToGroupTopic, unsubscribeFromGroupTopic } from '@/utils/topicManager';
-import { useQuery } from '@tanstack/react-query';
-import moment from "moment";
-import { useEffect } from 'react';
+import { isRetryableError } from '@/utils/errorUtils';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCampus } from './useCampus';
-
 
 export const groupsKeys = {
   all: ['groups'] as const,
@@ -22,6 +19,7 @@ export const groupsKeys = {
 const fetchGroups = async (campusId?: string): Promise<Group[]> => {
   try {
     console.log('🔄 Fetching groups for campus:', campusId || 'all');
+    
     const response = await api.get<GroupsResponse>(
       UrlConstants.fetchAllGroups(campusId)
     );
@@ -32,8 +30,21 @@ const fetchGroups = async (campusId?: string): Promise<Group[]> => {
     }
     
     console.log('✅ Groups fetched successfully:', response.data.data.length);
+    
+    // Debug log to check message structure
+    if (response.data.data.length > 0) {
+      console.log('📨 Sample group with messages:', JSON.stringify({
+        id: response.data.data[0].id,
+        name: response.data.data[0].name,
+        messages: response.data.data[0].messages,
+        lastMessageAt: response.data.data[0].lastMessageAt
+      }, null, 2));
+    }
+    
     return response.data.data;
   } catch (error: any) {
+    console.error('❌ Fetch groups error:', error);
+    
     // Use the error utility for consistent logging
     const { logError } = await import('@/utils/errorUtils');
     logError('Fetch groups', error);
@@ -46,16 +57,15 @@ const fetchGroups = async (campusId?: string): Promise<Group[]> => {
 export const useGroups = () => {
   const { selectedUniversity } = useCampus();
   const { isAuthenticated, isHydrated } = useAuthStore();
+  const queryClient = useQueryClient();
   
-  const query = useQuery({
+  const query = useQuery<Group[], Error>({
     queryKey: groupsKeys.list(selectedUniversity?.id),
     queryFn: () => fetchGroups(selectedUniversity?.id),
-    enabled: isAuthenticated && isHydrated, // Only fetch when authenticated and hydrated
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    gcTime: 1000 * 60 * 30, // Keep in cache for 30 minutes
-    retry: async (failureCount, error: any) => {
-      // Use the error utility to determine if we should retry
-      const { isRetryableError } = await import('@/utils/errorUtils');
+    enabled: !!(isAuthenticated && isHydrated), // Only fetch when authenticated and hydrated
+    staleTime: 1000 * 60 * 2, // Consider data stale after 2 minutes
+    gcTime: 1000 * 60 * 60, // Keep in cache for 1 hour
+    retry: (failureCount, error: any) => {
       
       if (!isRetryableError(error)) {
         console.log('🚫 Non-retryable error - stopping retries');
@@ -75,112 +85,154 @@ export const useGroups = () => {
       console.log(`⏱️ Retrying in ${delay}ms`);
       return delay;
     },
-    refetchInterval: 30000, // Reduced from 5 seconds to 30 seconds
+    refetchInterval: 30000, // Refetch every 30 seconds
     refetchIntervalInBackground: false, // Don't refetch in background
     refetchOnWindowFocus: true, // Refetch when app comes back to focus
     refetchOnReconnect: true, // Refetch when network reconnects
     // Return stale data while refetching
-    refetchOnMount: 'always',
-    // Keep previous data while loading new data
-    placeholderData: (previousData) => previousData,
+    // refetchOnMount: 'always', // REMOVED to prevent continuous loading
+    // Keep previous data while loading new data (eliminates loading states)
+    placeholderData: (previousData) => {
+      if (previousData && previousData.length > 0) {
+        console.log('⚡ Using cached groups data -', previousData.length, 'groups loaded from TanStack Query cache');
+      }
+      return previousData;
+    },
+    // Show cached data even when there's an error
+    select: (data) => {
+      if (data && data.length > 0) {
+        console.log('✅ Fresh groups data loaded -', data.length, 'groups');
+      }
+      return data;
+    },
   });
 
-  useEffect(() => {
-    if (isAuthenticated && query.data?.length) {
-      subscribeToAllUserGroups(query.data.map(g => g.id));
-    }
-  }, [query.data, isAuthenticated]);
+  const markAsReadMutation = useMutation({
+    mutationFn: async (groupId: string) => {
+      await api.post(UrlConstants.markGroupMessageAsRead(groupId));
+    },
+    onMutate: async (groupId) => {
+      await queryClient.cancelQueries({ queryKey: groupsKeys.list(selectedUniversity?.id) });
+      const previousGroups = queryClient.getQueryData<Group[]>(groupsKeys.list(selectedUniversity?.id));
+      
+      if (previousGroups) {
+        queryClient.setQueryData<Group[]>(groupsKeys.list(selectedUniversity?.id), (old: Group[] | undefined) => {
+          if (!old) return [];
+          return old.map(group => 
+            group.id === groupId ? { ...group, unread: 0 } : group
+          );
+        });
+      }
+      return { previousGroups };
+    },
+    onError: (err, groupId, context) => {
+      if (context?.previousGroups) {
+        queryClient.setQueryData(groupsKeys.list(selectedUniversity?.id), context.previousGroups);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: groupsKeys.list(selectedUniversity?.id) });
+    },
+  });
 
-  return query;
+  const markAsRead = (groupId: string) => {
+    markAsReadMutation.mutate(groupId);
+  };
+
+  // Transform groups to UI format (copied from useAsyncStorageGroups)
+  const transformToUIFormat = (group: Group) => {
+    const getTimeAgo = (timestamp: number | string): string => {
+      const time = typeof timestamp === 'string' ? new Date(timestamp).getTime() : timestamp;
+      const now = Date.now();
+      const diff = now - time;
+      const minutes = Math.floor(diff / 60000);
+      const hours = Math.floor(diff / 3600000);
+      const days = Math.floor(diff / 86400000);
+
+      if (days > 0) return `${days}d ago`;
+      if (hours > 0) return `${hours}h ago`;
+      if (minutes > 0) return `${minutes}m ago`;
+      return 'Just now';
+    };
+
+    const getCategoryIconName = (categoryIcon?: string): string => {
+      const iconMap: Record<string, string> = {
+        'gift': 'gift-outline',
+        'car': 'car-outline', 
+        'book': 'book-outline',
+        'home': 'home-outline',
+        'basketball': 'basketball-outline',
+        'calendar': 'calendar-outline',
+        'musical-notes': 'musical-notes-outline',
+        'heart': 'heart-outline',
+        'cart': 'cart-outline',
+        'shopping-cart': 'cart-outline',
+      };
+      
+      return iconMap[categoryIcon || ''] || 'pricetag-outline';
+    };
+
+    // Handle different data structures (server response vs internal model)
+    const categoryName = group.category?.[0]?.name || 'General';
+    const categoryIcon = group.category?.[0]?.icon;
+    const lastMessageTime = group.lastMessageAt || group.createdAt;
+
+    return {
+      id: group.id,
+      serverId: group.id,
+      category: categoryName,
+      title: group.name,
+      description: group.description,
+      members: group.members?.length || 0,
+      unreadCount: group.unread || 0,
+      matchPercentage: `${group.score || 0}%`,
+      activeTime: lastMessageTime 
+        ? `Active ${getTimeAgo(lastMessageTime)}`
+        : `Created ${getTimeAgo(group.createdAt)}`,
+      categoryIcon: getCategoryIconName(categoryIcon),
+      rawGroup: group,
+    };
+  };
+
+  return {
+    groups: query.data || [],
+    isLoading: query.isLoading && !query.data, // Only show loading if no cached data
+    error: query.error && !query.data ? (query.error as Error).message : null, // Only show error if no cached data
+    isRefreshing: query.isRefetching,
+    refresh: query.refetch,
+    markAsRead,
+    uiGroups: (query.data || []).map(transformToUIFormat),
+    query, // Expose original query object if needed
+    // Additional cache info
+    isCached: !!query.data && query.isStale,
+    hasData: !!(query.data && query.data.length > 0),
+  };
 };
-
 
 const fetchGroupDetails = async (groupId: string): Promise<Group> => {
-  const response = await api.get<{ data: Group }>(
-    UrlConstants.fetchGroupDetails(groupId) 
-  );
-  return response.data.data;
+  try {
+    const response = await api.get<{ data: Group }>(
+      UrlConstants.fetchGroupDetails(groupId) 
+    );
+    
+    return response.data.data;
+  } catch (error) {
+    throw error;
+  }
 };
 
-
-
 export const useGroupDetails = (groupId: string) => {
-  return useQuery({
+  return useQuery<Group, Error>({
     queryKey: groupsKeys.detail(groupId),
     queryFn: () => fetchGroupDetails(groupId),
     enabled: !!groupId,
-    staleTime: 1000 * 60 * 2,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 30, // 30 minutes
     retry: 3,
+    placeholderData: (previousData) => previousData,
   });
 };
 
 const markGroupAsRead = async (groupId: string): Promise<void> => {
   await api.post(UrlConstants.markGroupMessageAsRead(groupId));
 };
-
-const leaveGroup = async (groupId: string): Promise<void> => {
-  await api.post(UrlConstants.leaveGroup, { groupID: groupId });
-};
-
-const joinGroup = async (groupId: string): Promise<void> => {
-  await api.post(UrlConstants.fetchInviteGroupDetails(groupId), {});
-};
-
-export const useGroupActions = () => {
-  return {
-    markAsRead: markGroupAsRead,
-    leaveGroup: async (groupId: string) => {
-      await leaveGroup(groupId);
-      await unsubscribeFromGroupTopic(groupId);
-    },
-    joinGroup: async (groupId: string) => {
-      await joinGroup(groupId);
-      await subscribeToGroupTopic(groupId);
-    },
-  };
-};
-
-export const transformGroupForUI = (group: Group) => {
-  return {
-    id: group.id,
-    category: group.category[0]?.name || 'General',
-    title: group.name,
-    description: group.description,
-    members: group.members.length,
-    unreadCount: group.unread,
-    matchPercentage: `${group.score}%`,
-    activeTime: group.lastMessageAt 
-      ? `Active ${getTimeAgo(group.lastMessageAt)}`
-      : `Created ${getTimeAgo(group.createdAt)}`,
-    avatarColors: group.members.slice(0, 4).map((_, index) => {
-      const colors = ["#FF6B9D", "#4A90E2", "#9C27B0", "#00D084"];
-      return colors[index % colors.length];
-    }),
-    categoryIcon: getCategoryIcon(group.category[0]?.icon),
-    rawGroup: group,
-  };
-};
-
-const getTimeAgo = (dateString: string): string => {
-  return moment(dateString).fromNow();
-};
-
-
-const getCategoryIcon = (iconName?: string): string => {
-  const iconMap: Record<string, string> = {
-    'gift': 'gift-outline',
-    'car': 'car-outline', 
-    'book': 'book-outline',
-    'home': 'home-outline',
-    'basketball': 'basketball-outline',
-    'calendar': 'calendar-outline',
-    'musical-notes': 'musical-notes-outline',
-    'heart': 'heart-outline',
-    'cart': 'cart-outline',
-  };
-  
-  return iconMap[iconName || ''] || 'pricetag-outline';
-};
-
-export { getTimeAgo };
-
