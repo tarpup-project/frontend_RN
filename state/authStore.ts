@@ -7,7 +7,7 @@ import {
     getAccessToken,
     getRefreshToken,
     getUserData,
-    saveUserData,
+    saveUserData
 } from "../utils/storage";
 
 // Helper function to validate if an object is a valid AuthUserInterface
@@ -69,124 +69,74 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       console.log("🔍 Hydrating auth state...");
 
-      // First check secure storage
-      const hasValidSecureAuth = await secureTokenStorage.hasValidAuth();
-      console.log("🔐 Secure auth check result:", hasValidSecureAuth);
-      
-      if (hasValidSecureAuth) {
-        console.log("🔐 Valid secure authentication found");
-        
-        try {
-          console.log("🔄 Validating tokens with fetchAuthUser...");
-
-          const { AuthAPI } = await import("../api/endpoints/auth");
-          const user = await AuthAPI.fetchAuthUser();
-
-          console.log("✅ Auto-login successful:", user.email);
-          set({
-            user,
-            isAuthenticated: true,
-            isLoading: false,
-            isHydrated: true,
-          });
-          
-          // Start auto-refresh
-          secureTokenStorage.startAutoRefresh();
-          return;
-        
-        } catch (error: any) {
-          console.log("❌ Token validation failed:", error.message);
-          console.log("🔄 But tokens are still valid, checking stored user...");
-          
-          // Even if API call fails, if we have valid tokens, try to use stored user
-          const storedUser = await getUserData();
-          console.log("📦 Stored user data:", storedUser ? `${storedUser.email} (${storedUser.fname})` : "null");
-          
-          if (isValidAuthUser(storedUser)) {
-            console.log("✅ Using stored user data with valid secure tokens:", storedUser.email);
-            set({
-              user: storedUser,
-              isAuthenticated: true,
-              isLoading: false,
-              isHydrated: true,
-            });
-            
-            // Start auto-refresh
-            secureTokenStorage.startAutoRefresh();
-            return;
-          } else {
-            console.log("❌ No valid stored user, continuing to regular storage fallback...");
-            console.log("📋 User validation failed. Required fields check:", {
-              hasUser: !!storedUser,
-              hasId: storedUser?.id,
-              hasFname: storedUser?.fname,
-              hasEmail: storedUser?.email,
-              hasIsStudent: typeof storedUser?.isStudent === 'boolean'
-            });
-          }
-        }
-      }
-
-      // Fallback to regular storage for backward compatibility
-      let accessToken = await getAccessToken();
-      let refreshToken = await getRefreshToken();
-
-      // If regular storage is empty, try to get from secure storage
-      if (!accessToken || !refreshToken) {
-        console.log("🔍 Regular storage empty, checking secure storage...");
-        accessToken = await secureTokenStorage.getValidAccessToken();
-        refreshToken = await secureTokenStorage.getRefreshToken();
-        
-        // If we found tokens in secure storage, migrate them to regular storage
-        if (accessToken && refreshToken) {
-          console.log("🔄 Migrating tokens from secure to regular storage...");
-          await saveAccessToken(accessToken);
-          await saveRefreshToken(refreshToken);
-        }
-      }
+      // Get tokens from storage (prioritize regular storage to avoid loops)
+      const accessToken = await getAccessToken();
+      const refreshToken = await getRefreshToken();
 
       console.log("🔑 accessToken:", accessToken ? "exists" : "null");
       console.log("🔑 refreshToken:", refreshToken ? "exists" : "null");
 
       if (accessToken && refreshToken) {
-        const decoded = jwtDecode<any>(refreshToken);
-        console.log(
-          "🔍 RefreshToken expires at:",
-          new Date(decoded.exp * 1000)
-        );
-        console.log(
-          "⏰ Days until expiry:",
-          ((decoded.exp * 1000 - Date.now()) / (1000 * 60 * 60 * 24)).toFixed(1)
-        );
-
         try {
-          console.log("🔄 Validating tokens with fetchAuthUser...");
+          const decoded = jwtDecode<any>(refreshToken);
+          console.log(
+            "🔍 RefreshToken expires at:",
+            new Date(decoded.exp * 1000)
+          );
+          console.log(
+            "⏰ Days until expiry:",
+            ((decoded.exp * 1000 - Date.now()) / (1000 * 60 * 60 * 24)).toFixed(1)
+          );
 
+          // Check if refresh token is expired
+          if (decoded.exp * 1000 <= Date.now()) {
+            console.log("❌ Refresh token expired, clearing storage");
+            await clearUserData();
+            await secureTokenStorage.clearTokens();
+            set({
+              user: undefined,
+              isAuthenticated: false,
+              isLoading: false,
+              isHydrated: true,
+            });
+            return;
+          }
+
+          // Try to get stored user first (avoid API call if possible)
+          const storedUser = await getUserData();
+          console.log("📦 Stored user data:", storedUser ? `${storedUser.email} (${storedUser.fname})` : "null");
+          
+          if (isValidAuthUser(storedUser)) {
+            console.log("✅ Using stored user data:", storedUser.email);
+            set({
+              user: storedUser,
+              isAuthenticated: true,
+              isLoading: false,
+              isHydrated: true,
+            });
+            return;
+          }
+
+          // Only validate with API if no stored user
+          console.log("🔄 No stored user, validating tokens with API...");
           const { AuthAPI } = await import("../api/endpoints/auth");
           const user = await AuthAPI.fetchAuthUser();
 
           console.log("✅ Auto-login successful:", user.email);
-          
-          // Migrate to secure storage
-          await secureTokenStorage.saveTokens(accessToken, refreshToken);
-          console.log("🔄 Migrated tokens to secure storage");
-          
           set({
             user,
             isAuthenticated: true,
             isLoading: false,
             isHydrated: true,
           });
-          
-          // Start auto-refresh
-          secureTokenStorage.startAutoRefresh();
         
-        } catch (error) {
-          console.log("❌ Token validation failed, falling back to stored user");
-          const storedUser = await getUserData();
-          console.log("📦 Fallback stored user data:", storedUser ? `${storedUser.email} (${storedUser.fname})` : "null");
+        } catch (error: any) {
+          console.log("❌ Token validation failed:", error.message);
           
+          // Try stored user as fallback
+          const storedUser = await getUserData();
           if (isValidAuthUser(storedUser)) {
+            console.log("✅ Using stored user as fallback:", storedUser.email);
             set({
               user: storedUser,
               isAuthenticated: true,
@@ -194,7 +144,7 @@ export const useAuthStore = create<AuthState>((set) => ({
               isHydrated: true,
             });
           } else {
-            console.log("❌ Invalid stored user data, clearing storage");
+            console.log("❌ No valid stored user, clearing storage");
             await clearUserData();
             await secureTokenStorage.clearTokens();
             set({
@@ -204,7 +154,6 @@ export const useAuthStore = create<AuthState>((set) => ({
               isHydrated: true,
             });
           }
-          return;
         }
       } else {
         console.log("ℹ️ No tokens found, user needs to login");

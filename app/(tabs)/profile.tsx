@@ -3,23 +3,24 @@ import { ReferralCard } from "@/components/ReferralCard";
 import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useCampus } from "@/hooks/useCampus";
 import { useProfileStats } from "@/hooks/useProfileStats";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { router } from "expo-router";
 import moment from "moment";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-    Alert,
-    Image,
-    Modal,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    Share,
-    StyleSheet,
-    View,
+  Alert,
+  Image,
+  Modal,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Share,
+  StyleSheet,
+  View,
 } from "react-native";
 import { toast } from "sonner-native";
 
@@ -60,10 +61,29 @@ const SkeletonInterest = () => {
 const Profile = () => {
   const { isDark } = useTheme();
   const { user, isAuthenticated, logout } = useAuthStore();
+  const { universities, isLoading: isLoadingUniversities } = useCampus();
   const { stats, isLoading: isLoadingStats, refresh } = useProfileStats();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [copyLoading, setCopyLoading] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
+  const [universityName, setUniversityName] = useState('');
+
+  // University name resolution logic following the documented pattern
+  useEffect(() => {
+    if (!user?.universityID || !universities || universities.length === 0) {
+      setUniversityName('Grambling State University'); // Fallback
+      return;
+    }
+
+    // Find university by ID in the flattened universities array
+    const foundUniversity = universities.find(university => university.id === user.universityID);
+    
+    if (foundUniversity) {
+      setUniversityName(foundUniversity.name);
+    } else {
+      setUniversityName('Grambling State University'); // Fallback if not found
+    }
+  }, [user?.universityID, universities]);
 
   const dynamicStyles = {
     container: {
@@ -249,6 +269,16 @@ const Profile = () => {
                 </Text>
                 <View style={styles.infoRow}>
                   <Ionicons
+                    name="school-outline"
+                    size={14}
+                    color={dynamicStyles.subtitle.color}
+                  />
+                  <Text style={[styles.infoText, dynamicStyles.subtitle]}>
+                    {isLoadingUniversities ? "Loading..." : universityName}
+                  </Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Ionicons
                     name="mail-outline"
                     size={14}
                     color={dynamicStyles.subtitle.color}
@@ -259,20 +289,79 @@ const Profile = () => {
                 </View>
               </View>
             </View>
+            <Pressable
+              style={styles.editButton}
+              onPress={() => router.push("/edit-profile")}
+            >
+              <Ionicons
+                name="create-outline"
+                size={16}
+                color={dynamicStyles.text.color}
+              />
+              <Text style={[styles.editText, dynamicStyles.text]}>Edit</Text>
+            </Pressable>
           </View>
 
           <Text style={[styles.memberSince, dynamicStyles.subtitle]}>
             Member since {moment(user.createdAt).format("MMMM YYYY")}
           </Text>
 
-          <Pressable
-            style={[styles.completeButton, dynamicStyles.button]}
-            onPress={() => router.push("/edit-profile")}
-          >
-            <Text style={[styles.completeButtonText, dynamicStyles.text]}>
-              Edit Profile
-            </Text>
-          </Pressable>
+          {/* Stats Row */}
+          <View style={styles.statsRow}>
+            <View style={styles.statColumn}>
+              <Text style={[styles.statNumber, dynamicStyles.text]}>
+                {stats?.totalPrompts || 14}
+              </Text>
+              <Text style={[styles.statLabel, dynamicStyles.subtitle]}>
+                Prompts
+              </Text>
+            </View>
+            <View style={styles.statColumn}>
+              <Text style={[styles.statNumber, dynamicStyles.text]}>
+                {stats?.totalPosts || 10}
+              </Text>
+              <Text style={[styles.statLabel, dynamicStyles.subtitle]}>
+                Posts
+              </Text>
+            </View>
+            <View style={styles.statColumn}>
+              <Text style={[styles.statNumber, dynamicStyles.text]}>
+                {stats?.followers || 1}
+              </Text>
+              <Text style={[styles.statLabel, dynamicStyles.subtitle]}>
+                Followers
+              </Text>
+            </View>
+            <View style={styles.statColumn}>
+              <Text style={[styles.statNumber, dynamicStyles.text]}>
+                {stats?.following || 1}
+              </Text>
+              <Text style={[styles.statLabel, dynamicStyles.subtitle]}>
+                Followings
+              </Text>
+            </View>
+          </View>
+
+          {/* Action Buttons */}
+          <View style={styles.actionButtons}>
+            <Pressable
+              style={[styles.completeButton, dynamicStyles.button]}
+              onPress={() => router.push("/edit-profile")}
+            >
+              <Text style={[styles.completeButtonText, dynamicStyles.text]}>
+                Complete Profile
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[styles.connectionsButton, { backgroundColor: "#000000" }]}
+              onPress={() => router.push("/edit-profile")}
+            >
+              <Ionicons name="people" size={16} color="#FFFFFF" />
+              <Text style={[styles.connectionsButtonText, { color: "#FFFFFF" }]}>
+                Connections
+              </Text>
+            </Pressable>
+          </View>
         </View>
 
         {/* Enhanced Referrals Section */}
@@ -527,9 +616,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: "#00D084",
     justifyContent: "center",
     alignItems: "center",
@@ -538,33 +627,38 @@ const styles = StyleSheet.create({
   avatarImage: {
     width: "100%",
     height: "100%",
-    borderRadius: 30,
+    borderRadius: 40,
   },
   avatarText: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: "bold",
     color: "#FFFFFF",
   },
   profileInfo: {
     flex: 1,
-    gap: 4,
+    gap: 6,
+    justifyContent: "center",
   },
   profileName: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
+    marginBottom: 4,
   },
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+    marginBottom: 2,
   },
   infoText: {
-    fontSize: 12,
+    fontSize: 13,
   },
   editButton: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
   editText: {
     fontSize: 14,
@@ -572,18 +666,55 @@ const styles = StyleSheet.create({
   },
   memberSince: {
     fontSize: 14,
-    marginBottom: 16,
-    fontWeight: "700",
+    marginBottom: 20,
+    fontWeight: "500",
+  },
+  statsRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginBottom: 20,
+    paddingVertical: 8,
+  },
+  statColumn: {
+    alignItems: "center",
+    flex: 1,
+  },
+  statNumber: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  actionButtons: {
+    flexDirection: "row",
+    gap: 12,
   },
   completeButton: {
-    padding: 9,
+    flex: 1,
+    padding: 12,
     borderRadius: 8,
     borderWidth: 1,
     alignItems: "center",
   },
   completeButtonText: {
-    fontSize: 12,
-    fontWeight: "700",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  connectionsButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    padding: 12,
+    borderRadius: 8,
+  },
+  connectionsButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
   },
   section: {
     marginBottom: 24,
@@ -607,15 +738,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     gap: 8,
-  },
-  statNumber: {
-    fontSize: 14,
-    fontWeight: "bold",
-  },
-  statLabel: {
-    fontSize: 11,
-    textAlign: "center",
-    fontWeight: "700",
   },
   interestsCard: {
     padding: 16,

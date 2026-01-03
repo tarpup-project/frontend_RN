@@ -1,5 +1,6 @@
 
 export interface AuthUserInterface {
+    university: string;
     id: string;
     fname: string;
     lname?: string;

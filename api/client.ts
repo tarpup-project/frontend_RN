@@ -154,7 +154,6 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import { UrlConstants } from '../constants/apiUrls';
 import { useAuthStore } from '../state/authStore';
-import { secureTokenStorage } from '../utils/secureTokenStorage';
 import { clearUserData, getAccessToken, getRefreshToken, saveAccessToken, saveSocketToken } from '../utils/storage';
 
 interface TokenPayload {
@@ -178,15 +177,16 @@ const api = axios.create({
 
 let isRefreshing = false;
 let failedQueue: any[] = [];
+let lastRefreshAttempt = 0;
+const REFRESH_COOLDOWN = 10000; // 10 seconds cooldown between refresh attempts
 
-const shouldRefreshToken = (token: string, bufferMinutes: number = 1): boolean => {
+const shouldRefreshToken = (token: string, bufferMinutes: number = 5): boolean => {
   try {
     const decoded = jwtDecode<TokenPayload>(token);
     const expiryTime = decoded.exp * 1000;
     const now = Date.now();
     const bufferTime = bufferMinutes * 60 * 1000;
 
-    // Only refresh if token expires in less than 1 minute (instead of 5)
     return (expiryTime - now) < bufferTime;
   } catch {
     return false; // Don't refresh if we can't decode the token
@@ -204,7 +204,6 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
-
 api.interceptors.request.use(
   async (config) => {
     // Skip token refresh for refresh endpoint
@@ -212,50 +211,8 @@ api.interceptors.request.use(
       return config;
     }
 
-    // Try to get valid access token from secure storage first
-    let accessToken = await secureTokenStorage.getValidAccessToken();
+    const accessToken = await getAccessToken();
     
-    // Fallback to regular storage for backward compatibility
-    if (!accessToken) {
-      accessToken = await getAccessToken();
-      const refreshToken = await getRefreshToken();
-
-      // If we have tokens in regular storage, migrate to secure storage
-      if (accessToken && refreshToken) {
-        try {
-          await secureTokenStorage.saveTokens(accessToken, refreshToken);
-          console.log('🔄 Migrated tokens to secure storage');
-        } catch (error) {
-          console.warn('⚠️ Failed to migrate tokens to secure storage:', error);
-        }
-      }
-      
-      // Only check if we should refresh if we have both tokens
-      if (accessToken && refreshToken && shouldRefreshToken(accessToken, 1)) {
-        console.log('🔄 Token expires very soon, attempting proactive refresh...');
-        try {
-          const refreshResponse = await axios.post(
-            `${UrlConstants.baseUrl}${UrlConstants.refreshToken}`,
-            {},
-            {
-              headers: { Authorization: `Bearer ${refreshToken}` },
-              timeout: 10000
-            }
-          );
-          
-          if (refreshResponse.data?.data?.authTokens) {
-            await saveAccessToken(refreshResponse.data.data.authTokens.accessToken);
-            await saveSocketToken(refreshResponse.data.data.authTokens.socketToken);
-            accessToken = refreshResponse.data.data.authTokens.accessToken;
-            console.log('✅ Proactive refresh successful');
-          }
-        } catch (error) {
-          console.log('❌ Proactive refresh failed, using current token');
-          // Continue with current token
-        }
-      }
-    }
-
     // Add access token to request if available
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
@@ -273,6 +230,13 @@ api.interceptors.response.use(
 
     // Handle 401 errors with token refresh
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+      // Check cooldown to prevent rapid refresh attempts
+      const now = Date.now();
+      if (now - lastRefreshAttempt < REFRESH_COOLDOWN) {
+        console.log('🚫 Refresh cooldown active, rejecting request');
+        return Promise.reject(error);
+      }
+
       // If already refreshing, queue the request
       if (isRefreshing) {
         return new Promise(function (resolve, reject) {
@@ -284,20 +248,11 @@ api.interceptors.response.use(
 
       originalRequest._retry = true;
       isRefreshing = true;
+      lastRefreshAttempt = now;
 
       try {
         console.log('🔄 Attempting token refresh due to 401...');
         
-        // Try secure token refresh first
-        const refreshed = await secureTokenStorage.refreshTokens();
-        
-        if (refreshed) {
-          console.log('✅ Secure token refresh successful, retrying original request');
-          processQueue(null);
-          return api(originalRequest);
-        }
-
-        // Fallback to regular token refresh
         const refreshToken = await getRefreshToken();
 
         if (!refreshToken) {
@@ -309,7 +264,7 @@ api.interceptors.response.use(
           {},
           {
             headers: { Authorization: `Bearer ${refreshToken}` },
-            timeout: 10000
+            timeout: 15000 // Increased timeout
           }
         );
 
@@ -317,18 +272,24 @@ api.interceptors.response.use(
           await saveAccessToken(refreshResponse.data.data.authTokens.accessToken);
           await saveSocketToken(refreshResponse.data.data.authTokens.socketToken);
           console.log('✅ Token refresh successful, retrying original request');
+          
+          processQueue(null);
+          return api(originalRequest);
+        } else {
+          throw new Error('Invalid refresh response');
         }
-
-        processQueue(null);
-        return api(originalRequest);
       } catch (err: any) {
         console.log('❌ Token refresh failed:', err.message);
         processQueue(err, null);
 
-        // Clear auth data on refresh failure
-        await clearUserData();
-        await secureTokenStorage.clearTokens();
-        useAuthStore.getState().setUser(undefined);
+        // Only clear auth data if it's an auth error, not network error
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          console.log('🔒 Auth error - clearing user data');
+          await clearUserData();
+          useAuthStore.getState().setUser(undefined);
+        } else {
+          console.log('🌐 Network error - keeping user data for offline use');
+        }
 
         return Promise.reject(err);
       } finally {
