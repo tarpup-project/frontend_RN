@@ -77,10 +77,10 @@ export default function TabLayout() {
 <Tabs.Screen
   name="groups"
   options={{
-    title: "Groups",
+    title: "Chats",
     tabBarIcon: ({ color, focused }) => (
       <ProtectedTabIcon
-        name={focused ? "people" : "people-outline"}
+        name={focused ? "chatbubble" : "chatbubble-outline"}
         size={24}
         color={isAuthenticated ? color : "#999999"}
         focused={focused}

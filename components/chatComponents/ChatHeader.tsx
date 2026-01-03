@@ -5,11 +5,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
-    Image,
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  View
 } from "react-native";
 
 interface ChatHeaderProps {
@@ -28,6 +28,8 @@ interface ChatHeaderProps {
   onShowGroupInfo: () => void;
   onLeaveSuccess: () => void;
   navigateToProfile: (userId: string) => void;
+  isCached?: boolean;
+  isRefreshing?: boolean;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -37,6 +39,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   onShowGroupInfo,
   onLeaveSuccess,
   navigateToProfile,
+  isCached = false,
+  isRefreshing = false,
 }) => {
   const { isDark } = useTheme();
   const router = useRouter();
@@ -105,9 +109,19 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         </View>
 
         <View style={styles.headerText}>
-          <Text style={[styles.groupName, dynamicStyles.text]}>
-            {groupDetails.name}
-          </Text>
+          <View style={styles.groupNameContainer}>
+            <Text style={[styles.groupName, dynamicStyles.text]}>
+              {groupDetails.name}
+            </Text>
+            {/* {isCached && isRefreshing && (
+              <View style={styles.refreshIndicator}>
+                <ActivityIndicator size="small" color={dynamicStyles.subtitle.color} />
+                <Text style={[styles.refreshText, dynamicStyles.subtitle]}>
+                  Syncing...
+                </Text>
+              </View>
+            )} */}
+          </View>
           <View style={styles.headerSubtitle}>
             <Text style={[styles.membersCount, dynamicStyles.subtitle]}>
               {(groupDetails.members || []).length} members
@@ -182,10 +196,24 @@ const styles = StyleSheet.create({
   headerText: {
     flex: 1,
   },
+  groupNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   groupName: {
     fontSize: 13,
     fontWeight: "600",
     marginBottom: 2,
+  },
+  refreshIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  refreshText: {
+    fontSize: 10,
+    fontStyle: 'italic',
   },
   headerSubtitle: {
     flexDirection: "row",

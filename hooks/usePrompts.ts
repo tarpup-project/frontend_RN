@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useCallback, useState } from 'react';
 import { PromptsAPI } from '../api/endpoints/prompts';
 import { useAuthStore } from '../state/authStore';
-import { Category, FilterType, Prompt } from '../types/prompts';
+import { Category, FilterType } from '../types/prompts';
 import { ErrorHandler } from '../utils/errorHandler';
 
 interface UsePromptsParams {
@@ -12,63 +13,88 @@ interface UsePromptsParams {
   refreshInterval?: number;
 }
 
+// Query keys for React Query
+const promptsKeys = {
+  all: ['prompts'] as const,
+  categories: () => [...promptsKeys.all, 'categories'] as const,
+  lists: () => [...promptsKeys.all, 'list'] as const,
+  list: (params: { campusID?: string; stateID?: string; categoryID?: string; userID?: string }) => 
+    [...promptsKeys.lists(), params] as const,
+};
+
+const fetchCategories = async (): Promise<Category[]> => {
+  try {
+    const data = await PromptsAPI.fetchCategories();
+    return data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+const fetchPrompts = async (params: {
+  campusID?: string;
+  stateID?: string;
+  categoryID?: string;
+  userID?: string;
+}) => {
+  try {
+    console.log('🔄 Fetching prompts with params:', params);
+    const data = await PromptsAPI.fetchPrompts(params);
+    return data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const usePrompts = (params?: UsePromptsParams) => {
-  const { user } = useAuthStore()
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [prompts, setPrompts] = useState<Prompt[]>([]);
-  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
-  const [isLoadingPrompts, setIsLoadingPrompts] = useState(true);
+  const { user } = useAuthStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const fetchCategories = useCallback(async () => {
-    setIsLoadingCategories(true);
-    setError(null);
-    try {
-      const data = await PromptsAPI.fetchCategories();
-      setCategories(data);
-    } catch (err) {
-      const errorMessage = ErrorHandler.handle(err).message;
-      setError(errorMessage);
-    } finally {
-      setIsLoadingCategories(false);
-    }
-  }, []);
+  // Fetch categories with React Query
+  const categoriesQuery = useQuery({
+    queryKey: promptsKeys.categories(),
+    queryFn: fetchCategories,
+    staleTime: 1000 * 60 * 30, // 30 minutes
+    gcTime: 1000 * 60 * 60, // 1 hour
+    retry: 3,
+    placeholderData: (previousData) => previousData,
+  });
 
-  const fetchPrompts = useCallback(async () => {
-    console.log('Fetching prompts with params:', {
+  // Fetch prompts with React Query
+  const promptsQuery = useQuery({
+    queryKey: promptsKeys.list({
       campusID: params?.campusID,
       stateID: params?.stateID,
       categoryID: params?.selectedCategory?.id,
       userID: user?.id,
-    });
-
-    setIsLoadingPrompts(true);
-    setError(null);
-    try {
-      const data = await PromptsAPI.fetchPrompts({
-        campusID: params?.campusID,
-        stateID: params?.stateID,
-        categoryID: params?.selectedCategory?.id,
-        userID: user?.id,
-      });
-      setPrompts(data.requests);
-      setLastUpdated(new Date(data.sentAt));
-    } catch (err) {
-      const errorMessage = ErrorHandler.handle(err).message;
-      setError(errorMessage);
-    } finally {
-      setIsLoadingPrompts(false);
-    }
-  }, [params?.campusID, params?.stateID, params?.selectedCategory, user?.id]);
+    }),
+    queryFn: () => fetchPrompts({
+      campusID: params?.campusID,
+      stateID: params?.stateID,
+      categoryID: params?.selectedCategory?.id,
+      userID: user?.id,
+    }),
+    staleTime: 1000 * 60 * 1, // 1 minute (prompts are live)
+    gcTime: 1000 * 60 * 10, // 10 minutes
+    retry: 3,
+    refetchInterval: params?.autoRefresh ? (params?.refreshInterval || 15000) : false,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    placeholderData: (previousData) => previousData,
+    enabled: !!user?.id, // Only fetch when user is available
+  });
 
   const submitRequest = async (requestID: string) => {
     setIsSubmitting(true);
     setError(null);
     try {
       await PromptsAPI.submitRequest(requestID);
-      await fetchPrompts();
+      
+      // Invalidate and refetch prompts
+      promptsQuery.refetch();
+      
       return true;
     } catch (err) {
       const errorMessage = ErrorHandler.handle(err).message;
@@ -84,7 +110,10 @@ export const usePrompts = (params?: UsePromptsParams) => {
     setError(null);
     try {
       await PromptsAPI.joinPublicGroup(groupID);
-      await fetchPrompts();
+      
+      // Invalidate and refetch prompts
+      promptsQuery.refetch();
+      
       return true;
     } catch (err) {
       const errorMessage = ErrorHandler.handle(err).message;
@@ -99,7 +128,10 @@ export const usePrompts = (params?: UsePromptsParams) => {
     setError(null);
     try {
       await PromptsAPI.reportPrompt(promptID);
-      await fetchPrompts(); // Reload the prompts after reporting
+      
+      // Invalidate and refetch prompts
+      promptsQuery.refetch();
+      
       return true;
     } catch (err) {
       const errorMessage = ErrorHandler.handle(err).message;
@@ -108,39 +140,26 @@ export const usePrompts = (params?: UsePromptsParams) => {
     }
   };
 
-  useEffect(() => {
-    fetchCategories();
-  }, [fetchCategories]);
-
-  useEffect(() => {
-    fetchPrompts();
-  }, [params?.campusID, params?.stateID, params?.selectedCategory?.id]);
-
-  useEffect(() => {
-    if (params?.autoRefresh) {
-      const interval = setInterval(() => {
-        fetchPrompts();
-      }, params?.refreshInterval || 15000);
-
-      return () => clearInterval(interval);
-    }
-  }, [params?.autoRefresh, params?.refreshInterval]);
+  const refresh = useCallback(() => {
+    categoriesQuery.refetch();
+    promptsQuery.refetch();
+  }, [categoriesQuery, promptsQuery]);
 
   return {
-    categories,
-    prompts,
-    lastUpdated,
-    isLoadingCategories,
-    isLoadingPrompts,
+    categories: categoriesQuery.data || [],
+    prompts: promptsQuery.data?.requests || [],
+    lastUpdated: promptsQuery.data?.sentAt ? new Date(promptsQuery.data.sentAt) : null,
+    isLoadingCategories: categoriesQuery.isLoading,
+    isLoadingPrompts: promptsQuery.isLoading,
     isSubmitting,
-    isLoading: isLoadingCategories || isLoadingPrompts,
-    error,
+    isLoading: categoriesQuery.isLoading || promptsQuery.isLoading,
+    error: error || categoriesQuery.error?.message || promptsQuery.error?.message || null,
     clearError: () => setError(null),
-    fetchCategories,
-    fetchPrompts,
+    fetchCategories: categoriesQuery.refetch,
+    fetchPrompts: promptsQuery.refetch,
     submitRequest,
     joinPublicGroup,
     reportPrompt,
-    refresh: fetchPrompts,
+    refresh,
   };
 };

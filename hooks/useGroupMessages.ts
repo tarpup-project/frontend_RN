@@ -1,21 +1,21 @@
-import { api } from '@/api/client';
-import { UrlConstants } from '@/constants/apiUrls';
 import { useAuthStore } from '@/state/authStore';
-import { storage } from '@/utils/storage';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { api } from '@/api/client';
+import { UrlConstants } from '@/constants/apiUrls';
+import { CacheUtils } from '@/utils/queryClient';
+import { watermelonOfflineSyncManager } from '@/utils/watermelonOfflineSync';
 import {
-  AlertMessage,
-  Group,
-  GroupMessage,
-  MessageFile,
-  MessageType,
-  SendMessagePayload,
-  UserMessage
+    AlertMessage,
+    GroupMessage,
+    MessageFile,
+    MessageType,
+    SendMessagePayload,
+    UserMessage
 } from '../types/groups';
 import { SocketEvents } from '../types/socket';
 import { groupsKeys } from './useGroups';
-
+import { Group } from '../types/groups';
 
 interface UseGroupMessagesProps {
   groupId: string;
@@ -34,80 +34,60 @@ export const useGroupMessages = ({ groupId, socket }: UseGroupMessagesProps) => 
   const [isSending, setIsSending] = useState(false);
   const socketReadyRef = useRef(false);
 
-  // React Query to fetch and cache messages via Socket
+  // Enhanced React Query to fetch and cache messages
   const { data: messages = [], isLoading, error } = useQuery({
     queryKey: ['groups', 'messages', groupId],
     queryFn: async (): Promise<GroupMessage[]> => {
-      console.log('🔄 FETCHING messages from socket for group:', groupId);
+      console.log('🔄 FETCHING messages for group:', groupId);
+      
       if (!socket || !user) {
-        throw new Error('Socket or user not available');
+        // If no socket, return empty array (or rely on cached data from previous runs)
+        return [];
       }
 
-      const cached = (await storage.getObject<GroupMessage[]>(`group.messages.${groupId}`)) || [];
-      return new Promise((resolve) => {
+      return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
-          try {
-            socket.off('joinGroupRoom', handleJoinRoom as any);
-          } catch {}
-          resolve(cached);
-        }, 20000);
+          console.log('⏰ Socket timeout');
+          // If timeout, we resolve with empty array. 
+          // React Query will keep showing old data if available due to placeholderData
+          resolve([]);
+        }, 15000); 
 
         const handleJoinRoom = (data: { messages: GroupMessage[] }) => {
           clearTimeout(timeout);
           socket.off('joinGroupRoom', handleJoinRoom);
-          resolve(data.messages || []);
+          
+          const freshMessages = data.messages || [];
+          console.log('📥 Received fresh messages:', freshMessages.length);
+          
+          resolve(freshMessages);
+        };
+
+        const handleError = (error: any) => {
+          clearTimeout(timeout);
+          console.error('❌ Socket error:', error);
+          resolve([]);
         };
 
         socket.on('joinGroupRoom', handleJoinRoom);
+        socket.on('error', handleError);
+        
         socket.emit('joinGroupRoom', {
           roomID: groupId,
           userID: user.id,
         });
       });
     },
-    enabled: !!socket && !!user && !!groupId,
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 30, 
+    enabled: !!groupId,
+    staleTime: 1000 * 60 * 2, // Consider data stale after 2 minutes
+    gcTime: 1000 * 60 * 60 * 24, // Keep in cache for 24 hours (aligned with queryClient defaults)
     retry: 2,
+    placeholderData: (previousData) => previousData,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const cached = await storage.getObject<GroupMessage[]>(`group.messages.${groupId}`);
-        if (!cancelled && cached && Array.isArray(cached) && cached.length) {
-          queryClient.setQueryData<GroupMessage[]>(['groups', 'messages', groupId], cached);
-        }
-      } catch (e) {
-        // ignore cache read errors
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [groupId, queryClient]);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        await storage.setObject(`group.messages.${groupId}`, messages);
-      } catch (e) {
-        // ignore cache write errors
-      }
-    })();
-  }, [groupId, messages]);
-
-  useEffect(() => {
-    console.log('📊 Cache state:', {
-      messageCount: messages.length,
-      isLoading,
-      hasError: !!error,
-      isCached: messages.length > 0 && !isLoading
-    });
-  }, [messages, isLoading, error]);
-
-  // Listen for new messages and update cache
+  // Listen for new messages and update cache with optimistic updates
   useEffect(() => {
     if (!socket || !user || !groupId) return;
 
@@ -163,6 +143,7 @@ export const useGroupMessages = ({ groupId, socket }: UseGroupMessagesProps) => 
               },
             } as AlertMessage);
 
+      // Optimistic update with deduplication
       queryClient.setQueryData<GroupMessage[]>(
         ['groups', 'messages', groupId],
         (oldMessages = []) => {
@@ -170,7 +151,9 @@ export const useGroupMessages = ({ groupId, socket }: UseGroupMessagesProps) => 
             (msg) => msg.content.id === newMessage.content.id
           );
           if (exists) return oldMessages;
-          return [...oldMessages, newMessage];
+          
+          const updatedMessages = [...oldMessages, newMessage];
+          return updatedMessages;
         }
       );
     };
@@ -196,11 +179,12 @@ export const useGroupMessages = ({ groupId, socket }: UseGroupMessagesProps) => 
     file, 
     replyingTo 
   }: SendMessageOptions): Promise<boolean> => {
-    if (!socket || !user || (!message.trim() && !file)) {
+    if (!user || (!message.trim() && !file)) {
       return false;
     }
 
     setIsSending(true);
+    const tempId = `temp_${Date.now()}_${Math.random().toString(36)}`;
     const messageId = Date.now().toString() + Math.random().toString(36);
 
     try {
@@ -221,29 +205,49 @@ export const useGroupMessages = ({ groupId, socket }: UseGroupMessagesProps) => 
 
       const optimisticMessage: UserMessage = {
         messageType: MessageType.USER,
-        content: payload.content,
+        content: { ...payload.content, id: tempId },
         sender: payload.sender,
         file,
         replyingTo,
+        createdAt: new Date().toISOString(),
       };
 
       // Optimistic update
       queryClient.setQueryData<GroupMessage[]>(
         ['groups', 'messages', groupId],
-        (old = []) => [...old, optimisticMessage]
+        (old = []) => {
+          const updated = [...old, optimisticMessage];
+          return updated;
+        }
       );
 
+      // If offline, add to sync queue
+      if (!socket || !socket.connected) {
+        console.log('📱 Offline - adding message to sync queue');
+        
+        try {
+          watermelonOfflineSyncManager.addToQueue('message', { ...payload, tempId }, 3);
+        } catch {}
+        
+        setIsSending(false);
+        return true;
+      }
+
+      // Send via socket if online
       return new Promise((resolve) => {
         socket.emit(SocketEvents.GROUP_ROOM_MESSAGE, payload, (response: any) => {
           if (response.status === 'ok') {
-            // Update with server timestamp
+            // Replace temp message with real message
             queryClient.setQueryData<GroupMessage[]>(
               ['groups', 'messages', groupId],
-              (old = []) => old.map(msg => 
-                msg.content.id === messageId 
-                  ? { ...msg, createdAt: new Date().toISOString() }
-                  : msg
-              )
+              (old = []) => {
+                const updated = old.map(msg => 
+                  msg.content.id === tempId 
+                    ? { ...msg, content: { ...msg.content, id: messageId } }
+                    : msg
+                );
+                return updated;
+              }
             );
             markAsRead();
             resolve(true);
@@ -251,7 +255,10 @@ export const useGroupMessages = ({ groupId, socket }: UseGroupMessagesProps) => 
             // Remove optimistic message on failure
             queryClient.setQueryData<GroupMessage[]>(
               ['groups', 'messages', groupId],
-              (old = []) => old.filter(msg => msg.content.id !== messageId)
+              (old = []) => {
+                const updated = old.filter(msg => msg.content.id !== tempId);
+                return updated;
+              }
             );
             resolve(false);
           }
@@ -259,6 +266,12 @@ export const useGroupMessages = ({ groupId, socket }: UseGroupMessagesProps) => 
         });
       });
     } catch (err) {
+      console.error('❌ Send message error:', err);
+      // Remove optimistic message on error
+      queryClient.setQueryData<GroupMessage[]>(
+        ['groups', 'messages', groupId],
+        (old = []) => old.filter(msg => msg.content.id !== tempId)
+      );
       setIsSending(false);
       return false;
     }
@@ -267,14 +280,25 @@ export const useGroupMessages = ({ groupId, socket }: UseGroupMessagesProps) => 
   const markAsRead = useCallback(async () => {
     try {
       await api.post(UrlConstants.markGroupMessageAsRead(groupId));
-      queryClient.setQueriesData<Group[]>
-        ({ queryKey: groupsKeys.lists() }, (old) => {
+      
+      // Update groups cache to reset unread count
+      queryClient.setQueriesData<Group[]>(
+        { queryKey: groupsKeys.lists() }, 
+        (old) => {
           if (!old) return old as any;
           return old.map(g => (g.id === groupId ? { ...g, unread: 0 } : g));
-        });
-      queryClient.invalidateQueries({ queryKey: groupsKeys.all });
+        }
+      );
+      
+      // Invalidate groups queries to refresh
+      CacheUtils.invalidateAll();
     } catch (err) {
-      console.error('Failed to mark messages as read:', err);
+      console.error('❌ Failed to mark messages as read:', err);
+      
+      // Add to offline queue if failed
+      try {
+        watermelonOfflineSyncManager.addToQueue('read_status', { groupId }, 2);
+      } catch {}
     }
   }, [groupId, queryClient]);
 
@@ -288,6 +312,46 @@ export const useGroupMessages = ({ groupId, socket }: UseGroupMessagesProps) => 
     clearError: () => queryClient.resetQueries({ queryKey: ['groups', 'messages', groupId] }),
     retryConnection: () => queryClient.invalidateQueries({ queryKey: ['groups', 'messages', groupId] }),
   };
+};
+
+export const useMessageReply = () => {
+  const [replyingTo, setReplyingTo] = useState<UserMessage | undefined>();
+
+  const startReply = useCallback((message: UserMessage) => {
+    setReplyingTo(message);
+  }, []);
+
+  const cancelReply = useCallback(() => {
+    setReplyingTo(undefined);
+  }, []);
+
+  return {
+    replyingTo,
+    startReply,
+    cancelReply,
+  };
+};
+
+export const formatTimeAgo = (dateString: string): string => {
+  const now = new Date();
+  const date = new Date(dateString);
+  const diffInMs = now.getTime() - date.getTime();
+  
+  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+  
+  if (diffInMinutes < 1) {
+    return 'Just now';
+  } else if (diffInMinutes < 60) {
+    return `${diffInMinutes}m ago`;
+  } else if (diffInHours < 24) {
+    return `${diffInHours}h ago`;
+  } else if (diffInDays < 7) {
+    return `${diffInDays}d ago`;
+  } else {
+    return date.toLocaleDateString();
+  }
 };
 
 // export const useGroupMessages = ({ groupId, socket }: UseGroupMessagesProps) => {
@@ -483,43 +547,3 @@ export const useGroupMessages = ({ groupId, socket }: UseGroupMessagesProps) => 
 //     },
 //   };
 // };
-
-export const useMessageReply = () => {
-  const [replyingTo, setReplyingTo] = useState<UserMessage | undefined>();
-
-  const startReply = useCallback((message: UserMessage) => {
-    setReplyingTo(message);
-  }, []);
-
-  const cancelReply = useCallback(() => {
-    setReplyingTo(undefined);
-  }, []);
-
-  return {
-    replyingTo,
-    startReply,
-    cancelReply,
-  };
-};
-
-export const formatTimeAgo = (dateString: string): string => {
-  const now = new Date();
-  const date = new Date(dateString);
-  const diffInMs = now.getTime() - date.getTime();
-  
-  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-  
-  if (diffInMinutes < 1) {
-    return 'Just now';
-  } else if (diffInMinutes < 60) {
-    return `${diffInMinutes}m ago`;
-  } else if (diffInHours < 24) {
-    return `${diffInHours}h ago`;
-  } else if (diffInDays < 7) {
-    return `${diffInDays}d ago`;
-  } else {
-    return date.toLocaleDateString();
-  }
-};

@@ -1,7 +1,10 @@
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
+import { WatermelonProvider } from "@/contexts/WatermelonProvider";
+import { useDeepLinking } from "@/hooks/useDeepLinking";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useAuthStore } from "@/state/authStore";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { asyncStoragePersister, initializeQueryPersistence, queryClient } from "@/utils/queryClient";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
@@ -12,7 +15,6 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Toaster } from "sonner-native";
 
 SplashScreen.preventAutoHideAsync();
-const queryClient = new QueryClient();
 
 /* -------------------------------------------------------------------------- */
 /*                              ROOT CONTENT                                  */
@@ -20,6 +22,9 @@ const queryClient = new QueryClient();
 function RootLayoutContent() {
   // ✅ SINGLE SOURCE OF NOTIFICATIONS
   usePushNotifications();
+  
+  // ✅ HANDLE DEEP LINKING FOR REFERRALS
+  useDeepLinking();
 
   const { isDark } = useTheme();
   const {
@@ -35,7 +40,12 @@ function RootLayoutContent() {
   /* ----------------------------- HYDRATION -------------------------------- */
   useEffect(() => {
     const init = async () => {
-      console.log("🚀 App mounted, hydrating store...");
+      console.log("🚀 App mounted, initializing...");
+      
+      // Initialize query persistence (noop now, handled by provider, but kept for flow)
+      await initializeQueryPersistence();
+      
+      // Then hydrate auth store
       await hydrate();
     };
     init();
@@ -110,14 +120,19 @@ function RootLayoutContent() {
 /* -------------------------------------------------------------------------- */
 export default function RootLayout() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <SafeAreaProvider>
-          <ThemeProvider>
-            <RootLayoutContent />
-          </ThemeProvider>
-        </SafeAreaProvider>
-      </GestureHandlerRootView>
-    </QueryClientProvider>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{ persister: asyncStoragePersister }}
+    >
+      <WatermelonProvider>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <SafeAreaProvider>
+            <ThemeProvider>
+              <RootLayoutContent />
+            </ThemeProvider>
+          </SafeAreaProvider>
+        </GestureHandlerRootView>
+      </WatermelonProvider>
+    </PersistQueryClientProvider>
   );
 }

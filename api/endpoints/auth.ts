@@ -1,18 +1,16 @@
-import { api } from '../client';
-import { UrlConstants } from '../../constants/apiUrls';
 import { setupNotifications } from '@/utils/notifications';
+import { secureTokenStorage } from '@/utils/secureTokenStorage';
+import { UrlConstants } from '../../constants/apiUrls';
 import {
-  LoginRequest,
-  LoginResponse,
-  VerifyOTPRequest,
-  VerifyOTPResponse,
-  ResendOTPRequest,
-  FetchAuthUserResponse,
-  AuthUserInterface,
-  SignupRequest,
-  SignupResponse,
+    AuthUserInterface,
+    FetchAuthUserResponse,
+    LoginResponse,
+    SignupRequest,
+    SignupResponse,
+    VerifyOTPResponse
 } from '../../types/auth';
-import { saveAuthToken, saveUserData, clearUserData, saveAccessToken, saveSocketToken, saveRefreshToken } from '../../utils/storage';
+import { clearUserData, saveAccessToken, saveRefreshToken, saveSocketToken, saveUserData } from '../../utils/storage';
+import { api } from '../client';
 
 export class AuthAPI {
 
@@ -75,11 +73,19 @@ export class AuthAPI {
     const { user, authTokens } = response.data.data;
     
     if (user && authTokens) {
+      // Save to secure storage
+      await secureTokenStorage.saveTokens(authTokens.accessToken, authTokens.refreshToken);
+      
+      // Also save to regular storage for backward compatibility
       await saveAccessToken(authTokens.accessToken);
       await saveRefreshToken(authTokens.refreshToken);
       await saveSocketToken(authTokens.socketToken); 
       await saveUserData(user);
-      console.log('💾 Saved tokens and user data:', user.email);
+      
+      console.log('💾 Saved tokens securely and user data:', user.email);
+      
+      // Start auto-refresh
+      secureTokenStorage.startAutoRefresh();
     }
   
     return {
@@ -114,14 +120,23 @@ export class AuthAPI {
   }
 
 
-  static async refreshToken(): Promise<{ token: string }> {
-    const response = await api.post<{ token: string }>(UrlConstants.refreshToken);
+  static async refreshToken(refreshToken?: string): Promise<{ accessToken: string; refreshToken: string }> {
+    const response = await api.post<{ 
+      data: { 
+        accessToken: string; 
+        refreshToken: string; 
+      } 
+    }>(UrlConstants.refreshToken, refreshToken ? { refreshToken } : {});
     
-    if (response.data.token) {
-      await saveAccessToken(response.data.token);
+    if (response.data.data.accessToken) {
+      await saveAccessToken(response.data.data.accessToken);
+    }
+    
+    if (response.data.data.refreshToken) {
+      await saveRefreshToken(response.data.data.refreshToken);
     }
 
-    return response.data;
+    return response.data.data;
   }
 
 
@@ -129,8 +144,9 @@ export class AuthAPI {
     try {
       await api.post(UrlConstants.logout);
     } finally {
-
+      // Clear both regular and secure storage
       await clearUserData();
+      await secureTokenStorage.clearTokens();
     }
   }
 
@@ -138,5 +154,6 @@ export class AuthAPI {
   static async deleteAccount(): Promise<void> {
     await api.delete(UrlConstants.deleteAccount);
     await clearUserData();
+    await secureTokenStorage.clearTokens();
   }
 }

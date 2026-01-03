@@ -1,18 +1,18 @@
+import { formatTimeAgo } from "@/hooks/useEnhancedGroupMessages";
+import { AlertMessage, Group, MessageFile, MessageType, UserMessage } from '@/types/groups';
+import { formatFileSize } from '@/utils/timeUtils';
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  Image,
-  Dimensions,
-  ScrollView,
-  Linking,
+    Dimensions,
+    Image,
+    Linking,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { UserMessage, AlertMessage, MessageType, MessageFile, Group } from '@/types/groups';
-import {  formatFileSize } from '@/utils/timeUtils';
-import { formatTimeAgo } from "@/hooks/useGroupMessages"
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 

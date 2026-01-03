@@ -1,4 +1,5 @@
 import { api } from "@/api/client";
+import { UrlConstants } from "@/constants/apiUrls";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
@@ -40,6 +41,9 @@ export default function LocationPrivacyScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(0);
   const [hiddenCount, setHiddenCount] = useState(0);
+  const [processingFriends, setProcessingFriends] = useState<Set<string>>(new Set());
+  const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Load friends on mount
   useEffect(() => {
@@ -71,11 +75,12 @@ export default function LocationPrivacyScreen() {
           name: `${friend.fname || ''}${friend.lname ? ` ${friend.lname}` : ''}`.trim() || 'Unknown',
           username: friend.username,
           avatar: friend.bgUrl,
-          canSeeLocation: friend.canSeeLocation ?? true // Default to true
+          canSeeLocation: friend.canSeeLocation ?? friend.locationVisible ?? true // Check multiple possible fields
         }));
         
         setFriends(friendsData);
         console.log('Processed friends:', friendsData);
+        console.log('Friends with privacy settings loaded:', friendsData.length);
       } else {
         console.log('No friends data found or invalid response structure');
         setFriends([]);
@@ -94,33 +99,170 @@ export default function LocationPrivacyScreen() {
     }
   };
 
+  // Manual refresh function
+  const refreshFriendsList = async () => {
+    console.log('Manually refreshing friends list...');
+    await loadFriends();
+    toast.success('Friends list refreshed');
+  };
+
   // Filter friends based on search query
   const filteredFriends = friends.filter(friend =>
     friend.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (friend.username && friend.username.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const toggleFriendVisibility = (friendId: string) => {
-    setFriends(prev => prev.map(friend => 
-      friend.id === friendId 
-        ? { ...friend, canSeeLocation: !friend.canSeeLocation }
-        : friend
-    ));
+  const toggleFriendVisibility = async (friendId: string) => {
+    if (processingFriends.has(friendId)) return; // Prevent double-clicks
+    
+    const friend = friends.find(f => f.id === friendId);
+    if (!friend) return;
+
+    const newVisibility = !friend.canSeeLocation;
+    
+    try {
+      setProcessingFriends(prev => new Set(prev).add(friendId));
+      console.log(`Toggling location privacy for friend ${friendId} to ${newVisibility ? 'visible' : 'invisible'}`);
+      
+      const response = await api.post(UrlConstants.friendLocationPrivacy, {
+        userID: friendId,
+        action: newVisibility // Boolean: true = visible, false = invisible
+      });
+
+      console.log('Location privacy toggle response:', JSON.stringify(response.data, null, 2));
+
+      if (response.data?.status === 'success') {
+        // Update local state only after successful API call
+        setFriends(prev => prev.map(f => 
+          f.id === friendId 
+            ? { ...f, canSeeLocation: newVisibility }
+            : f
+        ));
+        
+        toast.success(`${friend.name} can ${newVisibility ? 'now' : 'no longer'} see your location`);
+        console.log(`Successfully updated location privacy for ${friend.name}`);
+      } else {
+        console.error('Failed to update location privacy:', response.data);
+        toast.error('Failed to update privacy setting');
+      }
+    } catch (error: any) {
+      console.error('Error toggling location privacy:', error);
+      console.error('Error response:', JSON.stringify(error?.response?.data, null, 2));
+      toast.error('Failed to update privacy setting');
+    } finally {
+      setProcessingFriends(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(friendId);
+        return newSet;
+      });
+    }
   };
 
-  const showAll = () => {
-    setFriends(prev => prev.map(friend => ({ ...friend, canSeeLocation: true })));
+  const showAll = async () => {
+    if (bulkProcessing) return;
+    
+    try {
+      setBulkProcessing(true);
+      console.log('Setting all friends to visible');
+      
+      // Update all friends to visible
+      const updatePromises = friends.map(async (friend) => {
+        if (!friend.canSeeLocation) { // Only update if currently hidden
+          try {
+            const response = await api.post(UrlConstants.friendLocationPrivacy, {
+              userID: friend.id,
+              action: true // true = visible
+            });
+            
+            console.log(`Updated ${friend.name} to visible:`, response.data?.status === 'success');
+            return { friendId: friend.id, success: response.data?.status === 'success' };
+          } catch (error) {
+            console.error(`Failed to update ${friend.name}:`, error);
+            return { friendId: friend.id, success: false };
+          }
+        }
+        return { friendId: friend.id, success: true }; // Already visible
+      });
+
+      const results = await Promise.all(updatePromises);
+      const successCount = results.filter(r => r.success).length;
+      
+      if (successCount === friends.length) {
+        setFriends(prev => prev.map(friend => ({ ...friend, canSeeLocation: true })));
+        toast.success('All friends can now see your location');
+      } else {
+        toast.error(`Updated ${successCount}/${friends.length} friends`);
+      }
+    } catch (error) {
+      console.error('Error in showAll:', error);
+      toast.error('Failed to update all friends');
+    } finally {
+      setBulkProcessing(false);
+    }
   };
 
-  const hideAll = () => {
-    setFriends(prev => prev.map(friend => ({ ...friend, canSeeLocation: false })));
+  const hideAll = async () => {
+    if (bulkProcessing) return;
+    
+    try {
+      setBulkProcessing(true);
+      console.log('Setting all friends to hidden');
+      
+      // Update all friends to hidden
+      const updatePromises = friends.map(async (friend) => {
+        if (friend.canSeeLocation) { // Only update if currently visible
+          try {
+            const response = await api.post(UrlConstants.friendLocationPrivacy, {
+              userID: friend.id,
+              action: false // false = invisible
+            });
+            
+            console.log(`Updated ${friend.name} to hidden:`, response.data?.status === 'success');
+            return { friendId: friend.id, success: response.data?.status === 'success' };
+          } catch (error) {
+            console.error(`Failed to update ${friend.name}:`, error);
+            return { friendId: friend.id, success: false };
+          }
+        }
+        return { friendId: friend.id, success: true }; // Already hidden
+      });
+
+      const results = await Promise.all(updatePromises);
+      const successCount = results.filter(r => r.success).length;
+      
+      if (successCount === friends.length) {
+        setFriends(prev => prev.map(friend => ({ ...friend, canSeeLocation: false })));
+        toast.success('All friends are now hidden from your location');
+      } else {
+        toast.error(`Updated ${successCount}/${friends.length} friends`);
+      }
+    } catch (error) {
+      console.error('Error in hideAll:', error);
+      toast.error('Failed to update all friends');
+    } finally {
+      setBulkProcessing(false);
+    }
   };
 
-  const handleSave = () => {
-    // TODO: Implement save functionality
-    console.log('Saving privacy settings:', friends);
-    toast.success('Privacy settings saved');
-    router.back();
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      console.log('Saving privacy settings and refreshing friends list...');
+      
+      // Refresh the friends list to get the latest privacy settings from server
+      await loadFriends();
+      
+      toast.success('Privacy settings saved and refreshed');
+      console.log('Privacy settings saved successfully');
+      
+      // Navigate back after successful save and refresh
+      router.back();
+    } catch (error) {
+      console.error('Error saving privacy settings:', error);
+      toast.error('Failed to save settings');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleBack = () => {
@@ -144,9 +286,18 @@ export default function LocationPrivacyScreen() {
             </Text>
           </View>
         </View>
-        <Pressable style={styles.closeButton} onPress={handleBack}>
-          <Ionicons name="close" size={24} color={isDark ? "#FFFFFF" : "#000000"} />
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable 
+            style={[styles.refreshButton, { opacity: isLoading ? 0.6 : 1 }]} 
+            onPress={refreshFriendsList}
+            disabled={isLoading}
+          >
+            <Ionicons name="refresh" size={20} color={isDark ? "#FFFFFF" : "#000000"} />
+          </Pressable>
+          <Pressable style={styles.closeButton} onPress={handleBack}>
+            <Ionicons name="close" size={24} color={isDark ? "#FFFFFF" : "#000000"} />
+          </Pressable>
+        </View>
       </View>
 
       {/* Stats Row */}
@@ -164,11 +315,31 @@ export default function LocationPrivacyScreen() {
           </Text>
         </View>
         <View style={styles.actionButtons}>
-          <Pressable style={[styles.actionBtn, { backgroundColor: isDark ? "#2A2A2A" : "#F5F5F5" }]} onPress={showAll}>
-            <Text style={[styles.actionBtnText, { color: isDark ? "#FFFFFF" : "#000000" }]}>Show All</Text>
+          <Pressable 
+            style={[
+              styles.actionBtn, 
+              { backgroundColor: isDark ? "#2A2A2A" : "#F5F5F5" },
+              bulkProcessing && { opacity: 0.6 }
+            ]} 
+            onPress={showAll}
+            disabled={bulkProcessing}
+          >
+            <Text style={[styles.actionBtnText, { color: isDark ? "#FFFFFF" : "#000000" }]}>
+              {bulkProcessing ? "..." : "Show All"}
+            </Text>
           </Pressable>
-          <Pressable style={[styles.actionBtn, { backgroundColor: isDark ? "#2A2A2A" : "#F5F5F5" }]} onPress={hideAll}>
-            <Text style={[styles.actionBtnText, { color: isDark ? "#FFFFFF" : "#000000" }]}>Hide All</Text>
+          <Pressable 
+            style={[
+              styles.actionBtn, 
+              { backgroundColor: isDark ? "#2A2A2A" : "#F5F5F5" },
+              bulkProcessing && { opacity: 0.6 }
+            ]} 
+            onPress={hideAll}
+            disabled={bulkProcessing}
+          >
+            <Text style={[styles.actionBtnText, { color: isDark ? "#FFFFFF" : "#000000" }]}>
+              {bulkProcessing ? "..." : "Hide All"}
+            </Text>
           </Pressable>
         </View>
       </View>
@@ -234,12 +405,19 @@ export default function LocationPrivacyScreen() {
                   </View>
                 </View>
               </View>
-              <Switch
-                value={friend.canSeeLocation}
-                onValueChange={() => toggleFriendVisibility(friend.id)}
-                trackColor={{ false: isDark ? "#333" : "#E0E0E0", true: "#4CAF50" }}
-                thumbColor={friend.canSeeLocation ? "#FFFFFF" : (isDark ? "#666" : "#FFFFFF")}
-              />
+              <View style={styles.switchContainer}>
+                {processingFriends.has(friend.id) ? (
+                  <ActivityIndicator size="small" color={isDark ? "#FFFFFF" : "#000000"} />
+                ) : (
+                  <Switch
+                    value={friend.canSeeLocation}
+                    onValueChange={() => toggleFriendVisibility(friend.id)}
+                    trackColor={{ false: isDark ? "#333" : "#E0E0E0", true: "#4CAF50" }}
+                    thumbColor={friend.canSeeLocation ? "#FFFFFF" : (isDark ? "#666" : "#FFFFFF")}
+                    disabled={processingFriends.has(friend.id) || bulkProcessing}
+                  />
+                )}
+              </View>
             </View>
           ))
         )}
@@ -257,9 +435,25 @@ export default function LocationPrivacyScreen() {
           <Pressable style={[styles.cancelButton, { borderColor: isDark ? "#333" : "#E0E0E0" }]} onPress={handleBack}>
             <Text style={[styles.cancelButtonText, { color: isDark ? "#FFFFFF" : "#000000" }]}>Cancel</Text>
           </Pressable>
-          <Pressable style={styles.saveButton} onPress={handleSave}>
-            <Ionicons name="shield-checkmark" size={16} color="#FFFFFF" />
-            <Text style={styles.saveButtonText}>Save Settings</Text>
+          <Pressable 
+            style={[
+              styles.saveButton,
+              (isSaving || isLoading) && { opacity: 0.6 }
+            ]} 
+            onPress={handleSave}
+            disabled={isSaving || isLoading}
+          >
+            {isSaving ? (
+              <>
+                <ActivityIndicator size={16} color="#FFFFFF" />
+                <Text style={styles.saveButtonText}>Saving...</Text>
+              </>
+            ) : (
+              <>
+                <Ionicons name="shield-checkmark" size={16} color="#FFFFFF" />
+                <Text style={styles.saveButtonText}>Save Settings</Text>
+              </>
+            )}
           </Pressable>
         </View>
       </View>
@@ -294,6 +488,14 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 14,
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  refreshButton: {
+    padding: 4,
   },
   closeButton: {
     padding: 4,
@@ -414,6 +616,12 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 14,
     fontWeight: "500",
+  },
+  switchContainer: {
+    width: 50,
+    height: 30,
+    alignItems: "center",
+    justifyContent: "center",
   },
   footer: {
     paddingHorizontal: 20,

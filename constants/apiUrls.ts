@@ -37,6 +37,7 @@ class UrlConstants {
 
   static fetchAllGroups = (campusID?: string) =>
     `/groups/all${campusID ? `?campusID=${campusID}` : ""}`;
+  static createGroupChat = `/groups/chat/create`;
   static uploadImageToMessage = (id: string) => `/user/messages/upload/${id}`
   static fetchAllCategories = (campusID?: string, stateID?: string) =>
     `/groups/categories${
@@ -80,6 +81,9 @@ class UrlConstants {
   static uploadTarps = `/tarps/upload`;
   static fetchPeopleMessage = (userID: string) => `/tarps/people/message/${userID}`;
   static fetchPeopleMessages = (userID: string) => `/tarps/people/message/${userID}`;
+  static friendRequests = `/tarps/user/follow/requests`;
+  static friendRequestAction = `/tarps/user/follow/action`;
+  static friendLocationPrivacy = `/tarps/people/friends/privacy`;
   static tarpNavigateToUser = (params: { locationID: string; startingLat?: number; startingLng?: number; startingLocation?: string }) => {
     const q = new URLSearchParams({
       locationID: params.locationID,
@@ -95,6 +99,10 @@ class UrlConstants {
   static tarpToggleFollow = `/tarps/user/follow`;
 
   static groupsRoute = `${this.baseUrl}/groups`;
+
+  // Referral endpoints
+  static getUserReferralStats = (userID: string) => `/analytics/user/${userID}`;
+  static getUserStats = `/user/stats`;
 }
 
 export { UrlConstants };
