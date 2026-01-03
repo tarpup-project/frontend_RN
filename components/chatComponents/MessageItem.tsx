@@ -55,6 +55,21 @@ export const MessageItem: React.FC<MessageItemProps> = ({
 }) => {
   const { isDark } = useTheme();
 
+  // Helper function to calculate reply reference dimensions based on content
+  const getReplyDimensions = (message: string) => {
+    const length = message?.length || 0;
+    
+    if (length <= 20) {
+      return { minWidth: "50%", maxWidth: "70%", numberOfLines: 2 };
+    } else if (length <= 40) {
+      return { minWidth: "60%", maxWidth: "80%", numberOfLines: 2 };
+    } else if (length <= 80) {
+      return { minWidth: "70%", maxWidth: "90%", numberOfLines: 3 };
+    } else {
+      return { minWidth: "75%", maxWidth: "95%", numberOfLines: 4 };
+    }
+  };
+
   const dynamicStyles = {
     myMessage: {
       backgroundColor: isDark ? "#262626" : "#262626",
@@ -177,6 +192,11 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                       ? dynamicStyles.myMessage
                       : dynamicStyles.theirMessage,
                    // msg.isMe && styles.myReplyReference,
+                   // Dynamic width based on content length
+                   {
+                     minWidth: getReplyDimensions(msg.replyingTo.content.message).minWidth,
+                     maxWidth: getReplyDimensions(msg.replyingTo.content.message).maxWidth,
+                   }
                   ]}
                   onPress={() => scrollToMessage(msg.replyingTo!.content.id)}
                 >
@@ -189,13 +209,13 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                           : dynamicStyles.theirMessageText,
                       ]}
                     >
-                      {msg.replyingTo.sender.fname}
+                      {msg.replyingTo.sender.fname || "Unknown User"}
                     </Text>
                     <Text
                       style={[styles.replyText, dynamicStyles.subtitle]}
-                      numberOfLines={2}
+                      numberOfLines={getReplyDimensions(msg.replyingTo.content.message).numberOfLines}
                     >
-                      {msg.replyingTo.content.message}
+                      {msg.replyingTo.content.message || "[Message not available]"}
                     </Text>
                   </View>
                 </Pressable>
@@ -290,7 +310,8 @@ const styles = StyleSheet.create({
   messageRow: {
     flexDirection: "row",
     gap: 8,
-    maxWidth: "65%",
+    maxWidth: "85%",
+    flexShrink: 1,
   },
   myMessageRow: {
     alignSelf: "flex-end",
@@ -320,6 +341,7 @@ const styles = StyleSheet.create({
   messageContent: {
     maxWidth: "100%",
     gap: 6,
+    flexShrink: 1,
   },
   messageBubble: {
     paddingHorizontal: 10,
@@ -332,6 +354,8 @@ const styles = StyleSheet.create({
   },
   replyContent: {
     flex: 1,
+    flexShrink: 1,
+    minWidth: 0,
   },
   replyAuthor: {
     fontSize: 11,
@@ -341,6 +365,9 @@ const styles = StyleSheet.create({
   replyText: {
     fontSize: 12,
     lineHeight: 16,
+    flexWrap: "wrap",
+    flexShrink: 1,
+    textAlign: "left",
   },
   messageImage: {
     width: 200,
@@ -379,10 +406,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     marginBottom: 8,
-    padding: 8,
+    padding: 10,
     borderLeftWidth: 3,
     borderLeftColor: "#007AFF",
     borderRadius: 8,
+    flexShrink: 1,
   },
   replyButton: {
     justifyContent: "flex-end",

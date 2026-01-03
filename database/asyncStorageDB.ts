@@ -74,29 +74,142 @@ export class AsyncStorageDB {
   // Messages operations
   async getMessages(groupId: string): Promise<any[]> {
     await this.initialize();
-    const messages = this.cache.get(`db_messages_${groupId}`) || [];
-    return messages.sort((a: any, b: any) => (a.createdAt || 0) - (b.createdAt || 0));
+    
+    try {
+      const messages = this.cache.get(`db_messages_${groupId}`) || [];
+      
+      // CRITICAL FIX: Validate message data before returning
+      const validMessages = messages.filter((msg: any) => {
+        return msg && 
+               typeof msg.id === 'string' && 
+               typeof msg.groupId === 'string' && 
+               typeof msg.content === 'string' &&
+               typeof msg.senderId === 'string' &&
+               typeof msg.senderName === 'string' &&
+               typeof msg.createdAt === 'number';
+      });
+      
+      if (validMessages.length !== messages.length) {
+        console.warn(`⚠️ Filtered out ${messages.length - validMessages.length} corrupted messages for group ${groupId}`);
+        // Save cleaned messages back to cache
+        await this.saveMessages(groupId, validMessages);
+      }
+      
+      return validMessages.sort((a: any, b: any) => (a.createdAt || 0) - (b.createdAt || 0));
+    } catch (error) {
+      console.error('❌ Failed to get messages for group:', groupId, error);
+      return []; // Return empty array instead of throwing
+    }
   }
 
   async saveMessages(groupId: string, messages: any[]): Promise<void> {
     await this.initialize();
-    const key = `db_messages_${groupId}`;
-    this.cache.set(key, messages);
-    await AsyncStorage.setItem(key, JSON.stringify(messages));
-    console.log('💾 Saved', messages.length, 'messages for group', groupId);
+    
+    try {
+      // CRITICAL FIX: Validate messages before saving
+      const validMessages = messages.filter((msg: any) => {
+        return msg && 
+               typeof msg.id === 'string' && 
+               typeof msg.content === 'string' &&
+               typeof msg.senderId === 'string' &&
+               typeof msg.senderName === 'string';
+      }).map(msg => ({
+        ...msg,
+        groupId: groupId, // Ensure groupId is set
+        createdAt: msg.createdAt || Date.now(),
+        updatedAt: msg.updatedAt || Date.now(),
+      }));
+      
+      if (validMessages.length !== messages.length) {
+        console.warn(`⚠️ Filtered out ${messages.length - validMessages.length} invalid messages before saving to group ${groupId}`);
+      }
+      
+      const key = `db_messages_${groupId}`;
+      this.cache.set(key, validMessages);
+      await AsyncStorage.setItem(key, JSON.stringify(validMessages));
+      console.log('💾 Saved', validMessages.length, 'messages for group', groupId);
+    } catch (error) {
+      console.error('❌ Failed to save messages for group:', groupId, error);
+      // Don't throw - just log the error to prevent app crashes
+    }
   }
 
   async addMessage(groupId: string, message: any): Promise<void> {
-    const messages = await this.getMessages(groupId);
-    const newMessage = {
-      ...message,
-      id: message.id || `temp_${Date.now()}_${Math.random()}`,
-      createdAt: message.createdAt || Date.now(),
-      updatedAt: Date.now(),
-    };
+    try {
+      // CRITICAL FIX: Validate message before adding
+      if (!message || !message.content || !message.senderId || !message.senderName) {
+        console.warn('⚠️ Attempted to add invalid message:', message);
+        return;
+      }
+      
+      const messages = await this.getMessages(groupId);
+      const newMessage = {
+        ...message,
+        id: message.id || `temp_${Date.now()}_${Math.random()}`,
+        groupId: groupId, // Ensure groupId is set
+        createdAt: message.createdAt || Date.now(),
+        updatedAt: Date.now(),
+      };
+      
+      // Check for duplicates
+      const exists = messages.find(m => m.id === newMessage.id || 
+        (m.content === newMessage.content && 
+         m.senderId === newMessage.senderId && 
+         Math.abs(m.createdAt - newMessage.createdAt) < 1000));
+      
+      if (exists) {
+        console.log('📝 Message already exists, skipping duplicate');
+        return;
+      }
+      
+      messages.push(newMessage);
+      await this.saveMessages(groupId, messages);
+    } catch (error) {
+      console.error('❌ Failed to add message to group:', groupId, error);
+      // Don't throw - just log the error to prevent app crashes
+    }
+  }
+
+  // Get a specific message by ID across all groups (for reply resolution)
+  async getMessageById(messageId: string): Promise<any | null> {
+    await this.initialize();
     
-    messages.push(newMessage);
-    await this.saveMessages(groupId, messages);
+    try {
+      // First check all cached message groups
+      const keys = Array.from(this.cache.keys()).filter(key => key.startsWith('db_messages_'));
+      
+      for (const key of keys) {
+        const messages = this.cache.get(key) || [];
+        const message = messages.find((msg: any) => msg.id === messageId || msg.serverId === messageId);
+        if (message) {
+          return message;
+        }
+      }
+      
+      // If not found in cache, check AsyncStorage directly
+      const allKeys = await AsyncStorage.getAllKeys();
+      const messageKeys = allKeys.filter(key => key.startsWith('db_messages_'));
+      
+      for (const key of messageKeys) {
+        try {
+          const data = await AsyncStorage.getItem(key);
+          if (data) {
+            const messages = JSON.parse(data);
+            const message = messages.find((msg: any) => msg.id === messageId || msg.serverId === messageId);
+            if (message) {
+              return message;
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to parse messages from key:', key);
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('❌ Failed to get message by ID:', messageId, error);
+      return null;
+    }
   }
 
   // Prompts operations
@@ -201,7 +314,46 @@ export class AsyncStorageDB {
     };
   }
 
-  // Clear all data
+  // CRITICAL FIX: Add backup mechanism for message recovery
+  async createMessageBackup(groupId: string): Promise<void> {
+    try {
+      const messages = await this.getMessages(groupId);
+      if (messages.length > 0) {
+        const backupKey = `db_messages_backup_${groupId}`;
+        this.cache.set(backupKey, {
+          messages,
+          timestamp: Date.now(),
+          count: messages.length
+        });
+        await AsyncStorage.setItem(backupKey, JSON.stringify({
+          messages,
+          timestamp: Date.now(),
+          count: messages.length
+        }));
+        console.log('💾 Created backup of', messages.length, 'messages for group', groupId);
+      }
+    } catch (error) {
+      console.error('❌ Failed to create message backup:', error);
+    }
+  }
+
+  async restoreMessageBackup(groupId: string): Promise<any[]> {
+    try {
+      const backupKey = `db_messages_backup_${groupId}`;
+      const backup = this.cache.get(backupKey);
+      
+      if (backup && backup.messages && backup.messages.length > 0) {
+        console.log('🔄 Restoring', backup.messages.length, 'messages from backup for group', groupId);
+        await this.saveMessages(groupId, backup.messages);
+        return backup.messages;
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('❌ Failed to restore message backup:', error);
+      return [];
+    }
+  }
   async clearAll(): Promise<void> {
     await this.initialize();
     

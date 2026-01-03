@@ -51,6 +51,163 @@ export const useEnhancedGroupMessages = ({
   const [isSending, setIsSending] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // CRITICAL FIX: Load cached messages BEFORE query initialization to prevent race condition
+  const [initialCacheLoaded, setInitialCacheLoaded] = useState(false);
+  
+  // Helper function to resolve reply messages from cache
+  const resolveReplyMessage = useCallback(async (replyToId: string, messages: any[]): Promise<UserMessage | undefined> => {
+    if (!replyToId) return undefined;
+    
+    // First, try to find in the current messages array
+    const replyMessage = messages.find(msg => msg.id === replyToId || msg.serverId === replyToId);
+    
+    if (replyMessage) {
+      return {
+        content: {
+          id: replyMessage.serverId || replyMessage.id,
+          message: replyMessage.content,
+        },
+        messageType: MessageType.USER,
+        sender: {
+          id: replyMessage.senderId,
+          fname: replyMessage.senderName,
+        },
+        createdAt: new Date(replyMessage.createdAt).toISOString(),
+      } as UserMessage;
+    }
+    
+    // If not found in current messages, try to load from cache using the new method
+    try {
+      const cachedReply = await asyncStorageDB.getMessageById(replyToId);
+      
+      if (cachedReply) {
+        return {
+          content: {
+            id: cachedReply.serverId || cachedReply.id,
+            message: cachedReply.content,
+          },
+          messageType: MessageType.USER,
+          sender: {
+            id: cachedReply.senderId,
+            fname: cachedReply.senderName,
+          },
+          createdAt: new Date(cachedReply.createdAt).toISOString(),
+        } as UserMessage;
+      }
+    } catch (error) {
+      console.error('❌ Failed to resolve reply message:', error);
+    }
+    
+    // If still not found, return a placeholder with the ID for reference
+    return {
+      content: {
+        id: replyToId,
+        message: '[Message not available]',
+      },
+      messageType: MessageType.USER,
+      sender: {
+        id: 'unknown',
+        fname: 'Unknown User',
+      },
+      createdAt: new Date().toISOString(),
+    } as UserMessage;
+  }, []);
+
+  // Helper function to transform cached messages with proper reply resolution
+  const transformCachedMessages = useCallback(async (cachedMessages: any[]): Promise<GroupMessage[]> => {
+    const transformedMessages: GroupMessage[] = [];
+    
+    for (const msg of cachedMessages) {
+      const baseMessage = {
+        content: {
+          id: msg.serverId || msg.id,
+          message: msg.content,
+        },
+        createdAt: new Date(msg.createdAt).toISOString(),
+      };
+
+      if (msg.senderId === 'system') {
+        transformedMessages.push({
+          messageType: MessageType.ALERT,
+          ...baseMessage,
+          sender: {
+            id: 'system',
+            fname: 'System',
+          },
+        } as AlertMessage);
+      } else {
+        // Resolve reply message if exists
+        const replyingTo = msg.replyToId ? await resolveReplyMessage(msg.replyToId, cachedMessages) : undefined;
+        
+        transformedMessages.push({
+          messageType: MessageType.USER,
+          ...baseMessage,
+          sender: {
+            id: msg.senderId,
+            fname: msg.senderName,
+          },
+          file: msg.fileUrl ? {
+            name: 'file',
+            size: 0,
+            data: msg.fileUrl,
+            ext: msg.fileType || 'image',
+          } : undefined,
+          replyingTo,
+        } as UserMessage);
+      }
+    }
+    
+    return transformedMessages;
+  }, [resolveReplyMessage]);
+  
+  // Load cached messages immediately and synchronously set initial data
+  useEffect(() => {
+    const loadInitialCache = async () => {
+      if (!groupId || initialCacheLoaded) return;
+      
+      try {
+        console.log('📦 Loading initial cached messages for group:', groupId);
+        
+        let cachedMessages: GroupMessage[] = [];
+        
+        if (isWatermelonAvailable) {
+          console.log('📦 Loading from WatermelonDB (not implemented yet)');
+        } else {
+          const asyncMessages = await asyncStorageDB.getMessages(groupId);
+          
+          // CRITICAL FIX: If no messages found, try to restore from backup
+          if (asyncMessages.length === 0) {
+            console.log('⚠️ No cached messages found, attempting backup restore for group:', groupId);
+            const backupMessages = await asyncStorageDB.restoreMessageBackup(groupId);
+            if (backupMessages.length > 0) {
+              cachedMessages = await transformCachedMessages(backupMessages);
+              console.log('✅ Restored', cachedMessages.length, 'messages from backup');
+            }
+          } else {
+            cachedMessages = await transformCachedMessages(asyncMessages);
+          }
+        }
+        
+        if (cachedMessages.length > 0) {
+          console.log('✅ Setting initial cache data:', cachedMessages.length, 'messages for group:', groupId);
+          
+          // Set initial data immediately to prevent empty state
+          queryClient.setQueryData<GroupMessage[]>(
+            ['groups', 'messages', groupId],
+            cachedMessages
+          );
+        }
+        
+        setInitialCacheLoaded(true);
+      } catch (error) {
+        console.error('❌ Failed to load initial cached messages for group:', groupId, error);
+        setInitialCacheLoaded(true); // Still mark as loaded to prevent infinite loop
+      }
+    };
+
+    loadInitialCache();
+  }, [groupId, queryClient, transformCachedMessages]); // Remove initialCacheLoaded from deps to prevent re-runs
+
   // Enhanced React Query to fetch and cache messages with immediate cache loading
   const { data: messages = [], isLoading, error, isFetching } = useQuery({
     queryKey: ['groups', 'messages', groupId],
@@ -64,10 +221,27 @@ export const useEnhancedGroupMessages = ({
       }
 
       return new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          console.log('⏰ Socket timeout for group:', groupId);
+        const timeout = setTimeout(async () => {
+          console.log('⏰ Socket timeout for group:', groupId, '- Loading cached messages instead');
           setIsRefreshing(false);
-          resolve([]);
+          
+          // CRITICAL FIX: Load cached messages instead of returning empty array
+          try {
+            let cachedMessages: GroupMessage[] = [];
+            
+            if (isWatermelonAvailable) {
+              console.log('📦 Loading from WatermelonDB (not implemented yet)');
+            } else {
+              const asyncMessages = await asyncStorageDB.getMessages(groupId);
+              cachedMessages = await transformCachedMessages(asyncMessages);
+            }
+            
+            console.log('✅ Socket timeout - returning', cachedMessages.length, 'cached messages');
+            resolve(cachedMessages);
+          } catch (error) {
+            console.error('❌ Failed to load cached messages on timeout:', error);
+            resolve([]); // Only return empty if cache loading fails
+          }
         }, 15000); 
 
         const handleJoinRoom = async (data: { messages: GroupMessage[] }) => {
@@ -102,6 +276,9 @@ export const useEnhancedGroupMessages = ({
               
               await asyncStorageDB.saveMessages(groupId, transformedMessages);
               console.log('💾 Saved', transformedMessages.length, 'messages to AsyncStorage for group:', groupId);
+              
+              // CRITICAL FIX: Create backup after saving fresh messages
+              await asyncStorageDB.createMessageBackup(groupId);
             }
           } catch (error) {
             console.error('❌ Failed to save fresh messages to cache:', error);
@@ -111,11 +288,28 @@ export const useEnhancedGroupMessages = ({
           resolve(freshMessages);
         };
 
-        const handleError = (error: any) => {
+        const handleError = async (error: any) => {
           clearTimeout(timeout);
           console.error('❌ Socket error for group:', groupId, error);
           setIsRefreshing(false);
-          resolve([]);
+          
+          // CRITICAL FIX: Load cached messages instead of returning empty array
+          try {
+            let cachedMessages: GroupMessage[] = [];
+            
+            if (isWatermelonAvailable) {
+              console.log('📦 Loading from WatermelonDB (not implemented yet)');
+            } else {
+              const asyncMessages = await asyncStorageDB.getMessages(groupId);
+              cachedMessages = await transformCachedMessages(asyncMessages);
+            }
+            
+            console.log('✅ Socket error - returning', cachedMessages.length, 'cached messages');
+            resolve(cachedMessages);
+          } catch (cacheError) {
+            console.error('❌ Failed to load cached messages on error:', cacheError);
+            resolve([]); // Only return empty if cache loading fails
+          }
         };
 
         socket.on('joinGroupRoom', handleJoinRoom);
@@ -127,94 +321,64 @@ export const useEnhancedGroupMessages = ({
         });
       });
     },
-    enabled: !!groupId,
+    enabled: !!groupId && initialCacheLoaded, // Wait for initial cache to load
     staleTime: 1000 * 60 * 2, // Consider data stale after 2 minutes
     gcTime: 1000 * 60 * 60 * 24, // Keep in cache for 24 hours
     retry: 2,
-    // Show cached data immediately while fetching fresh data
-    placeholderData: (previousData) => previousData,
+    // CRITICAL FIX: Only merge fresh data if it's actually newer/different
+    placeholderData: (previousData) => {
+      // Always keep previous data to prevent empty states
+      return previousData;
+    },
     refetchOnWindowFocus: false, // Don't refetch on focus to avoid interrupting user
-    refetchOnReconnect: true,
+    refetchOnReconnect: false, // CRITICAL FIX: Disable auto-refetch on reconnect to prevent clearing cache
   });
 
-  // Load cached messages immediately on mount
+  // Post-process messages to resolve any missing reply content
   useEffect(() => {
-    const loadCachedMessages = async () => {
-      if (!groupId) return;
+    const resolveRepliesInMessages = async () => {
+      if (!messages || messages.length === 0) return;
       
-      try {
-        console.log('📦 Loading cached messages for group:', groupId);
-        
-        let cachedMessages: GroupMessage[] = [];
-        
-        if (isWatermelonAvailable) {
-          // TODO: Load from WatermelonDB
-          console.log('📦 Loading from WatermelonDB (not implemented yet)');
-        } else {
-          // Load from AsyncStorage
-          const asyncMessages = await asyncStorageDB.getMessages(groupId);
-          cachedMessages = asyncMessages.map(msg => {
-            const baseMessage = {
-              content: {
-                id: msg.serverId || msg.id,
-                message: msg.content,
-              },
-              createdAt: new Date(msg.createdAt).toISOString(),
-            };
-
-            if (msg.senderId === 'system') {
-              return {
-                messageType: MessageType.ALERT,
-                ...baseMessage,
-                sender: {
-                  id: 'system',
-                  fname: 'System',
-                },
-              } as AlertMessage;
-            } else {
-              return {
-                messageType: MessageType.USER,
-                ...baseMessage,
-                sender: {
-                  id: msg.senderId,
-                  fname: msg.senderName,
-                },
-                file: msg.fileUrl ? {
-                  name: 'file',
-                  size: 0,
-                  data: msg.fileUrl,
-                  ext: msg.fileType || 'image',
-                } : undefined,
-                replyingTo: msg.replyToId ? {
-                  content: { id: msg.replyToId, message: '' },
-                  messageType: MessageType.USER,
-                  sender: { id: '', fname: '' },
-                  createdAt: '',
-                } as UserMessage : undefined,
-              } as UserMessage;
-            }
-          });
-        }
-        
-        if (cachedMessages.length > 0) {
-          console.log('✅ Loaded', cachedMessages.length, 'cached messages for group:', groupId);
+      let hasUnresolvedReplies = false;
+      const updatedMessages: GroupMessage[] = [];
+      
+      for (const message of messages) {
+        if (message.messageType === MessageType.USER) {
+          const userMessage = message as UserMessage;
           
-          // Set cached data immediately if no fresh data is available
-          queryClient.setQueryData<GroupMessage[]>(
-            ['groups', 'messages', groupId],
-            (currentData) => {
-              // Only use cached data if we don't have fresh data yet
-              return currentData && currentData.length > 0 ? currentData : cachedMessages;
-            }
-          );
+          // Check if reply needs resolution (has replyingTo but with empty content)
+          if (userMessage.replyingTo && 
+              (!userMessage.replyingTo.content.message || 
+               userMessage.replyingTo.content.message === '' ||
+               userMessage.replyingTo.content.message === '[Message not available]')) {
+            
+            hasUnresolvedReplies = true;
+            const resolvedReply = await resolveReplyMessage(userMessage.replyingTo.content.id, messages);
+            
+            updatedMessages.push({
+              ...userMessage,
+              replyingTo: resolvedReply,
+            });
+          } else {
+            updatedMessages.push(message);
+          }
+        } else {
+          updatedMessages.push(message);
         }
-      } catch (error) {
-        console.error('❌ Failed to load cached messages for group:', groupId, error);
+      }
+      
+      // Only update if we found and resolved replies
+      if (hasUnresolvedReplies) {
+        console.log('🔄 Resolved reply references for', updatedMessages.length, 'messages');
+        queryClient.setQueryData<GroupMessage[]>(
+          ['groups', 'messages', groupId],
+          updatedMessages
+        );
       }
     };
-
-    loadCachedMessages();
-  }, [groupId, queryClient]);
+    
+    resolveRepliesInMessages();
+  }, [messages, groupId, queryClient, resolveReplyMessage]);
 
   // Debug logging
   useEffect(() => {
@@ -319,6 +483,9 @@ export const useEnhancedGroupMessages = ({
                   createdAt: new Date(createdAt).getTime(),
                   updatedAt: Date.now(),
                 });
+                
+                // CRITICAL FIX: Create backup after adding new message
+                await asyncStorageDB.createMessageBackup(groupId);
               }
             } catch (error) {
               console.error('❌ Failed to cache new message:', error);
@@ -548,7 +715,11 @@ export const useEnhancedGroupMessages = ({
     isSending,
     sendMessage,
     markAsRead,
-    clearError: () => queryClient.resetQueries({ queryKey: ['groups', 'messages', groupId] }),
+    clearError: () => {
+      // CRITICAL FIX: Don't reset queries as it clears all cached messages
+      // Instead, just invalidate to refetch while keeping cache
+      queryClient.invalidateQueries({ queryKey: ['groups', 'messages', groupId] });
+    },
     retryConnection: () => queryClient.invalidateQueries({ queryKey: ['groups', 'messages', groupId] }),
     isCached: messages.length > 0 && !isLoading,
     isRefreshing,

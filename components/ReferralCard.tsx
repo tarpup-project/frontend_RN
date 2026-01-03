@@ -5,12 +5,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 import { toast } from 'sonner-native';
 
@@ -160,128 +160,71 @@ export const ReferralCard: React.FC<ReferralCardProps> = ({
   return (
     <View style={[styles.container, dynamicStyles.container]}>
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
+      <Text style={[styles.title, dynamicStyles.text]}>
+        Referrals
+      </Text>
+
+      {/* Stats Row */}
+      <View style={styles.statsRow}>
+        <View style={styles.iconContainer}>
           <Ionicons 
-            name="people-outline" 
-            size={24} 
-            color={dynamicStyles.text.color} 
+            name="people" 
+            size={20} 
+            color={dynamicStyles.subtitle.color} 
           />
-          <Text style={[styles.title, dynamicStyles.text]}>
-            Invite Friends
-          </Text>
-          <Pressable
-            style={styles.viewDetailsButton}
-            onPress={() => router.push('/referrals')}
-          >
-            <Text style={[styles.viewDetailsText, dynamicStyles.text]}>
-              View Details
-            </Text>
-            <Ionicons 
-              name="chevron-forward" 
-              size={16} 
-              color={dynamicStyles.text.color} 
-            />
-          </Pressable>
         </View>
-        <Text style={[styles.subtitle, dynamicStyles.subtitle]}>
-          Share TarpAI and earn rewards
+        <Text style={[styles.statNumber, dynamicStyles.text]}>
+          {totalReferrals}
+        </Text>
+        <Text style={[styles.statLabel, dynamicStyles.subtitle]}>
+          Total Referrals
         </Text>
       </View>
 
-      {/* Stats */}
-      {showStats && (
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <Text style={[styles.statNumber, dynamicStyles.text]}>
-              {new Intl.NumberFormat('en-US').format(totalReferrals)}
-            </Text>
-            <Text style={[styles.statLabel, dynamicStyles.subtitle]}>
-              Total Referrals
-            </Text>
-          </View>
-          
-          {referralStats && (
-            <>
-              <View style={styles.statItem}>
-                <Text style={[styles.statNumber, dynamicStyles.text]}>
-                  {ReferralUtils.formatNumber(referralStats.weight)}
-                </Text>
-                <Text style={[styles.statLabel, dynamicStyles.subtitle]}>
-                  Points per Referral
-                </Text>
-              </View>
-              
-              <View style={styles.statItem}>
-                <Text style={[styles.statNumber, dynamicStyles.text]}>
-                  {ReferralUtils.formatNumber(referralStats.total)}
-                </Text>
-                <Text style={[styles.statLabel, dynamicStyles.subtitle]}>
-                  Total Points
-                </Text>
-              </View>
-            </>
-          )}
-        </View>
-      )}
+      {/* Description */}
+      <Text style={[styles.description, dynamicStyles.subtitle]}>
+        Share your unique link and earn rewards when friends join!
+      </Text>
 
-      {/* Referral Link */}
-      <View style={styles.linkContainer}>
-        <Text style={[styles.linkLabel, dynamicStyles.subtitle]}>
-          Your Referral Link:
-        </Text>
-        <Pressable
-          style={[styles.linkButton, dynamicStyles.button]}
-          onPress={handleLinkPress}
-        >
+      {/* Link and Share Row */}
+      <View style={styles.linkRow}>
+        <View style={[styles.linkContainer, dynamicStyles.button]}>
           <Text style={[styles.linkText, dynamicStyles.text]} numberOfLines={1}>
             {referralLink}
           </Text>
-          <Ionicons 
-            name="copy-outline" 
-            size={16} 
-            color={dynamicStyles.text.color} 
-          />
-        </Pressable>
-      </View>
-
-      {/* Action Buttons */}
-      <View style={styles.actionButtons}>
+          <Pressable
+            style={styles.copyButton}
+            onPress={handleCopy}
+            disabled={isCopying}
+          >
+            {isCopying ? (
+              <ActivityIndicator size="small" color={dynamicStyles.text.color} />
+            ) : (
+              <Ionicons 
+                name="copy-outline" 
+                size={16} 
+                color={dynamicStyles.text.color} 
+              />
+            )}
+          </Pressable>
+        </View>
+        
         <Pressable
-          style={[styles.actionButton, dynamicStyles.button]}
-          onPress={handleCopy}
-          disabled={isCopying}
-        >
-          {isCopying ? (
-            <ActivityIndicator size="small" color={dynamicStyles.text.color} />
-          ) : (
-            <Ionicons 
-              name="copy-outline" 
-              size={16} 
-              color={dynamicStyles.text.color} 
-            />
-          )}
-          <Text style={[styles.actionButtonText, dynamicStyles.text]}>
-            Copy Link
-          </Text>
-        </Pressable>
-
-        <Pressable
-          style={[styles.actionButton, styles.primaryActionButton, dynamicStyles.primaryButton]}
+          style={[styles.shareButton]}
           onPress={handleShare}
           disabled={isSharing}
         >
           {isSharing ? (
-            <ActivityIndicator size="small" color={dynamicStyles.primaryButtonText.color} />
+            <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
             <Ionicons 
               name="share-outline" 
               size={16} 
-              color={dynamicStyles.primaryButtonText.color} 
+              color="#FFFFFF" 
             />
           )}
-          <Text style={[styles.actionButtonText, dynamicStyles.primaryButtonText]}>
-            Share Link
+          <Text style={styles.shareButtonText}>
+            Share
           </Text>
         </Pressable>
       </View>
@@ -293,8 +236,8 @@ const styles = StyleSheet.create({
   container: {
     borderRadius: 12,
     borderWidth: 1,
-    padding: 16,
-    margin: 16,
+    padding: 20,
+    marginVertical: 16,
   },
   loadingContainer: {
     alignItems: 'center',
@@ -305,66 +248,50 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 14,
   },
-  header: {
-    marginBottom: 16,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
   title: {
     fontSize: 18,
     fontWeight: '700',
-    flex: 1,
-    marginLeft: 8,
+    marginBottom: 20,
   },
-  viewDetailsButton: {
+  statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-  },
-  viewDetailsText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  subtitle: {
-    fontSize: 14,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
     marginBottom: 16,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: 'rgba(0,0,0,0.05)',
+    gap: 12,
   },
-  statItem: {
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#E5E7EB',
+    justifyContent: 'center',
     alignItems: 'center',
   },
   statNumber: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
-    marginBottom: 2,
   },
   statLabel: {
-    fontSize: 12,
-    textAlign: 'center',
-  },
-  linkContainer: {
-    marginBottom: 16,
-  },
-  linkLabel: {
     fontSize: 14,
-    marginBottom: 8,
     fontWeight: '500',
   },
-  linkButton: {
+  description: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  linkRow: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
+  },
+  linkContainer: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderRadius: 8,
     borderWidth: 1,
   },
@@ -373,27 +300,23 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 8,
   },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 12,
+  copyButton: {
+    padding: 4,
   },
-  actionButton: {
-    flex: 1,
+  shareButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+    backgroundColor: '#6366F1',
     paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     borderRadius: 8,
-    borderWidth: 1,
   },
-  primaryActionButton: {
-    borderWidth: 0,
-  },
-  actionButtonText: {
+  shareButtonText: {
     fontSize: 14,
     fontWeight: '600',
+    color: '#FFFFFF',
   },
   compactContainer: {
     borderRadius: 8,
