@@ -7,15 +7,15 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Dimensions,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  View
+    ActivityIndicator,
+    Dimensions,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Switch,
+    Text,
+    TextInput,
+    View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
@@ -28,6 +28,7 @@ interface Friend {
   username?: string;
   avatar?: string;
   canSeeLocation: boolean;
+  friendshipId?: string; // Add this to track the friendship record
 }
 
 export default function LocationPrivacyScreen() {
@@ -61,26 +62,25 @@ export default function LocationPrivacyScreen() {
   const loadFriends = async () => {
     try {
       setIsLoading(true);
-      console.log('Loading friends from endpoint...');
+      console.log('Loading friends from privacy endpoint...');
       
-      const response = await api.get('/groups/friends', {
-        params: { query: searchQuery || '' }
-      });
+      const response = await api.get(UrlConstants.fetchFriendsPrivacy);
       
-      console.log('Friends API Response:', JSON.stringify(response, null, 2));
+      console.log('Friends Privacy API Response:', JSON.stringify(response, null, 2));
       
       if (response.data?.status === 'success' && Array.isArray(response.data?.data)) {
-        const friendsData = response.data.data.map((friend: any) => ({
-          id: friend.id || friend._id || Math.random().toString(),
-          name: `${friend.fname || ''}${friend.lname ? ` ${friend.lname}` : ''}`.trim() || 'Unknown',
-          username: friend.username,
-          avatar: friend.bgUrl,
-          canSeeLocation: friend.canSeeLocation ?? friend.locationVisible ?? true // Check multiple possible fields
+        const friendsData = response.data.data.map((friendship: any) => ({
+          id: friendship.friend?.id || friendship.friendID || Math.random().toString(),
+          name: `${friendship.friend?.fname || ''}${friendship.friend?.lname ? ` ${friendship.friend.lname}` : ''}`.trim() || 'Unknown',
+          username: friendship.friend?.username,
+          avatar: friendship.friend?.bgUrl,
+          canSeeLocation: friendship.locationVisible ?? true,
+          friendshipId: friendship.id // Store the friendship record ID for updates
         }));
         
         setFriends(friendsData);
-        console.log('Processed friends:', friendsData);
-        console.log('Friends with privacy settings loaded:', friendsData.length);
+        console.log('Processed friends with privacy settings:', friendsData);
+        console.log('Friends loaded:', friendsData.length);
       } else {
         console.log('No friends data found or invalid response structure');
         setFriends([]);
@@ -126,7 +126,7 @@ export default function LocationPrivacyScreen() {
       
       const response = await api.post(UrlConstants.friendLocationPrivacy, {
         userID: friendId,
-        action: newVisibility // Boolean: true = visible, false = invisible
+        action: newVisibility // Boolean: true or false
       });
 
       console.log('Location privacy toggle response:', JSON.stringify(response.data, null, 2));
@@ -171,7 +171,7 @@ export default function LocationPrivacyScreen() {
           try {
             const response = await api.post(UrlConstants.friendLocationPrivacy, {
               userID: friend.id,
-              action: true // true = visible
+              action: true // Boolean true for visible
             });
             
             console.log(`Updated ${friend.name} to visible:`, response.data?.status === 'success');
@@ -214,7 +214,7 @@ export default function LocationPrivacyScreen() {
           try {
             const response = await api.post(UrlConstants.friendLocationPrivacy, {
               userID: friend.id,
-              action: false // false = invisible
+              action: false // Boolean false for invisible
             });
             
             console.log(`Updated ${friend.name} to hidden:`, response.data?.status === 'success');

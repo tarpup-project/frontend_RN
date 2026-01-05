@@ -46,6 +46,14 @@ export class AsyncStorageDB {
   async getGroups(): Promise<any[]> {
     await this.initialize();
     const groups = this.cache.get('db_groups') || [];
+    
+    // Ensure groups is an array
+    if (!Array.isArray(groups)) {
+      console.warn('⚠️ Groups cache is not an array, resetting to empty array');
+      this.cache.set('db_groups', []);
+      return [];
+    }
+    
     return groups.sort((a: any, b: any) => {
       // Sort by last message time, then by created time
       const aTime = a.lastMessageAt || a.createdAt || 0;
@@ -77,6 +85,13 @@ export class AsyncStorageDB {
     
     try {
       const messages = this.cache.get(`db_messages_${groupId}`) || [];
+      
+      // Ensure messages is an array
+      if (!Array.isArray(messages)) {
+        console.warn('⚠️ Messages cache is not an array for group:', groupId, 'Type:', typeof messages);
+        this.cache.set(`db_messages_${groupId}`, []);
+        return [];
+      }
       
       // CRITICAL FIX: Validate message data before returning
       const validMessages = messages.filter((msg: any) => {
@@ -180,9 +195,14 @@ export class AsyncStorageDB {
       
       for (const key of keys) {
         const messages = this.cache.get(key) || [];
-        const message = messages.find((msg: any) => msg.id === messageId || msg.serverId === messageId);
-        if (message) {
-          return message;
+        // Ensure messages is an array before calling find
+        if (Array.isArray(messages)) {
+          const message = messages.find((msg: any) => msg.id === messageId || msg.serverId === messageId);
+          if (message) {
+            return message;
+          }
+        } else {
+          console.warn('⚠️ Cache entry is not an array for key:', key, 'Type:', typeof messages);
         }
       }
       
@@ -216,6 +236,14 @@ export class AsyncStorageDB {
   async getPrompts(): Promise<any[]> {
     await this.initialize();
     const prompts = this.cache.get('db_prompts') || [];
+    
+    // Ensure prompts is an array
+    if (!Array.isArray(prompts)) {
+      console.warn('⚠️ Prompts cache is not an array, resetting to empty array');
+      this.cache.set('db_prompts', []);
+      return [];
+    }
+    
     return prompts.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
   }
 
@@ -230,12 +258,29 @@ export class AsyncStorageDB {
   async getOfflineActions(): Promise<any[]> {
     await this.initialize();
     const actions = this.cache.get('db_offline_actions') || [];
+    
+    // Ensure actions is an array
+    if (!Array.isArray(actions)) {
+      console.warn('⚠️ Offline actions cache is not an array, resetting to empty array');
+      this.cache.set('db_offline_actions', []);
+      return [];
+    }
+    
     return actions.filter((action: any) => !action.isSynced);
   }
 
   async addOfflineAction(action: any): Promise<void> {
     await this.initialize();
     const actions = this.cache.get('db_offline_actions') || [];
+    
+    // Ensure actions is an array
+    if (!Array.isArray(actions)) {
+      console.warn('⚠️ Offline actions cache is not an array in addOfflineAction, resetting to empty array');
+      this.cache.set('db_offline_actions', []);
+    }
+    
+    const validActions = Array.isArray(actions) ? actions : [];
+    
     const newAction = {
       ...action,
       id: `action_${Date.now()}_${Math.random()}`,
@@ -244,13 +289,20 @@ export class AsyncStorageDB {
       isSynced: false,
     };
     
-    actions.push(newAction);
-    this.cache.set('db_offline_actions', actions);
-    await AsyncStorage.setItem('db_offline_actions', JSON.stringify(actions));
+    validActions.push(newAction);
+    this.cache.set('db_offline_actions', validActions);
+    await AsyncStorage.setItem('db_offline_actions', JSON.stringify(validActions));
   }
 
   async markActionAsSynced(actionId: string): Promise<void> {
     const actions = this.cache.get('db_offline_actions') || [];
+    
+    // Ensure actions is an array
+    if (!Array.isArray(actions)) {
+      console.warn('⚠️ Offline actions cache is not an array in markActionAsSynced');
+      return;
+    }
+    
     const index = actions.findIndex((a: any) => a.id === actionId);
     
     if (index !== -1) {
@@ -263,6 +315,13 @@ export class AsyncStorageDB {
 
   async removeOfflineAction(actionId: string): Promise<void> {
     const actions = this.cache.get('db_offline_actions') || [];
+    
+    // Ensure actions is an array
+    if (!Array.isArray(actions)) {
+      console.warn('⚠️ Offline actions cache is not an array in removeOfflineAction');
+      return;
+    }
+    
     const filtered = actions.filter((a: any) => a.id !== actionId);
     this.cache.set('db_offline_actions', filtered);
     await AsyncStorage.setItem('db_offline_actions', JSON.stringify(filtered));
@@ -342,7 +401,7 @@ export class AsyncStorageDB {
       const backupKey = `db_messages_backup_${groupId}`;
       const backup = this.cache.get(backupKey);
       
-      if (backup && backup.messages && backup.messages.length > 0) {
+      if (backup && backup.messages && Array.isArray(backup.messages) && backup.messages.length > 0) {
         console.log('🔄 Restoring', backup.messages.length, 'messages from backup for group', groupId);
         await this.saveMessages(groupId, backup.messages);
         return backup.messages;
@@ -379,6 +438,15 @@ export class AsyncStorageDB {
     
     // Clean up old synced offline actions
     const actions = this.cache.get('db_offline_actions') || [];
+    
+    // Ensure actions is an array
+    if (!Array.isArray(actions)) {
+      console.warn('⚠️ Offline actions cache is not an array in cleanup, resetting to empty array');
+      this.cache.set('db_offline_actions', []);
+      await AsyncStorage.setItem('db_offline_actions', JSON.stringify([]));
+      return;
+    }
+    
     const filteredActions = actions.filter((action: any) => {
       return !action.isSynced || (action.syncedAt && action.syncedAt > thirtyDaysAgo);
     });

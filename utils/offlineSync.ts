@@ -1,6 +1,6 @@
-import { networkManager } from './networkUtils';
 import { queryClient } from './queryClient';
 import { StorageUtils } from './storage';
+import { networkManager } from './networkUtils';
 
 export interface OfflineAction {
   id: string;

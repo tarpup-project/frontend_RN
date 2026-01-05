@@ -1,17 +1,16 @@
 import { api } from '@/api/client';
 import { UrlConstants } from '@/constants/apiUrls';
-import { asyncStorageDB } from '@/database/asyncStorageDB';
 import { useCallback, useEffect, useState } from 'react';
 
 interface ProfileStats {
+  prompts: number;
+  posts: number;
+  followers: number;
+  followings: number;
   totalMatches: number;
   activeGroups: number;
   avgCompatibility: number;
   interests: string[];
-  totalPrompts?: number;
-  totalPosts?: number;
-  followers?: number;
-  following?: number;
 }
 
 export const useProfileStats = () => {
@@ -25,44 +24,45 @@ export const useProfileStats = () => {
     setError(null);
     
     try {
-      // Fetch API stats
-      const response = await api.get(UrlConstants.activityStats);
-      const apiStats = response.data.data;
+      // Fetch stats from the /user/stats endpoint
+      const response = await api.get(UrlConstants.getUserStats);
       
-      // Get prompts count from local database
-      const prompts = await asyncStorageDB.getPrompts();
-      const promptsCount = prompts.length;
-      
-      // Combine API stats with local data and hardcoded values
-      const combinedStats = {
-        ...apiStats,
-        totalPrompts: promptsCount || 14, // Use cached prompts count or fallback
-        totalPosts: 10, // Hardcoded since posts API not implemented
-        followers: 1, // Hardcoded since followers API not implemented  
-        following: 1, // Hardcoded since following API not implemented
+      if (response.data.status === 'success') {
+        const apiData = response.data.data;
+        
+        // Map API response to our interface
+        const stats: ProfileStats = {
+          prompts: apiData.prompts || 0,
+          posts: apiData.posts || 0,
+          followers: apiData.followers || 0,
+          followings: apiData.followings || 0,
+          totalMatches: apiData.totalMatches || 0,
+          activeGroups: apiData.activeGroups || 0,
+          avgCompatibility: apiData.avgCompatibility || 0,
+          interests: apiData.interests || [],
+        };
+        
+        setStats(stats);
+        setLastUpdated(new Date());
+      } else {
+        throw new Error('API returned unsuccessful status');
+      }
+    } catch (err: any) {
+      // Fallback to default values if API fails
+      const fallbackStats: ProfileStats = {
+        prompts: 14,
+        posts: 11,
+        followers: 3,
+        followings: 2,
+        totalMatches: 19,
+        activeGroups: 44,
+        avgCompatibility: 88,
+        interests: ['market'],
       };
       
-      setStats(combinedStats);
-      setLastUpdated(new Date());
-    } catch (err: any) {
-      // If API fails, still try to get local data
-      try {
-        const prompts = await asyncStorageDB.getPrompts();
-        const fallbackStats = {
-          totalMatches: 0,
-          activeGroups: 0,
-          avgCompatibility: 0,
-          interests: [],
-          totalPrompts: prompts.length || 14,
-          totalPosts: 10,
-          followers: 1,
-          following: 1,
-        };
-        setStats(fallbackStats);
-      } catch (localErr) {
-        setError(err?.message || 'Failed to fetch stats');
-        console.error('Error fetching profile stats:', err);
-      }
+      setStats(fallbackStats);
+      setError(err?.message || 'Failed to fetch stats, using fallback data');
+      console.error('Error fetching profile stats:', err);
     } finally {
       setIsLoading(false);
     }

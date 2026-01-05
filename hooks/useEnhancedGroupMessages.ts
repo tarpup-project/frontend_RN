@@ -1,4 +1,5 @@
 import { api } from '@/api/client';
+import { MessageImageCacheUtils } from '@/components/CachedMessageImage';
 import { UrlConstants } from '@/constants/apiUrls';
 import { asyncStorageDB, isWatermelonAvailable } from '@/database';
 import { useAuthStore } from '@/state/authStore';
@@ -59,21 +60,58 @@ export const useEnhancedGroupMessages = ({
     if (!replyToId) return undefined;
     
     // First, try to find in the current messages array
-    const replyMessage = messages.find(msg => msg.id === replyToId || msg.serverId === replyToId);
+    const replyMessage = messages.find((msg: any) => {
+      const uid = msg?.content?.id ?? msg?.id ?? msg?.serverId;
+      return uid === replyToId;
+    });
     
     if (replyMessage) {
-      return {
-        content: {
-          id: replyMessage.serverId || replyMessage.id,
-          message: replyMessage.content,
-        },
-        messageType: MessageType.USER,
-        sender: {
-          id: replyMessage.senderId,
-          fname: replyMessage.senderName,
-        },
-        createdAt: new Date(replyMessage.createdAt).toISOString(),
-      } as UserMessage;
+      // Support both UI GroupMessage shape and raw cached shape
+      const isUIShape = !!replyMessage.messageType;
+      if (isUIShape) {
+        const fileData = replyMessage.file?.data;
+        const text = replyMessage.content?.message || (fileData ? '📷 Image' : '');
+        return {
+          content: {
+            id: replyMessage.content?.id,
+            message: text,
+          },
+          messageType: MessageType.USER,
+          sender: {
+            id: replyMessage.sender?.id,
+            fname: replyMessage.sender?.fname,
+          },
+          file: fileData ? {
+            name: 'image',
+            size: 0,
+            data: fileData,
+            ext: replyMessage.file?.ext || 'image',
+          } : undefined,
+          createdAt: replyMessage.createdAt || new Date().toISOString(),
+        } as UserMessage;
+      } else {
+        // Raw cached message shape
+        const fileUrl = replyMessage.fileUrl;
+        const text = replyMessage.content || (fileUrl ? '📷 Image' : '');
+        return {
+          content: {
+            id: replyMessage.serverId || replyMessage.id,
+            message: text,
+          },
+          messageType: MessageType.USER,
+          sender: {
+            id: replyMessage.senderId,
+            fname: replyMessage.senderName,
+          },
+          file: fileUrl ? {
+            name: 'image',
+            size: 0,
+            data: fileUrl,
+            ext: replyMessage.fileType || 'image',
+          } : undefined,
+          createdAt: new Date(replyMessage.createdAt).toISOString(),
+        } as UserMessage;
+      }
     }
     
     // If not found in current messages, try to load from cache using the new method
@@ -81,16 +119,26 @@ export const useEnhancedGroupMessages = ({
       const cachedReply = await asyncStorageDB.getMessageById(replyToId);
       
       if (cachedReply) {
+        const fileUrl = cachedReply.fileUrl;
+        const messageContent = cachedReply.content && cachedReply.content.trim() !== '' 
+          ? cachedReply.content 
+          : (fileUrl ? '📷 Image' : '');
         return {
           content: {
             id: cachedReply.serverId || cachedReply.id,
-            message: cachedReply.content,
+            message: messageContent,
           },
           messageType: MessageType.USER,
           sender: {
             id: cachedReply.senderId,
             fname: cachedReply.senderName,
           },
+          file: fileUrl ? {
+            name: 'image',
+            size: 0,
+            data: fileUrl,
+            ext: cachedReply.fileType || 'image',
+          } : undefined,
           createdAt: new Date(cachedReply.createdAt).toISOString(),
         } as UserMessage;
       }
@@ -118,10 +166,13 @@ export const useEnhancedGroupMessages = ({
     const transformedMessages: GroupMessage[] = [];
     
     for (const msg of cachedMessages) {
+      // Don't modify the display message for regular messages - only use "📷 Image" for replies
+      const messageContent = msg.content;
+      
       const baseMessage = {
         content: {
           id: msg.serverId || msg.id,
-          message: msg.content,
+          message: messageContent,
         },
         createdAt: new Date(msg.createdAt).toISOString(),
       };
@@ -334,17 +385,28 @@ export const useEnhancedGroupMessages = ({
     refetchOnReconnect: false, // CRITICAL FIX: Disable auto-refetch on reconnect to prevent clearing cache
   });
 
-  // Post-process messages to resolve any missing reply content
+  // Post-process messages to resolve any missing reply content and preload images
   useEffect(() => {
-    const resolveRepliesInMessages = async () => {
+    const processMessages = async () => {
       if (!messages || messages.length === 0) return;
       
       let hasUnresolvedReplies = false;
       const updatedMessages: GroupMessage[] = [];
       
+      // Collect image messages for preloading
+      const imageMessages: any[] = [];
+      
       for (const message of messages) {
         if (message.messageType === MessageType.USER) {
           const userMessage = message as UserMessage;
+          
+          // Collect images for preloading
+          if (userMessage.file?.data) {
+            imageMessages.push({
+              id: userMessage.content.id,
+              file: userMessage.file,
+            });
+          }
           
           // Check if reply needs resolution (has replyingTo but with empty content)
           if (userMessage.replyingTo && 
@@ -367,6 +429,14 @@ export const useEnhancedGroupMessages = ({
         }
       }
       
+      // Preload message images in background
+      if (imageMessages.length > 0) {
+        console.log('🖼️ Preloading', imageMessages.length, 'message images for group:', groupId);
+        MessageImageCacheUtils.preloadChatImages(imageMessages, groupId).catch((error: any) => {
+          console.warn('⚠️ Some message images failed to preload:', error);
+        });
+      }
+      
       // Only update if we found and resolved replies
       if (hasUnresolvedReplies) {
         console.log('🔄 Resolved reply references for', updatedMessages.length, 'messages');
@@ -377,7 +447,7 @@ export const useEnhancedGroupMessages = ({
       }
     };
     
-    resolveRepliesInMessages();
+    processMessages();
   }, [messages, groupId, queryClient, resolveReplyMessage]);
 
   // Debug logging
@@ -420,6 +490,10 @@ export const useEnhancedGroupMessages = ({
       const sender = data?.sender ?? data?.user ?? {};
       const createdAt = data?.createdAt || new Date().toISOString();
       const file = data?.file;
+      
+      // Don't modify the display message for regular messages - only use "📷 Image" for replies
+      const displayMessage = contentMessage;
+      
       const replyingTo = data?.replyingTo;
       const type =
         data?.messageType ??
@@ -528,12 +602,15 @@ export const useEnhancedGroupMessages = ({
     const messageId = Date.now().toString() + Math.random().toString(36);
 
     try {
+      // Don't modify the display message for regular messages - only use "📷 Image" for replies
+      const displayMessage = message.trim();
+      
       const payload: SendMessagePayload = {
         roomID: groupId,
         messageType: MessageType.USER,
         content: {
           id: messageId,
-          message: message.trim() || '',
+          message: displayMessage,
         },
         file,
         sender: {
@@ -571,7 +648,7 @@ export const useEnhancedGroupMessages = ({
               id: tempId,
               serverId: tempId,
               groupId: groupId,
-              content: message.trim() || '',
+              content: message.trim(),
               senderId: user.id,
               senderName: user.fname,
               replyToId: replyingTo?.content.id,

@@ -310,7 +310,7 @@ const Profile = () => {
           <View style={styles.statsRow}>
             <View style={styles.statColumn}>
               <Text style={[styles.statNumber, dynamicStyles.text]}>
-                {stats?.totalPrompts || 14}
+                {stats?.prompts || 0}
               </Text>
               <Text style={[styles.statLabel, dynamicStyles.subtitle]}>
                 Prompts
@@ -318,7 +318,7 @@ const Profile = () => {
             </View>
             <View style={styles.statColumn}>
               <Text style={[styles.statNumber, dynamicStyles.text]}>
-                {stats?.totalPosts || 10}
+                {stats?.posts || 0}
               </Text>
               <Text style={[styles.statLabel, dynamicStyles.subtitle]}>
                 Posts
@@ -326,7 +326,7 @@ const Profile = () => {
             </View>
             <View style={styles.statColumn}>
               <Text style={[styles.statNumber, dynamicStyles.text]}>
-                {stats?.followers || 1}
+                {stats?.followers || 0}
               </Text>
               <Text style={[styles.statLabel, dynamicStyles.subtitle]}>
                 Followers
@@ -334,7 +334,7 @@ const Profile = () => {
             </View>
             <View style={styles.statColumn}>
               <Text style={[styles.statNumber, dynamicStyles.text]}>
-                {stats?.following || 1}
+                {stats?.followings || 0}
               </Text>
               <Text style={[styles.statLabel, dynamicStyles.subtitle]}>
                 Followings

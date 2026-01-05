@@ -5,11 +5,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
-  Image,
-  Pressable,
-  StyleSheet,
-  Text,
-  View
+    Image,
+    Pressable,
+    StyleSheet,
+    Text,
+    View
 } from "react-native";
 
 interface ChatHeaderProps {
@@ -79,31 +79,27 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             .map((member: GroupMember, index: number) => {
               const colors = ["#FF6B9D", "#4A90E2", "#9C27B0", "#00D084"];
               return (
-                <Pressable
+                <View
                   key={member.id}
-                  onPress={() => navigateToProfile(member.id)}
+                  style={[
+                    styles.headerAvatar,
+                    {
+                      backgroundColor: member.bgUrl
+                        ? "transparent"
+                        : colors[index % colors.length],
+                    },
+                    index > 0 && { marginLeft: -8 },
+                  ]}
                 >
-                  <View
-                    style={[
-                      styles.headerAvatar,
-                      {
-                        backgroundColor: member.bgUrl
-                          ? "transparent"
-                          : colors[index % colors.length],
-                      },
-                      index > 0 && { marginLeft: -8 },
-                    ]}
-                  >
-                    {member.bgUrl ? (
-                      <Image
-                        source={{ uri: member.bgUrl }}
-                        style={styles.avatarImage}
-                      />
-                    ) : (
-                      <Text style={styles.avatarText}>{(member.fname || 'U')[0]}</Text>
-                    )}
-                  </View>
-                </Pressable>
+                  {member.bgUrl ? (
+                    <Image
+                      source={{ uri: member.bgUrl }}
+                      style={styles.avatarImage}
+                    />
+                  ) : (
+                    <Text style={styles.avatarText}>{(member.fname || 'U')[0]}</Text>
+                  )}
+                </View>
               );
             })}
         </View>

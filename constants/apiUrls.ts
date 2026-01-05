@@ -83,7 +83,12 @@ class UrlConstants {
   static fetchPeopleMessages = (userID: string) => `/tarps/people/message/${userID}`;
   static friendRequests = `/tarps/user/follow/requests`;
   static friendRequestAction = `/tarps/user/follow/action`;
+  static fetchFollowers = `/tarps/user/followers`;
+  static fetchPostLikes = `/tarps/notification/posts/likes`;
+  static fetchFriendPosts = `/tarps/notification/posts`;
+  static fetchComments = `/tarps/notification/comments`;
   static friendLocationPrivacy = `/tarps/people/friends/privacy`;
+  static fetchFriendsPrivacy = `/tarps/people/friends/privacy`;
   static tarpNavigateToUser = (params: { locationID: string; startingLat?: number; startingLng?: number; startingLocation?: string }) => {
     const q = new URLSearchParams({
       locationID: params.locationID,
