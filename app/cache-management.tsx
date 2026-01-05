@@ -1,8 +1,11 @@
+import { MessageImageCacheUtils } from '@/components/CachedMessageImage';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useImageCacheManager } from '@/hooks/useImagePreloader';
 import { offlineSyncManager } from '@/utils/offlineSync';
 import { CacheUtils } from '@/utils/queryClient';
 import { StorageUtils } from '@/utils/storage';
 import { Ionicons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -19,10 +22,12 @@ import { toast } from 'sonner-native';
 const CacheManagementScreen = () => {
   const { isDark } = useTheme();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { clearImageCache, getCacheSize } = useImageCacheManager();
   const [cacheStats, setCacheStats] = useState<any>(null);
   const [syncStatus, setSyncStatus] = useState<any>(null);
   const [imageCacheSize, setImageCacheSize] = useState<string>('0 B');
+  const [messageImageCacheStats, setMessageImageCacheStats] = useState<any>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const dynamicStyles = {
@@ -51,11 +56,19 @@ const CacheManagementScreen = () => {
   };
 
   const updateStats = async () => {
-    setCacheStats(CacheUtils.getCacheStats());
+    // Set basic cache stats (we'll create a simple stats object)
+    setCacheStats({
+      queries: queryClient.getQueryCache().getAll().length,
+      mutations: queryClient.getMutationCache().getAll().length,
+    });
     
     // Get image cache size
     const size = await getCacheSize();
     setImageCacheSize(size);
+    
+    // Get message image cache stats
+    const messageImageStats = await MessageImageCacheUtils.getCacheInfo();
+    setMessageImageCacheStats(messageImageStats);
     
     // Only get sync status if the manager is ready
     if (offlineSyncManager.isReady()) {
@@ -95,6 +108,7 @@ const CacheManagementScreen = () => {
             CacheUtils.clearAll();
             StorageUtils.clearCache();
             await clearImageCache();
+            await MessageImageCacheUtils.clearMessageImageCache();
             updateStats();
             toast.success('All cache cleared successfully');
           },
@@ -116,6 +130,25 @@ const CacheManagementScreen = () => {
             await clearImageCache();
             updateStats();
             toast.success('Image cache cleared successfully');
+          },
+        },
+      ]
+    );
+  };
+
+  const handleClearMessageImageCache = () => {
+    Alert.alert(
+      'Clear Message Images',
+      'This will remove all cached message images. They will need to be downloaded again when viewing messages.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: async () => {
+            await MessageImageCacheUtils.clearMessageImageCache();
+            updateStats();
+            toast.success('Message image cache cleared successfully');
           },
         },
       ]

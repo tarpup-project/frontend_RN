@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 import { PromptsAPI } from '../api/endpoints/prompts';
 import { useAuthStore } from '../state/authStore';
-import { Category, FilterType } from '../types/prompts';
+import { Category, FilterType, Prompt } from '../types/prompts';
 import { ErrorHandler } from '../utils/errorHandler';
 
 interface UsePromptsParams {

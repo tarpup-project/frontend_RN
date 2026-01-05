@@ -56,11 +56,11 @@
     <key>NSCameraUsageDescription</key>
     <string>Allow $(PRODUCT_NAME)  access to upload photos from your library. $(PRODUCT_NAME)  uses access to your photo library to help you attach pictures to your market prompts, create your profile picture and share pictures with your connections in-app conversations.</string>
     <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-    <string>Tarpup uses your location to display accurate map markers.</string>
+    <string>Allow Tarpup to use your location. Strictly based on your request, Tarpup will help you share your location on the map with friends you choose, within the timeline you picked while sharing the location</string>
     <key>NSLocationAlwaysUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your location</string>
+    <string>Allow Tarpup to use your location. Strictly based on your request, Tarpup will help you share your location on the map with friends you choose, within the timeline you picked while sharing the location</string>
     <key>NSLocationWhenInUseUsageDescription</key>
-    <string>Tarpup needs your location to add photo markers on the map.</string>
+    <string>Allow Tarpup to use your location. Strictly based on your request, Tarpup will help you share your location on the map with friends you choose, within the timeline you picked while sharing the location</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your microphone</string>
     <key>NSPhotoLibraryAddUsageDescription</key>

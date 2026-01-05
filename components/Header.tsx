@@ -1,16 +1,20 @@
   import AuthModal from "@/components/AuthModal";
 import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useCommentsNotifications } from "@/hooks/useCommentsNotifications";
+import { useFollowerNotifications } from "@/hooks/useFollowerNotifications";
+import { useFriendPostsNotifications } from "@/hooks/useFriendPostsNotifications";
 import { useFriendRequests } from "@/hooks/useFriendRequests";
 import { useNotifications } from "@/hooks/useNotification";
 import { usePendingMatches } from "@/hooks/usePendingMatches";
+import { usePostLikesNotifications } from "@/hooks/usePostLikesNotifications";
 import { useAuthStore } from "@/state/authStore";
 import { useNotificationStore } from "@/state/notificationStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import moment from "moment";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Dimensions, Image, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -61,26 +65,206 @@ interface PendingMatch {
     const router = useRouter();
     const { isDark, toggleTheme } = useTheme();
     const { isAuthenticated } = useAuthStore();
-    const { personalNotifications, clearNotifications } = useNotificationStore();
-    const { groupNotifications, personalNotifications: apiPersonalNotifications } = useNotifications();
+    const {
+      personalNotifications,
+      clearNotifications,
+      initialized,
+      followersList,
+      postLikesList,
+      friendPostsList,
+      commentsList,
+      friendRequestsList,
+      pendingMatchesList,
+      setLists,
+      markInitialized,
+    } = useNotificationStore();
+    const { groupNotifications, personalNotifications: apiPersonalNotifications, followerNotifications, postLikesNotifications, friendPostsNotifications, commentsNotifications } = useNotifications();
     const { friendRequests, acceptFriendRequest, declineFriendRequest, isLoading: friendRequestsLoading, processingRequests } = useFriendRequests();
     const { pendingMatches, markMatchAsViewed, dismissMatch, isLoading: pendingMatchesLoading } = usePendingMatches();
+    const { markFollowersAsSeen, getRecentFollowers, dismissFollower, isFollowerUnseen } = useFollowerNotifications();
+    const { markPostLikesAsSeen, getRecentPostLikes, dismissPostLike, isPostLikeUnseen } = usePostLikesNotifications();
+    const { markFriendPostsAsSeen, getRecentFriendPosts, dismissFriendPost, isFriendPostUnseen } = useFriendPostsNotifications();
+    const { markCommentsAsSeen, getRecentComments, dismissComment, isCommentUnseen } = useCommentsNotifications();
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [showNotificationPanel, setShowNotificationPanel] = useState(false);
     const [selectedNotification, setSelectedNotification] = useState<string | null>(null);
+    // Use global lists to ensure consistency across screens
+    const recentFollowers = followersList;
+    const recentPostLikes = postLikesList;
+    const recentFriendPosts = friendPostsList;
+    const recentComments = commentsList;
 
     const pulseAnim = useRef(new Animated.Value(1)).current;
     const slideAnim = useRef(new Animated.Value(Dimensions.get('window').width)).current;
 
-    // Calculate total notifications from API (including friend requests and pending matches)
-    const totalNotifications = groupNotifications + apiPersonalNotifications + friendRequests.length + pendingMatches.length;
+    // Calculate total notifications based on actual sidebar content
+    // This ensures the badge reflects what the user can actually see
+    const totalNotifications =
+      (friendRequestsList.length || friendRequests.length) +
+      (pendingMatchesList.length || pendingMatches.length) +
+      recentFollowers.length +
+      recentPostLikes.length +
+      recentFriendPosts.length +
+      recentComments.length;
 
-    // Debug logging
+    // Manual calculation for verification
+    const manualSidebarCount = useMemo(() => {
+      const count =
+        (friendRequestsList.length || friendRequests.length) +
+        (pendingMatchesList.length || pendingMatches.length) +
+        recentFollowers.length +
+        recentPostLikes.length +
+        recentFriendPosts.length +
+        recentComments.length;
+      
+      // Reduced logging frequency to prevent spam
+      if (count !== totalNotifications) {
+        console.log('🧮 Badge count mismatch - manual:', count, 'vs total:', totalNotifications);
+      }
+      
+      return count;
+    }, [
+      friendRequestsList.length,
+      pendingMatchesList.length,
+      friendRequests.length,
+      pendingMatches.length,
+      recentFollowers.length,
+      recentPostLikes.length,
+      recentFriendPosts.length,
+      recentComments.length,
+      totalNotifications
+    ]);
+
+    // For the notification panel, we still need to load the actual items
+    // but the badge count will be based on the global store values above
+
+    // Load once per session and store globally
     useEffect(() => {
-      console.log("Header: Friend requests updated:", friendRequests.length);
-      console.log("Header: Pending matches updated:", pendingMatches.length);
-      console.log("Header: Total notifications:", totalNotifications);
-    }, [friendRequests, pendingMatches, totalNotifications]);
+      const loadOnce = async () => {
+        if (!isAuthenticated || initialized) return;
+        try {
+          const followers = await getRecentFollowers();
+          const postLikes = await getRecentPostLikes();
+          const friendPosts = await getRecentFriendPosts();
+          const comments = await getRecentComments();
+          
+          setLists({
+            followersList: followers,
+            postLikesList: postLikes,
+            friendPostsList: friendPosts,
+            commentsList: comments,
+            friendRequestsList: friendRequests,
+            pendingMatchesList: pendingMatches,
+          });
+          markInitialized();
+        } catch (error) {
+          console.error('❌ Failed to initialize notifications:', error);
+        }
+      };
+      loadOnce();
+    }, [isAuthenticated, initialized]); // Removed length dependencies
+
+    // Sync notifications periodically but don't trigger on every change
+    useEffect(() => {
+      if (!isAuthenticated || !initialized) return;
+      
+      let mounted = true;
+      
+      const sync = async () => {
+        if (!mounted) return;
+        try {
+          const [followers, postLikes, friendPosts, comments] = await Promise.all([
+            getRecentFollowers(),
+            getRecentPostLikes(),
+            getRecentFriendPosts(),
+            getRecentComments()
+          ]);
+          
+          if (mounted) {
+            setLists({
+              followersList: followers,
+              postLikesList: postLikes,
+              friendPostsList: friendPosts,
+              commentsList: comments,
+              friendRequestsList: friendRequests,
+              pendingMatchesList: pendingMatches,
+            });
+          }
+        } catch (error) {
+          console.error('❌ Sync error:', error);
+        }
+      };
+      
+      // Initial sync after a short delay
+      const initialTimeout = setTimeout(sync, 1000);
+      
+      // Periodic sync every 60 seconds (increased from 30 to reduce load)
+      const interval = setInterval(sync, 60000);
+      
+      return () => {
+        mounted = false;
+        clearTimeout(initialTimeout);
+        clearInterval(interval);
+      };
+    }, [isAuthenticated, initialized]); // Removed length dependencies
+    // Ensure lists stay consistent across screens by avoiding re-fetch on navigation
+    // Header now only reads from global store; other screens can update store intentionally
+
+    // Debug logging - reduced frequency to prevent spam
+    useEffect(() => {
+      console.log("=== NOTIFICATION COUNT DEBUG ===");
+        console.log("Header: Friend requests:", (friendRequestsList.length || friendRequests.length));
+        console.log("Header: Pending matches:", (pendingMatchesList.length || pendingMatches.length));
+      console.log("Header: Recent followers:", recentFollowers.length);
+      console.log("Header: Recent post likes:", recentPostLikes.length);
+      console.log("Header: Recent friend posts:", recentFriendPosts.length);
+      console.log("Header: Recent comments:", recentComments.length);
+      console.log("Header: TOTAL BADGE COUNT:", manualSidebarCount);
+      console.log("Header: BREAKDOWN:", {
+        friendRequests: friendRequests.length,
+        pendingMatches: pendingMatches.length,
+        recentFollowers: recentFollowers.length,
+        recentPostLikes: recentPostLikes.length,
+        recentFriendPosts: recentFriendPosts.length,
+        recentComments: recentComments.length,
+        total: manualSidebarCount
+      });
+      console.log("=== END DEBUG ===");
+    }, [
+      friendRequestsList.length,
+      pendingMatchesList.length,
+      friendRequests.length,
+      pendingMatches.length,
+      recentFollowers.length,
+      recentPostLikes.length,
+      recentFriendPosts.length,
+      recentComments.length,
+      manualSidebarCount
+    ]);
+
+    // Debug sidebar rendering when notification panel is open
+    useEffect(() => {
+      if (showNotificationPanel) {
+        console.log("=== SIDEBAR RENDERING DEBUG ===");
+        console.log("Sidebar - Followers to render:", recentFollowers.length);
+        console.log("Sidebar - Post likes to render:", recentPostLikes.length);
+        console.log("Sidebar - Friend posts to render:", recentFriendPosts.length);
+        console.log("Sidebar - Comments to render:", recentComments.length);
+        console.log("Sidebar - Friend requests to render:", (friendRequestsList.length || friendRequests.length));
+        console.log("Sidebar - Pending matches to render:", (pendingMatchesList.length || pendingMatches.length));
+        
+        const sidebarTotal =
+          recentFollowers.length +
+          recentPostLikes.length +
+          recentFriendPosts.length +
+          recentComments.length +
+          (friendRequestsList.length || friendRequests.length) +
+          (pendingMatchesList.length || pendingMatches.length);
+        console.log("Sidebar - TOTAL ITEMS TO RENDER:", sidebarTotal);
+        console.log("Badge shows:", manualSidebarCount, "| Sidebar shows:", sidebarTotal, "| Match:", manualSidebarCount === sidebarTotal ? "✅" : "❌");
+        console.log("=== END SIDEBAR DEBUG ===");
+      }
+    }, [showNotificationPanel, recentFollowers.length, recentPostLikes.length, recentFriendPosts.length, recentComments.length, friendRequests.length, pendingMatches.length, manualSidebarCount]);
 
     useEffect(() => { 
       const pulse = Animated.loop(
@@ -189,10 +373,10 @@ interface PendingMatch {
                 size={24} 
                 color={isAuthenticated ? dynamicStyles.icon.color : "#999999"} 
               />
-              {isAuthenticated && totalNotifications > 0 && (
+              {isAuthenticated && manualSidebarCount > 0 && (
                 <View style={styles.notificationBadge}>
                   <Text style={styles.notificationBadgeText}>
-                    {totalNotifications > 99 ? '99+' : totalNotifications.toString()}
+                    {manualSidebarCount > 99 ? '99+' : manualSidebarCount.toString()}
                   </Text>
                 </View>
               )}
@@ -293,18 +477,64 @@ interface PendingMatch {
 
                 {/* Action Buttons */}
                 <View style={styles.actionButtons}>
-                  <Pressable style={styles.actionButton}>
+                  <Pressable 
+                    style={styles.actionButton}
+                    onPress={async () => {
+                      // Mark all notifications as seen
+                      await markFollowersAsSeen();
+                      await markPostLikesAsSeen();
+                      await markFriendPostsAsSeen();
+                      await markCommentsAsSeen();
+                      
+                      // Clear global lists
+                      setLists({
+                        followersList: [],
+                        postLikesList: [],
+                        friendPostsList: [],
+                        commentsList: [],
+                      });
+                      
+                      console.log('✅ All notifications marked as read');
+                    }}
+                  >
                     <Ionicons name="checkmark-done" size={16} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
                     <Text style={[styles.actionButtonText, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
                       Mark all read
                     </Text>
                   </Pressable>
-                  <Pressable style={styles.actionButton}>
+                  <Pressable 
+                    style={styles.actionButton}
+                    onPress={async () => {
+                      await markFollowersAsSeen();
+                      await markPostLikesAsSeen();
+                      await markFriendPostsAsSeen();
+                      await markCommentsAsSeen();
+                      setLists({
+                        followersList: [],
+                        postLikesList: [],
+                        friendPostsList: [],
+                        commentsList: [],
+                      });
+                      console.log('✅ Cleared all notifications (same as mark read)');
+                    }}
+                  >
                     <Ionicons name="trash-outline" size={16} color="#EF4444" />
                     <Text style={[styles.actionButtonText, { color: "#EF4444" }]}>
                       Clear all
                     </Text>
                   </Pressable>
+                  {/* <Pressable 
+                    style={styles.actionButton}
+                    onPress={() => {
+                      handleCloseNotificationPanel();
+                      router.push('/debug-notifications');
+                    }}
+                  >
+                    <Ionicons name="bug-outline" size={16} color="#F59E0B" />
+                    <Text style={[styles.actionButtonText, { color: "#F59E0B" }]}>
+                      Debug
+                    </Text>
+                  </Pressable> */}
                 </View>
 
                 {/* Filter Tabs */}
@@ -315,7 +545,7 @@ interface PendingMatch {
                     </Text>
                     <View style={[styles.tabBadge, { backgroundColor: isDark ? "#666666" : "#CCCCCC" }]}>
                       <Text style={[styles.tabBadgeText, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
-                        {totalNotifications + 4} {/* +4 for sample static notifications */}
+                        {totalNotifications}
                       </Text>
                     </View>
                   </View>
@@ -328,11 +558,10 @@ interface PendingMatch {
                     </View>
                   </View>
                 </View>
-              </View>
+                </View>
 
-              {/* Notifications List */}
-              <ScrollView style={styles.notificationsList} showsVerticalScrollIndicator={false}>
-                {/* Friend Requests from API */}
+                {/* Notifications List */}
+                <ScrollView style={styles.notificationsList} showsVerticalScrollIndicator={false}>
                 {friendRequestsLoading ? (
                   <View style={[styles.notificationItem, { borderBottomColor: isDark ? "#333333" : "#E5E7EB" }]}>
                     <View style={styles.notificationContent}>
@@ -346,102 +575,349 @@ interface PendingMatch {
                       </View>
                     </View>
                   </View>
-                ) : (
-                  friendRequests.map((request) => {
-                    console.log("Rendering friend request:", request.friend.fname, request.friend.lname);
-                    return (
-                    <Pressable 
-                      key={request.id}
-                      style={[styles.notificationItem, { borderBottomColor: isDark ? "#333333" : "#E5E7EB" }]}
-                      onPress={() => handleNotificationClick(`friend-request-${request.id}`)}
-                    >
-                      <View style={styles.notificationContent}>
-                        {request.friend.bgUrl ? (
-                          <Image 
-                            source={{ uri: request.friend.bgUrl }}
-                            style={styles.notificationAvatar}
-                          />
-                        ) : (
-                          <View style={[styles.notificationAvatar, styles.avatarPlaceholder, { backgroundColor: "#4F46E5" }]}>
-                            <Text style={styles.avatarText}>
-                              {request.friend.fname[0]}{request.friend.lname ? request.friend.lname[0] : ''}
-                            </Text>
-                          </View>
-                        )}
-                        <View style={styles.notificationText}>
-                          <View style={styles.notificationHeader}>
-                            <Text style={[styles.notificationTitle, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
-                              New Friend Request
-                            </Text>
-                            <View style={styles.notificationHeaderRight}>
-                              <View style={styles.unreadDot} />
+                ) : null}
+                
+                {useMemo(() => {
+                  const combine = [
+                    ...recentFollowers.map(f => ({ type: 'follower' as const, id: f.id, createdAt: f.createdAt, data: f })),
+                    ...recentPostLikes.map(pl => ({ type: 'postLike' as const, id: pl.id, createdAt: pl.createdAt, data: pl })),
+                    ...recentFriendPosts.map(fp => ({ type: 'friendPost' as const, id: fp.id, createdAt: fp.createdAt, data: fp })),
+                    ...recentComments.map(c => ({ type: 'comment' as const, id: c.id, createdAt: c.createdAt, data: c })),
+                    ...(friendRequests.length > 0 ? friendRequests.map(req => ({ type: 'friendRequest' as const, id: req.id, createdAt: req.createdAt, data: req })) : []),
+                  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                  
+                  return combine.map(item => {
+                    if (item.type === 'follower') {
+                      const follower = item.data;
+                      return (
+                        <Pressable 
+                          key={`follower-${item.id}`}
+                          style={[styles.notificationItem, { borderBottomColor: isDark ? "#333333" : "#E5E7EB" }]}
+                          onPress={() => handleNotificationClick(`follower-${item.id}`)}
+                        >
+                          <View style={styles.notificationContent}>
+                            {follower.follower.bgUrl ? (
+                              <Image source={{ uri: follower.follower.bgUrl }} style={styles.notificationAvatar} />
+                            ) : (
+                              <View style={[styles.notificationAvatar, styles.avatarPlaceholder, { backgroundColor: "#F59E0B" }]}>
+                                <Text style={styles.avatarText}>
+                                  {follower.follower.fname[0]}{follower.follower.lname ? follower.follower.lname[0] : ''}
+                                </Text>
+                              </View>
+                            )}
+                            <View style={styles.notificationText}>
+                              <View style={styles.notificationHeader}>
+                                <Text style={[styles.notificationTitle, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
+                                  New Follower
+                                </Text>
+                                <View style={styles.notificationHeaderRight}>
+                                  <View style={styles.unreadDot} />
+                                </View>
+                              </View>
+                              <Text style={[styles.notificationMessage, { color: isDark ? "#CCCCCC" : "#666666" }]}>
+                                {follower.follower.fname} {follower.follower.lname || ''} started following you
+                              </Text>
+                              <Text style={[styles.notificationTime, { color: isDark ? "#999999" : "#999999" }]}>
+                                {moment(item.createdAt).fromNow()}
+                              </Text>
                             </View>
+                            {selectedNotification === `follower-${item.id}` && (
+                              <View style={styles.verticalActions}>
+                                <Pressable 
+                                  style={[styles.verticalActionButton, { backgroundColor: isDark ? "#1F2937" : "#F3F4F6" }]}
+                                  onPress={async () => {
+                                    await dismissFollower(item.id);
+                                    setLists({ followersList: followersList.filter((f: any) => f.id !== item.id) });
+                                    setSelectedNotification(null);
+                                  }}
+                                >
+                                  <Ionicons name="checkmark" size={18} color="#10B981" />
+                                </Pressable>
+                                <Pressable 
+                                  style={[styles.verticalActionButton, { backgroundColor: isDark ? "#1F2937" : "#F3F4F6" }]}
+                                  onPress={() => setSelectedNotification(null)}
+                                >
+                                  <Ionicons name="person-outline" size={18} color="#3B82F6" />
+                                </Pressable>
+                              </View>
+                            )}
                           </View>
-                          <Text style={[styles.notificationMessage, { color: isDark ? "#CCCCCC" : "#666666" }]}>
-                            {request.friend.fname} {request.friend.lname || ''} wants to be friends
-                          </Text>
-                          <Text style={[styles.notificationTime, { color: isDark ? "#999999" : "#999999" }]}>
-                            {moment(request.createdAt).fromNow()}
-                          </Text>
-                          <View style={styles.notificationActions}>
-                            <Pressable 
-                              style={[
-                                styles.acceptButton, 
-                                { backgroundColor: isDark ? "#FFFFFF" : "#0a0a0a" },
-                                processingRequests.has(request.id) && { opacity: 0.6 }
-                              ]}
-                              onPress={() => acceptFriendRequest(request.id)}
-                              disabled={processingRequests.has(request.id)}
-                            >
-                              <Text style={[styles.acceptButtonText, { color: isDark ? "#0a0a0a" : "#FFFFFF" }]}>
-                                {processingRequests.has(request.id) ? "..." : "Accept"}
+                        </Pressable>
+                      );
+                    }
+                    
+                    if (item.type === 'postLike') {
+                      const postLike = item.data;
+                      return (
+                        <Pressable 
+                          key={`postlike-${item.id}`}
+                          style={[styles.notificationItem, { borderBottomColor: isDark ? "#333333" : "#E5E7EB" }]}
+                          onPress={() => handleNotificationClick(`postlike-${item.id}`)}
+                        >
+                          <View style={styles.notificationContent}>
+                            {postLike.likee.bgUrl ? (
+                              <Image source={{ uri: postLike.likee.bgUrl }} style={styles.notificationAvatar} />
+                            ) : (
+                              <View style={[styles.notificationAvatar, styles.avatarPlaceholder, { backgroundColor: "#EF4444" }]}>
+                                <Text style={styles.avatarText}>
+                                  {postLike.likee.fname[0]}{postLike.likee.lname ? postLike.likee.lname[0] : ''}
+                                </Text>
+                              </View>
+                            )}
+                            <View style={styles.notificationText}>
+                              <View style={styles.notificationHeader}>
+                                <Text style={[styles.notificationTitle, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
+                                  Post Liked
+                                </Text>
+                                <View style={styles.notificationHeaderRight}>
+                                  <View style={styles.unreadDot} />
+                                </View>
+                              </View>
+                              <Text style={[styles.notificationMessage, { color: isDark ? "#CCCCCC" : "#666666" }]}>
+                                {postLike.likee.fname} {postLike.likee.lname || ''} liked your Tarp
                               </Text>
-                            </Pressable>
-                            <Pressable 
-                              style={[
-                                styles.declineButton,
-                                processingRequests.has(request.id) && { opacity: 0.6 }
-                              ]}
-                              onPress={() => declineFriendRequest(request.id)}
-                              disabled={processingRequests.has(request.id)}
-                            >
-                              <Text style={[styles.declineButtonText, { color: isDark ? "#CCCCCC" : "#666666" }]}>
-                                {processingRequests.has(request.id) ? "..." : "Decline"}
+                              <Text style={[styles.notificationTime, { color: isDark ? "#999999" : "#999999" }]}>
+                                {moment(item.createdAt).fromNow()}
                               </Text>
-                            </Pressable>
+                            </View>
+                            {selectedNotification === `postlike-${item.id}` && (
+                              <View style={styles.verticalActions}>
+                                <Pressable 
+                                  style={[styles.verticalActionButton, { backgroundColor: isDark ? "#1F2937" : "#F3F4F6" }]}
+                                  onPress={async () => {
+                                    await dismissPostLike(item.id);
+                                    setLists({ postLikesList: postLikesList.filter((pl: any) => pl.id !== item.id) });
+                                    setSelectedNotification(null);
+                                  }}
+                                >
+                                  <Ionicons name="checkmark" size={18} color="#10B981" />
+                                </Pressable>
+                                <Pressable 
+                                  style={[styles.verticalActionButton, { backgroundColor: isDark ? "#1F2937" : "#F3F4F6" }]}
+                                  onPress={() => setSelectedNotification(null)}
+                                >
+                                  <Ionicons name="heart-outline" size={18} color="#EF4444" />
+                                </Pressable>
+                              </View>
+                            )}
                           </View>
-                        </View>
-                        {selectedNotification === `friend-request-${request.id}` && (
-                          <View style={styles.verticalActions}>
-                            <Pressable 
-                              style={[
-                                styles.verticalActionButton, 
-                                { backgroundColor: isDark ? "#1F2937" : "#F3F4F6" },
-                                processingRequests.has(request.id) && { opacity: 0.6 }
-                              ]}
-                              onPress={() => acceptFriendRequest(request.id)}
-                              disabled={processingRequests.has(request.id)}
-                            >
-                              <Ionicons name="checkmark" size={18} color="#10B981" />
-                            </Pressable>
-                            <Pressable 
-                              style={[
-                                styles.verticalActionButton, 
-                                { backgroundColor: isDark ? "#1F2937" : "#F3F4F6" },
-                                processingRequests.has(request.id) && { opacity: 0.6 }
-                              ]}
-                              onPress={() => declineFriendRequest(request.id)}
-                              disabled={processingRequests.has(request.id)}
-                            >
-                              <Ionicons name="trash-outline" size={18} color="#EF4444" />
-                            </Pressable>
+                        </Pressable>
+                      );
+                    }
+                    
+                    if (item.type === 'friendPost') {
+                      const friendPost = item.data;
+                      return (
+                        <Pressable 
+                          key={`friendpost-${item.id}`}
+                          style={[styles.notificationItem, { borderBottomColor: isDark ? "#333333" : "#E5E7EB" }]}
+                          onPress={() => handleNotificationClick(`friendpost-${item.id}`)}
+                        >
+                          <View style={styles.notificationContent}>
+                            {friendPost.creator.bgUrl ? (
+                              <Image source={{ uri: friendPost.creator.bgUrl }} style={styles.notificationAvatar} />
+                            ) : (
+                              <View style={[styles.notificationAvatar, styles.avatarPlaceholder, { backgroundColor: "#8B5CF6" }]}>
+                                <Text style={styles.avatarText}>
+                                  {friendPost.creator.fname[0]}{friendPost.creator.lname ? friendPost.creator.lname[0] : ''}
+                                </Text>
+                              </View>
+                            )}
+                            <View style={styles.notificationText}>
+                              <View style={styles.notificationHeader}>
+                                <Text style={[styles.notificationTitle, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
+                                  New Post
+                                </Text>
+                                <View style={styles.notificationHeaderRight}>
+                                  <View style={styles.unreadDot} />
+                                </View>
+                              </View>
+                              <Text style={[styles.notificationMessage, { color: isDark ? "#CCCCCC" : "#666666" }]}>
+                                {friendPost.creator.fname} {friendPost.creator.lname || ''} posted: {friendPost.caption.length > 50 ? friendPost.caption.substring(0, 50) + '...' : friendPost.caption}
+                              </Text>
+                              <Text style={[styles.notificationTime, { color: isDark ? "#999999" : "#999999" }]}>
+                                {moment(item.createdAt).fromNow()}
+                              </Text>
+                            </View>
+                            {selectedNotification === `friendpost-${item.id}` && (
+                              <View style={styles.verticalActions}>
+                                <Pressable 
+                                  style={[styles.verticalActionButton, { backgroundColor: isDark ? "#1F2937" : "#F3F4F6" }]}
+                                  onPress={async () => {
+                                    await dismissFriendPost(item.id);
+                                    setLists({ friendPostsList: friendPostsList.filter((fp: any) => fp.id !== item.id) });
+                                    setSelectedNotification(null);
+                                  }}
+                                >
+                                  <Ionicons name="checkmark" size={18} color="#10B981" />
+                                </Pressable>
+                                <Pressable 
+                                  style={[styles.verticalActionButton, { backgroundColor: isDark ? "#1F2937" : "#F3F4F6" }]}
+                                  onPress={() => setSelectedNotification(null)}
+                                >
+                                  <Ionicons name="document-text-outline" size={18} color="#8B5CF6" />
+                                </Pressable>
+                              </View>
+                            )}
                           </View>
-                        )}
-                      </View>
-                    </Pressable>
-                    );
-                  })
-                )}
+                        </Pressable>
+                      );
+                    }
+                    
+                    if (item.type === 'comment') {
+                      const comment = item.data;
+                      return (
+                        <Pressable 
+                          key={`comment-${item.id}`}
+                          style={[styles.notificationItem, { borderBottomColor: isDark ? "#333333" : "#E5E7EB" }]}
+                          onPress={() => handleNotificationClick(`comment-${item.id}`)}
+                        >
+                          <View style={styles.notificationContent}>
+                            {comment.commenter.bgUrl ? (
+                              <Image source={{ uri: comment.commenter.bgUrl }} style={styles.notificationAvatar} />
+                            ) : (
+                              <View style={[styles.notificationAvatar, styles.avatarPlaceholder, { backgroundColor: "#10B981" }]}>
+                                <Text style={styles.avatarText}>
+                                  {comment.commenter.fname[0]}{comment.commenter.lname ? comment.commenter.lname[0] : ''}
+                                </Text>
+                              </View>
+                            )}
+                            <View style={styles.notificationText}>
+                              <View style={styles.notificationHeader}>
+                                <Text style={[styles.notificationTitle, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
+                                  {comment.replyingToID ? "New Reply" : "New Comment"}
+                                </Text>
+                                <View style={styles.notificationHeaderRight}>
+                                  <View style={styles.unreadDot} />
+                                </View>
+                              </View>
+                              <Text style={[styles.notificationMessage, { color: isDark ? "#CCCCCC" : "#666666" }]}>
+                                {comment.commenter.fname} {comment.commenter.lname || ''} {comment.replyingToID ? "replied" : "commented"}: {comment.message.length > 50 ? comment.message.substring(0, 50) + '...' : comment.message}
+                              </Text>
+                              <Text style={[styles.notificationTime, { color: isDark ? "#999999" : "#999999" }]}>
+                                {moment(item.createdAt).fromNow()}
+                              </Text>
+                            </View>
+                            {selectedNotification === `comment-${item.id}` && (
+                              <View style={styles.verticalActions}>
+                                <Pressable 
+                                  style={[styles.verticalActionButton, { backgroundColor: isDark ? "#1F2937" : "#F3F4F6" }]}
+                                  onPress={async () => {
+                                    await dismissComment(item.id);
+                                    setLists({ commentsList: commentsList.filter((c: any) => c.id !== item.id) });
+                                    setSelectedNotification(null);
+                                  }}
+                                >
+                                  <Ionicons name="checkmark" size={18} color="#10B981" />
+                                </Pressable>
+                                <Pressable 
+                                  style={[styles.verticalActionButton, { backgroundColor: isDark ? "#1F2937" : "#F3F4F6" }]}
+                                  onPress={() => setSelectedNotification(null)}
+                                >
+                                  <Ionicons name="chatbubble-outline" size={18} color="#10B981" />
+                                </Pressable>
+                              </View>
+                            )}
+                          </View>
+                        </Pressable>
+                      );
+                    }
+                    
+                    if (item.type === 'friendRequest') {
+                      const request = item.data;
+                      return (
+                        <Pressable 
+                          key={`friend-request-${item.id}`}
+                          style={[styles.notificationItem, { borderBottomColor: isDark ? "#333333" : "#E5E7EB" }]}
+                          onPress={() => handleNotificationClick(`friend-request-${item.id}`)}
+                        >
+                          <View style={styles.notificationContent}>
+                            {request.friend.bgUrl ? (
+                              <Image source={{ uri: request.friend.bgUrl }} style={styles.notificationAvatar} />
+                            ) : (
+                              <View style={[styles.notificationAvatar, styles.avatarPlaceholder, { backgroundColor: "#4F46E5" }]}>
+                                <Text style={styles.avatarText}>
+                                  {request.friend.fname[0]}{request.friend.lname ? request.friend.lname[0] : ''}
+                                </Text>
+                              </View>
+                            )}
+                            <View style={styles.notificationText}>
+                              <View style={styles.notificationHeader}>
+                                <Text style={[styles.notificationTitle, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
+                                  New Friend Request
+                                </Text>
+                                <View style={styles.notificationHeaderRight}>
+                                  <View style={styles.unreadDot} />
+                                </View>
+                              </View>
+                              <Text style={[styles.notificationMessage, { color: isDark ? "#CCCCCC" : "#666666" }]}>
+                                {request.friend.fname} {request.friend.lname || ''} wants to be friends
+                              </Text>
+                              <Text style={[styles.notificationTime, { color: isDark ? "#999999" : "#999999" }]}>
+                                {moment(item.createdAt).fromNow()}
+                              </Text>
+                              <View style={styles.notificationActions}>
+                                <Pressable 
+                                  style={[
+                                    styles.acceptButton, 
+                                    { backgroundColor: isDark ? "#FFFFFF" : "#0a0a0a" },
+                                    processingRequests.has(request.id) && { opacity: 0.6 }
+                                  ]}
+                                  onPress={() => acceptFriendRequest(request.id)}
+                                  disabled={processingRequests.has(request.id)}
+                                >
+                                  <Text style={[styles.acceptButtonText, { color: isDark ? "#0a0a0a" : "#FFFFFF" }]}>
+                                    {processingRequests.has(request.id) ? "..." : "Accept"}
+                                  </Text>
+                                </Pressable>
+                                <Pressable 
+                                  style={[
+                                    styles.declineButton,
+                                    processingRequests.has(request.id) && { opacity: 0.6 }
+                                  ]}
+                                  onPress={() => declineFriendRequest(request.id)}
+                                  disabled={processingRequests.has(request.id)}
+                                >
+                                  <Text style={[styles.declineButtonText, { color: isDark ? "#CCCCCC" : "#666666" }]}>
+                                    {processingRequests.has(request.id) ? "..." : "Decline"}
+                                  </Text>
+                                </Pressable>
+                              </View>
+                            </View>
+                            {selectedNotification === `friend-request-${item.id}` && (
+                              <View style={styles.verticalActions}>
+                                <Pressable 
+                                  style={[
+                                    styles.verticalActionButton, 
+                                    { backgroundColor: isDark ? "#1F2937" : "#F3F4F6" },
+                                    processingRequests.has(request.id) && { opacity: 0.6 }
+                                  ]}
+                                  onPress={() => acceptFriendRequest(request.id)}
+                                  disabled={processingRequests.has(request.id)}
+                                >
+                                  <Ionicons name="checkmark" size={18} color="#10B981" />
+                                </Pressable>
+                                <Pressable 
+                                  style={[
+                                    styles.verticalActionButton, 
+                                    { backgroundColor: isDark ? "#1F2937" : "#F3F4F6" },
+                                    processingRequests.has(request.id) && { opacity: 0.6 }
+                                  ]}
+                                  onPress={() => declineFriendRequest(request.id)}
+                                  disabled={processingRequests.has(request.id)}
+                                >
+                                  <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                                </Pressable>
+                              </View>
+                            )}
+                          </View>
+                        </Pressable>
+                      );
+                    }
+                    
+                    return null;
+                  });
+                }, [recentFollowers, recentPostLikes, recentFriendPosts, recentComments, friendRequests, selectedNotification, isDark, followersList, postLikesList, friendPostsList, commentsList, processingRequests])}
 
                 {/* Show message when no friend requests */}
                 {!friendRequestsLoading && friendRequests.length === 0 && (
@@ -554,121 +1030,6 @@ interface PendingMatch {
                     </View>
                   </View>
                 )}
-
-                {/* Sample Static Notifications */}
-                <Pressable 
-                  style={[styles.notificationItem, { borderBottomColor: isDark ? "#333333" : "#E5E7EB" }]}
-                  onPress={() => handleNotificationClick('new-match')}
-                >
-                  <View style={styles.notificationContent}>
-                    <Image 
-                      source={{ uri: 'https://via.placeholder.com/40x40/EF4444/FFFFFF?text=MC' }}
-                      style={styles.notificationAvatar}
-                    />
-                    <View style={styles.notificationText}>
-                      <View style={styles.notificationHeader}>
-                        <Text style={[styles.notificationTitle, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
-                          New Match Found!
-                        </Text>
-                        <View style={styles.notificationHeaderRight}>
-                          <View style={styles.unreadDot} />
-                        </View>
-                      </View>
-                      <Text style={[styles.notificationMessage, { color: isDark ? "#CCCCCC" : "#666666" }]}>
-                        You matched with Mike Chen for Rides (89% compatible)
-                      </Text>
-                      <Text style={[styles.notificationTime, { color: isDark ? "#999999" : "#999999" }]}>
-                        12m ago
-                      </Text>
-                    </View>
-                    {selectedNotification === 'new-match' && (
-                      <View style={styles.verticalActions}>
-                        <Pressable style={[styles.verticalActionButton, { backgroundColor: isDark ? "#1F2937" : "#F3F4F6" }]}>
-                          <Ionicons name="checkmark" size={18} color="#10B981" />
-                        </Pressable>
-                        <Pressable style={[styles.verticalActionButton, { backgroundColor: isDark ? "#1F2937" : "#F3F4F6" }]}>
-                          <Ionicons name="trash-outline" size={18} color="#EF4444" />
-                        </Pressable>
-                      </View>
-                    )}
-                  </View>
-                </Pressable>
-
-                <Pressable 
-                  style={[styles.notificationItem, { borderBottomColor: isDark ? "#333333" : "#E5E7EB" }]}
-                  onPress={() => handleNotificationClick('new-follower')}
-                >
-                  <View style={styles.notificationContent}>
-                    <Image 
-                      source={{ uri: 'https://via.placeholder.com/40x40/10B981/FFFFFF?text=ED' }}
-                      style={styles.notificationAvatar}
-                    />
-                    <View style={styles.notificationText}>
-                      <View style={styles.notificationHeader}>
-                        <Text style={[styles.notificationTitle, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
-                          New Follower
-                        </Text>
-                        <View style={styles.notificationHeaderRight}>
-                          <View style={styles.unreadDot} />
-                        </View>
-                      </View>
-                      <Text style={[styles.notificationMessage, { color: isDark ? "#CCCCCC" : "#666666" }]}>
-                        Emma Davis started following you
-                      </Text>
-                      <Text style={[styles.notificationTime, { color: isDark ? "#999999" : "#999999" }]}>
-                        1h ago
-                      </Text>
-                    </View>
-                    {selectedNotification === 'new-follower' && (
-                      <View style={styles.verticalActions}>
-                        <Pressable style={[styles.verticalActionButton, { backgroundColor: isDark ? "#1F2937" : "#F3F4F6" }]}>
-                          <Ionicons name="checkmark" size={18} color="#10B981" />
-                        </Pressable>
-                        <Pressable style={[styles.verticalActionButton, { backgroundColor: isDark ? "#1F2937" : "#F3F4F6" }]}>
-                          <Ionicons name="trash-outline" size={18} color="#EF4444" />
-                        </Pressable>
-                      </View>
-                    )}
-                  </View>
-                </Pressable>
-
-                <Pressable 
-                  style={[styles.notificationItem, { borderBottomColor: isDark ? "#333333" : "#E5E7EB" }]}
-                  onPress={() => handleNotificationClick('post-liked')}
-                >
-                  <View style={styles.notificationContent}>
-                    <Image 
-                      source={{ uri: 'https://via.placeholder.com/40x40/F59E0B/FFFFFF?text=AR' }}
-                      style={styles.notificationAvatar}
-                    />
-                    <View style={styles.notificationText}>
-                      <View style={styles.notificationHeader}>
-                        <Text style={[styles.notificationTitle, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
-                          Post Liked
-                        </Text>
-                        <View style={styles.notificationHeaderRight}>
-                          {/* No unread dot for read notifications */}
-                        </View>
-                      </View>
-                      <Text style={[styles.notificationMessage, { color: isDark ? "#CCCCCC" : "#666666" }]}>
-                        Alex Rivera liked your Tarp
-                      </Text>
-                      <Text style={[styles.notificationTime, { color: isDark ? "#999999" : "#999999" }]}>
-                        2h ago
-                      </Text>
-                    </View>
-                    {selectedNotification === 'post-liked' && (
-                      <View style={styles.verticalActions}>
-                        <Pressable style={[styles.verticalActionButton, { backgroundColor: isDark ? "#1F2937" : "#F3F4F6" }]}>
-                          <Ionicons name="checkmark" size={18} color="#10B981" />
-                        </Pressable>
-                        <Pressable style={[styles.verticalActionButton, { backgroundColor: isDark ? "#1F2937" : "#F3F4F6" }]}>
-                          <Ionicons name="trash-outline" size={18} color="#EF4444" />
-                        </Pressable>
-                      </View>
-                    )}
-                  </View>
-                </Pressable>
               </ScrollView>
             </Animated.View>
           </View>

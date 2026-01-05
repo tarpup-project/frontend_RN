@@ -12,7 +12,7 @@ export default function TabLayout() {
   const { isDark } = useTheme();
   const { isAuthenticated } = useAuthStore();
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const { groupNotifications, personalNotifications } = useNotifications();
+  const { groupNotifications, personalNotifications, followerNotifications } = useNotifications();
 
   return (
     <>

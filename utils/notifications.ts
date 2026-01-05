@@ -1,5 +1,3 @@
-import { api } from '@/api/client';
-import { UrlConstants } from '@/constants/apiUrls';
 import messaging from '@react-native-firebase/messaging';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
@@ -108,32 +106,11 @@ export async function setupNotifications(): Promise<string | null> {
       return null;
     }
 
-    try {
-      await api.post(UrlConstants.sendUserNotification, {
-        token: fcmToken,
-        title: 'Welcome',
-        body: 'Take your time to go through the app and get to know us better',
-      });
-      console.log('📨 Sent FCM token to backend');
-    } catch (err) {
-      console.error('❌ Failed to send FCM token to backend:', err);
-    }
-
+    // Note: FCM token is obtained but no welcome notification is sent
     console.log('✅ Got FCM token');
     return fcmToken;
   } catch (error) {
     console.error('❌ Error in notification setup:', error);
     return null;
-  }
-}
-
-export async function registerTopicNotification(topic: string): Promise<void> {
-  try {
-    await api.post(UrlConstants.sendTopicNotification, {
-      topic,
-      title: 'Thank you',
-      body: 'For joining our community',
-    });
-  } catch (error) {
   }
 }

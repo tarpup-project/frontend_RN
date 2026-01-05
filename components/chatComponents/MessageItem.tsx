@@ -1,4 +1,5 @@
 
+import { CachedMessageImage } from "@/components/CachedMessageImage";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
@@ -15,6 +16,7 @@ interface MessageData {
   isMe: boolean;
   isAlert?: boolean;
   avatar: string;
+  groupId?: string;
   file?: {
     data: string;
     name: string;
@@ -27,6 +29,12 @@ interface MessageData {
     };
     sender: {
       fname: string;
+    };
+    file?: {
+      data: string;
+      name: string;
+      size: number;
+      ext?: string;
     };
   };
   rawMessage?: any;
@@ -85,6 +93,21 @@ export const MessageItem: React.FC<MessageItemProps> = ({
     },
     subtitle: {
       color: isDark ? "#CCCCCC" : "#666666",
+    },
+    replyBackground: {
+      backgroundColor: isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+    },
+    replyOverlay: {
+      backgroundColor: isDark ? "rgba(0, 0, 0, 0.15)" : "rgba(255, 255, 255, 0.3)",
+      borderTopRightRadius: 8,
+      borderLeftWidth: 2,
+      borderLeftColor: "#00D084",
+    },
+    replyAuthorText: {
+      color: isDark ? "#00D084" : "#00A86B",
+    },
+    replyContentText: {
+      color: isDark ? "#d2d0d0ff" : "#f7f3f3ff",
     },
   };
 
@@ -184,43 +207,6 @@ export const MessageItem: React.FC<MessageItemProps> = ({
             )}
 
             <View style={styles.messageContent}>
-              {msg.replyingTo && (
-                <Pressable
-                  style={[
-                    styles.replyReference,
-                    msg.isMe
-                      ? dynamicStyles.myMessage
-                      : dynamicStyles.theirMessage,
-                   // msg.isMe && styles.myReplyReference,
-                   // Dynamic width based on content length
-                   {
-                     minWidth: getReplyDimensions(msg.replyingTo.content.message).minWidth,
-                     maxWidth: getReplyDimensions(msg.replyingTo.content.message).maxWidth,
-                   }
-                  ]}
-                  onPress={() => scrollToMessage(msg.replyingTo!.content.id)}
-                >
-                  <View style={styles.replyContent}>
-                    <Text
-                      style={[
-                        styles.replyAuthor,
-                        msg.isMe
-                          ? dynamicStyles.myMessageText
-                          : dynamicStyles.theirMessageText,
-                      ]}
-                    >
-                      {msg.replyingTo.sender.fname || "Unknown User"}
-                    </Text>
-                    <Text
-                      style={[styles.replyText, dynamicStyles.subtitle]}
-                      numberOfLines={getReplyDimensions(msg.replyingTo.content.message).numberOfLines}
-                    >
-                      {msg.replyingTo.content.message || "[Message not available]"}
-                    </Text>
-                  </View>
-                </Pressable>
-              )}
-
               {!msg.isMe && (
                 <Text style={[styles.senderName, dynamicStyles.subtitle]}>
                   {msg.sender}
@@ -233,42 +219,92 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                     runOnJS(onImagePress)(msg.file!.data);
                   })}
                 >
-                  <Image
-                    source={{ uri: msg.file.data }}
+                  <CachedMessageImage
+                    uri={msg.file.data}
+                    messageId={msg.id}
+                    groupId={msg.groupId || 'unknown'}
                     style={styles.messageImage}
+                    fallbackText="📷"
+                    fallbackColor="#666666"
+                    onLoad={() => {
+                      console.log('📸 Message image loaded:', msg.id);
+                    }}
+                    onError={() => {
+                      console.warn('❌ Failed to load message image:', msg.id);
+                    }}
                   />
                 </GestureDetector>
               )}
 
-              {msg.text && (
+              {/* Unified message container for reply + message */}
+              {(msg.replyingTo || msg.text) && (
                 <View
                   style={[
-                    styles.messageBubble,
+                    styles.unifiedMessageBubble,
                     msg.isMe
                       ? dynamicStyles.myMessage
                       : dynamicStyles.theirMessage,
                     msg.file && styles.captionBubble,
                   ]}
                 >
-                  <Hyperlink
-                    linkDefault={false}
-                    onPress={(url) => onLinkPress(url)}
-                    linkStyle={{
-                      color: msg.isMe ? "#87CEEB" : "#007AFF",
-                      textDecorationLine: "underline",
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.messageText,
-                        msg.isMe
-                          ? dynamicStyles.myMessageText
-                          : dynamicStyles.theirMessageText,
-                      ]}
+                  {msg.replyingTo && (
+                    <Pressable
+                      style={styles.replyReference}
+                      onPress={() => scrollToMessage(msg.replyingTo!.content.id)}
                     >
-                      {msg.text}
-                    </Text>
-                  </Hyperlink>
+                      {/* Subtle overlay for reply section */}
+                      <View style={[StyleSheet.absoluteFill, dynamicStyles.replyOverlay]} />
+                      <View style={styles.replyContent}>
+                        <View style={styles.replyTextSection}>
+                          <Text
+                            style={[styles.replyAuthor, dynamicStyles.replyAuthorText]}
+                          >
+                            {msg.replyingTo.sender.fname || "Unknown User"}
+                          </Text>
+                          <Text
+                            style={[styles.replyText, dynamicStyles.replyContentText]}
+                            numberOfLines={getReplyDimensions(msg.replyingTo.content.message).numberOfLines}
+                          >
+                            {msg.replyingTo.content.message || "[Message not available]"}
+                          </Text>
+                        </View>
+                        {msg.replyingTo.file && (
+                          <CachedMessageImage
+                            uri={msg.replyingTo.file.data}
+                            messageId={msg.replyingTo.content.id}
+                            groupId={msg.groupId || 'unknown'}
+                            style={styles.replyImage}
+                            fallbackText="📷"
+                            fallbackColor="#666666"
+                          />
+                        )}
+                      </View>
+                    </Pressable>
+                  )}
+
+                  {msg.text && (
+                    <View style={styles.messageTextContainer}>
+                      <Hyperlink
+                        linkDefault={false}
+                        onPress={(url) => onLinkPress(url)}
+                        linkStyle={{
+                          color: msg.isMe ? "#87CEEB" : "#007AFF",
+                          textDecorationLine: "underline",
+                        }}
+                      >
+                        <Text
+                          style={[
+                            styles.messageText,
+                            msg.isMe
+                              ? dynamicStyles.myMessageText
+                              : dynamicStyles.theirMessageText,
+                          ]}
+                        >
+                          {msg.text}
+                        </Text>
+                      </Hyperlink>
+                    </View>
+                  )}
                 </View>
               )}
             </View>
@@ -340,7 +376,7 @@ const styles = StyleSheet.create({
   },
   messageContent: {
     maxWidth: "100%",
-    gap: 6,
+    gap: 0,
     flexShrink: 1,
   },
   messageBubble: {
@@ -349,30 +385,50 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: 'flex-start'
   },
+  unifiedMessageBubble: {
+    borderRadius: 15,
+    overflow: 'hidden',
+    alignItems: 'flex-start',
+    minWidth: "50%",
+    maxWidth: "95%",
+  },
+  messageTextContainer: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  messageBubbleWithReply: {
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
+    paddingTop: 8,
+  },
   captionBubble: {
     marginTop: 0,
   },
-  replyContent: {
-    flex: 1,
-    flexShrink: 1,
-    minWidth: 0,
-  },
   replyAuthor: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "600",
-    marginBottom: 2,
+    marginBottom: 3,
   },
   replyText: {
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 13,
+    lineHeight: 18,
     flexWrap: "wrap",
     flexShrink: 1,
     textAlign: "left",
+    opacity: 0.9,
   },
   messageImage: {
     width: 200,
     height: 200,
     borderRadius: 12,
+  },
+  replyImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    marginLeft: 8,
   },
   myReplyReference: {
    // alignSelf: "flex-end",
@@ -403,14 +459,23 @@ const styles = StyleSheet.create({
     alignSelf: "flex-end",
   },
   replyReference: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: 8,
-    padding: 10,
-    borderLeftWidth: 3,
-    borderLeftColor: "#007AFF",
-    borderRadius: 8,
-    flexShrink: 1,
+    paddingLeft: 12,
+    paddingRight: 10,
+    paddingTop: 8,
+    paddingBottom: 6,
+    borderLeftWidth: 2,
+    borderLeftColor: "#00D084",
+    width: "100%",
+    position: 'relative',
+  },
+  replyContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  replyTextSection: {
+    flex: 1,
+    marginRight: 8,
   },
   replyButton: {
     justifyContent: "flex-end",

@@ -74,7 +74,10 @@ export const MessageItem: React.FC<MessageItemProps> = ({
         {/* Reply Preview */}
         {userMessage.replyingTo && (
           <Pressable
-            style={styles.replyReference}
+            style={[
+              styles.replyReference,
+              isOwn ? styles.replyReferenceOwn : styles.replyReferenceOther
+            ]}
             onPress={() => onScrollToReply(userMessage.replyingTo!.content.id)}
           >
             <View style={styles.replyBar} />
@@ -448,8 +451,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
     padding: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 8,
+    borderWidth: 0.5,
+  },
+  replyReferenceOwn: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderColor: 'rgba(16, 185, 129, 0.35)',
+  },
+  replyReferenceOther: {
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderColor: 'rgba(16, 185, 129, 0.25)',
   },
   replyPreview: {
     flexDirection: 'row',
@@ -460,7 +471,7 @@ const styles = StyleSheet.create({
   replyBar: {
     width: 3,
     height: 30,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#10B981',
     marginRight: 8,
   },
   replyContent: {
@@ -472,7 +483,9 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   replyText: {
-    fontSize: 14,
+    fontSize: 12,
+    opacity: 0.9,
+    borderRadius: 8,
   },
   replyImage: {
     width: 40,
