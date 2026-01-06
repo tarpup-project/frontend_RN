@@ -11,6 +11,7 @@ import moment from "moment";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   Dimensions,
   FlatList,
   KeyboardAvoidingView,
@@ -24,7 +25,7 @@ import {
   View
 } from "react-native";
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
-import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
 
@@ -72,6 +73,30 @@ export default function PostPreviewScreen() {
   const [following, setFollowing] = useState(false);
   const [friendStatus, setFriendStatus] = useState<"not_friends" | "pending" | "friends">("not_friends");
   const [commentCount, setCommentCount] = useState(0);
+  const [buttonsVisible, setButtonsVisible] = useState(true);
+  const buttonsOpacity = useRef(new Animated.Value(1)).current;
+  const buttonsScale = useRef(new Animated.Value(1)).current;
+
+  // Function to animate buttons hide/show
+  const toggleButtonsVisibility = () => {
+    const toValue = buttonsVisible ? 0 : 1;
+    const scaleValue = buttonsVisible ? 0.8 : 1;
+    
+    Animated.parallel([
+      Animated.timing(buttonsOpacity, {
+        toValue,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(buttonsScale, {
+        toValue: scaleValue,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setButtonsVisible(!buttonsVisible);
+    });
+  };
 
   // Function to fetch user stats
   const fetchUserStats = async () => {
@@ -343,7 +368,30 @@ export default function PostPreviewScreen() {
       item?.creator?.locationName ??
       item?.creator?.location ??
       "";
-    return typeof v === "string" && v.length > 0 ? v : "Location";
+    
+    const locationString = typeof v === "string" && v.length > 0 ? v : "Location";
+    
+    // Format location to show only state and country
+    if (locationString === "Location") return locationString;
+    
+    // Split by comma and get the last two parts (state, country)
+    const parts = locationString.split(',').map(part => part.trim());
+    
+    if (parts.length >= 2) {
+      // Get the last two parts and remove any numbers (zip codes)
+      let state = parts[parts.length - 2].replace(/\d+/g, '').trim();
+      const country = parts[parts.length - 1].replace(/\d+/g, '').trim();
+      
+      // If state is empty after removing numbers, try the part before it
+      if (!state && parts.length >= 3) {
+        state = parts[parts.length - 3].replace(/\d+/g, '').trim();
+      }
+      
+      return state && country ? `${state}, ${country}` : locationString;
+    }
+    
+    // If less than 2 parts, return as is (but remove numbers)
+    return locationString.replace(/\d+/g, '').trim();
   };
 
   const extractLiked = (item: any): boolean => {
@@ -786,33 +834,34 @@ export default function PostPreviewScreen() {
       <StatusBar style="light" />
       <GestureDetector gesture={panGesture}>
         <Animated.View style={[{ flex: 1 }, animatedStyle]}>
-          <View style={{ flex: 1, backgroundColor: "#000" }}>
-            {currentImages.length > 0 ? (
-              <ScrollView
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                onMomentumScrollEnd={(e) => {
-                  const w = Dimensions.get("window").width;
-                  const idx = Math.round(e.nativeEvent.contentOffset.x / w);
-                  setCurrentImageIndex(idx);
-                  syncImageMeta(idx);
-                }}
-              >
-                {currentImages.map((uri, i) => (
-                  <View key={`${uri}-${i}`} style={{ width: Dimensions.get("window").width, height: Dimensions.get("window").height }}>
-                    <ExpoImage source={{ uri }} style={styles.previewImage} contentFit="cover" />
-                  </View>
-                ))}
-              </ScrollView>
-            ) : (
-              getCurrentPostItem() && (
-                <ExpoImage source={{ uri: extractImageUrl(getCurrentPostItem()) as string }} style={styles.previewImage} contentFit="cover" />
-              )
-            )}
+          <Pressable style={{ flex: 1 }} onPress={toggleButtonsVisibility}>
+            <View style={{ flex: 1, backgroundColor: "#000" }}>
+              {currentImages.length > 0 ? (
+                <ScrollView
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  onMomentumScrollEnd={(e) => {
+                    const w = Dimensions.get("window").width;
+                    const idx = Math.round(e.nativeEvent.contentOffset.x / w);
+                    setCurrentImageIndex(idx);
+                    syncImageMeta(idx);
+                  }}
+                >
+                  {currentImages.map((uri, i) => (
+                    <View key={`${uri}-${i}`} style={{ width: Dimensions.get("window").width, height: Dimensions.get("window").height }}>
+                      <ExpoImage source={{ uri }} style={styles.previewImage} contentFit="cover" />
+                    </View>
+                  ))}
+                </ScrollView>
+              ) : (
+                getCurrentPostItem() && (
+                  <ExpoImage source={{ uri: extractImageUrl(getCurrentPostItem()) as string }} style={styles.previewImage} contentFit="cover" />
+                )
+              )}
 
             <LinearGradient
-              colors={["rgba(0,0,0,0.6)", "rgba(0,0,0,0.35)", "transparent"]}
+              colors={["rgba(0,0,0,0.8)", "rgba(0,0,0,0.6)", "rgba(0,0,0,0.3)", "transparent"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 0, y: 1 }}
               style={styles.gradientTop}
@@ -824,22 +873,39 @@ export default function PostPreviewScreen() {
               style={styles.gradientBottom}
             />
 
-            <View style={[styles.previewHeader, { paddingTop: insets.top + 10 }]}>
-              <Pressable style={styles.headerIcon} onPress={() => router.back()}>
+            <Animated.View 
+              style={[
+                styles.previewHeader, 
+                { 
+                  paddingTop: insets.top + 10,
+                  opacity: buttonsOpacity,
+                  transform: [{ scale: buttonsScale }]
+                }
+              ]}
+            >
+              <Pressable style={styles.headerIcon} onPress={(e) => { e.stopPropagation(); router.back(); }}>
                 <Ionicons name="chevron-back" size={20} color="#FFFFFF" />
               </Pressable>
               <View style={styles.headerCenter}>
                 <Text style={styles.headerTitle}>{getCurrentPostItem() ? extractLocationName(getCurrentPostItem()) : "Location"}</Text>
                 <Text style={styles.headerSub}>{currentImageIndex + 1} / {Math.max(1, currentImages.length || 1)}</Text>
               </View>
-              <Pressable style={styles.headerIcon} onPress={() => toast.success("Options coming soon")}>
+              <Pressable style={styles.headerIcon} onPress={(e) => { e.stopPropagation(); toast.success("Options coming soon"); }}>
                 <Ionicons name="ellipsis-vertical" size={18} color="#FFFFFF" />
               </Pressable>
-            </View>
+            </Animated.View>
             
             {/* Blinking arrow for navigation hint */}
             {allAvailablePosts.length > 1 && (
-              <View style={styles.blinkingArrow}>
+              <Animated.View 
+                style={[
+                  styles.blinkingArrow,
+                  {
+                    opacity: buttonsOpacity,
+                    transform: [{ scale: buttonsScale }]
+                  }
+                ]}
+              >
                 {arrowVisible && (
                   <Ionicons 
                     name="chevron-up" 
@@ -852,13 +918,22 @@ export default function PostPreviewScreen() {
                     }}
                   />
                 )}
-              </View>
+              </Animated.View>
             )}
             
-            <View style={styles.previewTopRow}>
+            <Animated.View 
+              style={[
+                styles.previewTopRow,
+                {
+                  opacity: buttonsOpacity,
+                  transform: [{ scale: buttonsScale }]
+                }
+              ]}
+            >
               <Pressable 
                 style={styles.userRow}
-                onPress={() => {
+                onPress={(e) => {
+                  e.stopPropagation();
                   setShowProfileModal(true);
                   fetchUserStats();
                 }}
@@ -886,44 +961,64 @@ export default function PostPreviewScreen() {
                 </View>
               </Pressable>
               <View style={styles.actionRow}>
-                <Pressable
-                  style={[styles.friendBtn, friendStatus === "pending" && styles.friendBtnPending]}
-                  disabled={friendStatus === "pending"}
-                  onPress={() => toggleFriend(friendStatus === "friends" ? "unfriend" : "friend")}
-                >
-                  <Text style={styles.friendText}>{friendStatus === "pending" ? "Pending" : friendStatus === "friends" ? "Unfriend" : "Friend"}</Text>
-                </Pressable>
-                <Pressable style={[styles.followBtn, following && styles.followBtnActive]} onPress={() => toggleFollow(following ? "unfollow" : "follow")}>
-                  <Text style={[styles.followText, following && { color: "#0a0a0a" }]}>{following ? "Following" : "Follow"}</Text>
-                </Pressable>
+                {friendStatus !== "pending" && (
+                  <Pressable
+                    style={styles.friendBtn}
+                    onPress={(e) => { e.stopPropagation(); toggleFriend(friendStatus === "friends" ? "unfriend" : "friend"); }}
+                  >
+                    <Text style={styles.friendText}>{friendStatus === "friends" ? "Unfriend" : "Friend"}</Text>
+                  </Pressable>
+                )}
+                {!following && (
+                  <Pressable style={styles.followBtn} onPress={(e) => { e.stopPropagation(); toggleFollow("follow"); }}>
+                    <Text style={styles.followText}>Follow</Text>
+                  </Pressable>
+                )}
               </View>
-            </View>
+            </Animated.View>
 
-            <View style={styles.rightRail}>
-              <Pressable style={styles.railCircle} onPress={() => toggleLike(liked ? "unlike" : "like")}>
+            <Animated.View 
+              style={[
+                styles.rightRail,
+                {
+                  opacity: buttonsOpacity,
+                  transform: [{ scale: buttonsScale }]
+                }
+              ]}
+            >
+              <Pressable style={styles.railCircle} onPress={(e) => { e.stopPropagation(); toggleLike(liked ? "unlike" : "like"); }}>
                 <Ionicons name={liked ? "heart" : "heart-outline"} size={20} color={liked ? "#FF3B30" : "#FFFFFF"} />
               </Pressable>
               <Text style={styles.railCount}>{likeCount}</Text>
-              <Pressable style={styles.railCircle} onPress={() => setCommentsOpen(true)}>
+              <Pressable style={styles.railCircle} onPress={(e) => { e.stopPropagation(); setCommentsOpen(true); }}>
                 <Ionicons name="chatbubble-outline" size={18} color="#FFFFFF" />
               </Pressable>
               <Text style={styles.railCount}>{commentCount}</Text>
-              <Pressable style={styles.railCircle} onPress={() => toast.success("Share coming soon")}>
+              <Pressable style={styles.railCircle} onPress={(e) => { e.stopPropagation(); toast.success("Share coming soon"); }}>
                 <Ionicons name="share-social-outline" size={18} color="#FFFFFF" />
               </Pressable>
-            </View>
+            </Animated.View>
 
             {getCurrentPostItem()?.caption ? (
-              <View style={styles.captionBox}>
+              <Animated.View 
+                style={[
+                  styles.captionBox,
+                  {
+                    opacity: buttonsOpacity,
+                    transform: [{ scale: buttonsScale }]
+                  }
+                ]}
+              >
                 {/* <Text style={styles.captionUser}>
                   {getCurrentPostItem()?.creator
                     ? `${getCurrentPostItem().creator.fname || ""} ${getCurrentPostItem().creator.lname || ""}`.trim() || (getCurrentPostItem().creator.name as string)
                     : (getCurrentPostItem()?.owner?.fname || (getCurrentPostItem()?.author?.name as string) || "User")}
                 </Text> */}
                 <Text style={styles.captionText}>{getCurrentPostItem().caption}</Text>
-              </View>
+              </Animated.View>
             ) : null}
-          </View>
+            </View>
+          </Pressable>
         </Animated.View>
       </GestureDetector>
 
@@ -1088,11 +1183,6 @@ export default function PostPreviewScreen() {
                   : (getCurrentPostItem()?.owner?.fname || (getCurrentPostItem()?.author?.name as string) || "User")}
               </Text>
 
-              {/* Location */}
-              <Text style={[styles.profileLocation, { color: isDark ? "#9AA0A6" : "#666" }]}>
-                {extractLocationName(getCurrentPostItem())}
-              </Text>
-
               {/* Stats */}
               <View style={styles.profileStats}>
                 <View style={styles.profileStat}>
@@ -1130,6 +1220,7 @@ export default function PostPreviewScreen() {
                 <Pressable
                   style={[styles.profileActionButton, styles.addFriendButton]}
                   onPress={() => toggleFriend(friendStatus === "friends" ? "unfriend" : "friend")}
+                  disabled={friendStatus === "pending"}
                 >
                   <Ionicons name="heart-outline" size={16} color="#FFFFFF" />
                   <Text style={styles.addFriendText}>
@@ -1141,7 +1232,7 @@ export default function PostPreviewScreen() {
                   onPress={() => toggleFollow(following ? "unfollow" : "follow")}
                 >
                   <Ionicons name="person-add-outline" size={16} color="#0a0a0a" />
-                  <Text style={styles.profileFollowText}>{following ? "Following" : "Follow"}</Text>
+                  <Text style={styles.profileFollowText}>{following ? "Unfollow" : "Follow"}</Text>
                 </Pressable>
               </View>
             </View>
@@ -1166,7 +1257,7 @@ export default function PostPreviewScreen() {
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   previewImage: { width: "100%", height: "100%" },
-  gradientTop: { position: "absolute", left: 0, right: 0, top: 0, height: 180 },
+  gradientTop: { position: "absolute", left: 0, right: 0, top: 0, height: 220 },
   gradientBottom: { position: "absolute", left: 0, right: 0, bottom: 0, height: 180 },
   previewHeader: { position: "absolute", top: 0, left: 12, right: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   headerIcon: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.35)" },

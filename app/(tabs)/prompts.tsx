@@ -11,15 +11,16 @@ import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import moment from "moment";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-    Image,
-    Modal,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    View,
+  ActivityIndicator,
+  Image,
+  Modal,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
 } from "react-native";
 import { toast } from "sonner-native";
 
@@ -84,6 +85,9 @@ const Prompts = () => {
   const [selectedCategoryId, setSelectedCategoryId] = useState<
     string | undefined
   >(undefined);
+  const [isFiltering, setIsFiltering] = useState(false);
+  const [filterStartTime, setFilterStartTime] = useState<number | null>(null);
+  const [filteringCategoryIndex, setFilteringCategoryIndex] = useState<number | null>(null);
 
   const {
     categories,
@@ -130,6 +134,12 @@ const Prompts = () => {
   };
 
   const handleCategorySelect = (index: number, categoryId?: string) => {
+    // Start filtering loading immediately
+    setIsFiltering(true);
+    setFilterStartTime(Date.now());
+    setFilteringCategoryIndex(index);
+    
+    // Update the selected category
     setSelectedCategoryIndex(index);
     setSelectedCategoryId(categoryId);
   };
@@ -169,6 +179,29 @@ const Prompts = () => {
     if (seconds < 30) return "Updated just now";
     return moment(lastUpdated).fromNow();
   }, [lastUpdated]);
+
+  // Stop filtering loading when prompts finish loading with minimum display time
+  useEffect(() => {
+    if (!isLoadingPrompts && isFiltering && filterStartTime) {
+      const elapsedTime = Date.now() - filterStartTime;
+      const minDisplayTime = 9000; // Minimum 10 seconds to show loading
+      
+      if (elapsedTime >= minDisplayTime) {
+        // Enough time has passed, stop loading immediately
+        setIsFiltering(false);
+        setFilterStartTime(null);
+        setFilteringCategoryIndex(null);
+      } else {
+        // Not enough time has passed, wait for the remaining time
+        const remainingTime = minDisplayTime - elapsedTime;
+        setTimeout(() => {
+          setIsFiltering(false);
+          setFilterStartTime(null);
+          setFilteringCategoryIndex(null);
+        }, remainingTime);
+      }
+    }
+  }, [isLoadingPrompts, isFiltering, filterStartTime]);
 
   return (
     <View style={[styles.container, dynamicStyles.container]}>
@@ -259,15 +292,26 @@ const Prompts = () => {
                   ]}
                   onPress={() => handleCategorySelect(0, undefined)}
                 >
-                  <Ionicons
-  name="funnel-outline"
-  size={16}
-  color={
-    selectedCategoryIndex === 0
-      ? dynamicStyles.categoryChipTextActive.color
-      : dynamicStyles.categoryChipText.color
-  }
-/>
+                  {filteringCategoryIndex === 0 ? (
+                    <ActivityIndicator
+                      size="small"
+                      color={
+                        selectedCategoryIndex === 0
+                          ? dynamicStyles.categoryChipTextActive.color
+                          : dynamicStyles.categoryChipText.color
+                      }
+                    />
+                  ) : (
+                    <Ionicons
+                      name="funnel-outline"
+                      size={16}
+                      color={
+                        selectedCategoryIndex === 0
+                          ? dynamicStyles.categoryChipTextActive.color
+                          : dynamicStyles.categoryChipText.color
+                      }
+                    />
+                  )}
                   <Text
                     style={[
                       styles.categoryText,
@@ -297,15 +341,26 @@ const Prompts = () => {
         handleCategorySelect(index + 1, category.id)
       }
     >
-      <Ionicons
-        name={iconName as any}
-        size={16}
-        color={
-          selectedCategoryIndex === index + 1
-            ? dynamicStyles.categoryChipTextActive.color
-            : dynamicStyles.categoryChipText.color
-        }
-      />
+      {filteringCategoryIndex === index + 1 ? (
+        <ActivityIndicator
+          size="small"
+          color={
+            selectedCategoryIndex === index + 1
+              ? dynamicStyles.categoryChipTextActive.color
+              : dynamicStyles.categoryChipText.color
+          }
+        />
+      ) : (
+        <Ionicons
+          name={iconName as any}
+          size={16}
+          color={
+            selectedCategoryIndex === index + 1
+              ? dynamicStyles.categoryChipTextActive.color
+              : dynamicStyles.categoryChipText.color
+          }
+        />
+      )}
       <Text
         style={[
           styles.categoryText,

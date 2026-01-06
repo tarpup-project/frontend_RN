@@ -778,6 +778,37 @@ console.log(
     }
   };
 
+  // Function to zoom out to world view level when switching view modes
+  const zoomToWorldView = () => {
+    if (!location) return;
+    
+    // Define world-level zoom (global view)
+    const worldRegion = {
+      latitude: location.latitude,
+      longitude: location.longitude,
+      latitudeDelta: 120, // Large delta for world view
+      longitudeDelta: 120, // Large delta for world view
+    };
+
+    if (Platform.OS === 'android' && useMapboxGL) {
+      // Mapbox GL zoom to world level
+      setMapboxCamera({
+        centerCoordinate: [location.longitude, location.latitude],
+        zoomLevel: 1, // World level zoom
+        animationDuration: 800,
+      });
+      setCurrentZoomLevel(0); // Reset zoom level
+    } else if (mapRef.current) {
+      // Apple Maps zoom to world level
+      mapRef.current.animateToRegion(worldRegion, 800);
+      setMapRegion(worldRegion);
+      setCurrentZoomLevel(0); // Reset zoom level
+    }
+    
+    // Clear zoom history when switching modes
+    setZoomHistory([]);
+  };
+
   if (!location) {
     return (
       <View style={styles.center}>
@@ -1360,7 +1391,11 @@ console.log(
               style={[styles.pillSeg, viewMode === "posts" ? (isDark ? styles.pillSegActiveDark : styles.pillSegActiveLight) : null]}
               onPress={() => {
                 setViewMode("posts");
-                loadPostsInView(mapRegion || location);
+                zoomToWorldView(); // Zoom out to world view level
+                // Load posts after a short delay to allow zoom animation
+                setTimeout(() => {
+                  loadPostsInView(mapRegion || location);
+                }, 100);
               }}
             >
               <Ionicons name="image-outline" size={18} color={viewMode === "posts" ? "#FFFFFF" : (isDark ? "#FFFFFF" : "#0a0a0a")} />
@@ -1369,7 +1404,11 @@ console.log(
               style={[styles.pillSeg, viewMode === "people" ? (isDark ? styles.pillSegActiveDark : styles.pillSegActiveLight) : null]}
               onPress={() => {
                 setViewMode("people");
-                loadPeopleInView(mapRegion || location);
+                zoomToWorldView(); // Zoom out to world view level
+                // Load people after a short delay to allow zoom animation
+                setTimeout(() => {
+                  loadPeopleInView(mapRegion || location);
+                }, 100);
               }}
             >
               <Ionicons name="people-outline" size={18} color={viewMode === "people" ? "#FFFFFF" : (isDark ? "#FFFFFF" : "#0a0a0a")} />
@@ -1429,7 +1468,31 @@ console.log(
               {selectedPerson?.locationName ? (
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                   <Ionicons name="location-outline" size={16} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
-                  <Text style={{ color: isDark ? "#FFFFFF" : "#0a0a0a" }}>{selectedPerson.locationName}</Text>
+                  <Text style={{ color: isDark ? "#FFFFFF" : "#0a0a0a" }}>
+                    {(() => {
+                      const locationName = selectedPerson.locationName;
+                      if (!locationName) return "";
+                      
+                      // Split by comma and get the last two parts (state, country)
+                      const parts = locationName.split(',').map(part => part.trim());
+                      
+                      if (parts.length >= 2) {
+                        // Get the last two parts and remove any numbers (zip codes)
+                        let state = parts[parts.length - 2].replace(/\d+/g, '').trim();
+                        const country = parts[parts.length - 1].replace(/\d+/g, '').trim();
+                        
+                        // If state is empty after removing numbers, try the part before it
+                        if (!state && parts.length >= 3) {
+                          state = parts[parts.length - 3].replace(/\d+/g, '').trim();
+                        }
+                        
+                        return state && country ? `${state}, ${country}` : locationName;
+                      }
+                      
+                      // If less than 2 parts, return as is (but remove numbers)
+                      return locationName.replace(/\d+/g, '').trim();
+                    })()}
+                  </Text>
                 </View>
               ) : null}
               {selectedPerson?.caption || selectedPerson?.activity ? (

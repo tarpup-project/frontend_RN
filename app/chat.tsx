@@ -1,7 +1,7 @@
 import { api } from "@/api/client";
 import {
-  ChatSettingsModal,
-  ConfirmationModal,
+    ChatSettingsModal,
+    ConfirmationModal,
 } from "@/components/chatComponents/chatSettingsModal";
 import { ImageUploadModal } from "@/components/ImageUploadModal";
 import { Skeleton } from "@/components/Skeleton";
@@ -17,16 +17,16 @@ import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    View,
 } from "react-native";
 
 const Chat = () => {

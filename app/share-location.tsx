@@ -9,16 +9,16 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Dimensions,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View
+    ActivityIndicator,
+    Dimensions,
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import uuid from "react-native-uuid";
@@ -85,7 +85,7 @@ export default function ShareLocationScreen() {
       if (!perm.granted) return;
       
       const assets = await MediaLibrary.getAssetsAsync({ 
-        first: 20, 
+        first: 99, 
         mediaType: MediaLibrary.MediaType.photo, 
         sortBy: MediaLibrary.SortBy.creationTime 
       });
@@ -406,21 +406,27 @@ export default function ShareLocationScreen() {
                         </Text>
                       </Pressable>
                     </View>
-                    <View style={styles.miniGalleryGrid}>
-                      {recents.slice(0, 6).map((asset, i) => (
-                        <Pressable 
-                          key={asset.id ?? i} 
-                          style={styles.miniGalleryItem} 
-                          onPress={() => setShareSelectedPhoto(asset.uri)}
-                        >
-                          <ExpoImage 
-                            source={{ uri: asset.uri }} 
-                            style={styles.gridImage} 
-                            contentFit="cover" 
-                          />
-                        </Pressable>
-                      ))}
-                    </View>
+                    <ScrollView 
+                      style={styles.galleryScrollView}
+                      showsVerticalScrollIndicator={false}
+                      nestedScrollEnabled={true}
+                    >
+                      <View style={styles.miniGalleryGrid}>
+                        {recents.map((asset, i) => (
+                          <Pressable 
+                            key={asset.id ?? i} 
+                            style={styles.miniGalleryItem} 
+                            onPress={() => setShareSelectedPhoto(asset.uri)}
+                          >
+                            <ExpoImage 
+                              source={{ uri: asset.uri }} 
+                              style={styles.gridImage} 
+                              contentFit="cover" 
+                            />
+                          </Pressable>
+                        ))}
+                      </View>
+                    </ScrollView>
                   </>
                 ) : (
                   <View style={styles.selectedPhotoContainer}>
@@ -660,6 +666,9 @@ const styles = StyleSheet.create({
   seeAllText: {
     fontSize: 12,
     fontWeight: "500",
+  },
+  galleryScrollView: {
+    maxHeight: 300,
   },
   miniGalleryGrid: {
     flexDirection: "row",
