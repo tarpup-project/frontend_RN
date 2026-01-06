@@ -430,13 +430,12 @@ export default function MyTarpsModal({ visible, onClose }: MyTarpsModalProps) {
                       <View>
                         <ScrollView
                           horizontal
-                          pagingEnabled
                           showsHorizontalScrollIndicator={false}
                           style={styles.previewImagesScroll}
                           contentContainerStyle={styles.previewImagesScrollContent}
                           onMomentumScrollEnd={(event) => {
                             const slideIndex = Math.round(
-                              event.nativeEvent.contentOffset.x / event.nativeEvent.layoutMeasurement.width
+                              event.nativeEvent.contentOffset.x / 280 // Use image width instead of screen width
                             );
                             setCurrentImageIndex(slideIndex);
                           }}
@@ -566,7 +565,7 @@ const styles = StyleSheet.create({
   profileModalContent: {
     width: "100%",
     maxWidth: 400,
-    maxHeight: "95%",
+    maxHeight: "98%",
     borderRadius: 20,
     padding: 0,
     overflow: "hidden",
@@ -640,7 +639,7 @@ const styles = StyleSheet.create({
   postsSection: {
     paddingHorizontal: 20,
     paddingBottom: 20,
-    maxHeight: 400,
+    maxHeight: 500,
   },
   postsSectionTitle: {
     fontSize: 18,
@@ -663,7 +662,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   postsScrollView: {
-    maxHeight: 340,
+    maxHeight: 440,
   },
   postCard: {
     borderRadius: 12,
@@ -952,27 +951,29 @@ const styles = StyleSheet.create({
   previewImagesContainer: {
     paddingHorizontal: 20,
     paddingTop: 20,
-    maxHeight: "50%", // Allow up to 60% of modal height for images
+    height: 300, // Fixed height instead of maxHeight percentage
   },
   previewImagesScroll: {
-    height: 400, // Fixed height of 400px
+    height: 280, // Reduced height to fit within container
   },
   previewImagesScrollContent: {
-    alignItems: "center",
+    alignItems: "flex-start", // Align images to the left instead of center
+    paddingLeft: 0, // Add left padding to start from left edge
+    paddingRight: 20, // Add right padding for balance
   },
   previewImageSlide: {
-    width: 360, // Increased width for better display
-    height: 400, // Fixed height to match scroll container
+    width: 300, // Slightly wider than before
+    height: 280, // Fixed height
     borderRadius: 12,
     overflow: "hidden",
-    marginHorizontal: 4,
-    alignItems: "center",
-    justifyContent: "center",
+    marginRight: 4, // Gap between images
+    // alignItems: "center",
+    // justifyContent: "center",
   },
   previewImage: {
     width: "100%",
     height: "100%",
-    // Image will fit within the 400px height container without cropping using contentFit="contain"
+    // Using contentFit="contain" in the component to maintain aspect ratio
   },
   previewPagination: {
     flexDirection: "row",
@@ -993,7 +994,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.3)",
   },
   previewNoImage: {
-    height: 400, // Fixed height to match image area
+    height: 280, // Reduced height to match image area
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 12,
@@ -1024,7 +1025,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
-    marginTop: -16, // Slight overlap with image area for seamless transition
+    marginTop: 10, // Small gap instead of overlap
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -1033,6 +1034,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    maxHeight: 300, // Limit details height to prevent covering image
   },
   previewLocationRow: {
     flexDirection: "row",

@@ -3,10 +3,6 @@ import { UrlConstants } from "@/constants/apiUrls";
 import { useAuthStore } from "@/state/authStore";
 import { useNotificationStore } from "@/state/notificationStore";
 import { useEffect } from "react";
-import { useCommentsNotifications } from "./useCommentsNotifications";
-import { useFollowerNotifications } from "./useFollowerNotifications";
-import { useFriendPostsNotifications } from "./useFriendPostsNotifications";
-import { usePostLikesNotifications } from "./usePostLikesNotifications";
 
 interface NotificationResponse {
   groupNotifications: number;
@@ -20,23 +16,7 @@ export const useNotifications = () => {
     groupNotifications,
     personalNotifications,
     chatNotifications,
-    followerNotifications,
-    postLikesNotifications,
-    friendPostsNotifications,
-    commentsNotifications,
   } = useNotificationStore();
-
-  // Initialize follower notifications
-  const { checkForNewFollowers, initializeSeenFollowers } = useFollowerNotifications();
-  
-  // Initialize post likes notifications
-  const { checkForNewPostLikes, initializeSeenPostLikes } = usePostLikesNotifications();
-
-  // Initialize friend posts notifications
-  const { checkForNewFriendPosts, initializeSeenFriendPosts } = useFriendPostsNotifications();
-
-  // Initialize comments notifications
-  const { checkForNewComments, initializeSeenComments } = useCommentsNotifications();
 
   const fetchNotifications = async () => {
     if (!isAuthenticated || !user) return;
@@ -62,10 +42,6 @@ export const useNotifications = () => {
           groupNotifications: 0,
           personalNotifications: 0,
           chatNotifications: 0,
-          followerNotifications: 0,
-          postLikesNotifications: 0,
-          friendPostsNotifications: 0,
-          commentsNotifications: 0,
         });
       }
     }
@@ -76,12 +52,6 @@ export const useNotifications = () => {
       // Initial fetch with delay to avoid immediate rate limiting
       const initialTimeout = setTimeout(async () => {
         fetchNotifications();
-        
-        // For testing: skip initialization and just check for notifications
-        checkForNewFollowers();
-        checkForNewPostLikes();
-        checkForNewFriendPosts();
-        checkForNewComments();
       }, 1000);
 
       return () => clearTimeout(initialTimeout);
@@ -90,10 +60,6 @@ export const useNotifications = () => {
         groupNotifications: 0,
         personalNotifications: 0,
         chatNotifications: 0,
-        followerNotifications: 0,
-        postLikesNotifications: 0,
-        friendPostsNotifications: 0,
-        commentsNotifications: 0,
       });
     }
   }, [isAuthenticated, user]);
@@ -101,27 +67,14 @@ export const useNotifications = () => {
   useEffect(() => {
     if (!isAuthenticated || !user) return;
 
-    // Temporarily disable polling to debug the disappearing notifications issue
-    console.log('⚠️ Polling disabled for debugging');
-    
-    // // Reduce polling frequency to avoid rate limiting
-    // const interval = setInterval(() => {
-    //   fetchNotifications();
-    //   checkForNewFollowers();
-    //   checkForNewPostLikes();
-    // }, 60000); // Poll every 1 minute instead of 5 seconds
-
-    // return () => clearInterval(interval);
+    // All notification polling disabled - notifications header is now blank
+    console.log('⚠️ All notification polling disabled');
   }, [isAuthenticated, user]);
 
   return {
     groupNotifications,
     personalNotifications,
     chatNotifications,
-    followerNotifications,
-    postLikesNotifications,
-    friendPostsNotifications,
-    commentsNotifications,
     refetchNotifications: fetchNotifications,
   };
 };

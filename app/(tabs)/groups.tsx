@@ -15,11 +15,11 @@ import { useRouter } from "expo-router";
 import moment from "moment";
 import React, { useState } from "react";
 import {
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    View
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View
 } from "react-native";
 
 const GroupSkeletonCard = ({ isDark }: { isDark: boolean }) => {
@@ -256,12 +256,20 @@ const Groups = () => {
               const senderName = lastMessage.sender?.fname || lastMessage.senderName || "Someone";
               const messageContent = lastMessage.content || lastMessage.message || "";
               
+              // Check for image
+              const hasImage = lastMessage.fileUrl || lastMessage.file?.url || (typeof lastMessage.fileType === 'string' && lastMessage.fileType.startsWith('image')) || lastMessage.file;
+              
+              const currentUserId = user?.id;
+              const isFromCurrentUser = !!currentUserId && (
+                lastMessage.sender?.id === currentUserId || 
+                lastMessage.senderId === currentUserId
+              );
+              const prefix = isFromCurrentUser ? "You" : senderName;
+
               if (messageContent) {
-                // Show "You: message" if it's from the current user, otherwise "Name: message"
-                const isFromCurrentUser = lastMessage.sender?.id === user?.id || 
-                                         lastMessage.senderId === user?.id;
-                const prefix = isFromCurrentUser ? "You" : senderName;
                 displayMessage = `${prefix}: ${messageContent}`;
+              } else if (hasImage) {
+                displayMessage = `${prefix}: 📷 Image`;
               }
             }
           } else if (group.rawGroup.lastMessage) {
@@ -272,10 +280,21 @@ const Groups = () => {
             } else if (lastMsg.content || lastMsg.message) {
               const senderName = lastMsg.sender?.fname || lastMsg.senderName || "Someone";
               const messageContent = lastMsg.content || lastMsg.message;
-              const isFromCurrentUser = lastMsg.sender?.id === user?.id || 
-                                       lastMsg.senderId === user?.id;
+
+              const hasImage = lastMsg.fileUrl || lastMsg.file?.url || (typeof lastMsg.fileType === 'string' && lastMsg.fileType.startsWith('image')) || lastMsg.file;
+
+              const currentUserId = user?.id;
+              const isFromCurrentUser = !!currentUserId && (
+                lastMsg.sender?.id === currentUserId || 
+                lastMsg.senderId === currentUserId
+              );
               const prefix = isFromCurrentUser ? "You" : senderName;
-              displayMessage = `${prefix}: ${messageContent}`;
+              
+              if (messageContent) {
+                displayMessage = `${prefix}: ${messageContent}`;
+              } else if (hasImage) {
+                displayMessage = `${prefix}: 📷 Image`;
+              }
             }
           }
           

@@ -157,14 +157,14 @@ export default function EditPostScreen() {
     }
   };
 
-  const canPost = processedImages.length > 0 && placeName.trim().length > 0 && caption.trim().length > 0 && !isUploadingPost;
+  const canPost = processedImages.length > 0 && placeName.trim().length > 0 && !isUploadingPost;
 
   const handleBack = () => {
     router.back();
   };
 
   const submitPost = async () => {
-    if (!currentLocation || processedImages.length === 0 || !placeName.trim() || !caption.trim() || isUploadingPost) return;
+    if (!currentLocation || processedImages.length === 0 || !placeName.trim() || isUploadingPost) return;
     
     try {
       setIsUploadingPost(true);
@@ -489,7 +489,7 @@ export default function EditPostScreen() {
 
           {/* Caption Input */}
           <View style={styles.inputGroup}>
-            <Text style={[styles.inputLabel, { color: isDark ? "#FFFFFF" : "#000000" }]}>Caption *</Text>
+            <Text style={[styles.inputLabel, { color: isDark ? "#FFFFFF" : "#000000" }]}>Caption</Text>
             <View style={[styles.textAreaWrapper, isDark ? styles.inputDark : styles.inputLight]}>
               <TextInput
                 value={caption}

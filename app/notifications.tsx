@@ -1,8 +1,6 @@
 import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useFollowerNotifications } from "@/hooks/useFollowerNotifications";
 import { useNotifications } from "@/hooks/useNotification";
-import { usePostLikesNotifications } from "@/hooks/usePostLikesNotifications";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
@@ -12,28 +10,7 @@ const NotificationsScreen = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { isDark } = useTheme();
-  const { groupNotifications, personalNotifications, followerNotifications, postLikesNotifications } = useNotifications();
-  const { 
-    followers, 
-    newFollowersCount, 
-    isLoading, 
-    markFollowersAsSeen, 
-    getRecentFollowers,
-    fetchFollowers,
-    checkForNewFollowers,
-    clearStoredData
-  } = useFollowerNotifications();
-  
-  const { 
-    postLikes,
-    newPostLikesCount,
-    isLoading: postLikesLoading,
-    fetchPostLikes,
-    checkForNewPostLikes,
-    clearStoredData: clearPostLikesData
-  } = usePostLikesNotifications();
-
-  const recentFollowers = getRecentFollowers();
+  const { groupNotifications, personalNotifications } = useNotifications();
 
   // Helper function to format time ago
   const getTimeAgo = (dateString: string) => {
@@ -75,35 +52,9 @@ const NotificationsScreen = () => {
     },
   };
 
-  const handleViewFollowers = () => {
-    // Mark followers as seen when user views them
-    markFollowersAsSeen();
-  };
-
   const handleMarkAllRead = () => {
-    // Mark all followers as seen
-    markFollowersAsSeen();
-  };
-
-  const handleTestFetch = async () => {
-    console.log('🔔 Manual test fetch triggered');
-    await fetchFollowers();
-    await checkForNewFollowers();
-  };
-
-  const handleRefreshAll = async () => {
-    console.log('🔔 Manual refresh all triggered');
-    // Refresh both notifications, followers, and post likes
-    try {
-      await Promise.all([
-        fetchFollowers(),
-        checkForNewFollowers(),
-        fetchPostLikes(),
-        checkForNewPostLikes()
-      ]);
-    } catch (error) {
-      console.error('Failed to refresh:', error);
-    }
+    // No notifications to mark as read
+    console.log('No notifications to mark as read');
   };
 
   return (
@@ -146,72 +97,16 @@ const NotificationsScreen = () => {
                 <Text style={[styles.summaryCount, { color: "#10B981" }]}>{personalNotifications}</Text>
               </View>
             </View>
-
-            <View style={styles.summaryItem}>
-              <Ionicons name="person-add-outline" size={24} color="#F59E0B" />
-              <View style={styles.summaryText}>
-                <Text style={[styles.summaryLabel, dynamicStyles.text]}>New Followers</Text>
-                <Text style={[styles.summaryCount, { color: "#F59E0B" }]}>{followerNotifications}</Text>
-                <Text style={[styles.summaryLabel, dynamicStyles.subtitle]}>
-                  Total: {followers.length} | Hook Count: {newFollowersCount} | Loading: {isLoading ? 'Yes' : 'No'}
-                </Text>
-              </View>
-              {followerNotifications > 0 && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{followerNotifications}</Text>
-                </View>
-              )}
-            </View>
             
             <View style={styles.summaryItem}>
               <Ionicons name="notifications-outline" size={24} color="#EF4444" />
               <View style={styles.summaryText}>
                 <Text style={[styles.summaryLabel, dynamicStyles.text]}>Total Notifications</Text>
                 <Text style={[styles.summaryCount, { color: "#EF4444" }]}>
-                  {groupNotifications + personalNotifications + followerNotifications + postLikesNotifications}
+                  {groupNotifications + personalNotifications}
                 </Text>
               </View>
             </View>
-          </View>
-        </View>
-
-        {/* Debug Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, dynamicStyles.text]}>Debug Controls</Text>
-          </View>
-          
-          <View style={styles.debugButtons}>
-            <Pressable onPress={handleRefreshAll} style={styles.debugButton}>
-              <Text style={styles.debugButtonText}>Refresh All</Text>
-            </Pressable>
-            
-            <Pressable onPress={handleTestFetch} style={styles.debugButton}>
-              <Text style={styles.debugButtonText}>Test Fetch</Text>
-            </Pressable>
-            
-            <Pressable onPress={clearPostLikesData} style={[styles.debugButton, { backgroundColor: "#F59E0B" }]}>
-              <Text style={styles.debugButtonText}>Clear Likes</Text>
-            </Pressable>
-            
-            <Pressable onPress={clearStoredData} style={[styles.debugButton, { backgroundColor: "#EF4444" }]}>
-              <Text style={styles.debugButtonText}>Clear Followers</Text>
-            </Pressable>
-          </View>
-          
-          <View style={[styles.followersCard, dynamicStyles.card]}>
-            <Text style={[styles.followerName, dynamicStyles.text]}>
-              API Followers: {followers.length} | API Post Likes: {postLikes.length}
-            </Text>
-            <Text style={[styles.followerTime, dynamicStyles.subtitle]}>
-              Hook New Followers: {newFollowersCount} | Hook New Likes: {newPostLikesCount}
-            </Text>
-            <Text style={[styles.followerTime, dynamicStyles.subtitle]}>
-              Store Followers: {followerNotifications} | Store Likes: {postLikesNotifications}
-            </Text>
-            <Text style={[styles.followerTime, dynamicStyles.subtitle]}>
-              Loading: Followers {isLoading ? 'Yes' : 'No'} | Likes {postLikesLoading ? 'Yes' : 'No'}
-            </Text>
           </View>
         </View>
 
@@ -251,7 +146,7 @@ const NotificationsScreen = () => {
           )}
 
           {/* Empty state when no notifications */}
-          {groupNotifications === 0 && personalNotifications === 0 && followerNotifications === 0 && postLikesNotifications === 0 && (
+          {groupNotifications === 0 && personalNotifications === 0 && (
             <View style={styles.emptyState}>
               <Ionicons name="notifications-off-outline" size={48} color="#9CA3AF" />
               <Text style={styles.emptyText}>No notifications to display</Text>
@@ -364,51 +259,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
   },
-  followersCard: {
-    borderRadius: 12,
-    padding: 16,
-    gap: 12,
-  },
-  followerItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 8,
-  },
-  followerAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    overflow: "hidden",
-  },
-  avatarImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
-  avatarFallback: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  followerInfo: {
-    flex: 1,
-  },
-  followerName: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  followerTime: {
-    fontSize: 12,
-    marginTop: 2,
-  },
   emptyState: {
     alignItems: "center",
     paddingVertical: 48,
@@ -460,13 +310,6 @@ const styles = StyleSheet.create({
   notificationTime: {
     fontSize: 12,
   },
-  notificationAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    overflow: "hidden",
-    marginLeft: 8,
-  },
   unreadDot: {
     position: "absolute",
     top: 12,
@@ -475,24 +318,6 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: "#3B82F6",
-  },
-  debugButtons: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 16,
-  },
-  debugButton: {
-    flex: 1,
-    backgroundColor: "#3B82F6",
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  debugButtonText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "600",
   },
 });
 

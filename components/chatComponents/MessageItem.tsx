@@ -213,43 +213,51 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                 </Text>
               )}
 
-              {msg.file && (
-                <GestureDetector
-                  gesture={Gesture.Tap().onEnd(() => {
-                    runOnJS(onImagePress)(msg.file!.data);
-                  })}
-                >
-                  <CachedMessageImage
-                    uri={msg.file.data}
-                    messageId={msg.id}
-                    groupId={msg.groupId || 'unknown'}
-                    style={styles.messageImage}
-                    fallbackText="📷"
-                    fallbackColor="#666666"
-                    onLoad={() => {
-                      console.log('📸 Message image loaded:', msg.id);
-                    }}
-                    onError={() => {
-                      console.warn('❌ Failed to load message image:', msg.id);
-                    }}
-                  />
-                </GestureDetector>
-              )}
-
-              {/* Unified message container for reply + message */}
-              {(msg.replyingTo || msg.text) && (
+              {/* Unified message container for image, reply + message */}
+              {(msg.file || msg.replyingTo || msg.text) && (
                 <View
                   style={[
                     styles.unifiedMessageBubble,
                     msg.isMe
                       ? dynamicStyles.myMessage
                       : dynamicStyles.theirMessage,
-                    msg.file && styles.captionBubble,
                   ]}
                 >
+                  {/* Image at the top of the bubble if it exists */}
+                  {msg.file && (
+                    <GestureDetector
+                      gesture={Gesture.Tap().onEnd(() => {
+                        runOnJS(onImagePress)(msg.file!.data);
+                      })}
+                    >
+                      <View collapsable={false}>
+                        <CachedMessageImage
+                          uri={msg.file.data}
+                          messageId={msg.id}
+                          groupId={msg.groupId || 'unknown'}
+                          style={[
+                            styles.messageImage,
+                            styles.messageImageInBubble,
+                          ]}
+                          fallbackText="📷"
+                          fallbackColor="#666666"
+                          onLoad={() => {
+                            console.log('📸 Message image loaded:', msg.id);
+                          }}
+                          onError={() => {
+                            console.warn('❌ Failed to load message image:', msg.id);
+                          }}
+                        />
+                      </View>
+                    </GestureDetector>
+                  )}
+
                   {msg.replyingTo && (
                     <Pressable
-                      style={styles.replyReference}
+                      style={[
+                        styles.replyReference,
+                        msg.file && styles.replyReferenceWithImage,
+                      ]}
                       onPress={() => scrollToMessage(msg.replyingTo!.content.id)}
                     >
                       {/* Subtle overlay for reply section */}
@@ -283,7 +291,10 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                   )}
 
                   {msg.text && (
-                    <View style={styles.messageTextContainer}>
+                    <View style={[
+                      styles.messageTextContainer,
+                      msg.file && styles.messageTextWithImage,
+                    ]}>
                       <Hyperlink
                         linkDefault={false}
                         onPress={(url) => onLinkPress(url)}
@@ -403,9 +414,6 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 15,
     paddingTop: 8,
   },
-  captionBubble: {
-    marginTop: 0,
-  },
   replyAuthor: {
     fontSize: 12,
     fontWeight: "600",
@@ -423,6 +431,18 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 12,
+  },
+  messageImageInBubble: {
+    borderRadius: 0,
+    borderTopLeftRadius: 15,
+    borderTopRightRadius: 15,
+    marginBottom: 0,
+  },
+  messageTextWithImage: {
+    paddingTop: 0,
+  },
+  replyReferenceWithImage: {
+    paddingTop: 0,
   },
   replyImage: {
     width: 40,
