@@ -55,8 +55,23 @@ export default function TabLayout() {
           options={{
             title: "Prompts",
             tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? "pulse" : "pulse-outline"} size={24} color={color} />
+              <ProtectedTabIcon
+                name={focused ? "pulse" : "pulse-outline"}
+                size={24}
+                color={isAuthenticated ? color : "#999999"}
+                focused={focused}
+                isProtected={!isAuthenticated}
+                notificationCount={0}
+              />
             )
+          }}
+          listeners={{
+            tabPress: (e) => {
+              if (!isAuthenticated) {
+                e.preventDefault();
+                setShowAuthModal(true);
+              }
+            }
           }}
         />
           <Tabs.Screen
@@ -64,12 +79,23 @@ export default function TabLayout() {
         options={{
           title: "Tarps",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
+            <ProtectedTabIcon
               name={focused ? "location" : "location-outline"}
               size={28}
-              color={color}
+              color={isAuthenticated ? color : "#999999"}
+              focused={focused}
+              isProtected={!isAuthenticated}
+              notificationCount={0}
             />
           )
+        }}
+        listeners={{
+          tabPress: (e) => {
+            if (!isAuthenticated) {
+              e.preventDefault();
+              setShowAuthModal(true);
+            }
+          }
         }}
       />
 
