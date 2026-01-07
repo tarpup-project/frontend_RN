@@ -1,5 +1,4 @@
 import { api } from "@/api/client";
-import MyTarpsModal from "@/components/MyTarpsModal";
 import { UrlConstants } from "@/constants/apiUrls";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthStore } from "@/state/authStore";
@@ -11,7 +10,7 @@ import * as MediaLibrary from "expo-media-library";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import moment from "moment";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Dimensions, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -129,9 +128,7 @@ export default function TarpsScreen() {
   const chatScrollRef = useRef<FlatList | null>(null);
   const socketRef = useRef<any | null>(null);
 
-  // Profile modal state
-  const [showProfileModal, setShowProfileModal] = useState(false);
-
+  // Profile modal state - REMOVED (now using full screen)
 
 
   const durationOptions = ["1 hour", "2 hours", "5 hours", "1 day"];
@@ -142,9 +139,9 @@ export default function TarpsScreen() {
     "at event", "playing sports"
   ];
 
-  // Function to open profile modal
-  const openProfileModal = () => {
-    setShowProfileModal(true);
+  // Function to open profile screen
+  const openProfileScreen = () => {
+    nav.push('/my-tarps');
   };
 
   const handleShareLocation = () => {
@@ -1417,7 +1414,7 @@ console.log(
         </View>
         <Pressable
           style={[styles.myPostsBtn, isDark ? styles.myPostsDark : styles.myPostsLight]}
-          onPress={openProfileModal}
+          onPress={openProfileScreen}
         >
           <Ionicons name="person" size={16} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
           <Text style={[styles.myPostsText, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>My Posts</Text>
@@ -1549,11 +1546,7 @@ console.log(
         </Pressable>
       </Modal>
 
-      {/* My Tarps Modal */}
-      <MyTarpsModal 
-        visible={showProfileModal}
-        onClose={() => setShowProfileModal(false)}
-      />
+      {/* My Tarps Modal - REMOVED (now using full screen) */}
     </View>
   );
 }
