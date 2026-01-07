@@ -92,10 +92,6 @@ export default function TarpsScreen() {
   const [newPostIds, setNewPostIds] = useState<Set<string>>(new Set());
   const [knownPosts, setKnownPosts] = useState<Map<string, { lat: number; lng: number; timestamp: number }>>(new Map());
   const [previewedPosts, setPreviewedPosts] = useState<Set<string>>(new Set());
-  const [worldViewPosts, setWorldViewPosts] = useState<any[]>([]);
-  const [newContinentPosts, setNewContinentPosts] = useState<any[]>([]);
-  const [showContinentButton, setShowContinentButton] = useState(false);
-  const [continentButtonVisible, setContinentButtonVisible] = useState(true);
   const [serverPeople, setServerPeople] = useState<
     { id: string; latitude: number; longitude: number; imageUrl?: string; owner?: { id: string; fname: string; lname?: string; bgUrl?: string } }[]
   >([]);
@@ -268,30 +264,20 @@ export default function TarpsScreen() {
     };
   }, []);
 
-  // Load world view posts periodically to check for new continent posts
+  // Set up periodic world view checking for new continent posts
   useEffect(() => {
     if (!location) return;
     
-    // Load world view posts initially
-    loadWorldViewPosts();
-    
     // Set up periodic checking for new continent posts (every 30 seconds)
     const worldViewInterval = setInterval(() => {
-      loadWorldViewPosts();
-    }, 30000);
+      console.log("🔄 Periodic world view check for new continent posts");
+      loadWorldViewPostsForContinentDetection();
+    }, 30000); // Check every 30 seconds
     
     return () => {
       clearInterval(worldViewInterval);
-      stopContinentButtonBlinking();
     };
   }, [location]);
-
-  // Cleanup blinking interval on unmount
-  useEffect(() => {
-    return () => {
-      stopContinentButtonBlinking();
-    };
-  }, []);
 
   const extractImageUrl = (item: any): string | null => {
     if (!item || typeof item !== "object") return null;
@@ -310,55 +296,58 @@ export default function TarpsScreen() {
 
   // Function to determine continent based on coordinates
   const getContinent = (lat: number, lng: number): string => {
-    // North America
+    console.log(`Determining continent for coordinates: ${lat}, ${lng}`);
+    
+    // North America (including Central America and Caribbean)
     if (lat >= 15 && lat <= 85 && lng >= -170 && lng <= -30) {
+      console.log(`Coordinates ${lat}, ${lng} identified as North America`);
       return 'North America';
     }
     // South America
     if (lat >= -60 && lat <= 15 && lng >= -85 && lng <= -30) {
+      console.log(`Coordinates ${lat}, ${lng} identified as South America`);
       return 'South America';
     }
     // Europe
     if (lat >= 35 && lat <= 75 && lng >= -15 && lng <= 60) {
+      console.log(`Coordinates ${lat}, ${lng} identified as Europe`);
       return 'Europe';
     }
     // Africa
     if (lat >= -40 && lat <= 40 && lng >= -20 && lng <= 55) {
+      console.log(`Coordinates ${lat}, ${lng} identified as Africa`);
       return 'Africa';
     }
     // Asia
     if (lat >= 5 && lat <= 80 && lng >= 60 && lng <= 180) {
+      console.log(`Coordinates ${lat}, ${lng} identified as Asia`);
       return 'Asia';
     }
-    // Oceania
+    // Oceania (Australia, New Zealand, Pacific Islands)
     if (lat >= -50 && lat <= 0 && lng >= 110 && lng <= 180) {
+      console.log(`Coordinates ${lat}, ${lng} identified as Oceania`);
       return 'Oceania';
     }
     // Antarctica
     if (lat >= -90 && lat <= -60) {
+      console.log(`Coordinates ${lat}, ${lng} identified as Antarctica`);
       return 'Antarctica';
     }
+    
+    // Additional checks for edge cases
+    // Russia (spans Europe and Asia)
+    if (lat >= 50 && lat <= 80 && lng >= 30 && lng <= 180) {
+      console.log(`Coordinates ${lat}, ${lng} identified as Asia (Russia)`);
+      return 'Asia';
+    }
+    
     // Default fallback
+    console.log(`Coordinates ${lat}, ${lng} could not be identified - marked as Unknown`);
     return 'Unknown';
   };
 
-  // Function to get continent center coordinates
-  const getContinentCenter = (continent: string): { latitude: number; longitude: number } => {
-    const centers = {
-      'North America': { latitude: 45, longitude: -100 },
-      'South America': { latitude: -15, longitude: -60 },
-      'Europe': { latitude: 55, longitude: 25 },
-      'Africa': { latitude: 0, longitude: 20 },
-      'Asia': { latitude: 35, longitude: 100 },
-      'Oceania': { latitude: -25, longitude: 140 },
-      'Antarctica': { latitude: -80, longitude: 0 },
-      'Unknown': { latitude: 0, longitude: 0 }
-    };
-    return centers[continent as keyof typeof centers] || centers.Unknown;
-  };
-
-  // Function to load world view posts and detect new continents
-  const loadWorldViewPosts = async () => {
+  // Function to load world view posts for continent detection
+  const loadWorldViewPostsForContinentDetection = async () => {
     try {
       // World view parameters - covers the entire globe
       const worldViewport = {
@@ -378,7 +367,7 @@ export default function TarpsScreen() {
       });
       
       const url = `/tarps/posts?${query.toString()}`;
-      console.log("Loading world view posts:", { url, viewport: worldViewport });
+      console.log("🌍 Loading world view posts for continent detection:", { url });
       
       const res = await api.get(url);
       const list = (res as any).data?.data || (res as any).data?.posts || (res as any).data;
@@ -399,127 +388,126 @@ export default function TarpsScreen() {
         return `${UrlConstants.baseUrl}${raw.startsWith("/") ? "" : "/"}${raw}`;
       };
       
-      let allWorldPosts: any[] = [];
+      // Process all individual posts from clusters and single posts for continent detection
+      const allWorldPosts: any[] = [];
       if (Array.isArray(list)) {
         const looksLikeGrid = list.length > 0 && typeof list[0]?.avgLat === "number" && typeof list[0]?.avgLng === "number" && "result" in list[0];
         if (looksLikeGrid) {
           // Grid format - flatten all items
-          allWorldPosts = list.flatMap((cell: any) => {
+          list.forEach((cell: any) => {
             const items = Array.isArray(cell.result) ? cell.result : [];
-            return items.filter((item: any) => resolveImageUrl(item));
+            allWorldPosts.push(...items.filter((item: any) => resolveImageUrl(item)));
           });
         } else {
           // Direct posts format
-          allWorldPosts = list.filter((p: any) => resolveImageUrl(p));
+          allWorldPosts.push(...list.filter((p: any) => resolveImageUrl(p)));
         }
       }
       
-      console.log("World view posts loaded:", { count: allWorldPosts.length });
+      console.log("🌍 World view posts loaded for continent detection:", { count: allWorldPosts.length });
       
-      // Check for new posts in different continents
-      if (location && worldViewPosts.length > 0) {
-        const currentContinent = getContinent(location.latitude, location.longitude);
-        console.log("Current user continent:", currentContinent);
+      // Detect new posts from different continents
+      const currentKnownPosts = new Map(knownPosts);
+      let hasNewPosts = false;
+      
+      console.log("🔍 Processing world posts for continent detection:", {
+        totalWorldPosts: allWorldPosts.length,
+        knownPostsCount: knownPosts.size,
+        previewedPostsCount: previewedPosts.size
+      });
+      
+      // Check each individual post from the world view
+      allWorldPosts.forEach(post => {
+        const postId = post.id;
+        const postLat = Number(post.lat || post.latitude);
+        const postLng = Number(post.lng || post.longitude);
         
-        // Find new posts that are in different continents
-        const newPostsInOtherContinents = allWorldPosts.filter(post => {
-          const postLat = Number(post.lat || post.latitude);
-          const postLng = Number(post.lng || post.longitude);
-          const postContinent = getContinent(postLat, postLng);
-          
-          // Check if this is a new post (not in previous world view) and in a different continent
-          const isNewPost = !worldViewPosts.find(existingPost => existingPost.id === post.id);
-          const isDifferentContinent = postContinent !== currentContinent && postContinent !== 'Unknown';
-          
-          return isNewPost && isDifferentContinent;
-        });
+        if (!postId || isNaN(postLat) || isNaN(postLng)) return;
         
-        if (newPostsInOtherContinents.length > 0) {
-          console.log("New posts found in other continents:", {
-            count: newPostsInOtherContinents.length,
-            continents: [...new Set(newPostsInOtherContinents.map(p => getContinent(Number(p.lat || p.latitude), Number(p.lng || p.longitude))))]
+        // Check if this post ID is known
+        if (!knownPosts.has(postId)) {
+          console.log("🆕 New world post detected:", {
+            id: postId,
+            location: `${postLat}, ${postLng}`,
+            caption: post.caption?.substring(0, 30) + "...",
+            timestamp: new Date().toISOString()
           });
           
-          setNewContinentPosts(newPostsInOtherContinents);
-          setShowContinentButton(true);
+          // Add to known posts (posts seen on map)
+          currentKnownPosts.set(postId, {
+            lat: postLat,
+            lng: postLng,
+            timestamp: Date.now()
+          });
+          hasNewPosts = true;
           
-          // Start blinking animation
-          startContinentButtonBlinking();
-          
-          // Show toast notification
-          const continentNames = [...new Set(newPostsInOtherContinents.map(p => getContinent(Number(p.lat || p.latitude), Number(p.lng || p.longitude))))];
-          toast.success(`New posts found in ${continentNames.join(', ')}!`);
+          // Check if new post is in a different continent
+          if (location) {
+            const userContinent = getContinent(location.latitude, location.longitude);
+            const postContinent = getContinent(postLat, postLng);
+            
+            console.log("🌍 World post continent comparison:", {
+              userContinent,
+              postContinent,
+              userLocation: `${location.latitude}, ${location.longitude}`,
+              postLocation: `${postLat}, ${postLng}`,
+              isDifferentContinent: postContinent !== userContinent,
+              isValidContinent: postContinent !== 'Unknown' && userContinent !== 'Unknown',
+              shouldShowToast: postContinent !== userContinent && postContinent !== 'Unknown' && userContinent !== 'Unknown'
+            });
+            
+            // Show toast if new post is in a different continent than user
+            if (postContinent !== userContinent && postContinent !== 'Unknown' && userContinent !== 'Unknown') {
+              console.log(`🎯 WORLD POST TOAST TRIGGERED: User in ${userContinent}, Post in ${postContinent}`);
+              setTimeout(() => {
+                toast.success(`🌍 New post detected in ${postContinent}! Rotate your map to view recent post.`);
+              }, 1000); // Delay to avoid overwhelming the user
+            } else {
+              console.log(`❌ No toast for world post: Same continent or unknown location`);
+            }
+          } else {
+            console.log(`❌ No location available for world post continent comparison`);
+          }
         }
+      });
+      
+      // Update known posts if we found new ones
+      if (hasNewPosts) {
+        setKnownPosts(currentKnownPosts);
+        saveKnownPosts(currentKnownPosts);
+        console.log("🌍 Updated known posts from world view:", { totalKnownPosts: currentKnownPosts.size });
       }
       
-      // Update world view posts
-      setWorldViewPosts(allWorldPosts);
-      
     } catch (e: any) {
-      console.log("World view posts error:", { status: e?.response?.status, data: e?.response?.data, message: e?.message });
+      console.log("🌍 World view posts error:", { status: e?.response?.status, data: e?.response?.data, message: e?.message });
     }
   };
 
-  // Function to start continent button blinking
-  const startContinentButtonBlinking = () => {
-    const blinkInterval = setInterval(() => {
-      setContinentButtonVisible(prev => !prev);
-    }, 800); // Blink every 800ms
+  // Test function to verify continent detection (for debugging)
+  const testContinentDetection = () => {
+    console.log("=== Testing Continent Detection ===");
+    const testCases = [
+      { lat: 6.5244, lng: 3.3792, expected: "Africa", name: "Lagos, Nigeria" },
+      { lat: 40.7128, lng: -74.0060, expected: "North America", name: "New York, USA" },
+      { lat: 51.5074, lng: -0.1278, expected: "Europe", name: "London, UK" },
+      { lat: 35.6762, lng: 139.6503, expected: "Asia", name: "Tokyo, Japan" },
+      { lat: -33.8688, lng: 151.2093, expected: "Oceania", name: "Sydney, Australia" },
+      { lat: -22.9068, lng: -43.1729, expected: "South America", name: "Rio de Janeiro, Brazil" },
+    ];
     
-    // Store interval ID for cleanup
-    (window as any).continentBlinkInterval = blinkInterval;
+    testCases.forEach(test => {
+      const result = getContinent(test.lat, test.lng);
+      console.log(`${test.name}: Expected ${test.expected}, Got ${result}, ${result === test.expected ? '✅' : '❌'}`);
+    });
+    console.log("=== End Test ===");
   };
 
-  // Function to stop continent button blinking
-  const stopContinentButtonBlinking = () => {
-    if ((window as any).continentBlinkInterval) {
-      clearInterval((window as any).continentBlinkInterval);
-      delete (window as any).continentBlinkInterval;
+  // Call test function on component mount (for debugging)
+  useEffect(() => {
+    if (location) {
+      testContinentDetection();
     }
-    setContinentButtonVisible(true);
-  };
-
-  // Function to rotate to new continent posts
-  const rotateToNewContinentPosts = () => {
-    if (newContinentPosts.length === 0) return;
-    
-    // Get the first new post's continent
-    const firstNewPost = newContinentPosts[0];
-    const postLat = Number(firstNewPost.lat || firstNewPost.latitude);
-    const postLng = Number(firstNewPost.lng || firstNewPost.longitude);
-    const continent = getContinent(postLat, postLng);
-    const continentCenter = getContinentCenter(continent);
-    
-    console.log("Rotating to continent:", { continent, center: continentCenter, newPostsCount: newContinentPosts.length });
-    
-    // Create region for the continent
-    const continentRegion = {
-      latitude: continentCenter.latitude,
-      longitude: continentCenter.longitude,
-      latitudeDelta: 60, // Large enough to show continent
-      longitudeDelta: 60,
-    };
-    
-    if (Platform.OS === 'android' && useMapboxGL) {
-      // Mapbox GL rotation
-      setMapboxCamera({
-        centerCoordinate: [continentCenter.longitude, continentCenter.latitude],
-        zoomLevel: 3, // Continent level zoom
-        animationDuration: 1500,
-      });
-    } else if (mapRef.current) {
-      // Apple Maps rotation
-      mapRef.current.animateToRegion(continentRegion, 1500);
-      setMapRegion(continentRegion);
-    }
-    
-    // Hide the button and stop blinking
-    setShowContinentButton(false);
-    stopContinentButtonBlinking();
-    setNewContinentPosts([]);
-    
-    toast.success(`Showing new posts in ${continent}`);
-  };
+  }, [location]);
 
 
 
@@ -694,10 +682,11 @@ export default function TarpsScreen() {
         
         // Check if this post ID is known
         if (!knownPosts.has(postId)) {
-          console.log("New post detected:", {
+          console.log("🆕 New post detected:", {
             id: postId,
             location: `${postLat}, ${postLng}`,
-            caption: post.caption?.substring(0, 30) + "..."
+            caption: post.caption?.substring(0, 30) + "...",
+            timestamp: new Date().toISOString()
           });
           
           // Add to known posts (posts seen on map)
@@ -707,6 +696,34 @@ export default function TarpsScreen() {
             timestamp: Date.now()
           });
           hasNewPosts = true;
+          
+          // Check if new post is in a different continent
+          if (location) {
+            const userContinent = getContinent(location.latitude, location.longitude);
+            const postContinent = getContinent(postLat, postLng);
+            
+            console.log("🌍 Continent comparison:", {
+              userContinent,
+              postContinent,
+              userLocation: `${location.latitude}, ${location.longitude}`,
+              postLocation: `${postLat}, ${postLng}`,
+              isDifferentContinent: postContinent !== userContinent,
+              isValidContinent: postContinent !== 'Unknown' && userContinent !== 'Unknown',
+              shouldShowToast: postContinent !== userContinent && postContinent !== 'Unknown' && userContinent !== 'Unknown'
+            });
+            
+            // Show toast if new post is in a different continent than user
+            if (postContinent !== userContinent && postContinent !== 'Unknown' && userContinent !== 'Unknown') {
+              console.log(`🎯 TOAST TRIGGERED: User in ${userContinent}, Post in ${postContinent}`);
+              setTimeout(() => {
+                toast.success(`🌍 New post detected in ${postContinent}! Rotate your map to view recent post.`);
+              }, 1000); // Delay to avoid overwhelming the user
+            } else {
+              console.log(`❌ No toast: Same continent or unknown location`);
+            }
+          } else {
+            console.log(`❌ No location available for continent comparison`);
+          }
         }
         
         // Check if post should show red border (known but not previewed)
@@ -896,6 +913,9 @@ console.log(
     } else if (viewMode === "posts") {
       loadPostsInView(location);
     }
+    
+    // Also load world view posts for continent detection
+    loadWorldViewPostsForContinentDetection();
   }, [location, viewMode]);
 
   useEffect(() => {
@@ -1233,11 +1253,6 @@ console.log(
     
     // Clear zoom history when switching modes
     setZoomHistory([]);
-    
-    // Load world view posts to check for new continent posts
-    setTimeout(() => {
-      loadWorldViewPosts();
-    }, 1000); // Wait for zoom animation to complete
   };
 
   if (!location) {
@@ -1819,36 +1834,35 @@ console.log(
         >
           <Ionicons name="remove" size={20} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
         </Pressable>
-      </View>
-
-      {/* Continent Notification Button */}
-      {showContinentButton && (
-        <Pressable
-          style={[
-            styles.continentButton,
-            { 
-              bottom: insets.bottom + 120,
-              opacity: continentButtonVisible ? 1 : 0.3,
-              transform: [{ scale: continentButtonVisible ? 1 : 0.9 }]
-            },
-            isDark ? styles.continentButtonDark : styles.continentButtonLight
-          ]}
-          onPress={rotateToNewContinentPosts}
+        {/* Test button for continent detection */}
+        <Pressable 
+          style={[styles.zoomButton, isDark ? styles.zoomButtonDark : styles.zoomButtonLight]} 
+          onPress={() => {
+            if (location) {
+              const userContinent = getContinent(location.latitude, location.longitude);
+              // Simulate a new post from a different continent
+              const testPosts = [
+                { lat: 40.7128, lng: -74.0060, continent: "North America", city: "New York" },
+                { lat: 51.5074, lng: -0.1278, continent: "Europe", city: "London" },
+                { lat: 35.6762, lng: 139.6503, continent: "Asia", city: "Tokyo" },
+                { lat: -33.8688, lng: 151.2093, continent: "Oceania", city: "Sydney" },
+                { lat: 6.5244, lng: 3.3792, continent: "Africa", city: "Lagos" },
+              ];
+              
+              // Find a test post from a different continent
+              const testPost = testPosts.find(p => p.continent !== userContinent);
+              if (testPost) {
+                console.log(`🧪 Testing: Simulating new post from ${testPost.city}, ${testPost.continent}`);
+                toast.success(`🌍 New post detected in ${testPost.continent}! Rotate your map to view recent post.`);
+              } else {
+                toast.success(`🧪 Test: You're in ${userContinent}. All test posts are from other continents.`);
+              }
+            }
+          }}
         >
-          <View style={styles.continentButtonContent}>
-            <Ionicons name="globe-outline" size={18} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
-            <Text style={[styles.continentButtonText, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
-              New posts in {newContinentPosts.length > 0 ? getContinent(
-                Number(newContinentPosts[0].lat || newContinentPosts[0].latitude),
-                Number(newContinentPosts[0].lng || newContinentPosts[0].longitude)
-              ) : 'other continent'}!
-            </Text>
-            <Text style={[styles.continentButtonSubtext, { color: isDark ? "#CCCCCC" : "#666666" }]}>
-              Tap to view ({newContinentPosts.length} new post{newContinentPosts.length !== 1 ? 's' : ''})
-            </Text>
-          </View>
+          <Ionicons name="flask" size={16} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
         </Pressable>
-      )}
+      </View>
 
       <View style={[styles.topBar, { top: insets.top + 8 }]}>
         <View style={styles.leftButtons}>
@@ -2604,40 +2618,6 @@ const styles = StyleSheet.create({
   zoomButtonLight: { 
     backgroundColor: "#FFFFFF", 
     borderColor: "#E0E0E0" 
-  },
-  continentButton: {
-    position: "absolute",
-    right: 16,
-    maxWidth: 280,
-    borderRadius: 16,
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 8,
-  },
-  continentButtonDark: {
-    backgroundColor: "#0a0a0a",
-    borderColor: "#333333",
-  },
-  continentButtonLight: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#E0E0E0",
-  },
-  continentButtonContent: {
-    padding: 16,
-    alignItems: "center",
-    gap: 4,
-  },
-  continentButtonText: {
-    fontSize: 14,
-    fontWeight: "700",
-    textAlign: "center",
-  },
-  continentButtonSubtext: {
-    fontSize: 12,
-    textAlign: "center",
   },
   // Current Location Button Styles
   currentLocationBtn: {
