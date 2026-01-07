@@ -94,6 +94,8 @@ class UrlConstants {
   static tarpPostComments = (postImageID: string) => `/tarps/posts/${postImageID}/comments`;
   static tarpToggleFriend = `/tarps/user/friend`;
   static tarpToggleFollow = `/tarps/user/follow`;
+  static tarpNotifications = `/tarps/profile/notification`;
+  static tarpStatsPosts = `/tarps/stats/posts`;
 
   static groupsRoute = `${this.baseUrl}/groups`;
 
