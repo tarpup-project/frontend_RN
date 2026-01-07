@@ -89,6 +89,13 @@ export default function TarpsScreen() {
   const [viewMode, setViewMode] = useState<"people" | "posts">("people");
   const [mapRegion, setMapRegion] = useState(location);
   const [serverPosts, setServerPosts] = useState<{ id: string; image: string | null; latitude: number; longitude: number; count?: number; items?: any[] }[]>([]);
+  const [newPostIds, setNewPostIds] = useState<Set<string>>(new Set());
+  const [knownPosts, setKnownPosts] = useState<Map<string, { lat: number; lng: number; timestamp: number }>>(new Map());
+  const [previewedPosts, setPreviewedPosts] = useState<Set<string>>(new Set());
+  const [worldViewPosts, setWorldViewPosts] = useState<any[]>([]);
+  const [newContinentPosts, setNewContinentPosts] = useState<any[]>([]);
+  const [showContinentButton, setShowContinentButton] = useState(false);
+  const [continentButtonVisible, setContinentButtonVisible] = useState(true);
   const [serverPeople, setServerPeople] = useState<
     { id: string; latitude: number; longitude: number; imageUrl?: string; owner?: { id: string; fname: string; lname?: string; bgUrl?: string } }[]
   >([]);
@@ -148,6 +155,144 @@ export default function TarpsScreen() {
     nav.push('/share-location');
   };
 
+  // Function to load known posts from storage
+  const loadKnownPosts = async () => {
+    try {
+      const knownPostsData = await AsyncStorage.getItem('knownPosts');
+      console.log("Loading known posts from storage:", knownPostsData);
+      if (knownPostsData) {
+        const parsedData = JSON.parse(knownPostsData);
+        console.log("Parsed known posts:", parsedData);
+        // Convert array back to Map with proper typing
+        const postsMap = new Map<string, { lat: number; lng: number; timestamp: number }>(parsedData);
+        setKnownPosts(postsMap);
+      } else {
+        console.log("No known posts found in storage");
+        setKnownPosts(new Map());
+      }
+    } catch (error) {
+      console.error('Error loading known posts:', error);
+      setKnownPosts(new Map());
+    }
+  };
+
+  // Function to load previewed posts from storage
+  const loadPreviewedPosts = async () => {
+    try {
+      const previewedPostsData = await AsyncStorage.getItem('previewedPosts');
+      console.log("Loading previewed posts from storage:", previewedPostsData);
+      if (previewedPostsData) {
+        const parsedData = JSON.parse(previewedPostsData);
+        console.log("Parsed previewed posts:", parsedData);
+        setPreviewedPosts(new Set(parsedData));
+      } else {
+        console.log("No previewed posts found in storage");
+        setPreviewedPosts(new Set());
+      }
+    } catch (error) {
+      console.error('Error loading previewed posts:', error);
+      setPreviewedPosts(new Set());
+    }
+  };
+
+  // Function to save known posts to storage
+  const saveKnownPosts = async (postsMap: Map<string, { lat: number; lng: number; timestamp: number }>) => {
+    try {
+      // Convert Map to array for JSON storage
+      const postsArray = Array.from(postsMap.entries());
+      await AsyncStorage.setItem('knownPosts', JSON.stringify(postsArray));
+      console.log("Saved known posts to storage:", postsArray.length, "posts");
+    } catch (error) {
+      console.error('Error saving known posts:', error);
+    }
+  };
+
+  // Function to save previewed posts to storage
+  const savePreviewedPosts = async (postsSet: Set<string>) => {
+    try {
+      const postsArray = Array.from(postsSet);
+      await AsyncStorage.setItem('previewedPosts', JSON.stringify(postsArray));
+      console.log("Saved previewed posts to storage:", postsArray.length, "posts");
+    } catch (error) {
+      console.error('Error saving previewed posts:', error);
+    }
+  };
+
+  // Function to mark a post as viewed (when actually previewed)
+  const markPostAsViewed = (postId: string) => {
+    setNewPostIds(prev => {
+      const updated = new Set(prev);
+      updated.delete(postId);
+      return updated;
+    });
+    
+    setPreviewedPosts(prev => {
+      const updated = new Set(prev);
+      updated.add(postId);
+      savePreviewedPosts(updated);
+      return updated;
+    });
+    
+    console.log("Post marked as previewed:", postId);
+  };
+
+  // Function to mark multiple posts as viewed (for clusters)
+  const markPostsAsViewed = (postIds: string[]) => {
+    setNewPostIds(prev => {
+      const updated = new Set(prev);
+      postIds.forEach(id => updated.delete(id));
+      return updated;
+    });
+    
+    setPreviewedPosts(prev => {
+      const updated = new Set(prev);
+      postIds.forEach(id => updated.add(id));
+      savePreviewedPosts(updated);
+      return updated;
+    });
+    
+    console.log("Posts marked as previewed:", postIds);
+  };
+
+  // Load both known and previewed posts on mount
+  useEffect(() => {
+    loadKnownPosts();
+    loadPreviewedPosts();
+  }, []);
+
+  // Expose global function for post screen communication
+  useEffect(() => {
+    (global as any).markPostsAsViewed = markPostsAsViewed;
+    return () => {
+      delete (global as any).markPostsAsViewed;
+    };
+  }, []);
+
+  // Load world view posts periodically to check for new continent posts
+  useEffect(() => {
+    if (!location) return;
+    
+    // Load world view posts initially
+    loadWorldViewPosts();
+    
+    // Set up periodic checking for new continent posts (every 30 seconds)
+    const worldViewInterval = setInterval(() => {
+      loadWorldViewPosts();
+    }, 30000);
+    
+    return () => {
+      clearInterval(worldViewInterval);
+      stopContinentButtonBlinking();
+    };
+  }, [location]);
+
+  // Cleanup blinking interval on unmount
+  useEffect(() => {
+    return () => {
+      stopContinentButtonBlinking();
+    };
+  }, []);
+
   const extractImageUrl = (item: any): string | null => {
     if (!item || typeof item !== "object") return null;
     const cands: any[] = [
@@ -161,6 +306,219 @@ export default function TarpsScreen() {
     if (!raw) return null;
     if (/^https?:\/\//i.test(raw)) return raw;
     return `${UrlConstants.baseUrl}${raw.startsWith("/") ? "" : "/"}${raw}`;
+  };
+
+  // Function to determine continent based on coordinates
+  const getContinent = (lat: number, lng: number): string => {
+    // North America
+    if (lat >= 15 && lat <= 85 && lng >= -170 && lng <= -30) {
+      return 'North America';
+    }
+    // South America
+    if (lat >= -60 && lat <= 15 && lng >= -85 && lng <= -30) {
+      return 'South America';
+    }
+    // Europe
+    if (lat >= 35 && lat <= 75 && lng >= -15 && lng <= 60) {
+      return 'Europe';
+    }
+    // Africa
+    if (lat >= -40 && lat <= 40 && lng >= -20 && lng <= 55) {
+      return 'Africa';
+    }
+    // Asia
+    if (lat >= 5 && lat <= 80 && lng >= 60 && lng <= 180) {
+      return 'Asia';
+    }
+    // Oceania
+    if (lat >= -50 && lat <= 0 && lng >= 110 && lng <= 180) {
+      return 'Oceania';
+    }
+    // Antarctica
+    if (lat >= -90 && lat <= -60) {
+      return 'Antarctica';
+    }
+    // Default fallback
+    return 'Unknown';
+  };
+
+  // Function to get continent center coordinates
+  const getContinentCenter = (continent: string): { latitude: number; longitude: number } => {
+    const centers = {
+      'North America': { latitude: 45, longitude: -100 },
+      'South America': { latitude: -15, longitude: -60 },
+      'Europe': { latitude: 55, longitude: 25 },
+      'Africa': { latitude: 0, longitude: 20 },
+      'Asia': { latitude: 35, longitude: 100 },
+      'Oceania': { latitude: -25, longitude: 140 },
+      'Antarctica': { latitude: -80, longitude: 0 },
+      'Unknown': { latitude: 0, longitude: 0 }
+    };
+    return centers[continent as keyof typeof centers] || centers.Unknown;
+  };
+
+  // Function to load world view posts and detect new continents
+  const loadWorldViewPosts = async () => {
+    try {
+      // World view parameters - covers the entire globe
+      const worldViewport = {
+        minLat: -90,
+        maxLat: 90,
+        minLng: -180,
+        maxLng: 180,
+        zoomLevel: 1
+      };
+      
+      const query = new URLSearchParams({
+        minLat: worldViewport.minLat.toString(),
+        maxLat: worldViewport.maxLat.toString(),
+        minLng: worldViewport.minLng.toString(),
+        maxLng: worldViewport.maxLng.toString(),
+        zoomLevel: worldViewport.zoomLevel.toString(),
+      });
+      
+      const url = `/tarps/posts?${query.toString()}`;
+      console.log("Loading world view posts:", { url, viewport: worldViewport });
+      
+      const res = await api.get(url);
+      const list = (res as any).data?.data || (res as any).data?.posts || (res as any).data;
+      
+      // Process the posts similar to loadPostsInView
+      const resolveImageUrl = (item: any): string | null => {
+        if (!item || typeof item !== "object") return null;
+        const candidates: any[] = [
+          item.imageUrl, item.photoUrl, item.image, item.coverUrl, item.thumbnail, item.thumbUrl, item.bgUrl, item.url,
+          item?.image?.url, item?.photo?.url,
+          Array.isArray(item.images) ? (typeof item.images[0] === "string" ? item.images[0] : item.images[0]?.url) : null,
+          Array.isArray(item.files) ? (typeof item.files[0] === "string" ? item.files[0] : item.files[0]?.url) : null,
+          Array.isArray(item.medias) ? (typeof item.medias[0] === "string" ? item.medias[0] : item.medias[0]?.url) : null,
+        ];
+        const raw = candidates.find((v) => typeof v === "string" && v.length > 0) ?? null;
+        if (!raw) return null;
+        if (/^https?:\/\//i.test(raw)) return raw;
+        return `${UrlConstants.baseUrl}${raw.startsWith("/") ? "" : "/"}${raw}`;
+      };
+      
+      let allWorldPosts: any[] = [];
+      if (Array.isArray(list)) {
+        const looksLikeGrid = list.length > 0 && typeof list[0]?.avgLat === "number" && typeof list[0]?.avgLng === "number" && "result" in list[0];
+        if (looksLikeGrid) {
+          // Grid format - flatten all items
+          allWorldPosts = list.flatMap((cell: any) => {
+            const items = Array.isArray(cell.result) ? cell.result : [];
+            return items.filter((item: any) => resolveImageUrl(item));
+          });
+        } else {
+          // Direct posts format
+          allWorldPosts = list.filter((p: any) => resolveImageUrl(p));
+        }
+      }
+      
+      console.log("World view posts loaded:", { count: allWorldPosts.length });
+      
+      // Check for new posts in different continents
+      if (location && worldViewPosts.length > 0) {
+        const currentContinent = getContinent(location.latitude, location.longitude);
+        console.log("Current user continent:", currentContinent);
+        
+        // Find new posts that are in different continents
+        const newPostsInOtherContinents = allWorldPosts.filter(post => {
+          const postLat = Number(post.lat || post.latitude);
+          const postLng = Number(post.lng || post.longitude);
+          const postContinent = getContinent(postLat, postLng);
+          
+          // Check if this is a new post (not in previous world view) and in a different continent
+          const isNewPost = !worldViewPosts.find(existingPost => existingPost.id === post.id);
+          const isDifferentContinent = postContinent !== currentContinent && postContinent !== 'Unknown';
+          
+          return isNewPost && isDifferentContinent;
+        });
+        
+        if (newPostsInOtherContinents.length > 0) {
+          console.log("New posts found in other continents:", {
+            count: newPostsInOtherContinents.length,
+            continents: [...new Set(newPostsInOtherContinents.map(p => getContinent(Number(p.lat || p.latitude), Number(p.lng || p.longitude))))]
+          });
+          
+          setNewContinentPosts(newPostsInOtherContinents);
+          setShowContinentButton(true);
+          
+          // Start blinking animation
+          startContinentButtonBlinking();
+          
+          // Show toast notification
+          const continentNames = [...new Set(newPostsInOtherContinents.map(p => getContinent(Number(p.lat || p.latitude), Number(p.lng || p.longitude))))];
+          toast.success(`New posts found in ${continentNames.join(', ')}!`);
+        }
+      }
+      
+      // Update world view posts
+      setWorldViewPosts(allWorldPosts);
+      
+    } catch (e: any) {
+      console.log("World view posts error:", { status: e?.response?.status, data: e?.response?.data, message: e?.message });
+    }
+  };
+
+  // Function to start continent button blinking
+  const startContinentButtonBlinking = () => {
+    const blinkInterval = setInterval(() => {
+      setContinentButtonVisible(prev => !prev);
+    }, 800); // Blink every 800ms
+    
+    // Store interval ID for cleanup
+    (window as any).continentBlinkInterval = blinkInterval;
+  };
+
+  // Function to stop continent button blinking
+  const stopContinentButtonBlinking = () => {
+    if ((window as any).continentBlinkInterval) {
+      clearInterval((window as any).continentBlinkInterval);
+      delete (window as any).continentBlinkInterval;
+    }
+    setContinentButtonVisible(true);
+  };
+
+  // Function to rotate to new continent posts
+  const rotateToNewContinentPosts = () => {
+    if (newContinentPosts.length === 0) return;
+    
+    // Get the first new post's continent
+    const firstNewPost = newContinentPosts[0];
+    const postLat = Number(firstNewPost.lat || firstNewPost.latitude);
+    const postLng = Number(firstNewPost.lng || firstNewPost.longitude);
+    const continent = getContinent(postLat, postLng);
+    const continentCenter = getContinentCenter(continent);
+    
+    console.log("Rotating to continent:", { continent, center: continentCenter, newPostsCount: newContinentPosts.length });
+    
+    // Create region for the continent
+    const continentRegion = {
+      latitude: continentCenter.latitude,
+      longitude: continentCenter.longitude,
+      latitudeDelta: 60, // Large enough to show continent
+      longitudeDelta: 60,
+    };
+    
+    if (Platform.OS === 'android' && useMapboxGL) {
+      // Mapbox GL rotation
+      setMapboxCamera({
+        centerCoordinate: [continentCenter.longitude, continentCenter.latitude],
+        zoomLevel: 3, // Continent level zoom
+        animationDuration: 1500,
+      });
+    } else if (mapRef.current) {
+      // Apple Maps rotation
+      mapRef.current.animateToRegion(continentRegion, 1500);
+      setMapRegion(continentRegion);
+    }
+    
+    // Hide the button and stop blinking
+    setShowContinentButton(false);
+    stopContinentButtonBlinking();
+    setNewContinentPosts([]);
+    
+    toast.success(`Showing new posts in ${continent}`);
   };
 
 
@@ -305,6 +663,77 @@ export default function TarpsScreen() {
             .filter((p: any) => !isNaN(p.latitude) && !isNaN(p.longitude) && !!p.image);
         }
       }
+      
+      // Detect new posts by comparing individual post IDs and locations
+      const newPosts = new Set<string>();
+      const currentKnownPosts = new Map(knownPosts);
+      let hasNewPosts = false;
+      
+      // Process all individual posts from clusters and single posts
+      const allIndividualPosts: any[] = [];
+      mapped.forEach(cluster => {
+        if (cluster.items && cluster.items.length > 0) {
+          allIndividualPosts.push(...cluster.items);
+        }
+      });
+      
+      console.log("Processing individual posts:", {
+        totalClusters: mapped.length,
+        totalIndividualPosts: allIndividualPosts.length,
+        knownPostsCount: knownPosts.size,
+        previewedPostsCount: previewedPosts.size
+      });
+      
+      // Check each individual post
+      allIndividualPosts.forEach(post => {
+        const postId = post.id;
+        const postLat = Number(post.lat || post.latitude);
+        const postLng = Number(post.lng || post.longitude);
+        
+        if (!postId || isNaN(postLat) || isNaN(postLng)) return;
+        
+        // Check if this post ID is known
+        if (!knownPosts.has(postId)) {
+          console.log("New post detected:", {
+            id: postId,
+            location: `${postLat}, ${postLng}`,
+            caption: post.caption?.substring(0, 30) + "..."
+          });
+          
+          // Add to known posts (posts seen on map)
+          currentKnownPosts.set(postId, {
+            lat: postLat,
+            lng: postLng,
+            timestamp: Date.now()
+          });
+          hasNewPosts = true;
+        }
+        
+        // Check if post should show red border (known but not previewed)
+        if (knownPosts.has(postId) && !previewedPosts.has(postId)) {
+          newPosts.add(postId);
+        } else if (!knownPosts.has(postId) && !previewedPosts.has(postId)) {
+          // New post that hasn't been previewed
+          newPosts.add(postId);
+        }
+      });
+      
+      // Update known posts if we found new ones
+      if (hasNewPosts) {
+        setKnownPosts(currentKnownPosts);
+        saveKnownPosts(currentKnownPosts);
+      }
+      
+      console.log("New post detection results:", {
+        newPostsFound: newPosts.size,
+        newPostIds: Array.from(newPosts),
+        totalKnownPosts: currentKnownPosts.size,
+        totalPreviewedPosts: previewedPosts.size
+      });
+      
+      // Update new posts state
+      setNewPostIds(newPosts);
+      
       setServerPosts(mapped);
       console.log("PostsInView:mappedSample", JSON.stringify(mapped[0], null, 2));
       console.log("PostsInView:loaded", { count: mapped.length });
@@ -804,6 +1233,11 @@ console.log(
     
     // Clear zoom history when switching modes
     setZoomHistory([]);
+    
+    // Load world view posts to check for new continent posts
+    setTimeout(() => {
+      loadWorldViewPosts();
+    }, 1000); // Wait for zoom animation to complete
   };
 
   if (!location) {
@@ -983,7 +1417,10 @@ console.log(
                   }
                 }}
               >
-                <View style={[styles.markerContainer, isDark ? styles.markerDark : styles.markerLight]}>
+                <View style={[
+                  p.items?.some((item: any) => newPostIds.has(item.id)) ? styles.markerContainerNew : styles.markerContainer, 
+                  isDark ? styles.markerDark : styles.markerLight
+                ]}>
                   <ExpoImage 
                     source={{ uri: p.image as string }} 
                     style={styles.markerImage} 
@@ -1229,7 +1666,10 @@ console.log(
                     }
                   }}
                 >
-                  <View style={[styles.markerContainer, isDark ? styles.markerDark : styles.markerLight]}>
+                  <View style={[
+                    p.items?.some((item: any) => newPostIds.has(item.id)) ? styles.markerContainerNew : styles.markerContainer, 
+                    isDark ? styles.markerDark : styles.markerLight
+                  ]}>
                     <ExpoImage 
                       source={{ uri: p.image as string }} 
                       style={styles.markerImage} 
@@ -1381,6 +1821,35 @@ console.log(
         </Pressable>
       </View>
 
+      {/* Continent Notification Button */}
+      {showContinentButton && (
+        <Pressable
+          style={[
+            styles.continentButton,
+            { 
+              bottom: insets.bottom + 120,
+              opacity: continentButtonVisible ? 1 : 0.3,
+              transform: [{ scale: continentButtonVisible ? 1 : 0.9 }]
+            },
+            isDark ? styles.continentButtonDark : styles.continentButtonLight
+          ]}
+          onPress={rotateToNewContinentPosts}
+        >
+          <View style={styles.continentButtonContent}>
+            <Ionicons name="globe-outline" size={18} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
+            <Text style={[styles.continentButtonText, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
+              New posts in {newContinentPosts.length > 0 ? getContinent(
+                Number(newContinentPosts[0].lat || newContinentPosts[0].latitude),
+                Number(newContinentPosts[0].lng || newContinentPosts[0].longitude)
+              ) : 'other continent'}!
+            </Text>
+            <Text style={[styles.continentButtonSubtext, { color: isDark ? "#CCCCCC" : "#666666" }]}>
+              Tap to view ({newContinentPosts.length} new post{newContinentPosts.length !== 1 ? 's' : ''})
+            </Text>
+          </View>
+        </Pressable>
+      )}
+
       <View style={[styles.topBar, { top: insets.top + 8 }]}>
         <View style={styles.leftButtons}>
           <View style={[styles.viewTogglePill, isDark ? styles.pillDark : styles.pillLight]}>
@@ -1471,7 +1940,7 @@ console.log(
                       if (!locationName) return "";
                       
                       // Split by comma and get the last two parts (state, country)
-                      const parts = locationName.split(',').map(part => part.trim());
+                      const parts = locationName.split(',').map((part: string) => part.trim());
                       
                       if (parts.length >= 2) {
                         // Get the last two parts and remove any numbers (zip codes)
@@ -1736,6 +2205,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
+  },
+  markerContainerNew: {
+    width: 96,
+    height: 96,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    overflow: "visible",
+    borderWidth: 5,
+    borderColor: "#FF0000",
+    shadowColor: "#FF0000",
+    shadowOpacity: 0.8,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 20,
   },
   markerDark: { borderColor: "#333333", backgroundColor: "#1A1A1A" },
   markerLight: { borderColor: "#E0E0E0", backgroundColor: "#FFFFFF" },
@@ -2121,6 +2604,40 @@ const styles = StyleSheet.create({
   zoomButtonLight: { 
     backgroundColor: "#FFFFFF", 
     borderColor: "#E0E0E0" 
+  },
+  continentButton: {
+    position: "absolute",
+    right: 16,
+    maxWidth: 280,
+    borderRadius: 16,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+  continentButtonDark: {
+    backgroundColor: "#0a0a0a",
+    borderColor: "#333333",
+  },
+  continentButtonLight: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#E0E0E0",
+  },
+  continentButtonContent: {
+    padding: 16,
+    alignItems: "center",
+    gap: 4,
+  },
+  continentButtonText: {
+    fontSize: 14,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  continentButtonSubtext: {
+    fontSize: 12,
+    textAlign: "center",
   },
   // Current Location Button Styles
   currentLocationBtn: {
