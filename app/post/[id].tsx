@@ -12,19 +12,19 @@ import { StatusBar } from "expo-status-bar";
 import moment from "moment";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Animated,
-    Dimensions,
-    FlatList,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View
+  ActivityIndicator,
+  Animated,
+  Dimensions,
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
 } from "react-native";
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
 import { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
@@ -665,15 +665,15 @@ export default function PostPreviewScreen() {
     try {
       console.log("Making like API call:", { imageID, action });
       
-      // Server expects action values wrapped in single quotes
-      const serverAction = action === "like" ? "'like'" : "'unlike'";
+      // Server expects simple action values without extra quotes
+      const serverAction = action;
       
       const payload = {
         imageID: imageID,
         action: serverAction
       };
       
-      console.log("Request payload with quoted action:", JSON.stringify(payload));
+      console.log("Request payload with simple action:", JSON.stringify(payload));
       console.log("Request URL:", UrlConstants.tarpLikePost);
       console.log("Current auth token exists:", !!(await getAccessToken()));
       
@@ -1186,18 +1186,23 @@ export default function PostPreviewScreen() {
                 </View>
               </Pressable>
               <View style={styles.actionRow}>
-                {friendStatus !== "pending" && (
-                  <Pressable
-                    style={styles.friendBtn}
-                    onPress={(e) => { e.stopPropagation(); toggleFriend(friendStatus === "friends" ? "unfriend" : "friend"); }}
-                  >
-                    <Text style={styles.friendText}>{friendStatus === "friends" ? "Unfriend" : "Friend"}</Text>
-                  </Pressable>
-                )}
-                {!following && (
-                  <Pressable style={styles.followBtn} onPress={(e) => { e.stopPropagation(); toggleFollow("follow"); }}>
-                    <Text style={styles.followText}>Follow</Text>
-                  </Pressable>
+                {/* Hide friend/follow buttons when viewing own posts from notifications */}
+                {getCurrentPostItem()?.creator?.id !== user?.id && getCurrentPostItem()?.owner?.id !== user?.id && (
+                  <>
+                    {friendStatus !== "pending" && (
+                      <Pressable
+                        style={styles.friendBtn}
+                        onPress={(e) => { e.stopPropagation(); toggleFriend(friendStatus === "friends" ? "unfriend" : "friend"); }}
+                      >
+                        <Text style={styles.friendText}>{friendStatus === "friends" ? "Unfriend" : "Friend"}</Text>
+                      </Pressable>
+                    )}
+                    {!following && (
+                      <Pressable style={styles.followBtn} onPress={(e) => { e.stopPropagation(); toggleFollow("follow"); }}>
+                        <Text style={styles.followText}>Follow</Text>
+                      </Pressable>
+                    )}
+                  </>
                 )}
               </View>
             </Animated.View>
