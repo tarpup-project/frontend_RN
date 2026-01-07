@@ -2,7 +2,9 @@ import { api } from "@/api/client";
 import { UrlConstants } from "@/constants/apiUrls";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthStore } from "@/state/authStore";
+import { getAccessToken } from "@/utils/storage";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -10,19 +12,19 @@ import { StatusBar } from "expo-status-bar";
 import moment from "moment";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Animated,
-  Dimensions,
-  FlatList,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View
+    ActivityIndicator,
+    Animated,
+    Dimensions,
+    FlatList,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View
 } from "react-native";
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
 import { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
@@ -76,6 +78,43 @@ export default function PostPreviewScreen() {
   const [buttonsVisible, setButtonsVisible] = useState(true);
   const buttonsOpacity = useRef(new Animated.Value(1)).current;
   const buttonsScale = useRef(new Animated.Value(1)).current;
+
+  // Function to mark post as viewed (remove red border)
+  const markPostAsViewed = async (postId: string) => {
+    try {
+      // Call the global function to update the tarps screen
+      if ((global as any).markPostsAsViewed) {
+        (global as any).markPostsAsViewed([postId]);
+      }
+      
+      const knownPostsData = await AsyncStorage.getItem('knownPosts');
+      if (knownPostsData) {
+        const knownPostsArray = JSON.parse(knownPostsData);
+        const knownPostsMap = new Map(knownPostsArray);
+        
+        // The post should already be in known posts, just log that it's been viewed
+        if (knownPostsMap.has(postId)) {
+          console.log('Post marked as viewed:', postId);
+        }
+      }
+    } catch (error) {
+      console.error('Error marking post as viewed:', error);
+    }
+  };
+
+  // Function to mark multiple posts as viewed (for stacked posts)
+  const markMultiplePostsAsViewed = async (postIds: string[]) => {
+    try {
+      // Call the global function to update the tarps screen
+      if ((global as any).markPostsAsViewed) {
+        (global as any).markPostsAsViewed(postIds);
+      }
+      
+      console.log('Multiple posts marked as viewed:', postIds);
+    } catch (error) {
+      console.error('Error marking multiple posts as viewed:', error);
+    }
+  };
 
   // Function to animate buttons hide/show
   const toggleButtonsVisibility = () => {
@@ -211,6 +250,15 @@ export default function PostPreviewScreen() {
       const urls: string[] = Array.isArray(parsedImages?.urls) ? parsedImages.urls.filter((u: any) => typeof u === "string") : [];
       const ids: (string | null)[] = Array.isArray(parsedImages?.ids) ? parsedImages.ids.map((x: any) => (x != null ? String(x) : null)) : [];
       
+      console.log("Post initialization debug:", {
+        parsedImages,
+        urls: urls.length,
+        ids: ids.length,
+        parsedItem: parsedItem?.id,
+        parsedItemImages: parsedItem?.images?.map((img: any) => ({ id: img.id, url: img.url?.substring(0, 50) })),
+        extractedImageId: parsedItem ? extractImageId(parsedItem) : null
+      });
+      
       setCurrentPostItem(parsedItem);
       setCurrentImages(urls.length > 0 ? urls : parsedItem ? [extractImageUrl(parsedItem) as string].filter(Boolean) : []);
       setCurrentImageIds(ids.length > 0 ? ids : parsedItem ? [extractImageId(parsedItem)] : []);
@@ -221,6 +269,15 @@ export default function PostPreviewScreen() {
       loadGlobalPosts().then((globalPostsList) => {
         // Mark current post as viewed and set up all available posts
         if (parsedItem?.id) {
+          // Mark post as viewed to remove red border
+          markPostAsViewed(parsedItem.id);
+          
+          // If this is a stacked post with multiple items, mark all as viewed
+          if (parsedAllItems.length > 1) {
+            const allPostIds = parsedAllItems.map((item: any) => item.id).filter(Boolean);
+            markMultiplePostsAsViewed(allPostIds);
+          }
+          
           setViewedPosts(new Set([parsedItem.id]));
           
           // Combine server posts and global posts, remove duplicates
@@ -340,20 +397,98 @@ export default function PostPreviewScreen() {
   };
 
   const extractImageId = (item: any): string | null => {
+    // First try to get the actual image ID from the images array
+    if (Array.isArray(item?.images) && item.images.length > 0) {
+      // Use the current image index if available, otherwise use first image
+      const targetIndex = currentImageIndex < item.images.length ? currentImageIndex : 0;
+      const image = item.images[targetIndex];
+      if (image?.id) {
+        console.log("Found image ID from images array:", {
+          imageId: image.id,
+          index: targetIndex,
+          totalImages: item.images.length
+        });
+        return String(image.id);
+      }
+    }
+    
+    // Fallback to other possible image ID fields (less likely to be correct)
     const candidates: any[] = [
-      item?.imageId, item?.imageID, item?.postImageID, item?.postImageId,
-      Array.isArray(item?.images) ? item.images[0]?.id : null,
+      item?.imageId, 
+      item?.imageID, 
+      item?.postImageID, 
+      item?.postImageId,
       Array.isArray(item?.files) ? item.files[0]?.id : null,
       Array.isArray(item?.medias) ? item.medias[0]?.id : null,
-      item?.id
     ];
+    
     const v = candidates.find((x) => typeof x === "string" || typeof x === "number");
-    return v != null ? String(v) : null;
+    const result = v != null ? String(v) : null;
+    
+    console.log("extractImageId debug:", {
+      hasImages: Array.isArray(item?.images),
+      imagesLength: item?.images?.length,
+      currentImageIndex,
+      targetImageId: item?.images?.[currentImageIndex]?.id,
+      firstImageId: item?.images?.[0]?.id,
+      candidates,
+      result,
+      postId: item?.id
+    });
+    
+    // Only use post ID as absolute last resort and log a warning
+    if (!result && item?.id) {
+      console.warn("⚠️ Using post ID as image ID - this will likely cause a 500 error:", item.id);
+      return String(item.id);
+    }
+    
+    return result;
   };
 
   const getCurrentImageId = (): string | null => {
+    // Get the current post item (handles stacked posts)
+    const activeItem = getCurrentPostItem();
+    
+    if (!activeItem) {
+      console.log("No active item found");
+      return null;
+    }
+    
+    // If the post has images array, get the image ID based on current index
+    if (activeItem.images && Array.isArray(activeItem.images) && activeItem.images.length > 0) {
+      // Use currentImageIndex to get the specific image being viewed
+      const currentImage = activeItem.images[currentImageIndex] || activeItem.images[0];
+      if (currentImage?.id) {
+        console.log("Using image ID from current image:", {
+          currentImageIndex,
+          imageId: currentImage.id,
+          totalImages: activeItem.images.length,
+          allImageIds: activeItem.images.map((img: any) => img.id)
+        });
+        return String(currentImage.id);
+      }
+    }
+    
+    // Fallback: try to get from currentImageIds array (from URL params)
     const id = currentImageIds[currentImageIndex];
-    return id ?? (currentPostItem ? extractImageId(currentPostItem) : null);
+    if (id && id !== activeItem.id) {
+      console.log("Using image ID from currentImageIds:", id);
+      return id;
+    }
+    
+    // Last resort: use extractImageId function
+    const fallbackId = extractImageId(activeItem);
+    
+    console.log("getCurrentImageId debug:", {
+      currentImageIndex,
+      activeItemId: activeItem.id,
+      activeItemImages: activeItem.images?.length || 0,
+      currentImageIds: currentImageIds.length,
+      fallbackId,
+      warning: fallbackId === activeItem.id ? "Using post ID as image ID - this will likely fail" : null
+    });
+    
+    return fallbackId;
   };
 
   const extractLocationName = (item: any): string => {
@@ -395,6 +530,20 @@ export default function PostPreviewScreen() {
   };
 
   const extractLiked = (item: any): boolean => {
+    // First try to get from current image's _count data
+    if (item?.images && Array.isArray(item.images) && currentImageIndex < item.images.length) {
+      const currentImage = item.images[currentImageIndex];
+      if (currentImage?._count?.tarpImgLikes > 0) {
+        console.log("Extracted liked from current image _count:", currentImage._count.tarpImgLikes);
+        return true;
+      }
+      if (typeof currentImage?.hasLiked === "boolean") {
+        console.log("Extracted liked from current image hasLiked:", currentImage.hasLiked);
+        return currentImage.hasLiked;
+      }
+    }
+    
+    // Fallback to other methods
     const v =
       item?.likedByMe ??
       item?.isLiked ??
@@ -402,13 +551,29 @@ export default function PostPreviewScreen() {
       item?.liked ??
       item?.owner?.likedByMe;
     if (typeof v === "boolean") return v;
+    
     if (Array.isArray(item?.images) && item.images[0] && typeof item.images[0]?.hasLiked === "boolean") {
       return item.images[0].hasLiked;
     }
     if (Array.isArray(item?.likes) && user?.id) return !!item.likes.find((u: any) => String(u?.id) === String(user.id));
     return false;
   };
+  
   const extractLikeCount = (item: any): number => {
+    // First try to get from current image's _count data
+    if (item?.images && Array.isArray(item.images) && currentImageIndex < item.images.length) {
+      const currentImage = item.images[currentImageIndex];
+      if (typeof currentImage?._count?.tarpImgLikes === "number") {
+        console.log("Extracted like count from current image _count:", currentImage._count.tarpImgLikes);
+        return currentImage._count.tarpImgLikes;
+      }
+      if (typeof currentImage?.likes === "number") {
+        console.log("Extracted like count from current image likes:", currentImage.likes);
+        return currentImage.likes;
+      }
+    }
+    
+    // Fallback to other methods
     const cands = [
       Array.isArray(item?.images) && item.images[0] && typeof item.images[0]?.likes === "number" ? item.images[0].likes : undefined,
       item?.likesCount,
@@ -440,21 +605,35 @@ export default function PostPreviewScreen() {
     // Update the current post item to the one corresponding to this image
     setCurrentPostItem(activeItem);
     
-    const imgMeta = Array.isArray(activeItem.images) ? activeItem.images[0] : null; // For stacked posts, each item typically has one image
-    const likedVal =
-      typeof imgMeta?.hasLiked === "boolean"
-        ? imgMeta.hasLiked
-        : extractLiked(activeItem);
-    const likeCountVal =
-      typeof imgMeta?.likes === "number"
-        ? imgMeta.likes
-        : extractLikeCount(activeItem);
-    const commentCountVal =
-      typeof imgMeta?.comments === "number"
-        ? imgMeta.comments
-        : Array.isArray(activeItem.comments)
-        ? activeItem.comments.length
-        : 0;
+    // Mark this post as viewed when navigating to it
+    if (activeItem?.id) {
+      markPostAsViewed(activeItem.id);
+    }
+    
+    // Get the specific image data for the current index
+    let currentImageData = null;
+    if (activeItem.images && Array.isArray(activeItem.images) && idx < activeItem.images.length) {
+      currentImageData = activeItem.images[idx];
+      console.log("Current image data:", {
+        imageId: currentImageData.id,
+        likes: currentImageData._count?.tarpImgLikes || currentImageData.likes || 0,
+        hasLiked: currentImageData.hasLiked,
+        comments: currentImageData._count?.tarpImgComments || currentImageData.comments || 0
+      });
+    }
+    
+    // Use image-specific data if available, otherwise fall back to item-level data
+    const likedVal = currentImageData?.hasLiked ?? extractLiked(activeItem);
+    const likeCountVal = currentImageData?._count?.tarpImgLikes ?? currentImageData?.likes ?? extractLikeCount(activeItem);
+    const commentCountVal = currentImageData?._count?.tarpImgComments ?? currentImageData?.comments ?? 
+      (Array.isArray(activeItem.comments) ? activeItem.comments.length : 0);
+    
+    console.log("Setting like state:", {
+      liked: !!likedVal,
+      likeCount: typeof likeCountVal === "number" ? likeCountVal : 0,
+      commentCount: typeof commentCountVal === "number" ? commentCountVal : 0
+    });
+    
     setLiked(!!likedVal);
     setLikeCount(typeof likeCountVal === "number" ? likeCountVal : 0);
     setCommentCount(typeof commentCountVal === "number" ? commentCountVal : 0);
@@ -463,9 +642,45 @@ export default function PostPreviewScreen() {
   const toggleLike = async (action: "like" | "unlike") => {
     const activeItem = getCurrentPostItem();
     const imageID = getCurrentImageId();
-    if (!imageID) return;
+    
+    console.log("toggleLike debug:", {
+      action,
+      imageID,
+      activeItem: activeItem?.id,
+      currentImageIndex,
+      currentImageIds: currentImageIds.length,
+      hasActiveItem: !!activeItem,
+      currentLikedState: liked,
+      currentLikeCount: likeCount,
+      extractedLiked: extractLiked(activeItem),
+      extractedLikeCount: extractLikeCount(activeItem)
+    });
+    
+    if (!imageID) {
+      console.error("No imageID found for like action");
+      toast.error("Unable to find image to like");
+      return;
+    }
+    
     try {
-      await api.post(UrlConstants.tarpLikePost, { imageID, action });
+      console.log("Making like API call:", { imageID, action });
+      
+      // Server expects action values wrapped in single quotes
+      const serverAction = action === "like" ? "'like'" : "'unlike'";
+      
+      const payload = {
+        imageID: imageID,
+        action: serverAction
+      };
+      
+      console.log("Request payload with quoted action:", JSON.stringify(payload));
+      console.log("Request URL:", UrlConstants.tarpLikePost);
+      console.log("Current auth token exists:", !!(await getAccessToken()));
+      
+      const response = await api.post(UrlConstants.tarpLikePost, payload);
+      
+      console.log("Like API success:", response.data);
+      
       if (action === "like") {
         setLiked(true);
         setLikeCount((c) => c + 1);
@@ -474,8 +689,18 @@ export default function PostPreviewScreen() {
         setLikeCount((c) => (c > 0 ? c - 1 : 0));
       }
       toast.success(action === "like" ? "Liked" : "Unliked");
-    } catch {
-      toast.error("Failed to update like");
+    } catch (error: any) {
+      console.error("Like API error:", error);
+      console.error("Error response:", error.response?.data);
+      console.error("Error status:", error.response?.status);
+      
+      if (error.response?.status === 401) {
+        toast.error("Authentication error. Please log in again.");
+      } else if (error.response?.status === 403) {
+        toast.error("You don't have permission to like this post.");
+      } else {
+        toast.error(`Failed to ${action} post`);
+      }
     }
   };
   const toggleFriend = async (action: "friend" | "unfriend") => {
