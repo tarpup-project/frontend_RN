@@ -96,6 +96,9 @@ class UrlConstants {
   static tarpToggleFollow = `/tarps/user/follow`;
   static tarpNotifications = `/tarps/profile/notification`;
   static tarpStatsPosts = `/tarps/stats/posts`;
+  static tarpUserFollowers = `/tarps/user/followers`;
+  static tarpFriendsPrivacy = `/tarps/people/friends/privacy`;
+  static groupsFriends = (query?: string) => `/groups/friends${query ? `?query=${query}` : ''}`;
 
   static groupsRoute = `${this.baseUrl}/groups`;
 

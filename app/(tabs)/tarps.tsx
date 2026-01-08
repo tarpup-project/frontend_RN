@@ -1623,7 +1623,7 @@ console.log(
             ]}
           >
             <View style={styles.handAnimationContent}>
-              <Text style={styles.handEmoji}>👆</Text>
+              <Text style={styles.handEmoji}>👇</Text>
               <Text style={[styles.handAnimationText, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
                 Rotate the globe to view posts in other continents
               </Text>

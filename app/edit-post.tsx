@@ -46,6 +46,7 @@ export default function EditPostScreen() {
   const [loadingPostSuggest, setLoadingPostSuggest] = useState(false);
   const [extractingGPS, setExtractingGPS] = useState(false);
   const [locationFromCurrent, setLocationFromCurrent] = useState(false);
+  const [locationSelected, setLocationSelected] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<{
     latitude: number;
     longitude: number;
@@ -196,7 +197,7 @@ export default function EditPostScreen() {
 
   // Location suggestions logic
   useEffect(() => {
-    if (locationFromCurrent) {
+    if (locationFromCurrent || locationSelected) {
       setPostLocSuggestions([]);
       setShowPostLocDropdown(false);
       return;
@@ -225,7 +226,7 @@ export default function EditPostScreen() {
       }
     }, 300);
     return () => clearTimeout(t);
-  }, [placeName, locationFromCurrent]);
+  }, [placeName, locationFromCurrent, locationSelected]);
 
   const useCurrentLocation = async () => {
     if (!currentLocation) {
@@ -265,6 +266,9 @@ export default function EditPostScreen() {
         if (locationString) {
           setPlaceName(locationString);
           setLocationFromCurrent(true);
+          setLocationSelected(true);
+          setShowPostLocDropdown(false);
+          setPostLocSuggestions([]);
           toast.success("Location updated to your current location");
         } else {
           toast.error("Could not determine current location");
@@ -421,6 +425,9 @@ export default function EditPostScreen() {
                     if (locationFromCurrent && text !== placeName) {
                       setLocationFromCurrent(false);
                     }
+                    if (locationSelected) {
+                      setLocationSelected(false);
+                    }
                   }}
                   onFocus={() => {
                     setTimeout(() => {
@@ -475,7 +482,9 @@ export default function EditPostScreen() {
                         onPress={() => {
                           setPlaceName(option);
                           setLocationFromCurrent(false);
+                          setLocationSelected(true);
                           setShowPostLocDropdown(false);
+                          setPostLocSuggestions([]);
                         }}
                       >
                         <Text style={{ color: isDark ? "#FFF" : "#000", fontSize: 13 }}>{option}</Text>

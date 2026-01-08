@@ -9,18 +9,19 @@ import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { router } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import moment from "moment";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
-  Image,
-  Modal,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  Share,
-  StyleSheet,
-  View,
+    Alert,
+    Image,
+    Modal,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    Share,
+    StyleSheet,
+    View,
 } from "react-native";
 import { toast } from "sonner-native";
 
@@ -67,6 +68,7 @@ const Profile = () => {
   const [copyLoading, setCopyLoading] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
   const [universityName, setUniversityName] = useState('');
+  const [showProfileCompletion, setShowProfileCompletion] = useState(false);
 
   // University name resolution logic following the documented pattern
   useEffect(() => {
@@ -84,6 +86,35 @@ const Profile = () => {
       setUniversityName('Grambling State University'); // Fallback if not found
     }
   }, [user?.universityID, universities]);
+
+  // Check profile completion status
+  useEffect(() => {
+    const checkProfileCompletion = async () => {
+      if (!user) return;
+
+      try {
+        // Check if phone number exists in user data or SecureStore
+        const hasPhoneInProfile = !!(user.phoneNumber && user.phoneNumber.trim());
+        const storedPhone = await SecureStore.getItemAsync('user_phone_number');
+        const hasStoredPhone = !!(storedPhone && storedPhone.trim());
+
+        // Show completion prompt if no phone number is found
+        setShowProfileCompletion(!hasPhoneInProfile && !hasStoredPhone);
+        
+        console.log('Profile completion check:', {
+          hasPhoneInProfile,
+          hasStoredPhone,
+          showCompletion: !hasPhoneInProfile && !hasStoredPhone
+        });
+      } catch (error) {
+        console.error('Error checking profile completion:', error);
+        // Default to showing completion if we can't check
+        setShowProfileCompletion(!user.phoneNumber);
+      }
+    };
+
+    checkProfileCompletion();
+  }, [user]);
 
   const dynamicStyles = {
     container: {
@@ -354,7 +385,7 @@ const Profile = () => {
             </Pressable>
             <Pressable
               style={[styles.connectionsButton, { backgroundColor: "#000000" }]}
-              onPress={() => router.push("/edit-profile")}
+              onPress={() => router.push("/connections")}
             >
               <Ionicons name="people" size={16} color="#FFFFFF" />
               <Text style={[styles.connectionsButtonText, { color: "#FFFFFF" }]}>
@@ -363,6 +394,33 @@ const Profile = () => {
             </Pressable>
           </View>
         </View>
+
+        {/* Profile Completion Banner */}
+        {showProfileCompletion && (
+          <View style={[styles.completionBanner, dynamicStyles.card]}>
+            <View style={styles.completionContent}>
+              <View style={styles.completionLeft}>
+                <View style={[styles.completionIcon, { backgroundColor: "#FF9500" }]}>
+                  <Ionicons name="person-outline" size={16} color="#FFFFFF" />
+                </View>
+                <View style={styles.completionText}>
+                  <Text style={[styles.completionTitle, dynamicStyles.text]}>
+                    Profile 80% Complete
+                  </Text>
+                  <Text style={[styles.completionSubtitle, dynamicStyles.subtitle]}>
+                    Add your phone number to complete your profile
+                  </Text>
+                </View>
+              </View>
+              <Pressable
+                style={styles.completionButton}
+                onPress={() => router.push("/edit-profile")}
+              >
+                <Text style={styles.completionButtonText}>Complete</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
 
         {/* Enhanced Referrals Section */}
         <ReferralCard showStats={true} compact={false} />
@@ -909,6 +967,53 @@ const styles = StyleSheet.create({
   },
   footerVersion: {
     fontSize: 11,
+  },
+  completionBanner: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 24,
+  },
+  completionContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  completionLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    gap: 12,
+  },
+  completionIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  completionText: {
+    flex: 1,
+  },
+  completionTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    marginBottom: 2,
+  },
+  completionSubtitle: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  completionButton: {
+    backgroundColor: "#FF9500",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  completionButtonText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "600",
   },
 });
 

@@ -7,13 +7,13 @@ import { StatusBar } from "expo-status-bar";
 import moment from "moment";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View
+    ActivityIndicator,
+    Modal,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View
 } from "react-native";
 import { toast } from "sonner-native";
 
@@ -28,9 +28,8 @@ export default function MyTarpsScreen() {
     likes: number;
     comments: number;
   } | null>(null);
-  const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [userPosts, setUserPosts] = useState<any[]>([]);
-  const [isLoadingPosts, setIsLoadingPosts] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [postToDelete, setPostToDelete] = useState<any | null>(null);
   const [isDeletingPost, setIsDeletingPost] = useState(false);
@@ -42,33 +41,40 @@ export default function MyTarpsScreen() {
 
   // Function to fetch profile stats
   const fetchProfileStats = async () => {
-    if (isLoadingStats) return;
-    
     try {
-      setIsLoadingStats(true);
       const response = await api.get('/tarps/stats');
       setProfileStats(response.data.data);
     } catch (error) {
       console.error('Error fetching profile stats:', error);
       toast.error('Failed to load profile stats');
-    } finally {
-      setIsLoadingStats(false);
     }
   };
 
   // Function to fetch user posts
   const fetchUserPosts = async () => {
-    if (isLoadingPosts) return;
-    
     try {
-      setIsLoadingPosts(true);
       const response = await api.get('/tarps/stats/posts');
       setUserPosts(response.data.data || []);
     } catch (error) {
       console.error('Error fetching user posts:', error);
       toast.error('Failed to load posts');
+    }
+  };
+
+  // Combined function to load all data
+  const loadAllData = async () => {
+    if (isLoading) return;
+    
+    try {
+      setIsLoading(true);
+      await Promise.all([
+        fetchProfileStats(),
+        fetchUserPosts()
+      ]);
+    } catch (error) {
+      console.error('Error loading data:', error);
     } finally {
-      setIsLoadingPosts(false);
+      setIsLoading(false);
     }
   };
 
@@ -102,8 +108,7 @@ export default function MyTarpsScreen() {
 
   // Load data on mount
   useEffect(() => {
-    fetchProfileStats();
-    fetchUserPosts();
+    loadAllData();
   }, []);
 
   const formatLocation = (location: string) => {
@@ -154,155 +159,156 @@ export default function MyTarpsScreen() {
       </View>
       
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Stats Cards */}
-        {isLoadingStats ? (
+        {/* Loading State */}
+        {isLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="small" color={isDark ? "#FFFFFF" : "#0a0a0a"} />
-          </View>
-        ) : profileStats ? (
-          <View style={styles.statsContainer}>
-            <View style={[styles.statCard, { backgroundColor: isDark ? "#2C2C2E" : "#F2F2F7" }]}>
-              <Text style={[styles.statNumber, dynamicStyles.text]}>{profileStats.posts}</Text>
-              <Text style={[styles.statLabel, dynamicStyles.subtitle]}>Posts</Text>
-            </View>
-            <View style={[styles.statCard, { backgroundColor: isDark ? "#1C3A5E" : "#E3F2FD" }]}>
-              <Text style={[styles.statNumber, { color: "#007AFF" }]}>{profileStats.photos}</Text>
-              <Text style={[styles.statLabel, dynamicStyles.subtitle]}>Photos</Text>
-            </View>
-            <View style={[styles.statCard, { backgroundColor: isDark ? "#5E1C1C" : "#FFEBEE" }]}>
-              <Text style={[styles.statNumber, { color: "#FF3B30" }]}>{profileStats.likes}</Text>
-              <Text style={[styles.statLabel, dynamicStyles.subtitle]}>Likes</Text>
-            </View>
-            <View style={[styles.statCard, { backgroundColor: isDark ? "#1C5E3A" : "#E8F5E8" }]}>
-              <Text style={[styles.statNumber, { color: "#34C759" }]}>{profileStats.comments}</Text>
-              <Text style={[styles.statLabel, dynamicStyles.subtitle]}>Comments</Text>
-            </View>
           </View>
         ) : (
-          <Text style={[styles.errorText, dynamicStyles.subtitle]}>Failed to load stats</Text>
-        )}
-
-        {/* Posts List */}
-        {isLoadingPosts ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color={isDark ? "#FFFFFF" : "#0a0a0a"} />
-          </View>
-        ) : userPosts.length > 0 ? (
-          <View style={styles.postsContainer}>
-            {userPosts.map((post, index) => (
-              <View key={post.id || index} style={[styles.postCard, dynamicStyles.card]}>
-                <View style={styles.postContent}>
-                  {/* Post Image */}
-                  {post.images && post.images.length > 0 && (
-                    <View style={styles.postImageContainer}>
-                      <ExpoImage
-                        source={{ uri: post.images[0].url || post.images[0] }}
-                        style={styles.postMainImage}
-                        contentFit="cover"
-                      />
-                      {post.images.length > 1 && (
-                        <View style={styles.imageCountBadge}>
-                          <Ionicons name="images" size={12} color="#FFFFFF" />
-                          <Text style={styles.imageCountText}>{post.images.length}</Text>
-                        </View>
-                      )}
-                    </View>
-                  )}
-                  
-                  {/* Post Details */}
-                  <View style={styles.postInfo}>
-                    <View style={styles.postHeader}>
-                      <Ionicons name="location" size={16} color={dynamicStyles.subtitle.color} />
-                      <Text style={[styles.postLocation, dynamicStyles.text]}>
-                        {post.location || formatLocation(post.address) || "Unknown location"}
-                      </Text>
-                      <Pressable
-                        style={styles.moreButton}
-                        onPress={(event) => {
-                          const { pageX, pageY } = event.nativeEvent;
-                          setDropdownPosition({ x: pageX - 150, y: pageY + 10 });
-                          setShowDropdownMenu(showDropdownMenu === post.id ? null : post.id);
-                        }}
-                      >
-                        <Ionicons name="ellipsis-vertical" size={16} color={dynamicStyles.subtitle.color} />
-                      </Pressable>
-                      
-                      {/* Dropdown Menu - removed from here, now using Modal */}
-                    </View>
-                    
-                    <View style={styles.postMeta}>
-                      <Ionicons name="calendar-outline" size={12} color={dynamicStyles.subtitle.color} />
-                      <Text style={[styles.postDate, dynamicStyles.subtitle]}>
-                        {moment(post.createdAt || post.created_at).format('MMM D, YYYY [at] h:mm A')}
-                      </Text>
-                      <Text style={[styles.postTimeAgo, dynamicStyles.subtitle]}>
-                        {moment(post.createdAt || post.created_at).fromNow()}
-                      </Text>
-                    </View>
-                    
-                    {post.caption && (
-                      <Text style={[styles.postCaption, dynamicStyles.text]} numberOfLines={2}>
-                        {post.caption}
-                      </Text>
-                    )}
-                    
-                    <View style={styles.postStats}>
-                      <Text style={[styles.postStatsText, dynamicStyles.subtitle]}>
-                        {post.tarpImgLikes || 0} likes
-                      </Text>
-                      <Text style={[styles.postStatsText, dynamicStyles.subtitle]}>
-                        {post.tarpImgComments || 0} comments
-                      </Text>
-                    </View>
-                  </View>
+          <>
+            {/* Stats Cards */}
+            {profileStats ? (
+              <View style={styles.statsContainer}>
+                <View style={[styles.statCard, { backgroundColor: isDark ? "#2C2C2E" : "#F2F2F7" }]}>
+                  <Text style={[styles.statNumber, dynamicStyles.text]}>{profileStats.posts}</Text>
+                  <Text style={[styles.statLabel, dynamicStyles.subtitle]}>Posts</Text>
                 </View>
-                
-                {/* Action Buttons - Full Width at Bottom */}
-                <View style={styles.actionButtons}>
-                  <Pressable 
-                    style={[styles.actionButton, isDark ? styles.viewButtonDark : styles.viewButton]}
-                    onPress={() => {
-                      setPostToPreview(post);
-                      setCurrentImageIndex(0);
-                      setShowPostPreview(true);
-                    }}
-                  >
-                    <Ionicons name="eye" size={16} color={isDark ? "#FFFFFF" : "#007AFF"} />
-                    <Text style={isDark ? styles.viewButtonTextDark : styles.viewButtonText}>View</Text>
-                  </Pressable>
-                  
-                  <Pressable 
-                    style={[styles.actionButton, isDark ? styles.editButtonDark : styles.editButton]}
-                    onPress={() => {
-                      // Navigate to edit post
-                      nav.push(`/edit-post?postId=${post.id}`);
-                    }}
-                  >
-                    <Ionicons name="create-outline" size={16} color={isDark ? "#FFFFFF" : "#8E8E93"} />
-                    <Text style={isDark ? styles.editButtonTextDark : styles.editButtonText}>Edit</Text>
-                  </Pressable>
-                  
-                  <Pressable 
-                    style={styles.deleteIconButton}
-                    onPress={() => {
-                      setPostToDelete(post);
-                      setShowDeleteModal(true);
-                    }}
-                  >
-                    <Ionicons name="trash-outline" size={16} color="#FF3B30" />
-                  </Pressable>
+                <View style={[styles.statCard, { backgroundColor: isDark ? "#1C3A5E" : "#E3F2FD" }]}>
+                  <Text style={[styles.statNumber, { color: "#007AFF" }]}>{profileStats.photos}</Text>
+                  <Text style={[styles.statLabel, dynamicStyles.subtitle]}>Photos</Text>
+                </View>
+                <View style={[styles.statCard, { backgroundColor: isDark ? "#5E1C1C" : "#FFEBEE" }]}>
+                  <Text style={[styles.statNumber, { color: "#FF3B30" }]}>{profileStats.likes}</Text>
+                  <Text style={[styles.statLabel, dynamicStyles.subtitle]}>Likes</Text>
+                </View>
+                <View style={[styles.statCard, { backgroundColor: isDark ? "#1C5E3A" : "#E8F5E8" }]}>
+                  <Text style={[styles.statNumber, { color: "#34C759" }]}>{profileStats.comments}</Text>
+                  <Text style={[styles.statLabel, dynamicStyles.subtitle]}>Comments</Text>
                 </View>
               </View>
-            ))}
-          </View>
-        ) : (
-          <View style={styles.emptyState}>
-            <Ionicons name="camera-outline" size={48} color={dynamicStyles.subtitle.color} />
-            <Text style={[styles.emptyText, dynamicStyles.text]}>No posts yet</Text>
-            <Text style={[styles.emptySubtext, dynamicStyles.subtitle]}>
-              Share your first photo to get started
-            </Text>
-          </View>
+            ) : (
+              <Text style={[styles.errorText, dynamicStyles.subtitle]}>Failed to load stats</Text>
+            )}
+
+            {/* Posts List */}
+            {userPosts.length > 0 ? (
+              <View style={styles.postsContainer}>
+                {userPosts.map((post, index) => (
+                  <View key={post.id || index} style={[styles.postCard, dynamicStyles.card]}>
+                    <View style={styles.postContent}>
+                      {/* Post Image */}
+                      {post.images && post.images.length > 0 && (
+                        <View style={styles.postImageContainer}>
+                          <ExpoImage
+                            source={{ uri: post.images[0].url || post.images[0] }}
+                            style={styles.postMainImage}
+                            contentFit="cover"
+                          />
+                          {post.images.length > 1 && (
+                            <View style={styles.imageCountBadge}>
+                              <Ionicons name="images" size={12} color="#FFFFFF" />
+                              <Text style={styles.imageCountText}>{post.images.length}</Text>
+                            </View>
+                          )}
+                        </View>
+                      )}
+                      
+                      {/* Post Details */}
+                      <View style={styles.postInfo}>
+                        <View style={styles.postHeader}>
+                          <Ionicons name="location" size={16} color={dynamicStyles.subtitle.color} />
+                          <Text style={[styles.postLocation, dynamicStyles.text]}>
+                            {post.location || formatLocation(post.address) || "Unknown location"}
+                          </Text>
+                          <Pressable
+                            style={styles.moreButton}
+                            onPress={(event) => {
+                              const { pageX, pageY } = event.nativeEvent;
+                              setDropdownPosition({ x: pageX - 150, y: pageY + 10 });
+                              setShowDropdownMenu(showDropdownMenu === post.id ? null : post.id);
+                            }}
+                          >
+                            <Ionicons name="ellipsis-vertical" size={16} color={dynamicStyles.subtitle.color} />
+                          </Pressable>
+                          
+                          {/* Dropdown Menu - removed from here, now using Modal */}
+                        </View>
+                        
+                        <View style={styles.postMeta}>
+                          <Ionicons name="calendar-outline" size={12} color={dynamicStyles.subtitle.color} />
+                          <Text style={[styles.postDate, dynamicStyles.subtitle]}>
+                            {moment(post.createdAt || post.created_at).format('MMM D, YYYY [at] h:mm A')}
+                          </Text>
+                          <Text style={[styles.postTimeAgo, dynamicStyles.subtitle]}>
+                            {moment(post.createdAt || post.created_at).fromNow()}
+                          </Text>
+                        </View>
+                        
+                        {post.caption && (
+                          <Text style={[styles.postCaption, dynamicStyles.text]} numberOfLines={2}>
+                            {post.caption}
+                          </Text>
+                        )}
+                        
+                        <View style={styles.postStats}>
+                          <Text style={[styles.postStatsText, dynamicStyles.subtitle]}>
+                            {post.tarpImgLikes || 0} likes
+                          </Text>
+                          <Text style={[styles.postStatsText, dynamicStyles.subtitle]}>
+                            {post.tarpImgComments || 0} comments
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                    
+                    {/* Action Buttons - Full Width at Bottom */}
+                    <View style={styles.actionButtons}>
+                      <Pressable 
+                        style={[styles.actionButton, isDark ? styles.viewButtonDark : styles.viewButton]}
+                        onPress={() => {
+                          setPostToPreview(post);
+                          setCurrentImageIndex(0);
+                          setShowPostPreview(true);
+                        }}
+                      >
+                        <Ionicons name="eye" size={16} color={isDark ? "#FFFFFF" : "#007AFF"} />
+                        <Text style={isDark ? styles.viewButtonTextDark : styles.viewButtonText}>View</Text>
+                      </Pressable>
+                      
+                      <Pressable 
+                        style={[styles.actionButton, isDark ? styles.editButtonDark : styles.editButton]}
+                        onPress={() => {
+                          // Navigate to edit post
+                          nav.push(`/edit-post?postId=${post.id}`);
+                        }}
+                      >
+                        <Ionicons name="create-outline" size={16} color={isDark ? "#FFFFFF" : "#8E8E93"} />
+                        <Text style={isDark ? styles.editButtonTextDark : styles.editButtonText}>Edit</Text>
+                      </Pressable>
+                      
+                      <Pressable 
+                        style={styles.deleteIconButton}
+                        onPress={() => {
+                          setPostToDelete(post);
+                          setShowDeleteModal(true);
+                        }}
+                      >
+                        <Ionicons name="trash-outline" size={16} color="#FF3B30" />
+                      </Pressable>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View style={styles.emptyState}>
+                <Ionicons name="camera-outline" size={48} color={dynamicStyles.subtitle.color} />
+                <Text style={[styles.emptyText, dynamicStyles.text]}>No posts yet</Text>
+                <Text style={[styles.emptySubtext, dynamicStyles.subtitle]}>
+                  Share your first photo to get started
+                </Text>
+              </View>
+            )}
+          </>
         )}
       </ScrollView>
 
