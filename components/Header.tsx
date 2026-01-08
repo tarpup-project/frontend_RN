@@ -64,6 +64,7 @@ const NotificationItem = ({ notification, isDark, onFriendRequest, isLocallyRead
         return 'heart';
       case 'follower':
       case 'new_follower':
+      case 'new_following':
         return 'person-add-outline';
       case 'like':
       case 'new_like':
@@ -85,6 +86,7 @@ const NotificationItem = ({ notification, isDark, onFriendRequest, isLocallyRead
         return 'New Match Found!';
       case 'new_follower':
       case 'follower':
+      case 'new_following':
         return 'New Follower';
       case 'new_like':
       case 'like':

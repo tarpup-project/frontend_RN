@@ -10,13 +10,13 @@ import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
-  Alert,
-  Image,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
+    Alert,
+    Image,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    View,
 } from "react-native";
 import { toast } from "sonner-native";
 
@@ -26,6 +26,7 @@ interface FormData {
   major: string;
   year: string;
   phoneNumber: string;
+  countryCode: string;
   interests: string[];
   prefs: { category: string; isPref: boolean }[];
 }
@@ -37,6 +38,7 @@ const EditProfile = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [showYearDropdown, setShowYearDropdown] = useState(false);
+  const [showCountryCodeDropdown, setShowCountryCodeDropdown] = useState(false);
   const [newInterest, setNewInterest] = useState("");
   const interestInputRef = useRef<TextInput>(null);
 
@@ -46,6 +48,7 @@ const EditProfile = () => {
     major: "",
     year: "Select year",
     phoneNumber: "",
+    countryCode: "+1",
     interests: [],
     prefs: [],
   });
@@ -88,6 +91,81 @@ const EditProfile = () => {
 
   const yearOptions = ["Freshman", "Sophomore", "Junior", "Senior", "Graduate"];
 
+  const countryCodes = [
+    { code: "+1", country: "US", flag: "🇺🇸" },
+    { code: "+1", country: "CA", flag: "🇨🇦" },
+    { code: "+44", country: "GB", flag: "🇬🇧" },
+    { code: "+33", country: "FR", flag: "🇫🇷" },
+    { code: "+49", country: "DE", flag: "🇩🇪" },
+    { code: "+39", country: "IT", flag: "🇮🇹" },
+    { code: "+34", country: "ES", flag: "🇪🇸" },
+    { code: "+31", country: "NL", flag: "🇳🇱" },
+    { code: "+46", country: "SE", flag: "🇸🇪" },
+    { code: "+47", country: "NO", flag: "🇳🇴" },
+    { code: "+45", country: "DK", flag: "🇩🇰" },
+    { code: "+358", country: "FI", flag: "🇫🇮" },
+    { code: "+41", country: "CH", flag: "🇨🇭" },
+    { code: "+43", country: "AT", flag: "🇦🇹" },
+    { code: "+32", country: "BE", flag: "🇧🇪" },
+    { code: "+351", country: "PT", flag: "🇵🇹" },
+    { code: "+353", country: "IE", flag: "🇮🇪" },
+    { code: "+30", country: "GR", flag: "🇬🇷" },
+    { code: "+48", country: "PL", flag: "🇵🇱" },
+    { code: "+420", country: "CZ", flag: "🇨🇿" },
+    { code: "+36", country: "HU", flag: "🇭🇺" },
+    { code: "+40", country: "RO", flag: "🇷🇴" },
+    { code: "+359", country: "BG", flag: "🇧🇬" },
+    { code: "+385", country: "HR", flag: "🇭🇷" },
+    { code: "+386", country: "SI", flag: "🇸🇮" },
+    { code: "+421", country: "SK", flag: "🇸🇰" },
+    { code: "+372", country: "EE", flag: "🇪🇪" },
+    { code: "+371", country: "LV", flag: "🇱🇻" },
+    { code: "+370", country: "LT", flag: "🇱🇹" },
+    { code: "+7", country: "RU", flag: "🇷🇺" },
+    { code: "+380", country: "UA", flag: "🇺🇦" },
+    { code: "+375", country: "BY", flag: "🇧🇾" },
+    { code: "+373", country: "MD", flag: "🇲🇩" },
+    { code: "+81", country: "JP", flag: "🇯🇵" },
+    { code: "+82", country: "KR", flag: "🇰🇷" },
+    { code: "+86", country: "CN", flag: "🇨🇳" },
+    { code: "+91", country: "IN", flag: "🇮🇳" },
+    { code: "+92", country: "PK", flag: "🇵🇰" },
+    { code: "+880", country: "BD", flag: "🇧🇩" },
+    { code: "+94", country: "LK", flag: "🇱🇰" },
+    { code: "+977", country: "NP", flag: "🇳🇵" },
+    { code: "+95", country: "MM", flag: "🇲🇲" },
+    { code: "+66", country: "TH", flag: "🇹🇭" },
+    { code: "+84", country: "VN", flag: "🇻🇳" },
+    { code: "+60", country: "MY", flag: "🇲🇾" },
+    { code: "+65", country: "SG", flag: "🇸🇬" },
+    { code: "+62", country: "ID", flag: "🇮🇩" },
+    { code: "+63", country: "PH", flag: "🇵🇭" },
+    { code: "+61", country: "AU", flag: "🇦🇺" },
+    { code: "+64", country: "NZ", flag: "🇳🇿" },
+    { code: "+234", country: "NG", flag: "🇳🇬" },
+    { code: "+27", country: "ZA", flag: "🇿🇦" },
+    { code: "+254", country: "KE", flag: "🇰🇪" },
+    { code: "+233", country: "GH", flag: "🇬🇭" },
+    { code: "+256", country: "UG", flag: "🇺🇬" },
+    { code: "+255", country: "TZ", flag: "🇹🇿" },
+    { code: "+20", country: "EG", flag: "🇪🇬" },
+    { code: "+212", country: "MA", flag: "🇲🇦" },
+    { code: "+213", country: "DZ", flag: "🇩🇿" },
+    { code: "+216", country: "TN", flag: "🇹🇳" },
+    { code: "+218", country: "LY", flag: "🇱🇾" },
+    { code: "+52", country: "MX", flag: "🇲🇽" },
+    { code: "+55", country: "BR", flag: "🇧🇷" },
+    { code: "+54", country: "AR", flag: "🇦🇷" },
+    { code: "+56", country: "CL", flag: "🇨🇱" },
+    { code: "+57", country: "CO", flag: "🇨🇴" },
+    { code: "+51", country: "PE", flag: "🇵🇪" },
+    { code: "+58", country: "VE", flag: "🇻🇪" },
+    { code: "+593", country: "EC", flag: "🇪🇨" },
+    { code: "+591", country: "BO", flag: "🇧🇴" },
+    { code: "+595", country: "PY", flag: "🇵🇾" },
+    { code: "+598", country: "UY", flag: "🇺🇾" },
+  ];
+
   const suggestedInterests = [
     "Music",
     "Sports",
@@ -118,6 +196,7 @@ const EditProfile = () => {
         major: user.major || "",
         year: user.year || "Select year",
         phoneNumber: user.phoneNumber || "",
+        countryCode: user.countryCode || "+1",
         interests: user.interests || [],
         prefs: user.prefs || [],
       });
@@ -213,6 +292,9 @@ const EditProfile = () => {
       if (formData.phoneNumber) {
         uploadFormData.append("phoneNumber", formData.phoneNumber);
       }
+      if (formData.countryCode) {
+        uploadFormData.append("countryCode", formData.countryCode);
+      }
       if (formData.bio) {
         uploadFormData.append("bio", formData.bio);
       }
@@ -261,6 +343,16 @@ const EditProfile = () => {
 
       setUser(response.data.data);
       console.log(response.data.data);
+
+      // Store phone number in SecureStore if it was added/updated
+      if (formData.phoneNumber && formData.phoneNumber.trim()) {
+        try {
+          await SecureStore.setItemAsync('user_phone_number', formData.phoneNumber);
+          console.log('Phone number stored in SecureStore');
+        } catch (error) {
+          console.error('Error storing phone number in SecureStore:', error);
+        }
+      }
 
       toast.success("Profile updated successfully!");
       router.back();
@@ -363,19 +455,70 @@ const EditProfile = () => {
 
           <View style={styles.inputGroup}>
             <Text style={[styles.label, dynamicStyles.text]}>Phone Number</Text>
-            <TextInput
-              style={[styles.input, dynamicStyles.input]}
-              value={formData.phoneNumber}
-              onChangeText={(value) => {
-                // Remove non-numeric characters
-                const numericValue = value.replace(/\D/g, "");
-                updateFormData("phoneNumber", numericValue);
-              }}
-              placeholder="Enter your phone number"
-              placeholderTextColor={dynamicStyles.subtitle.color}
-              keyboardType="phone-pad"
-              maxLength={15}
-            />
+            <View style={styles.phoneInputContainer}>
+              <Pressable
+                style={[
+                  styles.countryCodeSelector,
+                  dynamicStyles.input,
+                ]}
+                onPress={() => setShowCountryCodeDropdown(!showCountryCodeDropdown)}
+              >
+                <Text style={[styles.countryCodeText, dynamicStyles.text]}>
+                  {countryCodes.find(c => c.code === formData.countryCode)?.flag || "🇺🇸"} {formData.countryCode}
+                </Text>
+                <Ionicons
+                  name={showCountryCodeDropdown ? "chevron-up" : "chevron-down"}
+                  size={16}
+                  color={dynamicStyles.subtitle.color}
+                />
+              </Pressable>
+              
+              <TextInput
+                style={[styles.phoneInput, dynamicStyles.input]}
+                value={formData.phoneNumber}
+                onChangeText={(value) => {
+                  // Remove non-numeric characters
+                  const numericValue = value.replace(/\D/g, "");
+                  updateFormData("phoneNumber", numericValue);
+                }}
+                placeholder="Enter your phone number"
+                placeholderTextColor={dynamicStyles.subtitle.color}
+                keyboardType="phone-pad"
+                maxLength={15}
+              />
+            </View>
+            
+            {showCountryCodeDropdown && (
+              <View style={[styles.countryCodeDropdown, dynamicStyles.card]}>
+                <ScrollView style={styles.countryCodeScrollView} nestedScrollEnabled>
+                  {countryCodes.map((country, index) => (
+                    <Pressable
+                      key={`${country.code}-${country.country}-${index}`}
+                      style={[
+                        styles.countryCodeItem,
+                        index !== countryCodes.length - 1 && styles.countryCodeItemBorder,
+                        { borderBottomColor: dynamicStyles.card.borderColor },
+                      ]}
+                      onPress={() => {
+                        updateFormData("countryCode", country.code);
+                        setShowCountryCodeDropdown(false);
+                      }}
+                    >
+                      <Text style={[styles.countryCodeItemText, dynamicStyles.text]}>
+                        {country.flag} {country.code} ({country.country})
+                      </Text>
+                      {formData.countryCode === country.code && (
+                        <Ionicons
+                          name="checkmark"
+                          size={16}
+                          color="#00D084"
+                        />
+                      )}
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
           </View>
 
           <View style={styles.inputGroup}>
@@ -848,6 +991,62 @@ const styles = StyleSheet.create({
   },
   dropdownText: {
     fontSize: 14,
+  },
+  phoneInputContainer: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  countryCodeSelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    minWidth: 100,
+  },
+  countryCodeText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  phoneInput: {
+    flex: 1,
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    fontSize: 14,
+  },
+  countryCodeDropdown: {
+    position: "absolute",
+    top: 80,
+    left: 0,
+    right: 0,
+    maxHeight: 200,
+    borderRadius: 8,
+    borderWidth: 1,
+    zIndex: 1000,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  countryCodeScrollView: {
+    maxHeight: 200,
+  },
+  countryCodeItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 12,
+  },
+  countryCodeItemBorder: {
+    borderBottomWidth: 1,
+  },
+  countryCodeItemText: {
+    fontSize: 14,
+    flex: 1,
   },
 });
 
