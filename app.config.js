@@ -14,7 +14,7 @@ export default {
       supportsTablet: true,
       backgroundColor: "#0a0a0a",
       bundleIdentifier: "com.Tarpup.app",
-      buildNumber: "49",
+      buildNumber: "50",
 
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
@@ -111,7 +111,7 @@ export default {
       }
     },
 
-    runtimeVersion: "1.0.0",
+    runtimeVersion: "1.0.1",
 
     owner: "expo_travor"
   }

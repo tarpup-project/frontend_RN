@@ -3,38 +3,50 @@ import { UrlConstants } from "@/constants/apiUrls";
 import { useAuthStore } from "@/state/authStore";
 import { useEffect, useState } from "react";
 
-interface PendingMatch {
+interface UserPendingMatchesInterface {
   id: string;
-  categoryID: string;
-  userID: string;
-  matchedUserID: string;
-  compatibility: number;
-  status: string;
+  requestID: string;
+  groupID?: string | null;
+  creatorID: string;
   createdAt: string;
-  updatedAt: string;
-  matchedUser?: {
+  request?: {
     id: string;
-    fname: string;
-    lname: string | null;
-    bgUrl: string | null;
+    title: string;
+    description: string;
+    owner: {
+      id: string;
+      fname: string;
+    };
+    createdAt: string;
   };
-  category?: {
+  group?: {
     id: string;
     name: string;
-    icon: string;
-    bgColor: string;
-    iconColor: string;
+    description: string;
+    creator: {
+      id: string;
+      fname: string;
+    };
+    createdAt: string;
   };
+  similarityScore: number; // Match compatibility percentage
+}
+
+interface SingleMatchInterface {
+  id: string;
+  group?: any; // FetchAllGroupsInterface
+  currState: "pending" | "rejected" | "accepted"; // Match status
+  requestID?: string;
 }
 
 interface PendingMatchesResponse {
   status: string;
-  data: PendingMatch[];
+  data: UserPendingMatchesInterface[];
 }
 
 export const usePendingMatches = () => {
   const { isAuthenticated, user } = useAuthStore();
-  const [pendingMatches, setPendingMatches] = useState<PendingMatch[]>([]);
+  const [pendingMatches, setPendingMatches] = useState<UserPendingMatchesInterface[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,20 +61,49 @@ export const usePendingMatches = () => {
       
       console.log("Pending Matches API Response:", JSON.stringify(response.data, null, 2));
       
-      if (response.data.status === "success") {
-        const matches = response.data.data || [];
-        console.log("Parsed pending matches:", JSON.stringify(matches, null, 2));
-        console.log("Number of pending matches:", matches.length);
-        setPendingMatches(matches);
+      // Handle different response structures
+      if (response.data && typeof response.data === 'object') {
+        if (response.data.status === "success") {
+          const matches = response.data.data || [];
+          
+          // Validate that matches is an array
+          if (!Array.isArray(matches)) {
+            console.warn("API returned non-array data:", matches);
+            console.log("Parsed pending matches: Invalid data type");
+            console.log("Number of pending matches: 0");
+            setPendingMatches([]);
+            return;
+          }
+          
+          console.log("Parsed pending matches:", JSON.stringify(matches, null, 2));
+          console.log("Number of pending matches:", matches.length);
+          setPendingMatches(matches);
+        } else {
+          console.log("API returned non-success status:", response.data.status);
+          setError("Failed to fetch pending matches");
+          setPendingMatches([]);
+        }
       } else {
-        console.log("API returned non-success status:", response.data.status);
-        setError("Failed to fetch pending matches");
+        // Handle case where response.data is not an object (like a string)
+        console.warn("API returned unexpected response format:", response.data);
+        console.log("Parsed pending matches: Invalid response format");
+        console.log("Number of pending matches: 0");
+        setError("Invalid response format from server");
+        setPendingMatches([]);
       }
     } catch (error: any) {
       console.error("Failed to fetch pending matches:", error);
       console.error("Error response:", JSON.stringify(error?.response?.data, null, 2));
-      setError(error?.response?.data?.message || "Failed to fetch pending matches");
-      setPendingMatches([]);
+      
+      // Check if it's a 404 error (endpoint doesn't exist)
+      if (error?.response?.status === 404) {
+        console.log("Pending matches endpoint not found, using empty data");
+        setError(null); // Don't show error for missing endpoint
+        setPendingMatches([]);
+      } else {
+        setError(error?.response?.data?.message || "Failed to fetch pending matches");
+        setPendingMatches([]);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -109,24 +150,24 @@ export const usePendingMatches = () => {
   }, [isAuthenticated, user]);
 
   return {
-    pendingMatches,
-    data: pendingMatches.map(match => ({
+    pendingMatches: Array.isArray(pendingMatches) ? pendingMatches : [],
+    data: Array.isArray(pendingMatches) ? pendingMatches.map(match => ({
       ...match,
       // Add compatibility properties for existing components
-      request: {
-        title: match.category?.name || 'Activity',
-        description: `Match with ${match.matchedUser?.fname || 'Someone'}`,
+      request: match.request || {
+        title: match.group?.name || 'Activity',
+        description: match.group?.description || `Match with compatibility`,
         owner: {
-          fname: match.matchedUser?.fname || 'Unknown',
-          lname: match.matchedUser?.lname || '',
+          fname: match.group?.creator?.fname || 'Unknown',
+          lname: '',
         }
       },
-      group: {
-        name: match.category?.name || 'Activity',
-        description: `${match.compatibility}% compatible match`
+      group: match.group || {
+        name: match.request?.title || 'Activity',
+        description: `${match.similarityScore}% compatible match`
       },
-      similarityScore: match.compatibility || 0,
-    })), // For compatibility with existing components
+      similarityScore: match.similarityScore || 0,
+    })) : [], // For compatibility with existing components
     isLoading,
     error,
     refetchPendingMatches: fetchPendingMatches,
@@ -135,30 +176,23 @@ export const usePendingMatches = () => {
   };
 };
 
-// Separate hook for match actions (for compatibility with existing components)
+// Match action hook for handling accept/decline actions
 export const useMatchAction = () => {
   const [isLoading, setIsLoading] = useState(false);
 
-  const mutateAsync = async (action: { matchId: string; action: string }) => {
+  const mutateAsync = async (action: { matchId: string; action: "private" | "public" | "decline" | "add" }) => {
     setIsLoading(true);
     try {
       console.log("Match action:", JSON.stringify(action, null, 2));
       
-      // Simulate API call - you can implement the actual endpoint here
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await api.post(UrlConstants.matchAction(action.matchId), {
+        action: action.action
+      });
       
-      console.log("Match action completed successfully");
+      console.log("Match action completed successfully:", response.data);
       
-      // Return a response structure that the component expects
-      return {
-        success: true,
-        data: {
-          group: {
-            id: `group_${action.matchId}_${Date.now()}`, // Generate a mock group ID
-          },
-          groupId: `group_${action.matchId}_${Date.now()}`,
-        }
-      };
+      // Return the response data
+      return response.data;
     } catch (error) {
       console.error("Match action failed:", error);
       throw error;
