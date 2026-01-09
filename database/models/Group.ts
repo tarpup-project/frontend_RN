@@ -47,6 +47,8 @@ export default class Group extends Model {
       'musical-notes': 'musical-notes-outline',
       'heart': 'heart-outline',
       'cart': 'cart-outline',
+      'games': 'game-controller-outline',
+      'gamepad': 'game-controller-outline',
     };
     
     return iconMap[this.categoryIcon || ''] || 'pricetag-outline';

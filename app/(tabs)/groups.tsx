@@ -15,11 +15,11 @@ import { useRouter } from "expo-router";
 import moment from "moment";
 import React, { useState } from "react";
 import {
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  View
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    View
 } from "react-native";
 
 const GroupSkeletonCard = ({ isDark }: { isDark: boolean }) => {
@@ -202,6 +202,31 @@ const Groups = () => {
     retryButtonText: {
       color: isDark ? "#0a0a0a" : "#FFFFFF",
     },
+  };
+
+  const getTextColorForBackground = (bgColor: string) => {
+    // Remove # if present
+    const color = bgColor.replace('#', '');
+    
+    // Convert to RGB
+    const r = parseInt(color.substring(0, 2), 16);
+    const g = parseInt(color.substring(2, 4), 16);
+    const b = parseInt(color.substring(4, 6), 16);
+    
+    // Calculate luminance
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    
+    // For light backgrounds, use a darker version of the same color
+    if (luminance > 0.7) {
+      // Create a darker version by reducing RGB values
+      const darkR = Math.max(0, r - 100);
+      const darkG = Math.max(0, g - 100);
+      const darkB = Math.max(0, b - 100);
+      return `rgb(${darkR}, ${darkG}, ${darkB})`;
+    }
+    
+    // For dark backgrounds, use white
+    return "#FFFFFF";
   };
 
   // Helper function to safely serialize objects with circular references
@@ -489,34 +514,62 @@ const Groups = () => {
           >
             <View style={styles.topRow}>
               <View style={styles.badgesRow}>
-                <View
-                  style={[
-                    styles.categoryBadge,
-                    { 
-                      backgroundColor: isDark ? "#FFFFFF" : "#000000",
-                      borderWidth: 1,
-                      borderColor: "rgba(0,0,0,0.1)"
-                    }
-                  ]}
-                >
-                  <Ionicons
-                    name="home-outline"
-                    size={10}
-                    color={isDark ? "#000000" : "#FFFFFF"}
-                  />
-                  <Text
-                    style={[
-                      styles.categoryText,
-                      { 
-                        color: isDark ? "#000000" : "#FFFFFF",
-                        fontWeight: "700",
-                        fontSize: 9,
-                      }
-                    ]}
-                  >
-                    {group.category ? (group.category.charAt(0).toUpperCase() + group.category.slice(1).toLowerCase()) : ""}
-                  </Text>
-                </View>
+                {(() => {
+                  const getCategoryConfig = (cat: string) => {
+                    const normalized = (cat || "").toLowerCase().trim();
+                    if (normalized === "study group") return { icon: "book-outline", color: "#0c6389ff" };
+                    if (normalized === "friends") return { icon: "people-outline", color: "#D97706" };
+                    if (normalized === "rides") return { icon: "car-outline", color: "#F97316" };
+                    if (normalized === "market") return { icon: "cart-outline", color: "#92400E" };
+                    if (normalized === "games") return { icon: "game-controller-outline", color: "#0EA5E9" };
+                    if (normalized === "roommates") return { icon: "bed-outline", color: "#F97316" };
+                    return { 
+                      icon: "home-outline", 
+                      color: group.rawGroup.category?.[0]?.bgColorHex || "#2563EB" 
+                    };
+                  };
+                  const config = getCategoryConfig(group.category);
+                  
+                  const formatCategoryName = (name: string) => {
+                    if (!name) return "";
+                    return name
+                      .split(" ")
+                      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                      .join(" ");
+                  };
+
+                  return (
+                    <View
+                      style={[
+                        styles.categoryBadge,
+                        { 
+                          backgroundColor: isDark ? "#FFFFFF" : "#000000",
+                          borderWidth: 0,
+                        }
+                      ]}
+                    >
+                      <Ionicons
+                        name={config.icon as any}
+                        size={14}
+                        color={config.color}
+                      />
+                      <Text
+                        style={[
+                          styles.categoryText,
+                          { 
+                            color: isDark ? "#000000" : "#FFFFFF",
+                            fontWeight: "700",
+                            fontSize: 9,
+                          }
+                        ]}
+                      >
+                        {formatCategoryName(group.category)}
+                      </Text>
+                    </View>
+                  );
+                })()}
+                
+                {/* Status Badge Removed */}
               </View>
 
               <View
@@ -940,10 +993,10 @@ const styles = StyleSheet.create({
   categoryBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 3,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,

@@ -16,9 +16,9 @@ import { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Image,
-  TouchableOpacity,
   ScrollView,
   StyleSheet,
+  TouchableOpacity,
   View,
 } from "react-native";
 
@@ -33,7 +33,7 @@ const getIconComponent = (iconName: any, categoryName?: string) => {
       games: "game-controller-outline",
       party: "balloon-outline",
       rides: "car-outline",
-      roommates: "home-outline",
+      roommates: "bed-outline",
       dating: "heart-outline",
       "study group": "book-outline",
       "campus jobs": "briefcase-outline",
@@ -390,7 +390,7 @@ const Index = () => {
                       <Ionicons
   name={getIconComponent(category.icon, category.name) as any}
   size={24}
-  color={category.iconColor}
+  color={category.name.toLowerCase() === 'games' ? '#0EA5E9' : category.iconColor}
 />
                     </View>
                     <Text style={[styles.cardTitle, dynamicStyles.text]}>
