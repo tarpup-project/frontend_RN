@@ -61,6 +61,8 @@ class UrlConstants {
     `/activities/matches?b=null${
       campusID !== undefined ? `&campusID=${campusID}` : ""
     }${stateID !== undefined ? `&stateID=${stateID}` : ""}`;
+  static pendingMatches = `/user/matches/pending`;
+  static matchAction = (matchID: string) => `/activities/matches/details/${matchID}`;
   static fetchAllRequests = (
     campusID?: string,
     stateID?: string,

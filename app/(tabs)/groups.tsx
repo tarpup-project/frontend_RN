@@ -15,11 +15,11 @@ import { useRouter } from "expo-router";
 import moment from "moment";
 import React, { useState } from "react";
 import {
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  View
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    View
 } from "react-native";
 
 const GroupSkeletonCard = ({ isDark }: { isDark: boolean }) => {
@@ -134,12 +134,18 @@ const Groups = () => {
     // Navigate to the group chat screen using the created chat/group ID
     if (chatData.id || chatData._id) {
       const chatId = chatData.id || chatData._id;
-      router.push({
-        pathname: `/group-chat/${chatId}` as any,
-        params: {
-          groupData: JSON.stringify(chatData),
-        },
-      });
+      try {
+        router.push({
+          pathname: `/group-chat/${chatId}` as any,
+          params: {
+            groupData: safeStringify(chatData),
+          },
+        });
+      } catch (error) {
+        console.error('Chat navigation error:', error);
+        // Fallback navigation without params
+        router.push(`/group-chat/${chatId}` as any);
+      }
     } else {
       console.error('No chat ID found in created chat data');
     }
@@ -156,12 +162,18 @@ const Groups = () => {
     // Navigate to the group chat screen using the created group ID
     if (groupData.id || groupData._id) {
       const groupId = groupData.id || groupData._id;
-      router.push({
-        pathname: `/group-chat/${groupId}` as any,
-        params: {
-          groupData: JSON.stringify(groupData),
-        },
-      });
+      try {
+        router.push({
+          pathname: `/group-chat/${groupId}` as any,
+          params: {
+            groupData: safeStringify(groupData),
+          },
+        });
+      } catch (error) {
+        console.error('Group navigation error:', error);
+        // Fallback navigation without params
+        router.push(`/group-chat/${groupId}` as any);
+      }
     } else {
       console.error('No group ID found in created group data');
     }
@@ -217,6 +229,54 @@ const Groups = () => {
     return "#FFFFFF";
   };
 
+  // Helper function to safely serialize objects with circular references
+  const safeStringify = (obj: any) => {
+    const seen = new WeakSet();
+    return JSON.stringify(obj, (key, val) => {
+      if (val != null && typeof val === "object") {
+        if (seen.has(val)) {
+          return "[Circular]";
+        }
+        seen.add(val);
+      }
+      return val;
+    });
+  };
+
+  // Helper function to extract essential group data for navigation
+  const getEssentialGroupData = (group: any) => {
+    return {
+      id: group.id,
+      name: group.name,
+      description: group.description,
+      members: group.members?.map((member: any) => ({
+        id: member.id,
+        fname: member.fname,
+        lname: member.lname,
+        bgUrl: member.bgUrl,
+      })) || [],
+      category: group.category?.map((cat: any) => ({
+        id: cat.id,
+        name: cat.name,
+        icon: cat.icon,
+        bgColorHex: cat.bgColorHex,
+      })) || [],
+      createdAt: group.createdAt,
+      lastMessageAt: group.lastMessageAt,
+      messages: group.messages?.slice(-10).map((msg: any) => ({
+        id: msg.id,
+        content: msg.content,
+        senderID: msg.senderID,
+        createdAt: msg.createdAt,
+        sender: msg.sender ? {
+          id: msg.sender.id,
+          fname: msg.sender.fname,
+          lname: msg.sender.lname,
+        } : null,
+      })) || [], // Only last 10 messages to avoid large payloads
+    };
+  };
+
   const renderGroupsList = () => {
     if (!uiGroups || !Array.isArray(uiGroups) || uiGroups.length === 0) {
       return null;
@@ -225,25 +285,35 @@ const Groups = () => {
     return uiGroups
       .slice()
       .sort((a: any, b: any) => {
-        // Sort by unread count first, then by activity time
-        if (a.unreadCount > 0 && b.unreadCount === 0) return -1;
-        if (a.unreadCount === 0 && b.unreadCount > 0) return 1;
-        if (a.unreadCount > 0 && b.unreadCount > 0) {
-          return b.unreadCount - a.unreadCount;
+        try {
+          // Sort by unread count first, then by activity time
+          if (a.unreadCount > 0 && b.unreadCount === 0) return -1;
+          if (a.unreadCount === 0 && b.unreadCount > 0) return 1;
+          if (a.unreadCount > 0 && b.unreadCount > 0) {
+            return b.unreadCount - a.unreadCount;
+          }
+          
+          // Sort by last message time or created time
+          const aTime = a.rawGroup?.lastMessageAt || a.rawGroup?.createdAt || 0;
+          const bTime = b.rawGroup?.lastMessageAt || b.rawGroup?.createdAt || 0;
+          return bTime - aTime;
+        } catch (error) {
+          console.error('Sort error:', error);
+          return 0;
         }
-        
-        // Sort by last message time or created time
-        const aTime = a.rawGroup.lastMessageAt || a.rawGroup.createdAt || 0;
-        const bTime = b.rawGroup.lastMessageAt || b.rawGroup.createdAt || 0;
-        return bTime - aTime;
       })
       .map((group: any) => {
-        const isGeneral = (group.category || "").toLowerCase() === "general";
+        try {
+          if (!group || !group.rawGroup) {
+            console.warn('Invalid group data:', group);
+            return null;
+          }
+          
+          const isGeneral = (group.category || "").toLowerCase() === "general";
         
         if (isGeneral) {
-          const when = moment(
-            group.rawGroup.lastMessageAt || group.rawGroup.createdAt
-          ).fromNow();
+          const timestamp = group.rawGroup.lastMessageAt || group.rawGroup.createdAt || Date.now();
+          const when = moment(timestamp).fromNow();
           const initial = group.title?.[0]?.toUpperCase() || "G";
           
           // For general category (personal chats), show the last message instead of description
@@ -306,12 +376,19 @@ const Groups = () => {
               key={group.id}
               style={[styles.dmCard, dynamicStyles.card]}
               onPress={() => {
-                router.push({
-                  pathname: `/group-chat/${group.id}` as any,
-                  params: {
-                    groupData: JSON.stringify(group.rawGroup),
-                  },
-                });
+                try {
+                  const essentialData = getEssentialGroupData(group.rawGroup);
+                  router.push({
+                    pathname: `/group-chat/${group.id}` as any,
+                    params: {
+                      groupData: JSON.stringify(essentialData),
+                    },
+                  });
+                } catch (error) {
+                  console.error('Navigation error:', error);
+                  // Fallback navigation without params
+                  router.push(`/group-chat/${group.id}` as any);
+                }
               }}
             >
               <View style={styles.dmHeader}>
@@ -420,12 +497,19 @@ const Groups = () => {
             key={group.id}
             style={[styles.groupCard, dynamicStyles.card]}
             onPress={() => {
-              router.push({
-                pathname: `/group-chat/${group.id}` as any,
-                params: {
-                  groupData: JSON.stringify(group.rawGroup),
-                },
-              });
+              try {
+                const essentialData = getEssentialGroupData(group.rawGroup);
+                router.push({
+                  pathname: `/group-chat/${group.id}` as any,
+                  params: {
+                    groupData: JSON.stringify(essentialData),
+                  },
+                });
+              } catch (error) {
+                console.error('Navigation error:', error);
+                // Fallback navigation without params
+                router.push(`/group-chat/${group.id}` as any);
+              }
             }}
           >
             <View style={styles.topRow}>
@@ -434,7 +518,7 @@ const Groups = () => {
                   style={[
                     styles.categoryBadge,
                     { 
-                      backgroundColor: group.rawGroup.category[0]?.bgColorHex || "#2563EB",
+                      backgroundColor: group.rawGroup.category?.[0]?.bgColorHex || "#2563EB",
                       borderWidth: 1,
                       borderColor: "rgba(0,0,0,0.1)"
                     }
@@ -443,13 +527,13 @@ const Groups = () => {
                   <Ionicons
                     name="home-outline"
                     size={10}
-                    color={getTextColorForBackground(group.rawGroup.category[0]?.bgColorHex || "#2563EB")}
+                    color={getTextColorForBackground(group.rawGroup.category?.[0]?.bgColorHex || "#2563EB")}
                   />
                   <Text
                     style={[
                       styles.categoryText,
                       { 
-                        color: getTextColorForBackground(group.rawGroup.category[0]?.bgColorHex || "#2563EB"),
+                        color: getTextColorForBackground(group.rawGroup.category?.[0]?.bgColorHex || "#2563EB"),
                         fontWeight: "700",
                         fontSize: 9,
                       }
@@ -523,7 +607,7 @@ const Groups = () => {
 
             <View style={styles.membersRow}>
               <View style={styles.avatarsContainer}>
-                {group.rawGroup.members
+                {(group.rawGroup.members || [])
                   .slice(0, 3)
                   .map((member: any, index: number) => (
                     <View
@@ -576,7 +660,8 @@ const Groups = () => {
                   Active{" "}
                   {moment(
                     group.rawGroup.lastMessageAt ||
-                      group.rawGroup.createdAt
+                      group.rawGroup.createdAt ||
+                      Date.now()
                   ).fromNow()}
                 </Text>
               </View>
@@ -593,7 +678,12 @@ const Groups = () => {
             </View>
           </Pressable>
         );
-      });
+        } catch (error) {
+          console.error('Group render error:', error);
+          return null;
+        }
+      })
+      .filter(Boolean); // Remove null entries
   };
 
   return (

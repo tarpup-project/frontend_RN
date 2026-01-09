@@ -406,7 +406,7 @@ const ActivePromptsTab = ({
 const PendingMatchesTab = () => {
   const { isDark } = useTheme();
   const router = useRouter();
-  const { data: matches = [], isLoading } = usePendingMatches();
+  const { pendingMatches: matches = [], isLoading, refetchPendingMatches } = usePendingMatches();
   const { mutateAsync } = useMatchAction();
   const [loadingAction, setLoadingAction] = useState<{
     id: string;
@@ -426,14 +426,23 @@ const PendingMatchesTab = () => {
     },
   };
 
-  const handleAction = async (matchId: string, action: string) => {
+  const handleAction = async (matchId: string, action: "private" | "public" | "decline" | "add") => {
     setLoadingAction({ id: matchId, type: action });
     try {
       const res: any = await mutateAsync({ matchId, action });
-      const groupId = res?.data?.group?.id || res?.data?.groupId || res?.groupId;
-      if (action !== "decline" && groupId) {
-        router.push(`/group-chat/${groupId}`);
+      
+      // Refresh the matches list after action
+      await refetchPendingMatches();
+      
+      // Navigate to chat if action was accepted
+      if (action !== "decline") {
+        const groupId = res?.data?.group?.id || res?.data?.groupId || res?.groupId;
+        if (groupId) {
+          router.push(`/group-chat/${groupId}`);
+        }
       }
+    } catch (error) {
+      console.error("Match action failed:", error);
     } finally {
       setLoadingAction(null);
     }
@@ -447,35 +456,39 @@ const PendingMatchesTab = () => {
         </Text>
       ) : matches.length > 0 ? (
         matches.map((match) => {
-          const title = match.request?.title || match.group?.name || "Untitled";
-          const description =
-            match.request?.description ||
-            match.group?.description ||
-            "No description";
-          const ownerName = match.request?.owner?.fname || "Anonymous";
-          const ownerInitial = ownerName[0] || "A";
+          // Determine if this is a group match or request match
+          const isGroup = !!match.group;
+          const details = isGroup ? match.group : match.request;
+          const title = isGroup ? match.group?.name : match.request?.title || "Untitled";
+          const description = details?.description || "No description";
+          const ownerName = isGroup ? match.group?.creator?.fname : match.request?.owner?.fname || "Anonymous";
+          const ownerInitial = ownerName?.[0]?.toUpperCase() || "A";
 
           return (
             <View
               key={match.id}
               style={[styles.matchCard, dynamicStyles.matchCard]}
             >
-              <View style={styles.matchHeader}>
-                <View style={styles.userInfo}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>{ownerInitial}</Text>
+              {/* User info and similarity score - only show for requests */}
+              {match.request && (
+                <View style={styles.matchHeader}>
+                  <View style={styles.userInfo}>
+                    <View style={styles.avatar}>
+                      <Text style={styles.avatarText}>{ownerInitial}</Text>
+                    </View>
+                    <Text style={[styles.userName, dynamicStyles.text]}>
+                      {ownerName}
+                    </Text>
                   </View>
-                  <Text style={[styles.userName, dynamicStyles.text]}>
-                    {ownerName}
-                  </Text>
+                  <View style={styles.scoreContainer}>
+                    <Text style={styles.scoreText}>
+                      {match.similarityScore}% Match
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.scoreContainer}>
-                  <Text style={styles.scoreText}>
-                    {match.similarityScore}% Match
-                  </Text>
-                </View>
-              </View>
+              )}
 
+              {/* Match details */}
               <Text style={[styles.matchTitle, dynamicStyles.text]}>
                 {title}
               </Text>
@@ -489,64 +502,87 @@ const PendingMatchesTab = () => {
                   { fontSize: 12, marginTop: 8, marginBottom: 12 },
                 ]}
               >
-                Created: {moment(match.createdAt).format("Do MMMM, YYYY h:mmA")}
+                Created: {moment(details?.createdAt || match.createdAt).format("Do MMMM, YYYY h:mmA")}
               </Text>
 
+              {/* Action buttons - different for groups vs requests */}
               <View style={styles.matchActions}>
-              <View style={styles.actionRow}>
-                <Pressable
-                  style={[styles.actionButton, { backgroundColor: "#3B82F6" }]}
-                  onPress={() => handleAction(match.id, "private")}
-                  disabled={loadingAction?.id === match.id}
-                >
-                  {loadingAction?.id === match.id &&
-                  loadingAction?.type === "private" ? (
-                    <Ionicons
-                      name="hourglass-outline"
-                      size={12}
-                      color="#FFFFFF"
-                    />
-                  ) : (
-                    <Text style={styles.actionButtonText}>Private Chat</Text>
-                  )}
-                </Pressable>
-                <Pressable
-                  style={[styles.actionButton, { backgroundColor: "#10B981" }]}
-                  onPress={() => handleAction(match.id, "public")}
-                  disabled={loadingAction?.id === match.id}
-                >
-                  {loadingAction?.id === match.id &&
-                  loadingAction?.type === "public" ? (
-                    <Ionicons
-                      name="hourglass-outline"
-                      size={12}
-                      color="#FFFFFF"
-                    />
-                  ) : (
-                    <Text style={styles.actionButtonText}>Public Group</Text>
-                  )}
-                </Pressable>
-              </View>
-              <Pressable
-                style={[styles.declineButton]}
-                onPress={() => handleAction(match.id, "decline")}
-                disabled={loadingAction?.id === match.id}
-              >
-                {loadingAction?.id === match.id &&
-                loadingAction?.type === "decline" ? (
-                  <Ionicons
-                    name="hourglass-outline"
-                    size={12}
-                    color="#EF4444"
-                  />
+                {isGroup ? (
+                  // Group match - single "Add to Group" button
+                  <Pressable
+                    style={[styles.actionButton, { backgroundColor: "#10B981" }]}
+                    onPress={() => handleAction(match.id, "add")}
+                    disabled={loadingAction?.id === match.id}
+                  >
+                    {loadingAction?.id === match.id && loadingAction?.type === "add" ? (
+                      <Ionicons
+                        name="hourglass-outline"
+                        size={12}
+                        color="#FFFFFF"
+                      />
+                    ) : (
+                      <Text style={styles.actionButtonText}>Add to Group</Text>
+                    )}
+                  </Pressable>
                 ) : (
-                  <Text style={styles.declineButtonText}>Decline</Text>
+                  // Request match - multiple action buttons
+                  <>
+                    <View style={styles.actionRow}>
+                      <Pressable
+                        style={[styles.actionButton, { backgroundColor: "#3B82F6" }]}
+                        onPress={() => handleAction(match.id, "private")}
+                        disabled={loadingAction?.id === match.id}
+                      >
+                        {loadingAction?.id === match.id &&
+                        loadingAction?.type === "private" ? (
+                          <Ionicons
+                            name="hourglass-outline"
+                            size={12}
+                            color="#FFFFFF"
+                          />
+                        ) : (
+                          <Text style={styles.actionButtonText}>Private Chat</Text>
+                        )}
+                      </Pressable>
+                      <Pressable
+                        style={[styles.actionButton, { backgroundColor: "#10B981" }]}
+                        onPress={() => handleAction(match.id, "public")}
+                        disabled={loadingAction?.id === match.id}
+                      >
+                        {loadingAction?.id === match.id &&
+                        loadingAction?.type === "public" ? (
+                          <Ionicons
+                            name="hourglass-outline"
+                            size={12}
+                            color="#FFFFFF"
+                          />
+                        ) : (
+                          <Text style={styles.actionButtonText}>Public Group</Text>
+                        )}
+                      </Pressable>
+                    </View>
+                    <Pressable
+                      style={[styles.declineButton]}
+                      onPress={() => handleAction(match.id, "decline")}
+                      disabled={loadingAction?.id === match.id}
+                    >
+                      {loadingAction?.id === match.id &&
+                      loadingAction?.type === "decline" ? (
+                        <Ionicons
+                          name="hourglass-outline"
+                          size={12}
+                          color="#EF4444"
+                        />
+                      ) : (
+                        <Text style={styles.declineButtonText}>Decline</Text>
+                      )}
+                    </Pressable>
+                  </>
                 )}
-              </Pressable>
+              </View>
             </View>
-          </View>
-        );
-      })
+          );
+        })
       ) : (
         <Text style={[styles.emptyText, dynamicStyles.subtitle]}>
           No pending matches found.
