@@ -15,11 +15,11 @@ import { useRouter } from "expo-router";
 import moment from "moment";
 import React, { useState } from "react";
 import {
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    View
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View
 } from "react-native";
 
 const GroupSkeletonCard = ({ isDark }: { isDark: boolean }) => {
@@ -202,31 +202,6 @@ const Groups = () => {
     retryButtonText: {
       color: isDark ? "#0a0a0a" : "#FFFFFF",
     },
-  };
-
-  const getTextColorForBackground = (bgColor: string) => {
-    // Remove # if present
-    const color = bgColor.replace('#', '');
-    
-    // Convert to RGB
-    const r = parseInt(color.substring(0, 2), 16);
-    const g = parseInt(color.substring(2, 4), 16);
-    const b = parseInt(color.substring(4, 6), 16);
-    
-    // Calculate luminance
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    
-    // For light backgrounds, use a darker version of the same color
-    if (luminance > 0.7) {
-      // Create a darker version by reducing RGB values
-      const darkR = Math.max(0, r - 100);
-      const darkG = Math.max(0, g - 100);
-      const darkB = Math.max(0, b - 100);
-      return `rgb(${darkR}, ${darkG}, ${darkB})`;
-    }
-    
-    // For dark backgrounds, use white
-    return "#FFFFFF";
   };
 
   // Helper function to safely serialize objects with circular references
@@ -518,7 +493,7 @@ const Groups = () => {
                   style={[
                     styles.categoryBadge,
                     { 
-                      backgroundColor: group.rawGroup.category?.[0]?.bgColorHex || "#2563EB",
+                      backgroundColor: isDark ? "#FFFFFF" : "#000000",
                       borderWidth: 1,
                       borderColor: "rgba(0,0,0,0.1)"
                     }
@@ -527,42 +502,19 @@ const Groups = () => {
                   <Ionicons
                     name="home-outline"
                     size={10}
-                    color={getTextColorForBackground(group.rawGroup.category?.[0]?.bgColorHex || "#2563EB")}
+                    color={isDark ? "#000000" : "#FFFFFF"}
                   />
                   <Text
                     style={[
                       styles.categoryText,
                       { 
-                        color: getTextColorForBackground(group.rawGroup.category?.[0]?.bgColorHex || "#2563EB"),
+                        color: isDark ? "#000000" : "#FFFFFF",
                         fontWeight: "700",
                         fontSize: 9,
                       }
                     ]}
                   >
-                    {group.category?.toUpperCase()}
-                  </Text>
-                </View>
-                
-                <View
-                  style={[
-                    styles.statusBadge,
-                    { 
-                      backgroundColor: "#10B981",
-                      borderWidth: 1,
-                      borderColor: "rgba(0,0,0,0.1)"
-                    }
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.statusText,
-                      { 
-                        color: "#FFFFFF",
-                        fontWeight: "700",
-                      }
-                    ]}
-                  >
-                    Completed
+                    {group.category ? (group.category.charAt(0).toUpperCase() + group.category.slice(1).toLowerCase()) : ""}
                   </Text>
                 </View>
               </View>
