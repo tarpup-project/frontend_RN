@@ -1,4 +1,4 @@
-import { clearCache, getCacheStats, useMessageImageCache } from '@/hooks/useMessageImageCache';
+import { useMessageImageCache, getCacheStats, clearCache } from '@/hooks/useMessageImageCache';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
