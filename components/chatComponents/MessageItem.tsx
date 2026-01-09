@@ -218,6 +218,8 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                 <View
                   style={[
                     styles.unifiedMessageBubble,
+                    // When there's an image with text, constrain width to image
+                    msg.file && msg.text && styles.imageConstrainedBubble,
                     msg.isMe
                       ? dynamicStyles.myMessage
                       : dynamicStyles.theirMessage,
@@ -406,6 +408,7 @@ const styles = StyleSheet.create({
   messageTextContainer: {
     paddingHorizontal: 10,
     paddingVertical: 8,
+    width: "100%", // Take full width of the bubble
   },
   messageBubbleWithReply: {
     borderTopLeftRadius: 0,
@@ -517,5 +520,9 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 12,
     textAlign: "center",
+  },
+  imageConstrainedBubble: {
+    maxWidth: 200, // Match the image width
+    minWidth: 200, // Ensure consistent width
   },
 });
