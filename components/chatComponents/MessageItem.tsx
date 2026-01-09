@@ -6,7 +6,14 @@ import React from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Hyperlink from "react-native-hyperlink";
-import { runOnJS } from "react-native-reanimated";
+import Animated, {
+    Extrapolate,
+    interpolate,
+    runOnJS,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring
+} from "react-native-reanimated";
 
 interface MessageData {
   id: string;
@@ -62,6 +69,11 @@ export const MessageItem: React.FC<MessageItemProps> = ({
   scrollGesture,
 }) => {
   const { isDark } = useTheme();
+  
+  // Animation values for swipe-to-reply
+  const translateX = useSharedValue(0);
+  const replyIconOpacity = useSharedValue(0);
+  const replyIconScale = useSharedValue(0.8);
 
   // Helper function to calculate reply reference dimensions based on content
   const getReplyDimensions = (message: string) => {
@@ -115,19 +127,78 @@ export const MessageItem: React.FC<MessageItemProps> = ({
     .activeOffsetX([-15, 15])
     .failOffsetY([-25, 25])
     .simultaneousWithExternalGesture(scrollGesture)
+    .onUpdate((event) => {
+      const { translationX } = event;
+      
+      // Only allow swipe in the correct direction based on message sender
+      const maxSwipe = msg.isMe ? -80 : 80;
+      const swipeDirection = msg.isMe ? translationX < 0 : translationX > 0;
+      
+      if (swipeDirection) {
+        // Constrain the swipe distance
+        const clampedTranslation = msg.isMe 
+          ? Math.max(translationX, maxSwipe)
+          : Math.min(translationX, maxSwipe);
+        
+        translateX.value = clampedTranslation;
+        
+        // Calculate opacity and scale for reply icon based on swipe progress
+        const progress = Math.abs(clampedTranslation) / Math.abs(maxSwipe);
+        replyIconOpacity.value = interpolate(
+          progress,
+          [0, 0.3, 1],
+          [0, 0.5, 1],
+          Extrapolate.CLAMP
+        );
+        replyIconScale.value = interpolate(
+          progress,
+          [0, 0.5, 1],
+          [0.8, 1, 1.2],
+          Extrapolate.CLAMP
+        );
+      }
+    })
     .onEnd((event) => {
       const { translationX, velocityX, translationY } = event;
-
-      if (
-        translationX > 60 &&
-        velocityX > 300 &&
+      const swipeThreshold = 60;
+      const velocityThreshold = 300;
+      
+      // Check if swipe meets the threshold for triggering reply
+      const shouldTriggerReply = 
+        Math.abs(translationX) > swipeThreshold &&
+        Math.abs(velocityX) > velocityThreshold &&
         Math.abs(translationY) < 30 &&
         msg.rawMessage &&
-        onReply
-      ) {
+        onReply;
+      
+      if (shouldTriggerReply) {
+        // Trigger reply action
         runOnJS(onReply)(msg.rawMessage);
       }
+      
+      // Animate back to original position
+      translateX.value = withSpring(0, {
+        damping: 20,
+        stiffness: 300,
+      });
+      replyIconOpacity.value = withSpring(0);
+      replyIconScale.value = withSpring(0.8);
     });
+
+  // Animated styles for the message container
+  const animatedMessageStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateX: translateX.value }],
+    };
+  });
+
+  // Animated styles for the reply icon
+  const animatedReplyIconStyle = useAnimatedStyle(() => {
+    return {
+      opacity: replyIconOpacity.value,
+      transform: [{ scale: replyIconScale.value }],
+    };
+  });
 
   if (msg.isAlert) {
     return (
@@ -162,8 +233,30 @@ export const MessageItem: React.FC<MessageItemProps> = ({
       style={styles.messageWrapper}
     >
       <GestureDetector gesture={swipeGesture}>
-        <View>
-          <View style={[styles.messageRow, msg.isMe && styles.myMessageRow]}>
+        <View style={styles.swipeContainer}>
+          {/* Reply icon that appears during swipe */}
+          <Animated.View 
+            style={[
+              styles.replyIconContainer,
+              msg.isMe ? styles.replyIconLeft : styles.replyIconRight,
+              animatedReplyIconStyle
+            ]}
+          >
+            <View style={[
+              styles.replyIconBackground,
+              { backgroundColor: isDark ? "#333" : "#E5E5E5" }
+            ]}>
+              <Ionicons
+                name="arrow-undo-outline"
+                size={20}
+                color={isDark ? "#00D084" : "#00A86B"}
+              />
+            </View>
+          </Animated.View>
+
+          {/* Animated message content */}
+          <Animated.View style={[styles.messageContainer, animatedMessageStyle]}>
+            <View style={[styles.messageRow, msg.isMe && styles.myMessageRow]}>
             {msg.isMe && (
               <Pressable
                 onPress={() => onReply(msg.rawMessage)}
@@ -346,6 +439,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
           >
             {msg.time}
           </Text>
+          </Animated.View>
         </View>
       </GestureDetector>
     </View>
@@ -524,5 +618,43 @@ const styles = StyleSheet.create({
   imageConstrainedBubble: {
     maxWidth: 200, // Match the image width
     minWidth: 200, // Ensure consistent width
+  },
+  swipeContainer: {
+    position: 'relative',
+  },
+  messageContainer: {
+    width: '100%',
+  },
+  replyIconContainer: {
+    position: 'absolute',
+    top: '50%',
+    zIndex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 40,
+    height: 40,
+  },
+  replyIconLeft: {
+    left: 10,
+    transform: [{ translateY: -20 }],
+  },
+  replyIconRight: {
+    right: 10,
+    transform: [{ translateY: -20 }],
+  },
+  replyIconBackground: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
 });
