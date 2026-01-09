@@ -16,6 +16,10 @@ export const useNotifications = () => {
     groupNotifications,
     personalNotifications,
     chatNotifications,
+    followerNotifications,
+    friendPostsNotifications,
+    postLikesNotifications,
+    commentsNotifications,
   } = useNotificationStore();
 
   const fetchNotifications = async () => {
@@ -75,6 +79,10 @@ export const useNotifications = () => {
     groupNotifications,
     personalNotifications,
     chatNotifications,
+    followerNotifications,
+    friendPostsNotifications,
+    postLikesNotifications,
+    commentsNotifications,
     refetchNotifications: fetchNotifications,
   };
 };

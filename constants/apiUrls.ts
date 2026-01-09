@@ -37,6 +37,7 @@ class UrlConstants {
     `/groups/all${campusID ? `?campusID=${campusID}` : ""}`;
   static createGroupChat = `/groups/chat/create`;
   static uploadImageToMessage = (id: string) => `/user/messages/upload/${id}`
+  static fetchGroupMessages = (groupID: string) => `/groups/messages/${groupID}`;
   static fetchAllCategories = (campusID?: string, stateID?: string) =>
     `/groups/categories${
       campusID !== undefined ? `?campusID=${campusID}` : ""
@@ -93,6 +94,7 @@ class UrlConstants {
     return `/tarps/people/navigate?${q.toString()}`;
   };
   static tarpLikePost = `/tarps/posts/like`;
+  static fetchPostLikes = `/tarps/posts/likes`;
   static tarpPostComments = (postImageID: string) => `/tarps/posts/${postImageID}/comments`;
   static tarpToggleFriend = `/tarps/user/friend`;
   static tarpToggleFollow = `/tarps/user/follow`;
@@ -101,6 +103,12 @@ class UrlConstants {
   static tarpUserFollowers = `/tarps/user/followers`;
   static tarpFriendsPrivacy = `/tarps/people/friends/privacy`;
   static groupsFriends = (query?: string) => `/groups/friends${query ? `?query=${query}` : ''}`;
+
+  static fetchFriendPosts = `/tarps/posts/friends`;
+  static friendRequests = `/tarps/user/friends/requests`;
+  static friendRequestAction = `/tarps/user/friends/action`;
+  static fetchFollowers = `/tarps/user/followers`;
+  static fetchComments = `/tarps/comments`;
 
   static groupsRoute = `${this.baseUrl}/groups`;
 

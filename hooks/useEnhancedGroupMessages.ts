@@ -6,15 +6,15 @@ import { useAuthStore } from '@/state/authStore';
 import { CacheUtils } from '@/utils/queryClient';
 import { watermelonOfflineSyncManager } from '@/utils/watermelonOfflineSync';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-    AlertMessage,
-    Group,
-    GroupMessage,
-    MessageFile,
-    MessageType,
-    SendMessagePayload,
-    UserMessage
+  AlertMessage,
+  Group,
+  GroupMessage,
+  MessageFile,
+  MessageType,
+  SendMessagePayload,
+  UserMessage
 } from '../types/groups';
 import { SocketEvents } from '../types/socket';
 import { groupsKeys } from './useGroups';
@@ -51,6 +51,7 @@ export const useEnhancedGroupMessages = ({
   const { user } = useAuthStore();
   const [isSending, setIsSending] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const lastQueuedReadAtRef = useRef<number>(0);
 
   // CRITICAL FIX: Load cached messages BEFORE query initialization to prevent race condition
   const [initialCacheLoaded, setInitialCacheLoaded] = useState(false);
@@ -210,6 +211,11 @@ export const useEnhancedGroupMessages = ({
     
     return transformedMessages;
   }, [resolveReplyMessage]);
+
+  const loadCachedMessages = useCallback(async (): Promise<GroupMessage[]> => {
+    const asyncMessages = await asyncStorageDB.getMessages(groupId);
+    return transformCachedMessages(asyncMessages);
+  }, [groupId, transformCachedMessages]);
   
   // Load cached messages immediately and synchronously set initial data
   useEffect(() => {
@@ -221,22 +227,17 @@ export const useEnhancedGroupMessages = ({
         
         let cachedMessages: GroupMessage[] = [];
         
-        if (isWatermelonAvailable) {
-          console.log('📦 Loading from WatermelonDB (not implemented yet)');
-        } else {
-          const asyncMessages = await asyncStorageDB.getMessages(groupId);
-          
-          // CRITICAL FIX: If no messages found, try to restore from backup
-          if (asyncMessages.length === 0) {
-            console.log('⚠️ No cached messages found, attempting backup restore for group:', groupId);
-            const backupMessages = await asyncStorageDB.restoreMessageBackup(groupId);
-            if (backupMessages.length > 0) {
-              cachedMessages = await transformCachedMessages(backupMessages);
-              console.log('✅ Restored', cachedMessages.length, 'messages from backup');
-            }
-          } else {
-            cachedMessages = await transformCachedMessages(asyncMessages);
+        const asyncMessages = await asyncStorageDB.getMessages(groupId);
+        
+        if (asyncMessages.length === 0) {
+          console.log('⚠️ No cached messages found, attempting backup restore for group:', groupId);
+          const backupMessages = await asyncStorageDB.restoreMessageBackup(groupId);
+          if (backupMessages.length > 0) {
+            cachedMessages = await transformCachedMessages(backupMessages);
+            console.log('✅ Restored', cachedMessages.length, 'messages from backup');
           }
+        } else {
+          cachedMessages = await transformCachedMessages(asyncMessages);
         }
         
         if (cachedMessages.length > 0) {
@@ -268,38 +269,44 @@ export const useEnhancedGroupMessages = ({
       
       if (!socket || !user) {
         console.log('⚠️ No socket or user available');
-        return [];
+        try {
+          return await loadCachedMessages();
+        } finally {
+          setIsRefreshing(false);
+        }
       }
 
-      return new Promise((resolve, reject) => {
-        const timeout = setTimeout(async () => {
-          console.log('⏰ Socket timeout for group:', groupId, '- Loading cached messages instead');
-          setIsRefreshing(false);
-          
-          // CRITICAL FIX: Load cached messages instead of returning empty array
-          try {
-            let cachedMessages: GroupMessage[] = [];
-            
-            if (isWatermelonAvailable) {
-              console.log('📦 Loading from WatermelonDB (not implemented yet)');
-            } else {
-              const asyncMessages = await asyncStorageDB.getMessages(groupId);
-              cachedMessages = await transformCachedMessages(asyncMessages);
-            }
-            
-            console.log('✅ Socket timeout - returning', cachedMessages.length, 'cached messages');
-            resolve(cachedMessages);
-          } catch (error) {
-            console.error('❌ Failed to load cached messages on timeout:', error);
-            resolve([]); // Only return empty if cache loading fails
-          }
-        }, 15000); 
+      return new Promise((resolve) => {
+        let finished = false;
+        let timeout: ReturnType<typeof setTimeout> | undefined;
 
-        const handleJoinRoom = async (data: { messages: GroupMessage[] }) => {
-          clearTimeout(timeout);
-          socket.off('joinGroupRoom', handleJoinRoom);
+        const finish = (result: GroupMessage[]) => {
+          if (finished) return;
+          finished = true;
+          setIsRefreshing(false);
+          resolve(result);
+        };
+
+        const normalizeMessagesFromJoinPayload = (data: any): GroupMessage[] => {
+          const messagesFrom =
+            data?.messages ??
+            data?.data?.messages ??
+            data?.payload?.messages ??
+            data?.room?.messages ??
+            data?.result?.messages ??
+            data?.response?.messages;
+
+          if (Array.isArray(messagesFrom)) {
+            return messagesFrom as GroupMessage[];
+          }
+          return [];
+        };
+
+        const handleJoinRoom = async (data: any) => {
+          if (timeout) clearTimeout(timeout);
+          cleanup();
           
-          const freshMessages = data.messages || [];
+          const freshMessages = normalizeMessagesFromJoinPayload(data);
           console.log('📥 Received fresh messages for group:', groupId, '- Count:', freshMessages.length);
           
           // Save fresh messages to database cache
@@ -335,41 +342,92 @@ export const useEnhancedGroupMessages = ({
             console.error('❌ Failed to save fresh messages to cache:', error);
           }
           
-          setIsRefreshing(false);
-          resolve(freshMessages);
+          finish(freshMessages);
         };
 
         const handleError = async (error: any) => {
-          clearTimeout(timeout);
+          if (timeout) clearTimeout(timeout);
           console.error('❌ Socket error for group:', groupId, error);
-          setIsRefreshing(false);
+          cleanup();
           
           // CRITICAL FIX: Load cached messages instead of returning empty array
           try {
-            let cachedMessages: GroupMessage[] = [];
-            
-            if (isWatermelonAvailable) {
-              console.log('📦 Loading from WatermelonDB (not implemented yet)');
-            } else {
-              const asyncMessages = await asyncStorageDB.getMessages(groupId);
-              cachedMessages = await transformCachedMessages(asyncMessages);
-            }
-            
+            const cachedMessages = await loadCachedMessages();
             console.log('✅ Socket error - returning', cachedMessages.length, 'cached messages');
-            resolve(cachedMessages);
+            finish(cachedMessages);
           } catch (cacheError) {
             console.error('❌ Failed to load cached messages on error:', cacheError);
-            resolve([]); // Only return empty if cache loading fails
+            finish([]); // Only return empty if cache loading fails
           }
         };
 
-        socket.on('joinGroupRoom', handleJoinRoom);
-        socket.on('error', handleError);
+        const emitJoin = () => {
+          try {
+            socket.emit(
+              SocketEvents.JOIN_GROUP_ROOM,
+              {
+                roomID: groupId,
+                userID: user.id,
+              },
+              (ack: any) => {
+                if (!ack) return;
+                handleJoinRoom(ack);
+              }
+            );
+          } catch (e) {
+            handleError(e);
+          }
+        };
+
+        const cleanup = () => {
+          socket.off(SocketEvents.JOIN_GROUP_ROOM, handleJoinRoom as any);
+          socket.off('joinGroupRoom', handleJoinRoom as any);
+          socket.off('joinedGroupRoom', handleJoinRoom as any);
+          socket.off('groupRoomJoined', handleJoinRoom as any);
+          socket.off('groupMessages', handleJoinRoom as any);
+          socket.off('groupRoomMessages', handleJoinRoom as any);
+          socket.off(SocketEvents.ERROR, handleError as any);
+          socket.off('error', handleError as any);
+          socket.off(SocketEvents.CONNECT, emitJoin as any);
+          socket.off('connect', emitJoin as any);
+        };
+
+        timeout = setTimeout(async () => {
+          console.log('⏰ Socket timeout for group:', groupId, '- Loading cached messages instead');
+          cleanup();
+          
+          try {
+            const cachedMessages = await loadCachedMessages();
+            console.log('✅ Socket timeout - returning', cachedMessages.length, 'cached messages');
+            finish(cachedMessages);
+          } catch (error) {
+            console.error('❌ Failed to load cached messages on timeout:', error);
+            finish([]);
+          }
+        }, 15000);
+
+        [
+          SocketEvents.JOIN_GROUP_ROOM,
+          'joinGroupRoom',
+          'joinedGroupRoom',
+          'groupRoomJoined',
+          'groupMessages',
+          'groupRoomMessages',
+        ].forEach((evt) => socket.on(evt as any, handleJoinRoom));
+
+        [SocketEvents.ERROR, 'error'].forEach((evt) =>
+          socket.on(evt as any, handleError)
+        );
         
-        socket.emit('joinGroupRoom', {
-          roomID: groupId,
-          userID: user.id,
-        });
+        if (socket.connected) {
+          emitJoin();
+        } else {
+          socket.once(SocketEvents.CONNECT as any, emitJoin);
+          socket.once('connect' as any, emitJoin);
+          try {
+            socket.connect?.();
+          } catch {}
+        }
       });
     },
     enabled: !!groupId && initialCacheLoaded, // Wait for initial cache to load
@@ -778,7 +836,14 @@ export const useEnhancedGroupMessages = ({
     } catch (err) {
       console.error('❌ Failed to mark messages as read:', err);
       
-      // Add to offline queue if failed
+      const status = (err as any)?.response?.status;
+      const isNetworkLikeFailure = !status;
+      if (!isNetworkLikeFailure) return;
+
+      const now = Date.now();
+      if (now - lastQueuedReadAtRef.current < 30000) return;
+      lastQueuedReadAtRef.current = now;
+
       try {
         watermelonOfflineSyncManager.addToQueue('read_status', { groupId }, 2);
       } catch {}

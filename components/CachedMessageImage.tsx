@@ -1,4 +1,5 @@
-import { useMessageImageCache } from '@/hooks/useMessageImageCache';
+import { clearCache, getCacheStats, useMessageImageCache } from '@/hooks/useMessageImageCache';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
 
@@ -161,7 +162,6 @@ export const MessageImageCacheUtils = {
   // Get cache statistics for debugging
   getCacheInfo: async () => {
     try {
-      const { getCacheStats } = require('@/hooks/useMessageImageCache');
       return await getCacheStats();
     } catch (error) {
       console.error('❌ Failed to get cache info:', error);
@@ -172,7 +172,6 @@ export const MessageImageCacheUtils = {
   // Clear message image cache
   clearMessageImageCache: async () => {
     try {
-      const { clearCache } = require('@/hooks/useMessageImageCache');
       await clearCache();
       console.log('✅ Message image cache cleared');
     } catch (error) {

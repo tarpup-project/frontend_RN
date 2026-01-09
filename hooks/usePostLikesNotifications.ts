@@ -146,9 +146,9 @@ export const usePostLikesNotifications = () => {
         });
         
         // Only update notification store, don't increment individual notifications
-        setNotifications({
-          postLikesNotifications: newPostLikes.length
-        });
+        // setNotifications({
+        //   postLikesNotifications: newPostLikes.length
+        // });
 
         // DON'T automatically mark as seen - let user dismiss them manually
         console.log('🔔 New post likes ready to show - NOT marking as seen automatically');
@@ -174,9 +174,9 @@ export const usePostLikesNotifications = () => {
         setNewPostLikesCount(0);
         
         // Clear post likes notifications in store
-        setNotifications({
-          postLikesNotifications: 0
-        });
+      // // setNotifications({
+      //   postLikesNotifications: 0
+      // });
         
         console.log('✅ All post likes marked as seen');
       }
@@ -309,9 +309,9 @@ export const usePostLikesNotifications = () => {
       setNewPostLikesCount(0);
       
       // Clear post likes notifications in store
-      setNotifications({
-        postLikesNotifications: 0
-      });
+      // setNotifications({
+      //   postLikesNotifications: 0
+      // });
       
       console.log('✅ Cleared stored post likes data - refetching data...');
       

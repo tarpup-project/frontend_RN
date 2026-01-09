@@ -16,7 +16,7 @@ import { useGroupDetails } from "@/hooks/useGroups";
 import { useNotifications } from "@/hooks/useNotification";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect, useIsFocused } from "@react-navigation/native";
+import { useFocusEffect } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -91,7 +91,6 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   const [linkToConfirm, setLinkToConfirm] = useState<string | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
-  const isFocused = useIsFocused();
 
   const dynamicStyles = useMemo(
     () => ({
@@ -141,24 +140,12 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     console.log("🖼️ showImageModal state:", showImageModal);
   }, [showImageModal]);
 
-  useEffect(() => {
-    markAsRead();
-    refetchNotifications();
-  }, [markAsRead, refetchNotifications]);
-
   useFocusEffect(
     useCallback(() => {
       markAsRead();
       refetchNotifications();
     }, [markAsRead, refetchNotifications])
   );
-
-  useEffect(() => {
-    if (isFocused) {
-      markAsRead();
-      refetchNotifications();
-    }
-  }, [isFocused, markAsRead, refetchNotifications]);
 
   useEffect(() => {
     console.log("🔍 showGroupInfo state changed:", showGroupInfo);

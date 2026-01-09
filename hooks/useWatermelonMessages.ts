@@ -16,7 +16,7 @@ export const useWatermelonMessages = (groupId: string) => {
 
   // Subscribe to database changes for this group
   useEffect(() => {
-    if (!groupId) return;
+    if (!groupId || !messagesCollection) return;
 
     const subscription = messagesCollection
       .query(
@@ -33,6 +33,7 @@ export const useWatermelonMessages = (groupId: string) => {
   }, [groupId]);
 
   const loadMessages = async () => {
+    if (!messagesCollection) return;
     try {
       setIsLoading(true);
       setError(null);
@@ -75,40 +76,45 @@ export const useWatermelonMessages = (groupId: string) => {
       console.log('✅ Fetched', serverMessages.length, 'messages from server');
 
       // Update database
-      await database.write(async () => {
-        const batch: any[] = [];
+      const db = database;
+      const msgsCol = messagesCollection;
 
-        for (const serverMessage of serverMessages) {
-          // Check if message exists
-          const existingMessage = await messagesCollection
-            .query(Q.where('server_id', serverMessage.id))
-            .fetch();
+      if (db && msgsCol) {
+        await db.write(async () => {
+          const batch: any[] = [];
 
-          if (existingMessage.length === 0) {
-            // Create new message
-            batch.push(
-              messagesCollection.prepareCreate((m: any) => {
-                m.serverId = serverMessage.id;
-                m.groupId = groupId;
-                m.content = serverMessage.content;
-                m.senderId = serverMessage.sender.id;
-                m.senderName = serverMessage.sender.fname;
-                m.senderAvatar = serverMessage.sender.avatar;
-                m.replyToId = serverMessage.replyTo;
-                m.fileUrl = serverMessage.file?.url;
-                m.fileType = serverMessage.file?.type;
-                m.isPending = false;
-                m.isSynced = true;
-              })
-            );
+          for (const serverMessage of serverMessages) {
+            // Check if message exists
+            const existingMessage = await msgsCol
+              .query(Q.where('server_id', serverMessage.id))
+              .fetch();
+
+            if (existingMessage.length === 0) {
+              // Create new message
+              batch.push(
+                msgsCol.prepareCreate((m: any) => {
+                  m.serverId = serverMessage.id;
+                  m.groupId = groupId;
+                  m.content = serverMessage.content;
+                  m.senderId = serverMessage.sender.id;
+                  m.senderName = serverMessage.sender.fname;
+                  m.senderAvatar = serverMessage.sender.bgUrl;
+                  m.replyToId = serverMessage.replyTo;
+                  m.fileUrl = serverMessage.file?.url;
+                  m.fileType = serverMessage.file?.type;
+                  m.isPending = false;
+                  m.isSynced = true;
+                })
+              );
+            }
           }
-        }
 
-        if (batch.length > 0) {
-          await database.batch(...batch);
-          console.log('✅ Updated', batch.length, 'message records');
-        }
-      });
+          if (batch.length > 0) {
+            await db.batch(...batch);
+            console.log('✅ Updated', batch.length, 'message records');
+          }
+        });
+      }
     } catch (err: any) {
       console.error('❌ Fetch messages from server error:', err);
       throw err;
@@ -120,24 +126,30 @@ export const useWatermelonMessages = (groupId: string) => {
 
     setIsSending(true);
     const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    const db = database;
+    const msgsCol = messagesCollection;
+    const offlineCol = offlineActionsCollection;
 
     try {
       // Create optimistic message in database
-      await database.write(async () => {
-        await messagesCollection.create((m: any) => {
-          m.groupId = groupId;
-          m.content = content.trim();
-          m.senderId = user.id;
-          m.senderName = user.fname;
-          m.senderAvatar = user.avatar;
-          m.replyToId = replyTo;
-          m.fileUrl = file?.url;
-          m.fileType = file?.type;
-          m.tempId = tempId;
-          m.isPending = true;
-          m.isSynced = false;
+      if (db && msgsCol) {
+        await db.write(async () => {
+          await msgsCol.create((m: any) => {
+            m.groupId = groupId;
+            m.content = content.trim();
+            m.senderId = user.id;
+            m.senderName = user.fname;
+            m.senderAvatar = user.bgUrl;
+            m.replyToId = replyTo;
+            m.fileUrl = file?.url;
+            m.fileType = file?.type;
+            m.tempId = tempId;
+            m.isPending = true;
+            m.isSynced = false;
+          });
         });
-      });
+      }
 
       // Try to send to server
       try {
@@ -149,18 +161,20 @@ export const useWatermelonMessages = (groupId: string) => {
         });
 
         // Update message with server response
-        const pendingMessage = await messagesCollection
-          .query(Q.where('temp_id', tempId))
-          .fetch();
+        if (db && msgsCol) {
+          const pendingMessage = await msgsCol
+            .query(Q.where('temp_id', tempId))
+            .fetch();
 
-        if (pendingMessage.length > 0) {
-          await database.write(async () => {
-            await pendingMessage[0].update((m: any) => {
-              m.serverId = response.data.data.id;
-              m.isPending = false;
-              m.isSynced = true;
+          if (pendingMessage.length > 0) {
+            await db.write(async () => {
+              await pendingMessage[0].update((m: any) => {
+                m.serverId = response.data.data.id;
+                m.isPending = false;
+                m.isSynced = true;
+              });
             });
-          });
+          }
         }
 
         console.log('✅ Message sent successfully');
@@ -168,21 +182,23 @@ export const useWatermelonMessages = (groupId: string) => {
         console.log('📱 Network error - message queued for offline sync');
         
         // Add to offline sync queue
-        await database.write(async () => {
-          await offlineActionsCollection.create((action: any) => {
-            action.actionType = 'message';
-            action.data = JSON.stringify({
-              groupId,
-              message: content.trim(),
-              replyTo,
-              file,
-              tempId,
+        if (db && offlineCol) {
+          await db.write(async () => {
+            await offlineCol.create((action: any) => {
+              action.actionType = 'message';
+              action.data = JSON.stringify({
+                groupId,
+                message: content.trim(),
+                replyTo,
+                file,
+                tempId,
+              });
+              action.retryCount = 0;
+              action.maxRetries = 3;
+              action.isSynced = false;
             });
-            action.retryCount = 0;
-            action.maxRetries = 3;
-            action.isSynced = false;
           });
-        });
+        }
       }
 
       return true;
@@ -197,9 +213,14 @@ export const useWatermelonMessages = (groupId: string) => {
 
   const deleteMessage = async (messageId: string) => {
     try {
+      if (!messagesCollection || !database) return;
+
       const message = await messagesCollection.find(messageId);
       
+      if (!message) return;
+
       await database.write(async () => {
+        await message.markAsDeleted();
         await message.destroyPermanently();
       });
 
@@ -211,17 +232,21 @@ export const useWatermelonMessages = (groupId: string) => {
           console.log('📱 Network error - delete queued for offline sync');
           
           // Add to offline sync queue
-          await database.write(async () => {
-            await offlineActionsCollection.create((action: any) => {
-              action.actionType = 'delete_message';
-              action.data = JSON.stringify({
-                messageId: message.serverId,
+          const offlineCol = offlineActionsCollection;
+          const db = database;
+          if (offlineCol && db) {
+            await db.write(async () => {
+              await offlineCol.create((action: any) => {
+                action.actionType = 'delete_message';
+                action.data = JSON.stringify({
+                  messageId: message.serverId,
+                });
+                action.retryCount = 0;
+                action.maxRetries = 3;
+                action.isSynced = false;
               });
-              action.retryCount = 0;
-              action.maxRetries = 3;
-              action.isSynced = false;
             });
-          });
+          }
         }
       }
     } catch (err: any) {
@@ -231,8 +256,11 @@ export const useWatermelonMessages = (groupId: string) => {
   };
 
   const retryPendingMessages = async () => {
+    const msgsCol = messagesCollection;
+    if (!msgsCol) return;
+
     try {
-      const pendingMessages = await messagesCollection
+      const pendingMessages = await msgsCol
         .query(
           Q.where('group_id', groupId),
           Q.where('is_pending', true)

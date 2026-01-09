@@ -9,6 +9,7 @@ export interface AuthUserInterface {
     isStudent: boolean;
     profileVerified: boolean;
     phoneNumber: string;
+    countryCode?: string;
     major?: string;
     bio?: string;
     year?: string;

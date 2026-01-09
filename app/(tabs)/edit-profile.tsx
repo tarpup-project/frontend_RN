@@ -7,6 +7,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import * as SecureStore from 'expo-secure-store';
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {

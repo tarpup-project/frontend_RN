@@ -33,8 +33,13 @@ try {
     ],
   });
 
-  isWatermelonAvailable = true;
-  console.log('✅ WatermelonDB initialized');
+  // FIXME: WatermelonDB implementation is incomplete. Temporarily disabling it.
+  // isWatermelonAvailable = true;
+  // console.log('✅ WatermelonDB initialized');
+  
+  console.warn('⚠️ WatermelonDB initialized but temporarily disabled (using AsyncStorage fallback)');
+  isWatermelonAvailable = false;
+  asyncStorageDB.initialize();
 } catch (error) {
   console.warn('⚠️ WatermelonDB not available, using AsyncStorage fallback:', error);
   isWatermelonAvailable = false;

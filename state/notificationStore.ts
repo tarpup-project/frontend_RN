@@ -4,12 +4,20 @@ interface NotificationState {
   groupNotifications: number;
   personalNotifications: number;
   chatNotifications: number;
+  followerNotifications: number;
+  friendPostsNotifications: number;
+  postLikesNotifications: number;
+  commentsNotifications: number;
   initialized: boolean;
   
   setNotifications: (notifications: {
     groupNotifications?: number;
     personalNotifications?: number;
     chatNotifications?: number;
+    followerNotifications?: number;
+    friendPostsNotifications?: number;
+    postLikesNotifications?: number;
+    commentsNotifications?: number;
   }) => void;
   
   setLists: (lists: {
@@ -18,17 +26,21 @@ interface NotificationState {
   
   markInitialized: () => void;
   
-  clearNotifications: (type?: 'group' | 'personal' | 'chat') => void;
+  clearNotifications: (type?: 'group' | 'personal' | 'chat' | 'follower' | 'friendPosts' | 'postLikes' | 'comments') => void;
   
-  incrementNotification: (type: 'group' | 'personal' | 'chat') => void;
+  incrementNotification: (type: 'group' | 'personal' | 'chat' | 'follower' | 'friendPosts' | 'postLikes' | 'comments') => void;
   
-  decrementNotification: (type: 'group' | 'personal' | 'chat') => void;
+  decrementNotification: (type: 'group' | 'personal' | 'chat' | 'follower' | 'friendPosts' | 'postLikes' | 'comments') => void;
 }
 
 export const useNotificationStore = create<NotificationState>((set) => ({
   groupNotifications: 0,
   personalNotifications: 0,
   chatNotifications: 0,
+  followerNotifications: 0,
+  friendPostsNotifications: 0,
+  postLikesNotifications: 0,
+  commentsNotifications: 0,
   initialized: false,
 
   setNotifications: (notifications) => {
@@ -52,6 +64,10 @@ export const useNotificationStore = create<NotificationState>((set) => ({
         groupNotifications: 0,
         personalNotifications: 0,
         chatNotifications: 0,
+        followerNotifications: 0,
+        friendPostsNotifications: 0,
+        postLikesNotifications: 0,
+        commentsNotifications: 0,
         initialized: false,
       });
     } else {
