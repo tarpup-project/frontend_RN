@@ -214,7 +214,7 @@ export const useGroups = () => {
 const fetchGroupDetails = async (groupId: string): Promise<Group> => {
   try {
     const response = await api.get<{ data: Group }>(
-      UrlConstants.fetchGroupDetails(groupId) 
+      UrlConstants.fetchInviteGroupDetails(groupId) 
     );
     
     return response.data.data;

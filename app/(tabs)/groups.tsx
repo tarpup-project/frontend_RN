@@ -117,6 +117,9 @@ const Groups = () => {
   // Preload profile pictures for better performance
   useImagePreloader(groups || []);
 
+  // Note: NewChatModal and NewGroupModal automatically preload friends data
+  // in the background when this component mounts, ensuring instant modal opening
+
   const handleManualRefresh = async () => {
     setIsManualRefreshing(true);
     await refresh();
@@ -249,6 +252,7 @@ const Groups = () => {
       id: group.id,
       name: group.name,
       description: group.description,
+      isComplete: group.isComplete || false,
       members: group.members?.map((member: any) => ({
         id: member.id,
         fname: member.fname,
@@ -478,13 +482,26 @@ const Groups = () => {
                     >
                       {displayMessage}
                     </Text>
-                    {group.unreadCount > 0 && (
-                      <View style={[styles.newMessagesBadge, { backgroundColor: isDark ? "#8B4A47" : "#F8BBD9" }]}>
-                        <Text style={[styles.newMessagesText, { color: isDark ? "#FFFFFF" : "#000000" }]}>
-                          {group.unreadCount}
-                        </Text>
-                      </View>
-                    )}
+                    <View style={styles.dmBadgesContainer}>
+                      {group.rawGroup?.isComplete && (
+                        <View style={[styles.completedBadge, { 
+                          backgroundColor: isDark ? "#FFFFFF" : "#000000"
+                        }]}>
+                          <Text style={[styles.completedBadgeText, { 
+                            color: isDark ? "#000000" : "#FFFFFF" 
+                          }]}>
+                            Completed
+                          </Text>
+                        </View>
+                      )}
+                      {group.unreadCount > 0 && (
+                        <View style={[styles.newMessagesBadge, { backgroundColor: isDark ? "#8B4A47" : "#F8BBD9" }]}>
+                          <Text style={[styles.newMessagesText, { color: isDark ? "#FFFFFF" : "#000000" }]}>
+                            {group.unreadCount}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
                 </View>
               </View>
@@ -539,33 +556,48 @@ const Groups = () => {
                   };
 
                   return (
-                    <View
-                      style={[
-                        styles.categoryBadge,
-                        { 
-                          backgroundColor: isDark ? "#FFFFFF" : "#000000",
-                          borderWidth: 0,
-                        }
-                      ]}
-                    >
-                      <Ionicons
-                        name={config.icon as any}
-                        size={14}
-                        color={config.color}
-                      />
-                      <Text
+                    <>
+                      <View
                         style={[
-                          styles.categoryText,
+                          styles.categoryBadge,
                           { 
-                            color: isDark ? "#000000" : "#FFFFFF",
-                            fontWeight: "700",
-                            fontSize: 9,
+                            backgroundColor: isDark ? "#FFFFFF" : "#000000",
+                            borderWidth: 0,
                           }
                         ]}
                       >
-                        {formatCategoryName(group.category)}
-                      </Text>
-                    </View>
+                        <Ionicons
+                          name={config.icon as any}
+                          size={14}
+                          color={config.color}
+                        />
+                        <Text
+                          style={[
+                            styles.categoryText,
+                            { 
+                              color: isDark ? "#000000" : "#FFFFFF",
+                              fontWeight: "700",
+                              fontSize: 9,
+                            }
+                          ]}
+                        >
+                          {formatCategoryName(group.category)}
+                        </Text>
+                      </View>
+                      
+                      {/* Completed badge next to category badge for non-general categories */}
+                      {group.rawGroup?.isComplete && (
+                        <View style={[styles.completedBadge, { 
+                          backgroundColor: isDark ? "#FFFFFF" : "#000000"
+                        }]}>
+                          <Text style={[styles.completedBadgeText, { 
+                            color: isDark ? "#000000" : "#FFFFFF" 
+                          }]}>
+                            Completed
+                          </Text>
+                        </View>
+                      )}
+                    </>
                   );
                 })()}
                 
@@ -762,7 +794,7 @@ const Groups = () => {
           </View>
           <Text style={[styles.pageSubtitle, dynamicStyles.subtitle]}>
             Prompt-matched groups and direct messages
-            {selectedUniversity && ` • ${selectedUniversity.name}`}
+            
           </Text>
         </View>
 
@@ -869,14 +901,14 @@ const Groups = () => {
       </ScrollView>
       </Pressable>
       
-      {/* New Chat Modal */}
+      {/* New Chat Modal - Cached (content only renders when visible) */}
       <NewChatModal
         visible={showNewChatModal}
         onClose={() => setShowNewChatModal(false)}
         onChatCreated={handleChatCreated}
       />
       
-      {/* New Group Modal */}
+      {/* New Group Modal - Cached (content only renders when visible) */}
       <NewGroupModal
         visible={showNewGroupModal}
         onClose={() => setShowNewGroupModal(false)}
@@ -1271,6 +1303,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
     marginTop: 4,
+  },
+  completedBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  completedBadgeText: {
+    fontSize: 10,
+    fontWeight: "600",
+  },
+  dmBadgesContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   cacheToggle: {
     position: 'absolute',

@@ -44,16 +44,34 @@ export default function NewGroupModal({ visible, onClose, onGroupCreated }: NewG
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
 
   // Load friends when modal opens or search query changes
+  // Load friends when component mounts (background loading)
   useEffect(() => {
-    if (visible) {
-      loadFriends();
+    loadFriends(true); // Show loading for initial load
+    
+    // Set up periodic refresh every 30 seconds in background
+    const interval = setInterval(() => {
+      loadFriends(false); // Background refresh without loading state
+    }, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  // Only trigger search filtering when modal is visible and search query changes
+  useEffect(() => {
+    if (visible && searchQuery) {
+      // Filter existing friends instead of making new API call
+      // This is handled by filteredFriends computed property
     }
   }, [visible, searchQuery]);
 
-  // Load friends from API
-  const loadFriends = async () => {
+  // Load friends from API with background loading support
+  const loadFriends = async (showLoading = false) => {
     try {
-      setIsLoading(true);
+      // Only show loading state for initial load or when explicitly requested
+      if (showLoading && friends.length === 0) {
+        setIsLoading(true);
+      }
+      
       console.log('Loading friends for new group...');
       
       const response = await api.get('/groups/friends', {
@@ -79,9 +97,14 @@ export default function NewGroupModal({ visible, onClose, onGroupCreated }: NewG
       }
     } catch (error: any) {
       console.error('Error loading friends:', error);
-      setFriends([]);
+      // Don't clear existing friends on background refresh errors
+      if (friends.length === 0) {
+        setFriends([]);
+      }
     } finally {
-      setIsLoading(false);
+      if (showLoading) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -153,10 +176,12 @@ export default function NewGroupModal({ visible, onClose, onGroupCreated }: NewG
   };
 
   const handleClose = () => {
+    // Clear form data but keep friends cached
     setSearchQuery("");
     setGroupName("");
     setSelectedFriends(new Set());
-    setFriends([]);
+    // Don't clear friends data - keep it cached for next time
+    // setFriends([]);
     onClose();
   };
 
@@ -169,35 +194,36 @@ export default function NewGroupModal({ visible, onClose, onGroupCreated }: NewG
       presentationStyle="pageSheet"
       onRequestClose={handleClose}
     >
-      <View style={[styles.container, { backgroundColor: isDark ? "#000000" : "#FFFFFF" }]}>
-        {/* Header */}
-        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-          <View style={styles.headerContent}>
-            <View style={styles.headerTextContainer}>
-              <Text style={[styles.headerTitle, { color: isDark ? "#FFFFFF" : "#000000" }]}>
-                New Group Chat
-              </Text>
-              <View style={styles.subtitleContainer}>
-                <Text style={[styles.headerSubtitle, { color: isDark ? "#9AA0A6" : "#666666" }]}>
-                  Select friends to add to your group
+      {visible && (
+        <View style={[styles.container, { backgroundColor: isDark ? "#000000" : "#FFFFFF" }]}>
+          {/* Header */}
+          <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+            <View style={styles.headerContent}>
+              <View style={styles.headerTextContainer}>
+                <Text style={[styles.headerTitle, { color: isDark ? "#FFFFFF" : "#000000" }]}>
+                  New Group Chat
                 </Text>
+                <View style={styles.subtitleContainer}>
+                  <Text style={[styles.headerSubtitle, { color: isDark ? "#9AA0A6" : "#666666" }]}>
+                    Select friends to add to your group
+                  </Text>
+                </View>
               </View>
             </View>
+            <Pressable style={styles.closeButton} onPress={handleClose}>
+              <Ionicons name="close" size={24} color={isDark ? "#FFFFFF" : "#000000"} />
+            </Pressable>
           </View>
-          <Pressable style={styles.closeButton} onPress={handleClose}>
-            <Ionicons name="close" size={24} color={isDark ? "#FFFFFF" : "#000000"} />
-          </Pressable>
-        </View>
 
-        {/* Group Name Input */}
-        <View style={styles.inputSection}>
-          <Text style={[styles.inputLabel, { color: isDark ? "#FFFFFF" : "#000000" }]}>
-            Group Name (Optional)
-          </Text>
-          <TextInput
-            style={[
-              styles.groupNameInput,
-              {
+          {/* Group Name Input */}
+          <View style={styles.inputSection}>
+            <Text style={[styles.inputLabel, { color: isDark ? "#FFFFFF" : "#000000" }]}>
+              Group Name (Optional)
+            </Text>
+            <TextInput
+              style={[
+                styles.groupNameInput,
+                {
                 backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
                 borderColor: isDark ? "#333333" : "#E0E0E0",
                 color: isDark ? "#FFFFFF" : "#000000"
@@ -226,7 +252,7 @@ export default function NewGroupModal({ visible, onClose, onGroupCreated }: NewG
 
         {/* Friends List */}
         <ScrollView style={styles.friendsList} showsVerticalScrollIndicator={false}>
-          {isLoading ? (
+          {isLoading && friends.length === 0 ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={isDark ? "#FFFFFF" : "#000000"} />
               <Text style={[styles.loadingText, { color: isDark ? "#9AA0A6" : "#666666" }]}>
@@ -366,7 +392,8 @@ export default function NewGroupModal({ visible, onClose, onGroupCreated }: NewG
             </View>
           </View>
         )}
-      </View>
+        </View>
+      )}
     </Modal>
   );
 }

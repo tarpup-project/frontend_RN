@@ -30,6 +30,7 @@ interface ChatHeaderProps {
   navigateToProfile: (userId: string) => void;
   isCached?: boolean;
   isRefreshing?: boolean;
+  onRefresh?: () => void;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -41,6 +42,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   navigateToProfile,
   isCached = false,
   isRefreshing = false,
+  onRefresh,
 }) => {
   const { isDark } = useTheme();
   const router = useRouter();
@@ -140,6 +142,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           onToggleDropdown={onToggleDropdown}
           onShowGroupInfo={onShowGroupInfo}
           onLeaveSuccess={onLeaveSuccess}
+          onRefresh={onRefresh}
         />
       </View>
     </View>
