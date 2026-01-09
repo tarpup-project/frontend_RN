@@ -167,6 +167,8 @@ export const useGroups = () => {
         'heart': 'heart-outline',
         'cart': 'cart-outline',
         'shopping-cart': 'cart-outline',
+        'games': 'game-controller-outline',
+        'gamepad': 'game-controller-outline',
       };
       
       return iconMap[categoryIcon || ''] || 'pricetag-outline';
