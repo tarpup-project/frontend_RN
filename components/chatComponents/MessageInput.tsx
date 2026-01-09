@@ -31,6 +31,7 @@ interface MessageInputProps {
   selectImageFromCamera: () => void;
   selectFile: () => void;
   isSending?: boolean; // Add this prop to track sending state
+  isComplete?: boolean; // Add this prop to track completion status
 }
 
 export const MessageInput: React.FC<MessageInputProps> = ({
@@ -49,6 +50,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   selectImageFromCamera,
   selectFile,
   isSending = false, // Default to false
+  isComplete = false, // Default to false
 }) => {
   const { isDark } = useTheme();
   const textInputRef = useRef<TextInput>(null);
@@ -136,121 +138,133 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
   return (
     <>
-      {replyingTo && (
-        <View style={[styles.replyPreview, dynamicStyles.replyPreview]}>
-          <View style={styles.replyBar} />
-          <View style={styles.replyContent}>
-            <Text style={[styles.replyAuthor, dynamicStyles.text]}>
-              Replying to {replyingTo.sender.fname}
-            </Text>
-            <Text
-              style={[styles.replyText, dynamicStyles.subtitle]}
-              numberOfLines={1}
-            >
-              {replyingTo.content.message}
-            </Text>
-          </View>
-          {replyingTo.file && (
-            <Image
-              source={{ uri: replyingTo.file.data }}
-              style={styles.replyImage}
-            />
+      {/* Show completion message instead of input if group is completed */}
+      {isComplete ? (
+        <View style={[styles.completionMessage, dynamicStyles.replyPreview]}>
+          <Ionicons name="checkmark-circle" size={20} color="#4ADE80" />
+          <Text style={[styles.completionText, dynamicStyles.text]}>
+            This chat has been marked as complete by the admin
+          </Text>
+        </View>
+      ) : (
+        <>
+          {replyingTo && (
+            <View style={[styles.replyPreview, dynamicStyles.replyPreview]}>
+              <View style={styles.replyBar} />
+              <View style={styles.replyContent}>
+                <Text style={[styles.replyAuthor, dynamicStyles.text]}>
+                  Replying to {replyingTo.sender.fname}
+                </Text>
+                <Text
+                  style={[styles.replyText, dynamicStyles.subtitle]}
+                  numberOfLines={1}
+                >
+                  {replyingTo.content.message}
+                </Text>
+              </View>
+              {replyingTo.file && (
+                <Image
+                  source={{ uri: replyingTo.file.data }}
+                  style={styles.replyImage}
+                />
+              )}
+              <Pressable onPress={onCancelReply} style={styles.cancelReply}>
+                <Ionicons
+                  name="close"
+                  size={20}
+                  color={dynamicStyles.subtitle.color}
+                />
+              </Pressable>
+            </View>
           )}
-          <Pressable onPress={onCancelReply} style={styles.cancelReply}>
-            <Ionicons
-              name="close"
-              size={20}
-              color={dynamicStyles.subtitle.color}
+
+          {selectedFile && (
+            <View style={[styles.filePreview, dynamicStyles.replyPreview]}>
+              <Image
+                source={{ uri: selectedFile.data }}
+                style={styles.previewImage}
+              />
+              <View style={styles.fileInfo}>
+                <Text
+                  style={[styles.fileName, dynamicStyles.text]}
+                  numberOfLines={1}
+                >
+                  {selectedFile.name}
+                </Text>
+                <Text style={[styles.fileSize, dynamicStyles.subtitle]}>
+                  {selectedFile.size} bytes
+                </Text>
+              </View>
+              <Pressable onPress={onRemoveFile} style={styles.removeFile}>
+                <Ionicons name="close" size={24} color="#FF3B30" />
+              </Pressable>
+            </View>
+          )}
+
+          <View style={styles.inputSection}>
+            <Pressable style={styles.attachButton} onPress={handleAttachment}>
+              <Ionicons name="attach" size={24} color={dynamicStyles.text.color} />
+            </Pressable>
+            <TextInput
+              ref={textInputRef}
+              style={[styles.input, dynamicStyles.input]}
+              placeholder="Type a message..."
+              placeholderTextColor={isDark ? "#666666" : "#999999"}
+              value={message}
+              onChangeText={onChangeMessage}
+              multiline
+              maxLength={1000}
             />
-          </Pressable>
-        </View>
-      )}
 
-      {selectedFile && (
-        <View style={[styles.filePreview, dynamicStyles.replyPreview]}>
-          <Image
-            source={{ uri: selectedFile.data }}
-            style={styles.previewImage}
-          />
-          <View style={styles.fileInfo}>
-            <Text
-              style={[styles.fileName, dynamicStyles.text]}
-              numberOfLines={1}
-            >
-              {selectedFile.name}
-            </Text>
-            <Text style={[styles.fileSize, dynamicStyles.subtitle]}>
-              {selectedFile.size} bytes
-            </Text>
-          </View>
-          <Pressable onPress={onRemoveFile} style={styles.removeFile}>
-            <Ionicons name="close" size={24} color="#FF3B30" />
-          </Pressable>
-        </View>
-      )}
-
-      <View style={styles.inputSection}>
-        <Pressable style={styles.attachButton} onPress={handleAttachment}>
-          <Ionicons name="attach" size={24} color={dynamicStyles.text.color} />
-        </Pressable>
-        <TextInput
-          ref={textInputRef}
-          style={[styles.input, dynamicStyles.input]}
-          placeholder="Type a message..."
-          placeholderTextColor={isDark ? "#666666" : "#999999"}
-          value={message}
-          onChangeText={onChangeMessage}
-          multiline
-          maxLength={1000}
-        />
-
-        {!isJoined ? (
-          <Pressable
-            style={[styles.sendButton, dynamicStyles.sendButton]}
-            onPress={onJoinGroup}
-            disabled={isJoining}
-          >
-            {isJoining ? (
-              <ActivityIndicator
-                size="small"
-                color={dynamicStyles.sendIcon.color}
-              />
-            ) : (
-              <Text
-                style={[
-                  { fontSize: 12, fontWeight: "600" },
-                  dynamicStyles.sendIcon,
-                ]}
+            {!isJoined ? (
+              <Pressable
+                style={[styles.sendButton, dynamicStyles.sendButton]}
+                onPress={onJoinGroup}
+                disabled={isJoining}
               >
-                Join
-              </Text>
-            )}
-          </Pressable>
-        ) : (
-          <Pressable
-            style={[
-              styles.sendButton,
-              dynamicStyles.sendButton,
-              (!message.trim() && !selectedFile) || isLocalSending || isSending ? { opacity: 0.5 } : {},
-            ]}
-            onPress={handleSend}
-            disabled={(!message.trim() && !selectedFile) || isLocalSending || isSending}
-          >
-            {isLocalSending || isSending ? (
-              <ActivityIndicator
-                size="small"
-                color={dynamicStyles.sendIcon.color}
-              />
+                {isJoining ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={dynamicStyles.sendIcon.color}
+                  />
+                ) : (
+                  <Text
+                    style={[
+                      { fontSize: 12, fontWeight: "600" },
+                      dynamicStyles.sendIcon,
+                    ]}
+                  >
+                    Join
+                  </Text>
+                )}
+              </Pressable>
             ) : (
-              <Ionicons
-                name="send"
-                size={20}
-                color={dynamicStyles.sendIcon.color}
-              />
+              <Pressable
+                style={[
+                  styles.sendButton,
+                  dynamicStyles.sendButton,
+                  (!message.trim() && !selectedFile) || isLocalSending || isSending ? { opacity: 0.5 } : {},
+                ]}
+                onPress={handleSend}
+                disabled={(!message.trim() && !selectedFile) || isLocalSending || isSending}
+              >
+                {isLocalSending || isSending ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={dynamicStyles.sendIcon.color}
+                  />
+                ) : (
+                  <Ionicons
+                    name="send"
+                    size={20}
+                    color={dynamicStyles.sendIcon.color}
+                  />
+                )}
+              </Pressable>
             )}
-          </Pressable>
-        )}
-      </View>
+          </View>
+        </>
+      )}
     </>
   );
 };
@@ -341,5 +355,16 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
+  },
+  completionMessage: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderTopWidth: 1,
+    gap: 8,
+  },
+  completionText: {
+    fontSize: 14,
+    flex: 1,
   },
 });

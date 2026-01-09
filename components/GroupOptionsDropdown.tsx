@@ -1,18 +1,19 @@
 import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useGroupActions } from "@/hooks/useGroupActions";
+import { useGroupDetails } from "@/hooks/useGroups";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  Alert,
-  Modal,
-  Pressable,
-  StyleSheet,
-  TextInput,
-  View,
+    Alert,
+    Modal,
+    Pressable,
+    StyleSheet,
+    TextInput,
+    View,
 } from "react-native";
 import { toast } from "sonner-native";
 
@@ -23,6 +24,7 @@ interface GroupDetailsType {
   isJoined: boolean | undefined;
   isAdmin: boolean | undefined;
   isComplete: boolean;
+  members?: any[];
 }
 
 interface GroupOptionsDropdownProps {
@@ -31,6 +33,7 @@ interface GroupOptionsDropdownProps {
   onToggleDropdown: () => void;
   onShowGroupInfo: () => void;
   onLeaveSuccess: () => void;
+  onRefresh?: () => void;
 }
 
 export const GroupOptionsDropdown = ({
@@ -39,10 +42,12 @@ export const GroupOptionsDropdown = ({
   onToggleDropdown,
   onShowGroupInfo,
   onLeaveSuccess,
+  onRefresh,
 }: GroupOptionsDropdownProps) => {
   const { isDark } = useTheme();
   const { user } = useAuthStore();
   const router = useRouter();
+  
   const {
     leaveGroup,
     reportGroup,
@@ -52,11 +57,49 @@ export const GroupOptionsDropdown = ({
     isMarkingComplete,
   } = useGroupActions();
 
+  // Fetch detailed group info when dropdown is shown
+  const { data: detailedGroupData, refetch: refetchGroupDetails } = useGroupDetails(groupDetails.id);
+  
   const [showReportModal, setShowReportModal] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [reportReason, setReportReason] = useState("spam");
   const [reportDetails, setReportDetails] = useState("");
+  const [isUserAdmin, setIsUserAdmin] = useState(false);
+
+  // Check if user is admin when dropdown is shown or detailed data changes
+  useEffect(() => {
+    if (showDropdown) {
+      // Use detailed data if available, otherwise fallback to prop data
+      const data = detailedGroupData || groupDetails;
+      
+      if (data) {
+        // Check if current user is admin
+        let isAdmin = data.isAdmin || false;
+        
+        // Fallback: If isAdmin is false, check if user is the first member
+        // (Backend convention: Creator/Admin is often the first member)
+        if (!isAdmin && user?.id && data.members && Array.isArray(data.members) && data.members.length > 0) {
+          const firstMember = data.members[0];
+          // Handle case where member might be an ID string or an object with ID
+          const firstMemberId = typeof firstMember === 'string' ? firstMember : firstMember.id;
+          
+          if (firstMemberId === user.id) {
+            isAdmin = true;
+          }
+        }
+        
+        setIsUserAdmin(isAdmin);
+      }
+    }
+  }, [showDropdown, detailedGroupData, groupDetails, user?.id]);
+
+  // Refetch group details when dropdown is opened
+  useEffect(() => {
+    if (showDropdown) {
+      refetchGroupDetails();
+    }
+  }, [showDropdown, refetchGroupDetails]);
 
   const dynamicStyles = {
     text: {
@@ -106,6 +149,11 @@ export const GroupOptionsDropdown = ({
     const success = await markAsCompleted(groupDetails.id);
     setShowCompleteModal(false);
     if (success) {
+      if (onRefresh) {
+        onRefresh();
+      }
+      // Update local state to reflect completion
+      setIsUserAdmin(false); // Hide the option after completion
       router.back();
     }
   };
@@ -183,7 +231,7 @@ export const GroupOptionsDropdown = ({
             </Pressable>
           )}
 
-          {groupDetails.isAdmin && !groupDetails.isComplete && (
+          {isUserAdmin && !detailedGroupData?.isComplete && (
             <Pressable
               style={styles.dropdownItem}
               onPress={() => {
@@ -348,7 +396,7 @@ export const GroupOptionsDropdown = ({
         <View style={styles.centeredModalContainer}>
           <View style={[styles.confirmModal, dynamicStyles.modal]}>
             <Text style={[styles.confirmTitle, dynamicStyles.text]}>
-              Are you sure you want to mark "{groupDetails.name}" as completed?
+              Are you sure you want to mark "{detailedGroupData?.name || groupDetails.name}" as completed?
             </Text>
 
             <View style={styles.confirmButtons}>

@@ -24,7 +24,6 @@ import {
     Animated,
     Keyboard,
     KeyboardAvoidingView,
-    Linking,
     Platform,
     Pressable,
     StyleSheet,
@@ -66,6 +65,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     data: groupDetails,
     isLoading: groupLoading,
     error: groupError,
+    refetch: refetchGroupDetails,
   } = useGroupDetails(groupId);
   const finalGroupDetails = passedGroupData || groupDetails;
 
@@ -274,6 +274,14 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     }
   }, [linkToConfirm]);
 
+  const handleRefresh = useCallback(async () => {
+    try {
+      await refetchGroupDetails();
+    } catch (error) {
+      console.error('Failed to refresh group details:', error);
+    }
+  }, [refetchGroupDetails]);
+
   const handleShowGroupInfo = useCallback(() => {
     console.log("🔍 handleShowGroupInfo called!");
     setIconPosition({ x: 0, y: 100 }); 
@@ -315,6 +323,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
             navigateToProfile={navigateToProfile}
             isCached={isCached}
             isRefreshing={isRefreshing}
+            onRefresh={handleRefresh}
           />
 
           <MessageList
@@ -383,6 +392,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
           selectImageFromCamera={selectImageFromCamera}
           selectFile={selectFile}
           isSending={isSending}
+          isComplete={finalGroupDetails?.isComplete || passedGroupData?.isComplete || false}
         />
       </KeyboardAvoidingView>
   );

@@ -41,17 +41,34 @@ export default function NewChatModal({ visible, onClose, onChatCreated }: NewCha
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreatingChat, setIsCreatingChat] = useState(false);
 
-  // Load friends when modal opens or search query changes
+  // Load friends when component mounts (background loading)
   useEffect(() => {
-    if (visible) {
-      loadFriends();
+    loadFriends(true); // Show loading for initial load
+    
+    // Set up periodic refresh every 30 seconds in background
+    const interval = setInterval(() => {
+      loadFriends(false); // Background refresh without loading state
+    }, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  // Only trigger search filtering when modal is visible and search query changes
+  useEffect(() => {
+    if (visible && searchQuery) {
+      // Filter existing friends instead of making new API call
+      // This is handled by filteredFriends computed property
     }
   }, [visible, searchQuery]);
 
-  // Load friends from API
-  const loadFriends = async () => {
+  // Load friends from API with background loading support
+  const loadFriends = async (showLoading = false) => {
     try {
-      setIsLoading(true);
+      // Only show loading state for initial load or when explicitly requested
+      if (showLoading && friends.length === 0) {
+        setIsLoading(true);
+      }
+      
       console.log('Loading friends for new chat...');
       
       const response = await api.get('/groups/friends', {
@@ -77,9 +94,14 @@ export default function NewChatModal({ visible, onClose, onChatCreated }: NewCha
       }
     } catch (error: any) {
       console.error('Error loading friends:', error);
-      setFriends([]);
+      // Don't clear existing friends on background refresh errors
+      if (friends.length === 0) {
+        setFriends([]);
+      }
     } finally {
-      setIsLoading(false);
+      if (showLoading) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -136,8 +158,10 @@ export default function NewChatModal({ visible, onClose, onChatCreated }: NewCha
   };
 
   const handleClose = () => {
+    // Only clear search query, keep friends data cached
     setSearchQuery("");
-    setFriends([]);
+    // Don't clear friends data - keep it cached for next time
+    // setFriends([]);
     onClose();
   };
 
@@ -148,56 +172,57 @@ export default function NewChatModal({ visible, onClose, onChatCreated }: NewCha
       presentationStyle="pageSheet"
       onRequestClose={handleClose}
     >
-      <View style={[styles.container, { backgroundColor: isDark ? "#000000" : "#FFFFFF" }]}>
-        {/* Header */}
-        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-          <View style={styles.headerContent}>
-            <View style={styles.headerTextContainer}>
-              <Text style={[styles.headerTitle, { color: isDark ? "#FFFFFF" : "#000000" }]}>
-                New Chat
-              </Text>
-              <Text style={[styles.headerSubtitle, { color: isDark ? "#9AA0A6" : "#666666" }]}>
-                Select a friend or follower to start chatting
-              </Text>
+      {visible && (
+        <View style={[styles.container, { backgroundColor: isDark ? "#000000" : "#FFFFFF" }]}>
+          {/* Header */}
+          <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+            <View style={styles.headerContent}>
+              <View style={styles.headerTextContainer}>
+                <Text style={[styles.headerTitle, { color: isDark ? "#FFFFFF" : "#000000" }]}>
+                  New Chat
+                </Text>
+                <Text style={[styles.headerSubtitle, { color: isDark ? "#9AA0A6" : "#666666" }]}>
+                  Select a friend or follower to start chatting
+                </Text>
+              </View>
             </View>
+            <Pressable style={styles.closeButton} onPress={handleClose}>
+              <Ionicons name="close" size={24} color={isDark ? "#FFFFFF" : "#000000"} />
+            </Pressable>
           </View>
-          <Pressable style={styles.closeButton} onPress={handleClose}>
-            <Ionicons name="close" size={24} color={isDark ? "#FFFFFF" : "#000000"} />
-          </Pressable>
-        </View>
 
-        {/* Search Bar */}
-        <View style={[styles.searchContainer, { backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5" }]}>
-          <Ionicons name="search" size={20} color={isDark ? "#9AA0A6" : "#666666"} />
-          <TextInput
-            style={[styles.searchInput, { color: isDark ? "#FFFFFF" : "#000000" }]}
-            placeholder="Search friends and followers..."
-            placeholderTextColor={isDark ? "#9AA0A6" : "#666666"}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCapitalize="none"
-          />
-        </View>
+          {/* Search Bar */}
+          <View style={[styles.searchContainer, { backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5" }]}>
+            <Ionicons name="search" size={20} color={isDark ? "#9AA0A6" : "#666666"} />
+            <TextInput
+              style={[styles.searchInput, { color: isDark ? "#FFFFFF" : "#000000" }]}
+              placeholder="Search friends and followers..."
+              placeholderTextColor={isDark ? "#9AA0A6" : "#666666"}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
+            />
+          </View>
 
-        {/* Friends List */}
-        <ScrollView style={styles.friendsList} showsVerticalScrollIndicator={false}>
-          {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={isDark ? "#FFFFFF" : "#000000"} />
-              <Text style={[styles.loadingText, { color: isDark ? "#9AA0A6" : "#666666" }]}>
-                Loading friends...
-              </Text>
-            </View>
-          ) : filteredFriends.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Ionicons name="people-outline" size={48} color={isDark ? "#666666" : "#999999"} />
-              <Text style={[styles.emptyText, { color: isDark ? "#666666" : "#999999" }]}>
-                {searchQuery ? 'No friends found' : 'No friends available'}
-              </Text>
-              <Text style={[styles.emptySubtext, { color: isDark ? "#666666" : "#999999" }]}>
-                {searchQuery ? 'Try a different search term' : 'Add some friends to start chatting'}
-              </Text>
-            </View>
+          {/* Friends List */}
+          <ScrollView style={styles.friendsList} showsVerticalScrollIndicator={false}>
+            {isLoading && friends.length === 0 ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={isDark ? "#FFFFFF" : "#000000"} />
+                <Text style={[styles.loadingText, { color: isDark ? "#9AA0A6" : "#666666" }]}>
+                  Loading friends...
+                </Text>
+              </View>
+            ) : filteredFriends.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Ionicons name="people-outline" size={48} color={isDark ? "#666666" : "#999999"} />
+                <Text style={[styles.emptyText, { color: isDark ? "#666666" : "#999999" }]}>
+                  {searchQuery ? 'No friends found' : 'No friends available'}
+                </Text>
+                <Text style={[styles.emptySubtext, { color: isDark ? "#666666" : "#999999" }]}>
+                  {searchQuery ? 'Try a different search term' : 'Add some friends to start chatting'}
+                </Text>
+              </View>
           ) : (
             filteredFriends.map((friend) => (
               <Pressable
@@ -266,7 +291,8 @@ export default function NewChatModal({ visible, onClose, onChatCreated }: NewCha
             </View>
           </View>
         )}
-      </View>
+        </View>
+      )}
     </Modal>
   );
 }
