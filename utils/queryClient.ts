@@ -62,4 +62,18 @@ export const CacheUtils = {
     // We will use 'REACT_QUERY_OFFLINE_CACHE' in _layout.tsx
     await AsyncStorage.removeItem('REACT_QUERY_OFFLINE_CACHE');
   },
+
+  // Get cache statistics
+  getCacheStats: () => {
+    const queryCache = queryClient.getQueryCache();
+    const allQueries = queryCache.getAll();
+    const staleQueries = allQueries.filter(q => q.isStale());
+    const fetchingQueries = allQueries.filter(q => q.state.status === 'pending');
+    
+    return {
+      total: allQueries.length,
+      stale: staleQueries.length,
+      fetching: fetchingQueries.length,
+    };
+  },
 };

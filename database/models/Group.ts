@@ -54,9 +54,15 @@ export default class Group extends Model {
 
   // Transform to UI format
   toUIFormat() {
+    const serverCreatedAt = this.createdAt?.toISOString?.() || new Date().toISOString();
+    const serverUpdatedAt = this.updatedAt?.toISOString?.() || serverCreatedAt;
+    const serverLastMessageAt = this.lastMessageAt
+      ? new Date(this.lastMessageAt).toISOString()
+      : undefined;
+
     return {
-      id: this.id,
       serverId: this.serverId,
+      id: this.serverId,
       category: this.categoryName || 'General',
       title: this.name,
       description: this.description,
@@ -68,7 +74,28 @@ export default class Group extends Model {
         : `Created ${this.getTimeAgo(this.createdAt.getTime())}`,
       categoryIcon: this.categoryIconName,
       rawGroup: {
-        ...this,
+        id: this.serverId,
+        name: this.name,
+        description: this.description || '',
+        score: this.score,
+        unread: this.unreadCount,
+        isComplete: false,
+        isJoined: true,
+        isAdmin: false,
+        createdAt: serverCreatedAt,
+        updatedAt: serverUpdatedAt,
+        lastMessageAt: serverLastMessageAt,
+        members: [],
+        category: this.categoryId
+          ? [
+              {
+                id: this.categoryId,
+                name: this.categoryName || 'General',
+                icon: this.categoryIcon || '',
+                bgColorHex: '#2563EB',
+              },
+            ]
+          : [],
         // Include last message data for UI
         lastMessage: this.lastMessageContent ? {
           content: this.lastMessageContent,

@@ -9,12 +9,12 @@ export const StorageTest: React.FC = () => {
     const runTest = async () => {
       try {
         // Test basic storage
-        StorageUtils.set('test_key', { message: 'Hello Storage!' });
-        const retrieved = StorageUtils.get('test_key');
+        await StorageUtils.set('test_key', { message: 'Hello Storage!' });
+        const retrieved: any = await StorageUtils.get('test_key');
         
         // Test cache with TTL
-        StorageUtils.setCache('test_cache', { data: 'Cached data' }, 5000); // 5 seconds
-        const cached = StorageUtils.getCache('test_cache');
+        await StorageUtils.setCache('test_cache', { data: 'Cached data' }, 5000); // 5 seconds
+        const cached: any = await StorageUtils.getCache('test_cache');
         
         if (retrieved?.message === 'Hello Storage!' && cached?.data === 'Cached data') {
           setTestResult('✅ Storage system working correctly');
