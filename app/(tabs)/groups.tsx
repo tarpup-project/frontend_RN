@@ -15,11 +15,11 @@ import { useRouter } from "expo-router";
 import moment from "moment";
 import React, { useState } from "react";
 import {
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    View
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View
 } from "react-native";
 
 const GroupSkeletonCard = ({ isDark }: { isDark: boolean }) => {
@@ -479,8 +479,8 @@ const Groups = () => {
                       {displayMessage}
                     </Text>
                     {group.unreadCount > 0 && (
-                      <View style={[styles.newMessagesBadge, { backgroundColor: "#EF4444" }]}>
-                        <Text style={[styles.newMessagesText, { color: "#FFFFFF" }]}>
+                      <View style={[styles.newMessagesBadge, { backgroundColor: isDark ? "#8B4A47" : "#F8BBD9" }]}>
+                        <Text style={[styles.newMessagesText, { color: isDark ? "#FFFFFF" : "#000000" }]}>
                           {group.unreadCount}
                         </Text>
                       </View>
@@ -572,33 +572,33 @@ const Groups = () => {
                 {/* Status Badge Removed */}
               </View>
 
-              <View
-                style={[
-                  styles.matchBadge, 
-                  { 
-                    backgroundColor: "#3B82F6",
-                    borderWidth: 1,
-                    borderColor: "rgba(0,0,0,0.1)"
-                  }
-                ]}
-              >
-                <Ionicons
-                  name="star"
-                  size={10}
-                  color="#FFFFFF"
-                />
-                <Text
-                  style={[
-                    styles.matchText, 
-                    { 
-                      color: "#FFFFFF",
-                      fontWeight: "700",
-                    }
-                  ]}
-                >
-                  {group.matchPercentage}% match
-                </Text>
-              </View>
+        <View
+          style={[
+            styles.matchBadge,
+            {
+              backgroundColor: isDark ? "#2D5A2D" : "#78ebcaff",
+ },
+          ]}
+        >
+          <Ionicons
+            name={isDark ? "star" : "star-outline"}
+            size={10}
+            color={isDark ? "#FFFFFF" : "#1F3D2B"} // dark outline color
+          />
+
+          <Text
+            style={[
+              styles.matchText,
+              {
+                color: isDark ? "#FFFFFF" : "#1F3D2B",
+                fontWeight: "700",
+              },
+            ]}
+          >
+            {group.matchPercentage}% match
+          </Text>
+        </View>
+
             </View>
 
             <Text style={[styles.groupTitle, dynamicStyles.text]}>
@@ -672,10 +672,10 @@ const Groups = () => {
               </View>
 
               <View
-                style={[styles.unreadBadge, { backgroundColor: "#EF4444" }]}
+                style={[styles.unreadBadge, { backgroundColor: isDark ? "#8B4A47" : "#F8BBD9" }]}
               >
                 <Text
-                  style={[styles.unreadText, { color: "#FFFFFF" }]}
+                  style={[styles.unreadText, { color: isDark ? "#FFFFFF" : "#000000" }]}
                 >
                   {group.unreadCount} new messages
                 </Text>
@@ -1229,7 +1229,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   newMessagesBadge: {
-    backgroundColor: "#EF4444",
     borderRadius: 12,
     minWidth: 24,
     height: 24,
