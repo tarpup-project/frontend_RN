@@ -216,7 +216,7 @@ export const GroupOptionsDropdown = ({
       const data = detailedGroupData || groupDetails;
       
       if (data) {
-        // Check if current user is admin
+        // Check if current user is admin - rely on backend data
         let isAdmin = data.isAdmin || false;
         
         // Fallback: If isAdmin is false, check if user is the first member
@@ -229,12 +229,6 @@ export const GroupOptionsDropdown = ({
           if (firstMemberId === user.id) {
             isAdmin = true;
           }
-        }
-        
-        // NEW: Auto-grant admin rights if the group name doesn't look like a person's name
-        // This handles cases like "Roommate Wanted", "Study Group", etc.
-        if (!isAdmin && data.name && !isPersonName(data.name)) {
-          isAdmin = true;
         }
         
         setIsUserAdmin(isAdmin);
@@ -432,8 +426,8 @@ export const GroupOptionsDropdown = ({
                 Report Group
               </Text>
               <Pressable onPress={() => setShowReportModal(false)}>
-  <Ionicons name="close" size={24} color={dynamicStyles.text.color} />
-</Pressable>
+                <Ionicons name="close" size={24} color={dynamicStyles.text.color} />
+              </Pressable>
             </View>
 
             <Text style={[styles.reportSubtitle, dynamicStyles.subtitle]}>
