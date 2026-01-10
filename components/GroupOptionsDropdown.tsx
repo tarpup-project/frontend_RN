@@ -282,12 +282,16 @@ export const GroupOptionsDropdown = ({
     }
   };
 
-  const handleLeaveGroup = async () => {
-    const success = await leaveGroup(groupDetails.id);
+  const handleLeaveGroup = () => {
+    // Optimistically close modal and navigate back
     setShowLeaveModal(false);
-    if (success) {
-      onLeaveSuccess();
-    }
+    onLeaveSuccess();
+
+    // Perform leave action in background
+    leaveGroup(groupDetails.id).catch((error) => {
+      console.error("Failed to leave group in background:", error);
+      // Note: error handling is managed within useGroupActions including rollback
+    });
   };
 
   const handleMarkComplete = async () => {
