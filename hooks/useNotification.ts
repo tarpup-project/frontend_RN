@@ -3,6 +3,7 @@ import { UrlConstants } from "@/constants/apiUrls";
 import { useAuthStore } from "@/state/authStore";
 import { useNotificationStore } from "@/state/notificationStore";
 import { useEffect } from "react";
+import { AppState } from "react-native";
 
 interface NotificationResponse {
   groupNotifications: number;
@@ -12,7 +13,6 @@ interface NotificationResponse {
 export const useNotifications = () => {
   const { isAuthenticated, user } = useAuthStore();
   const {
-    setNotifications,
     groupNotifications,
     personalNotifications,
     chatNotifications,
@@ -20,6 +20,9 @@ export const useNotifications = () => {
     friendPostsNotifications,
     postLikesNotifications,
     commentsNotifications,
+    pendingMatchesNotifications,
+    setNotifications,
+    incrementNotification,
   } = useNotificationStore();
 
   const fetchNotifications = async () => {
@@ -71,8 +74,41 @@ export const useNotifications = () => {
   useEffect(() => {
     if (!isAuthenticated || !user) return;
 
-    // All notification polling disabled - notifications header is now blank
-    console.log('⚠️ All notification polling disabled');
+    // Enable automatic notification polling every 30 seconds for more responsive counters
+    console.log('🔄 Starting automatic notification polling');
+    
+    const interval = setInterval(() => {
+      console.log('📊 Fetching notifications automatically');
+      fetchNotifications();
+    }, 30000); // Poll every 30 seconds
+
+    // Initial fetch after 2 seconds
+    const initialTimeout = setTimeout(() => {
+      fetchNotifications();
+    }, 2000);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(initialTimeout);
+    };
+  }, [isAuthenticated, user]);
+
+  // Listen for app state changes to refresh notifications when app becomes active
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+
+    const handleAppStateChange = (nextAppState: string) => {
+      if (nextAppState === 'active') {
+        console.log('📱 App became active, refreshing notifications');
+        fetchNotifications();
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+    return () => {
+      subscription?.remove();
+    };
   }, [isAuthenticated, user]);
 
   return {
@@ -83,6 +119,9 @@ export const useNotifications = () => {
     friendPostsNotifications,
     postLikesNotifications,
     commentsNotifications,
+    pendingMatchesNotifications,
     refetchNotifications: fetchNotifications,
+    incrementNotification,
+    setNotifications,
   };
 };

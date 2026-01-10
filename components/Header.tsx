@@ -4,6 +4,7 @@ import { Text } from "@/components/Themedtext";
 import { UrlConstants } from "@/constants/apiUrls";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useNotifications } from "@/hooks/useNotification";
+import { usePendingMatches } from "@/hooks/usePendingMatches";
 import { useAuthStore } from "@/state/authStore";
 import { useNotificationStore } from "@/state/notificationStore";
 import { Ionicons } from "@expo/vector-icons";
@@ -207,6 +208,9 @@ const Header = () => {
     markInitialized,
   } = useNotificationStore();
   const { groupNotifications, personalNotifications: apiPersonalNotifications } = useNotifications();
+  const { pendingMatches, markMatchAsViewed, unviewedCount } = usePendingMatches();
+  const unviewedMatchesCount = unviewedCount !== undefined ? unviewedCount : pendingMatches.length;
+
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showNotificationPanel, setShowNotificationPanel] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -627,24 +631,27 @@ const Header = () => {
     }
   }, [showNotificationPanel, isAuthenticated]);
 
-  useEffect(() => { 
-    const pulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 0.95,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    pulse.start();
-    return () => pulse.stop();
-  }, []);
+  useEffect(() => {
+    // Start pulse animation if there are notifications or pending matches
+    if ((notifications.some((n: any) => !n.isRead) || unviewedMatchesCount > 0) && isAuthenticated) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.05,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    } else {
+      pulseAnim.setValue(1);
+    }
+  }, [notifications, unviewedMatchesCount, isAuthenticated]);
 
   const handleNotificationPress = () => {
     if (!isAuthenticated) {
@@ -768,10 +775,11 @@ const Header = () => {
                   AI Chat
                 </Text>
               </View>
-              {personalNotifications > 0 && (
+              {/* Show badge for pending matches */}
+              {unviewedMatchesCount > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>
-                    {personalNotifications > 99 ? '99+' : personalNotifications}
+                    {unviewedMatchesCount > 9 ? '9+' : unviewedMatchesCount}
                   </Text>
                 </View>
               )}
@@ -1026,8 +1034,8 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: "absolute",
-    top: -4,
-    right: -4,
+    top: -16,
+    right: -18,
     backgroundColor: "#EF4444",
     borderRadius: 10,
     minWidth: 20,

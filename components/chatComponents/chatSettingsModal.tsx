@@ -8,7 +8,7 @@ import { useMatchAction, usePendingMatches } from "@/hooks/usePendingMatches";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import moment from "moment";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { toast } from "sonner-native";
 
@@ -406,7 +406,7 @@ const ActivePromptsTab = ({
 const PendingMatchesTab = () => {
   const { isDark } = useTheme();
   const router = useRouter();
-  const { pendingMatches: matches = [], isLoading, refetchPendingMatches } = usePendingMatches();
+  const { pendingMatches: matches = [], isLoading, refetchPendingMatches, markMatchAsViewed } = usePendingMatches();
   const { mutateAsync } = useMatchAction();
   const [loadingAction, setLoadingAction] = useState<{
     id: string;
@@ -425,6 +425,20 @@ const PendingMatchesTab = () => {
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
   };
+
+  useEffect(() => {
+    // Mark all matches as viewed when this tab is opened
+    if (matches.length > 0) {
+      // Small delay to ensure user sees them briefly before clearing badge
+      const timer = setTimeout(() => {
+        matches.forEach(match => {
+          markMatchAsViewed(match.id);
+        });
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [matches.length]);
 
   const handleAction = async (matchId: string, action: "private" | "public" | "decline" | "add") => {
     setLoadingAction({ id: matchId, type: action });
