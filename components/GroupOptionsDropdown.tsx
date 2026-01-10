@@ -8,12 +8,12 @@ import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    Alert,
-    Modal,
-    Pressable,
-    StyleSheet,
-    TextInput,
-    View,
+  Alert,
+  Modal,
+  Pressable,
+  StyleSheet,
+  TextInput,
+  View,
 } from "react-native";
 import { toast } from "sonner-native";
 
@@ -67,8 +67,146 @@ export const GroupOptionsDropdown = ({
   const [reportDetails, setReportDetails] = useState("");
   const [isUserAdmin, setIsUserAdmin] = useState(false);
 
+  // Function to detect if a name looks like a person's name
+  const isPersonName = (name: string): boolean => {
+    if (!name) return false;
+    
+    const normalizedName = name.trim().toLowerCase();
+    
+    // Common patterns that indicate it's NOT a person's name
+    const nonPersonPatterns = [
+      /roommate/i,
+      /wanted/i,
+      /looking for/i,
+      /seeking/i,
+      /need/i,
+      /study group/i,
+      /study buddy/i,
+      /project/i,
+      /assignment/i,
+      /homework/i,
+      /tutor/i,
+      /help/i,
+      /ride/i,
+      /carpool/i,
+      /share/i,
+      /sell/i,
+      /buy/i,
+      /trade/i,
+      /exchange/i,
+      /market/i,
+      /book/i,
+      /textbook/i,
+      /furniture/i,
+      /apartment/i,
+      /housing/i,
+      /sublease/i,
+      /sublet/i,
+      /rent/i,
+      /lease/i,
+      /group/i,
+      /team/i,
+      /club/i,
+      /event/i,
+      /party/i,
+      /meetup/i,
+      /hangout/i,
+      /friends/i,
+      /gaming/i,
+      /game/i,
+      /workout/i,
+      /gym/i,
+      /fitness/i,
+      /sports/i,
+      /basketball/i,
+      /soccer/i,
+      /tennis/i,
+      /volleyball/i,
+      /football/i,
+      /baseball/i,
+      /class/i,
+      /course/i,
+      /lecture/i,
+      /lab/i,
+      /discussion/i,
+      /section/i,
+      /cs\s*\d+/i, // CS101, CS 101, etc.
+      /math\s*\d+/i, // MATH101, MATH 101, etc.
+      /eng\s*\d+/i, // ENG101, ENG 101, etc.
+      /bio\s*\d+/i, // BIO101, BIO 101, etc.
+      /chem\s*\d+/i, // CHEM101, CHEM 101, etc.
+      /phys\s*\d+/i, // PHYS101, PHYS 101, etc.
+      /econ\s*\d+/i, // ECON101, ECON 101, etc.
+      /psyc\s*\d+/i, // PSYC101, PSYC 101, etc.
+      /hist\s*\d+/i, // HIST101, HIST 101, etc.
+      /\d{3,}/i, // Any 3+ digit numbers (course codes)
+    ];
+    
+    // Check if name matches any non-person patterns
+    const matchesNonPersonPattern = nonPersonPatterns.some(pattern => pattern.test(normalizedName));
+    
+    if (matchesNonPersonPattern) {
+      return false;
+    }
+    
+    // Additional checks for person names
+    const words = normalizedName.split(/\s+/);
+    
+    // If it's 1-2 words and doesn't match non-person patterns, likely a person
+    if (words.length <= 2) {
+      // Check if it contains common first names or looks like a name
+      const commonFirstNames = [
+        'john', 'jane', 'mike', 'sarah', 'david', 'emily', 'chris', 'jessica',
+        'michael', 'ashley', 'james', 'amanda', 'robert', 'melissa', 'william',
+        'stephanie', 'richard', 'nicole', 'joseph', 'elizabeth', 'thomas', 'heather',
+        'charles', 'michelle', 'daniel', 'kimberly', 'matthew', 'donna', 'anthony',
+        'carol', 'mark', 'ruth', 'donald', 'sharon', 'steven', 'laura', 'paul',
+        'sandra', 'andrew', 'kathy', 'joshua', 'cynthia', 'kenneth', 'amy',
+        'kevin', 'angela', 'brian', 'shirley', 'george', 'anna', 'edward', 'brenda',
+        'ronald', 'emma', 'timothy', 'olivia', 'jason', 'wayne', 'jeffrey', 'ryan',
+        'jacob', 'gary', 'nicholas', 'noah', 'jonathan', 'brandon', 'justin',
+        'gregory', 'samuel', 'alexander', 'patrick', 'benjamin', 'jack', 'dennis',
+        'jerry', 'tyler', 'aaron', 'jose', 'henry', 'adam', 'douglas', 'nathan',
+        'peter', 'zachary', 'kyle', 'walter', 'harold', 'carl', 'arthur', 'gerald',
+        'roger', 'keith', 'jeremy', 'lawrence', 'sean', 'christian', 'ethan',
+        'austin', 'joe', 'albert', 'mason', 'roy', 'eugene', 'louis', 'wayne',
+        'ralph', 'bobby', 'russell', 'louis', 'philip', 'johnny', 'hieu', 'nguyen',
+        'alex', 'sam', 'max', 'ben', 'tom', 'tim', 'jim', 'bob', 'dan', 'matt',
+        'nick', 'rick', 'steve', 'dave', 'pete', 'tony', 'andy', 'jeff', 'bill',
+        'will', 'rob', 'ron', 'don', 'ken', 'ray', 'lee', 'jay', 'guy', 'art'
+      ];
+      
+      const firstWord = words[0];
+      if (commonFirstNames.includes(firstWord)) {
+        return true;
+      }
+      
+      // Check if it looks like a name (starts with capital, reasonable length)
+      if (firstWord.length >= 2 && firstWord.length <= 15 && /^[a-z]+$/.test(firstWord)) {
+        return true;
+      }
+    }
+    
+    return false;
+  };
+
   // Determine if this is a 1-on-1 chat or group chat
-  const isPersonalChat = (detailedGroupData?.members?.length || groupDetails.members?.length || 0) <= 2;
+  // Use the same name detection logic to determine chat type
+  const isPersonalChat = (() => {
+    const memberCount = (detailedGroupData?.members?.length || groupDetails.members?.length || 0);
+    
+    // If 2 or fewer members AND the name looks like a person's name, it's a personal chat
+    if (memberCount <= 2) {
+      const data = detailedGroupData || groupDetails;
+      if (data?.name && isPersonName(data.name)) {
+        return true;
+      }
+    }
+    
+    // Otherwise, it's a group chat
+    return false;
+  })();
+  
   const chatType = isPersonalChat ? 'chat' : 'group';
 
   // Check if user is admin when dropdown is shown or detailed data changes
@@ -91,6 +229,12 @@ export const GroupOptionsDropdown = ({
           if (firstMemberId === user.id) {
             isAdmin = true;
           }
+        }
+        
+        // NEW: Auto-grant admin rights if the group name doesn't look like a person's name
+        // This handles cases like "Roommate Wanted", "Study Group", etc.
+        if (!isAdmin && data.name && !isPersonName(data.name)) {
+          isAdmin = true;
         }
         
         setIsUserAdmin(isAdmin);

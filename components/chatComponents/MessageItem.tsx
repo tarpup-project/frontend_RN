@@ -73,7 +73,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
   // Animation values for swipe-to-reply
   const translateX = useSharedValue(0);
   const replyIconOpacity = useSharedValue(0);
-  const replyIconScale = useSharedValue(0.8);
+  const replyIconScale = useSharedValue(0.7);
 
   // Helper function to calculate reply reference dimensions based on content
   const getReplyDimensions = (message: string) => {
@@ -124,50 +124,69 @@ export const MessageItem: React.FC<MessageItemProps> = ({
   };
 
   const swipeGesture = Gesture.Pan()
-    .activeOffsetX([-15, 15])
-    .failOffsetY([-25, 25])
+    .activeOffsetX(msg.isMe ? [-20, 0] : [0, 20]) // Only allow swipe in correct direction
+    .failOffsetY([-30, 30]) // Prevent vertical scrolling interference
     .simultaneousWithExternalGesture(scrollGesture)
     .onUpdate((event) => {
       const { translationX } = event;
       
-      // Only allow swipe in the correct direction based on message sender
-      const maxSwipe = msg.isMe ? -80 : 80;
-      const swipeDirection = msg.isMe ? translationX < 0 : translationX > 0;
+      // Define max swipe distance and direction
+      const maxSwipe = 70;
+      const isCorrectDirection = msg.isMe ? translationX < 0 : translationX > 0;
       
-      if (swipeDirection) {
-        // Constrain the swipe distance
-        const clampedTranslation = msg.isMe 
-          ? Math.max(translationX, maxSwipe)
-          : Math.min(translationX, maxSwipe);
+      if (isCorrectDirection) {
+        // Smooth constraint with resistance at the end
+        let clampedTranslation;
+        const absTranslation = Math.abs(translationX);
+        
+        if (absTranslation <= maxSwipe) {
+          clampedTranslation = translationX;
+        } else {
+          // Add resistance beyond max swipe
+          const resistance = 0.3;
+          const excess = absTranslation - maxSwipe;
+          const resistedExcess = excess * resistance;
+          clampedTranslation = msg.isMe 
+            ? -(maxSwipe + resistedExcess)
+            : (maxSwipe + resistedExcess);
+        }
         
         translateX.value = clampedTranslation;
         
-        // Calculate opacity and scale for reply icon based on swipe progress
-        const progress = Math.abs(clampedTranslation) / Math.abs(maxSwipe);
+        // Smooth icon animation based on progress
+        const progress = Math.min(Math.abs(clampedTranslation) / maxSwipe, 1);
         replyIconOpacity.value = interpolate(
           progress,
-          [0, 0.3, 1],
-          [0, 0.5, 1],
+          [0, 0.2, 0.8, 1],
+          [0, 0.3, 0.9, 1],
           Extrapolate.CLAMP
         );
         replyIconScale.value = interpolate(
           progress,
           [0, 0.5, 1],
-          [0.8, 1, 1.2],
+          [0.7, 1, 1.1],
           Extrapolate.CLAMP
         );
+      } else {
+        // Prevent movement in wrong direction
+        translateX.value = 0;
+        replyIconOpacity.value = 0;
+        replyIconScale.value = 0.7;
       }
     })
     .onEnd((event) => {
-      const { translationX, velocityX, translationY } = event;
-      const swipeThreshold = 60;
-      const velocityThreshold = 300;
+      const { translationX, velocityX } = event;
+      const swipeThreshold = 50;
+      const velocityThreshold = 200;
       
       // Check if swipe meets the threshold for triggering reply
+      const absTranslation = Math.abs(translationX);
+      const absVelocity = Math.abs(velocityX);
+      const isCorrectDirection = msg.isMe ? translationX < 0 : translationX > 0;
+      
       const shouldTriggerReply = 
-        Math.abs(translationX) > swipeThreshold &&
-        Math.abs(velocityX) > velocityThreshold &&
-        Math.abs(translationY) < 30 &&
+        isCorrectDirection &&
+        (absTranslation > swipeThreshold || absVelocity > velocityThreshold) &&
         msg.rawMessage &&
         onReply;
       
@@ -176,13 +195,20 @@ export const MessageItem: React.FC<MessageItemProps> = ({
         runOnJS(onReply)(msg.rawMessage);
       }
       
-      // Animate back to original position
+      // Smooth spring back to original position
       translateX.value = withSpring(0, {
-        damping: 20,
-        stiffness: 300,
+        damping: 15,
+        stiffness: 200,
+        mass: 0.8,
       });
-      replyIconOpacity.value = withSpring(0);
-      replyIconScale.value = withSpring(0.8);
+      replyIconOpacity.value = withSpring(0, {
+        damping: 15,
+        stiffness: 200,
+      });
+      replyIconScale.value = withSpring(0.7, {
+        damping: 15,
+        stiffness: 200,
+      });
     });
 
   // Animated styles for the message container
