@@ -186,15 +186,6 @@ export default function CreatePostScreen() {
     }
   }, [allMedia]);
 
-  // Auto-select first photo when media is loaded
-  useEffect(() => {
-    if (allMedia.length > 0 && selectedImages.length === 0) {
-      const firstMediaUri = allMedia[0].uri;
-      setSelectedImages([firstMediaUri]);
-      setPreviewIndex(0); // Always preview the first selected image
-      console.log('Auto-selected first media:', firstMediaUri);
-    }
-  }, [allMedia]);
 
   const getCurrentLocation = async () => {
     try {
