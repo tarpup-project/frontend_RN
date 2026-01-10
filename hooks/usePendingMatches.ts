@@ -1,6 +1,7 @@
 import { api } from "@/api/client";
 import { UrlConstants } from "@/constants/apiUrls";
 import { useAuthStore } from "@/state/authStore";
+import { usePendingMatchesStore } from "@/state/pendingMatchesStore";
 import { useEffect, useState } from "react";
 
 interface UserPendingMatchesInterface {
@@ -49,6 +50,8 @@ export const usePendingMatches = () => {
   const [pendingMatches, setPendingMatches] = useState<UserPendingMatchesInterface[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const viewedMatchIds = usePendingMatchesStore(state => state.viewedMatchIds);
+  const markAsViewed = usePendingMatchesStore(state => state.markAsViewed);
 
   const fetchPendingMatches = async () => {
     if (!isAuthenticated || !user) return;
@@ -112,8 +115,8 @@ export const usePendingMatches = () => {
   const markMatchAsViewed = async (matchId: string) => {
     try {
       console.log("Marking match as viewed:", matchId);
-      // Remove from local state after viewing
-      setPendingMatches(prev => prev.filter(match => match.id !== matchId));
+      // Mark as viewed in store instead of removing from local state
+      markAsViewed(matchId);
     } catch (error) {
       console.error("Failed to mark match as viewed:", error);
     }
@@ -149,8 +152,14 @@ export const usePendingMatches = () => {
     return () => clearInterval(interval);
   }, [isAuthenticated, user]);
 
+  // Calculate unviewed count
+  const unviewedCount = Array.isArray(pendingMatches) 
+    ? pendingMatches.filter(match => !viewedMatchIds.has(match.id)).length 
+    : 0;
+
   return {
     pendingMatches: Array.isArray(pendingMatches) ? pendingMatches : [],
+    unviewedCount,
     data: Array.isArray(pendingMatches) ? pendingMatches.map(match => ({
       ...match,
       // Add compatibility properties for existing components

@@ -5,14 +5,33 @@ import { useNotifications } from "@/hooks/useNotification";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Platform } from "react-native";
 
 export default function TabLayout() {
   const { isDark } = useTheme();
   const { isAuthenticated } = useAuthStore();
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const { groupNotifications, personalNotifications, followerNotifications } = useNotifications();
+  const { 
+    groupNotifications, 
+    personalNotifications, 
+    refetchNotifications 
+  } = useNotifications();
+
+  // Refresh notifications when tab layout mounts or when switching tabs
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log('🔄 Tab layout active, refreshing notifications');
+      refetchNotifications();
+    }
+  }, [isAuthenticated, refetchNotifications]);
+
+  // Listen for socket events to update notifications in real-time
+  useEffect(() => {
+    // This hook is now redundant as SocketProvider handles it, 
+    // but we'll keep it for now or remove if causing issues.
+    // The key is that ProtectedTabIcon uses the reactive values from useNotifications hook
+  }, []);
 
   return (
     <>
@@ -136,7 +155,7 @@ export default function TabLayout() {
         color={isAuthenticated ? color : "#999999"}
         focused={focused}
         isProtected={!isAuthenticated}
-        notificationCount={isAuthenticated ? personalNotifications : 0}
+        notificationCount={0}
       />
     )
   }}
