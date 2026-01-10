@@ -1,14 +1,14 @@
 import { api } from '@/api/client';
 import { UrlConstants } from '@/constants/apiUrls';
+import { Group } from '@/types/groups';
 import { subscribeToGroupTopic, unsubscribeFromGroupTopic } from '@/utils/topicManager';
+import { useQueryClient } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Share } from 'react-native';
 import { toast } from 'sonner-native';
-import { useQueryClient } from '@tanstack/react-query';
-import { groupsKeys } from './useGroups';
 import { useCampus } from './useCampus';
-import { Group } from '@/types/groups';
+import { groupsKeys } from './useGroups';
 
 interface ReportGroupData {
   groupID: string;
@@ -24,6 +24,13 @@ export const useGroupActions = () => {
   
   const queryClient = useQueryClient();
   const { selectedUniversity } = useCampus();
+  const mounted = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   const joinGroup = async (groupID: string): Promise<boolean> => {
     setIsJoining(true);
@@ -83,7 +90,9 @@ export const useGroupActions = () => {
       
       return false;
     } finally {
-      setIsLeaving(false);
+      if (mounted.current) {
+        setIsLeaving(false);
+      }
     }
   };
 

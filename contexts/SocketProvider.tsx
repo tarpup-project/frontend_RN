@@ -1,9 +1,10 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { io, Socket } from 'socket.io-client';
-import { UrlConstants } from '@/constants/apiUrls';
 import { api } from '@/api/client';
+import { UrlConstants } from '@/constants/apiUrls';
 import { useAuthStore } from '@/state/authStore';
-import { SocketInterface, SocketState, SocketEvents } from '@/types/socket';
+import { useNotificationStore } from '@/state/notificationStore';
+import { SocketEvents, SocketInterface, SocketState } from '@/types/socket';
+import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import { io, Socket } from 'socket.io-client';
 
 // Socket Context
 const SocketContext = createContext<SocketInterface | undefined>(undefined);
@@ -21,6 +22,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     reconnecting: false,
   });
   const { user } = useAuthStore();
+  const { incrementNotification } = useNotificationStore();
 
   // Refresh user authentication if socket gets unauthorized
   const refreshUser = async () => {
@@ -102,6 +104,15 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
           error: data.message || 'Socket connection error',
         }));
       }
+    });
+
+    // Listen for new group messages globally to update badges
+    newSocket.on(SocketEvents.GROUP_ROOM_MESSAGE, (data) => {
+      // Don't count own messages
+      if (data.sender?.id === user?.id || data.senderId === user?.id) return;
+      
+      console.log('🔔 New message received via socket, updating badge');
+      incrementNotification('group');
     });
 
     setSocket(newSocket);

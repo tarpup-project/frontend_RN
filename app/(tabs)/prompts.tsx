@@ -6,21 +6,23 @@ import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useCampus } from "@/hooks/useCampus";
+import { groupsKeys } from "@/hooks/useGroups";
 import { usePrompts } from "@/hooks/usePrompts";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
+import { useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import moment from "moment";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  Image,
-  Modal,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  View,
+    ActivityIndicator,
+    Image,
+    Modal,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    View,
 } from "react-native";
 import { toast } from "sonner-native";
 
@@ -74,6 +76,7 @@ const SkeletonCard = ({ isDark }: { isDark: boolean }) => {
 const Prompts = () => {
   const { isDark } = useTheme();
   const { user, isAuthenticated } = useAuthStore();
+  const queryClient = useQueryClient();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showFullImage, setShowFullImage] = useState<string | null>(null);
   const [showReportModal, setShowReportModal] = useState<string | null>(null);
@@ -159,7 +162,10 @@ const Prompts = () => {
     try {
       if (publicGroupId) {
         await joinPublicGroup(publicGroupId);
-        toast.success("Joined group successfully!");
+        // Silently reload groups list in background
+        await queryClient.invalidateQueries({ queryKey: groupsKeys.list(selectedUniversity?.id) });
+        
+        toast.success("Wait while your group is created");
         router.push("/(tabs)/groups");
       } else {
         await submitRequest(promptId);
