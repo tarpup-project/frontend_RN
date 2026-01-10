@@ -67,10 +67,14 @@ export const GroupOptionsDropdown = ({
   const [reportDetails, setReportDetails] = useState("");
   const [isUserAdmin, setIsUserAdmin] = useState(false);
 
+  // Determine if this is a 1-on-1 chat or group chat
+  const isPersonalChat = (detailedGroupData?.members?.length || groupDetails.members?.length || 0) <= 2;
+  const chatType = isPersonalChat ? 'chat' : 'group';
+
   // Check if user is admin when dropdown is shown or detailed data changes
   useEffect(() => {
-    if (showDropdown) {
-      // Use detailed data if available, otherwise fallback to prop data
+    if (showDropdown && !isPersonalChat) {
+      // Only check admin status for group chats, not personal chats
       const data = detailedGroupData || groupDetails;
       
       if (data) {
@@ -91,8 +95,11 @@ export const GroupOptionsDropdown = ({
         
         setIsUserAdmin(isAdmin);
       }
+    } else if (isPersonalChat) {
+      // Personal chats don't have admin concept
+      setIsUserAdmin(false);
     }
-  }, [showDropdown, detailedGroupData, groupDetails, user?.id]);
+  }, [showDropdown, detailedGroupData, groupDetails, user?.id, isPersonalChat]);
 
   // Refetch group details when dropdown is opened
   useEffect(() => {
@@ -222,7 +229,7 @@ export const GroupOptionsDropdown = ({
             </Pressable>
           )}
 
-          {groupDetails.shareLink && (
+          {groupDetails.shareLink && !isPersonalChat && (
             <Pressable style={styles.dropdownItem} onPress={handleShareGroup}>
               <Ionicons name="share-outline" size={16} color={dynamicStyles.text.color} />
               <Text style={[styles.dropdownText, dynamicStyles.text]}>
@@ -231,7 +238,7 @@ export const GroupOptionsDropdown = ({
             </Pressable>
           )}
 
-          {isUserAdmin && !detailedGroupData?.isComplete && (
+          {!isPersonalChat && isUserAdmin && !detailedGroupData?.isComplete && (
             <Pressable
               style={styles.dropdownItem}
               onPress={() => {
@@ -261,7 +268,7 @@ export const GroupOptionsDropdown = ({
             >
               <Ionicons name="close" size={16} color="#FF3B30" />
               <Text style={[styles.dropdownText, { color: "#FF3B30" }]}>
-                {isLeaving ? "Leaving..." : "Leave Group"}
+                {isLeaving ? `Leaving ${chatType}...` : `Leave ${chatType === 'chat' ? 'Chat' : 'Group'}`}
               </Text>
             </Pressable>
           )}
@@ -362,7 +369,7 @@ export const GroupOptionsDropdown = ({
         <View style={styles.centeredModalContainer}>
           <View style={[styles.confirmModal, dynamicStyles.modal]}>
             <Text style={[styles.confirmTitle, dynamicStyles.text]}>
-              Are you sure you want to leave this group?
+              Are you sure you want to leave this {chatType}?
             </Text>
 
             <View style={styles.confirmButtons}>
@@ -372,7 +379,7 @@ export const GroupOptionsDropdown = ({
                 disabled={isLeaving}
               >
                 <Text style={styles.confirmLeaveText}>
-                  {isLeaving ? "Leaving..." : "Yes, Leave"}
+                  {isLeaving ? `Leaving ${chatType}...` : "Yes, Leave"}
                 </Text>
               </Pressable>
 

@@ -47,6 +47,9 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   const { isDark } = useTheme();
   const router = useRouter();
 
+  // Determine if this is a personal chat (1-on-1) or group chat
+  const isPersonalChat = (groupDetails.members || []).length <= 2;
+
   const dynamicStyles = {
     header: {
       backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
@@ -121,10 +124,14 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             )} */}
           </View>
           <View style={styles.headerSubtitle}>
-            <Text style={[styles.membersCount, dynamicStyles.subtitle]}>
-              {(groupDetails.members || []).length} members
-            </Text>
-            <View style={styles.dot} />
+            {!isPersonalChat && (
+              <>
+                <Text style={[styles.membersCount, dynamicStyles.subtitle]}>
+                  {(groupDetails.members || []).length} members
+                </Text>
+                <View style={styles.dot} />
+              </>
+            )}
             <View style={styles.ratingContainer}>
               <Ionicons name="star" size={12} color="#FFD700" />
               <Text style={[styles.ratingText, dynamicStyles.subtitle]}>
