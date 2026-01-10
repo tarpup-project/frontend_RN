@@ -5,6 +5,10 @@ import * as Clipboard from 'expo-clipboard';
 import { useState } from 'react';
 import { Share } from 'react-native';
 import { toast } from 'sonner-native';
+import { useQueryClient } from '@tanstack/react-query';
+import { groupsKeys } from './useGroups';
+import { useCampus } from './useCampus';
+import { Group } from '@/types/groups';
 
 interface ReportGroupData {
   groupID: string;
@@ -17,6 +21,9 @@ export const useGroupActions = () => {
   const [isJoining, setIsJoining] = useState(false);
   const [isReporting, setIsReporting] = useState(false);
   const [isMarkingComplete, setIsMarkingComplete] = useState(false);
+  
+  const queryClient = useQueryClient();
+  const { selectedUniversity } = useCampus();
 
   const joinGroup = async (groupID: string): Promise<boolean> => {
     setIsJoining(true);
@@ -25,6 +32,10 @@ export const useGroupActions = () => {
 
       await subscribeToGroupTopic(groupID);      
       toast.success("You have joined the group");
+      
+      // Invalidate groups list to show the new group
+      queryClient.invalidateQueries({ queryKey: groupsKeys.list(selectedUniversity?.id) });
+      
       return true;
     } catch (error) {
       console.error('Join group error:', error);
@@ -37,6 +48,18 @@ export const useGroupActions = () => {
 
   const leaveGroup = async (groupID: string): Promise<boolean> => {
     setIsLeaving(true);
+    
+    // Optimistic Update Preparation
+    const queryKey = groupsKeys.list(selectedUniversity?.id);
+    const previousGroups = queryClient.getQueryData<Group[]>(queryKey);
+
+    // Optimistically remove the group
+    if (previousGroups) {
+      queryClient.setQueryData<Group[]>(queryKey, (old) => 
+        old ? old.filter(g => g.id !== groupID) : []
+      );
+    }
+    
     try {
       await api.post(UrlConstants.leaveGroup, { groupID });
       
@@ -44,10 +67,20 @@ export const useGroupActions = () => {
       await unsubscribeFromGroupTopic(groupID);
       
       toast.success("You have left the group");
+      
+      // Invalidate to ensure consistency
+      queryClient.invalidateQueries({ queryKey });
+      
       return true;
     } catch (error) {
       console.error('Leave group error:', error);
       toast.error("Failed to leave group");
+      
+      // Rollback on error
+      if (previousGroups) {
+        queryClient.setQueryData(queryKey, previousGroups);
+      }
+      
       return false;
     } finally {
       setIsLeaving(false);
