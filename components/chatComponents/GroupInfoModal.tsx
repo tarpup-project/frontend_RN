@@ -274,11 +274,9 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
                   "#FFB347",
                 ];
                 
-                // Determine if this member should show admin label
-                const shouldShowAdmin = !isPersonalChat && (
-                  index === 0 || // First member (traditional admin)
-                  !isPersonName(groupDetails.name) // Auto-admin for non-personal names
-                );
+                // Show admin label only for the first member (traditional admin) in non-personal chats
+                // Backend should provide proper admin status in the future
+                const shouldShowAdmin = !isPersonalChat && index === 0;
                 
                 return (
                   <Pressable

@@ -12,7 +12,7 @@ import Animated, {
     runOnJS,
     useAnimatedStyle,
     useSharedValue,
-    withSpring
+    withTiming
 } from "react-native-reanimated";
 
 interface MessageData {
@@ -124,9 +124,8 @@ export const MessageItem: React.FC<MessageItemProps> = ({
   };
 
   const swipeGesture = Gesture.Pan()
-    .activeOffsetX(msg.isMe ? [-20, 0] : [0, 20]) // Only allow swipe in correct direction
+    .activeOffsetX(msg.isMe ? [-20, 10000] : [-10000, 20]) // Only allow swipe in correct direction
     .failOffsetY([-30, 30]) // Prevent vertical scrolling interference
-    .simultaneousWithExternalGesture(scrollGesture)
     .onUpdate((event) => {
       const { translationX } = event;
       
@@ -195,20 +194,10 @@ export const MessageItem: React.FC<MessageItemProps> = ({
         runOnJS(onReply)(msg.rawMessage);
       }
       
-      // Smooth spring back to original position
-      translateX.value = withSpring(0, {
-        damping: 15,
-        stiffness: 200,
-        mass: 0.8,
-      });
-      replyIconOpacity.value = withSpring(0, {
-        damping: 15,
-        stiffness: 200,
-      });
-      replyIconScale.value = withSpring(0.7, {
-        damping: 15,
-        stiffness: 200,
-      });
+      // Smooth return to original position without bounce
+      translateX.value = withTiming(0, { duration: 200 });
+      replyIconOpacity.value = withTiming(0, { duration: 200 });
+      replyIconScale.value = withTiming(0.7, { duration: 200 });
     });
 
   // Animated styles for the message container
