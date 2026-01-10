@@ -75,6 +75,7 @@ export default function TarpsScreen() {
     latitudeDelta: number;
     longitudeDelta: number;
   } | null>(null);
+  const [hasLocationPermission, setHasLocationPermission] = useState<boolean>(false);
 
   const [markers, setMarkers] = useState<
     { id: number; image: string; latitude: number; longitude: number; userId?: string; createdAt?: number }[]
@@ -86,7 +87,7 @@ export default function TarpsScreen() {
   const [recents, setRecents] = useState<MediaLibrary.Asset[]>([]);
   
   // Map and Posts State
-  const [viewMode, setViewMode] = useState<"people" | "posts">("people");
+  const [viewMode, setViewMode] = useState<"people" | "posts">("posts");
   const [mapRegion, setMapRegion] = useState(location);
   const [serverPosts, setServerPosts] = useState<{ id: string; image: string | null; latitude: number; longitude: number; count?: number; items?: any[] }[]>([]);
   const [newPostIds, setNewPostIds] = useState<Set<string>>(new Set());
@@ -319,26 +320,52 @@ export default function TarpsScreen() {
 
 
 
-  // Request permission + get location
+  // Request permission + get location (optional)
   useEffect(() => {
     (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") return;
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        
+        if (status === "granted") {
+          // User granted permission, get their actual location
+          setHasLocationPermission(true);
+          const current = await Location.getCurrentPositionAsync({});
+          setLocation({
+            latitude: current.coords.latitude,
+            longitude: current.coords.longitude,
+            latitudeDelta: 120, // Start with world view
+            longitudeDelta: 120, // Start with world view
+          });
+        } else {
+          // User denied permission, use default location (e.g., New York City)
+          console.log("Location permission denied, using default location");
+          setHasLocationPermission(false);
+          setLocation({
+            latitude: 40.7128, // New York City latitude
+            longitude: -74.0060, // New York City longitude
+            latitudeDelta: 120, // Start with world view
+            longitudeDelta: 120, // Start with world view
+          });
+        }
 
-      const current = await Location.getCurrentPositionAsync({});
-      setLocation({
-        latitude: current.coords.latitude,
-        longitude: current.coords.longitude,
-        latitudeDelta: 120, // Start with world view
-        longitudeDelta: 120, // Start with world view
-      });
-
-      const saved = await AsyncStorage.getItem("tarps.posts");
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) setMarkers(parsed);
-        } catch {}
+        // Load saved markers regardless of location permission
+        const saved = await AsyncStorage.getItem("tarps.posts");
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed)) setMarkers(parsed);
+          } catch {}
+        }
+      } catch (error) {
+        // Handle any errors by using default location
+        console.error("Error getting location:", error);
+        setHasLocationPermission(false);
+        setLocation({
+          latitude: 40.7128, // New York City latitude
+          longitude: -74.0060, // New York City longitude
+          latitudeDelta: 120, // Start with world view
+          longitudeDelta: 120, // Start with world view
+        });
       }
     })();
   }, []);
@@ -648,6 +675,12 @@ console.log(
       toast.error("Please sign in to load navigation");
       return;
     }
+    
+    if (!hasLocationPermission) {
+      toast.error("Location permission required for navigation");
+      return;
+    }
+    
     try {
       setLoadingNavigate(true);
       const res = await api.get(
@@ -655,7 +688,7 @@ console.log(
           locationID: String(selectedPerson.id),
           startingLat: Number(location.latitude),
           startingLng: Number(location.longitude),
-          startingLocation: "Current Location",
+          startingLocation: hasLocationPermission ? "Current Location" : "Default Location",
         })
       );
       console.log("PeopleNavigate:response", { status: res?.status });
@@ -1206,8 +1239,9 @@ console.log(
                 }}
               >
                 <View style={[
-                  p.items?.some((item: any) => newPostIds.has(item.id)) ? styles.markerContainerNew : styles.markerContainer, 
-                  isDark ? styles.markerDark : styles.markerLight
+                  styles.markerContainer, 
+                  isDark ? styles.markerDark : styles.markerLight,
+                  p.items?.some((item: any) => newPostIds.has(item.id)) && styles.markerContainerNew
                 ]}>
                   <ExpoImage 
                     source={{ uri: p.image as string }} 
@@ -1455,8 +1489,9 @@ console.log(
                   }}
                 >
                   <View style={[
-                    p.items?.some((item: any) => newPostIds.has(item.id)) ? styles.markerContainerNew : styles.markerContainer, 
-                    isDark ? styles.markerDark : styles.markerLight
+                    styles.markerContainer, 
+                    isDark ? styles.markerDark : styles.markerLight,
+                    p.items?.some((item: any) => newPostIds.has(item.id)) && styles.markerContainerNew
                   ]}>
                     <ExpoImage 
                       source={{ uri: p.image as string }} 
@@ -1668,6 +1703,16 @@ console.log(
               <Ionicons name="people-outline" size={18} color={viewMode === "people" ? "#FFFFFF" : (isDark ? "#FFFFFF" : "#0a0a0a")} />
             </Pressable>
           </View>
+          
+          {/* Location Permission Indicator */}
+          {!hasLocationPermission && (
+            <View style={[styles.locationIndicator, isDark ? styles.locationIndicatorDark : styles.locationIndicatorLight]}>
+              <Ionicons name="location-outline" size={14} color={isDark ? "#FFA500" : "#FF8C00"} />
+              <Text style={[styles.locationIndicatorText, { color: isDark ? "#FFA500" : "#FF8C00" }]}>
+                Default Location
+              </Text>
+            </View>
+          )}
         </View>
         <Pressable
           style={[styles.myPostsBtn, isDark ? styles.myPostsDark : styles.myPostsLight]}
@@ -1868,6 +1913,28 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 3
   },
+  locationIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginLeft: 8,
+  },
+  locationIndicatorDark: {
+    backgroundColor: "rgba(255, 165, 0, 0.1)",
+    borderColor: "rgba(255, 165, 0, 0.3)",
+  },
+  locationIndicatorLight: {
+    backgroundColor: "rgba(255, 140, 0, 0.1)",
+    borderColor: "rgba(255, 140, 0, 0.3)",
+  },
+  locationIndicatorText: {
+    fontSize: 10,
+    fontWeight: "600",
+  },
   createOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.6)",
@@ -1995,18 +2062,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
   },
   markerContainerNew: {
-    width: 96,
-    height: 96,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    overflow: "visible",
-    borderWidth: 5,
+    borderWidth: 4,
     borderColor: "#FF0000",
-    shadowColor: "#FF0000",
-    shadowOpacity: 0.8,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 20,
   },
   markerDark: { borderColor: "#333333", backgroundColor: "#1A1A1A" },
   markerLight: { borderColor: "#E0E0E0", backgroundColor: "#FFFFFF" },
