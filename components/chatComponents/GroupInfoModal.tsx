@@ -5,12 +5,12 @@ import { GroupMember } from "@/types/groups";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
-  Animated,
-  Image,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
+    Animated,
+    Image,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    View,
 } from "react-native";
 
 interface GroupInfoModalProps {
@@ -42,6 +42,9 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
 }) => {
   const { isDark } = useTheme();
   const { user } = useAuthStore();
+
+  // Determine if this is a personal chat (1-on-1) or group chat
+  const isPersonalChat = (groupDetails.members || []).length <= 2;
 
   const dynamicStyles = {
     modal: {
@@ -172,7 +175,7 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
                         {member.fname}
                         {member.id === user?.id && " (You)"}
                       </Text>
-                      {index === 0 && (
+                      {index === 0 && !isPersonalChat && (
                         <Text
                           style={[styles.memberRole, dynamicStyles.subtitle]}
                         >
