@@ -117,24 +117,70 @@ export default function PostPreviewScreen() {
   };
 
   // Function to animate buttons hide/show
-  const toggleButtonsVisibility = () => {
-    const toValue = buttonsVisible ? 0 : 1;
-    const scaleValue = buttonsVisible ? 0.8 : 1;
-    
+  const hideButtons = () => {
+    if (!buttonsVisible) return;
     Animated.parallel([
       Animated.timing(buttonsOpacity, {
-        toValue,
-        duration: 300,
+        toValue: 0,
+        duration: 200,
         useNativeDriver: true,
       }),
       Animated.timing(buttonsScale, {
-        toValue: scaleValue,
-        duration: 300,
+        toValue: 0.8,
+        duration: 200,
         useNativeDriver: true,
       }),
     ]).start(() => {
-      setButtonsVisible(!buttonsVisible);
+      setButtonsVisible(false);
     });
+  };
+
+  const showButtons = () => {
+    if (buttonsVisible) return;
+    Animated.parallel([
+      Animated.timing(buttonsOpacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(buttonsScale, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setButtonsVisible(true);
+    });
+  };
+
+  const toggleButtonsVisibility = () => {
+    if (buttonsVisible) {
+      hideButtons();
+    } else {
+      showButtons();
+    }
+  };
+
+  const pressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handlePressIn = () => {
+    // Set a timeout to hide buttons only after a delay (press and hold)
+    pressTimeoutRef.current = setTimeout(() => {
+      hideButtons();
+    }, 200); // 200ms delay to distinguish between tap and hold
+  };
+
+  const handlePressOut = () => {
+    // Clear the timeout if user releases before the delay
+    if (pressTimeoutRef.current) {
+      clearTimeout(pressTimeoutRef.current);
+      pressTimeoutRef.current = null;
+    }
+    
+    // If buttons are hidden (meaning it was a hold), show them back
+    if (!buttonsVisible) {
+      showButtons();
+    }
   };
 
   // Function to fetch user stats
@@ -1059,7 +1105,11 @@ export default function PostPreviewScreen() {
       <StatusBar style="light" />
       <GestureDetector gesture={panGesture}>
         <Animated.View style={[{ flex: 1 }, animatedStyle]}>
-          <Pressable style={{ flex: 1 }} onPress={toggleButtonsVisibility}>
+          <Pressable 
+            style={{ flex: 1 }} 
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+          >
             <View style={{ flex: 1, backgroundColor: "#000" }}>
               {currentImages.length > 0 ? (
                 <ScrollView
