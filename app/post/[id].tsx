@@ -12,21 +12,20 @@ import { StatusBar } from "expo-status-bar";
 import moment from "moment";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Animated,
-  Dimensions,
-  FlatList,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View
+    ActivityIndicator,
+    Animated,
+    Dimensions,
+    FlatList,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    Pressable,
+    StyleSheet,
+    Text,
+    TextInput,
+    View
 } from "react-native";
-import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
+import { Gesture, GestureDetector, GestureHandlerRootView, ScrollView } from "react-native-gesture-handler";
 import { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
@@ -63,6 +62,8 @@ export default function PostPreviewScreen() {
   } | null>(null);
   const [isLoadingUserStats, setIsLoadingUserStats] = useState(false);
   const translateY = useSharedValue(0);
+  const svCurrentImageIndex = useSharedValue(0);
+  const svImagesLength = useSharedValue(0);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [comments, setComments] = useState<any[]>([]);
   const [commentText, setCommentText] = useState("");
@@ -70,8 +71,14 @@ export default function PostPreviewScreen() {
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [isSendingComment, setIsSendingComment] = useState(false);
   const commentsScrollRef = useRef<FlatList | null>(null);
+  const mainImageScrollRef = useRef(null);
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
+
+  useEffect(() => {
+    svCurrentImageIndex.value = currentImageIndex;
+    svImagesLength.value = currentImages.length;
+  }, [currentImageIndex, currentImages.length]);
   const [following, setFollowing] = useState(false);
   const [friendStatus, setFriendStatus] = useState<"not_friends" | "pending" | "friends">("not_friends");
   const [commentCount, setCommentCount] = useState(0);
@@ -875,8 +882,9 @@ export default function PostPreviewScreen() {
     });
   };
 
-  // Gesture handler for vertical swipe (both up and down)
+  // Gesture handler for vertical swipe (both up and down) and horizontal swipe
   const panGesture = Gesture.Pan()
+    .simultaneousWithExternalGesture(mainImageScrollRef)
     .onUpdate((event) => {
       // Allow both upward and downward swipes
       translateY.value = event.translationY;
@@ -885,12 +893,28 @@ export default function PostPreviewScreen() {
       const swipeThreshold = 100; // Minimum swipe distance
       const velocityThreshold = 500; // Minimum swipe velocity
       
-      if (event.translationY < -swipeThreshold || event.velocityY < -velocityThreshold) {
-        // Swipe up - next post
-        runOnJS(navigateToPost)('next');
-      } else if (event.translationY > swipeThreshold || event.velocityY > velocityThreshold) {
-        // Swipe down - previous post
-        runOnJS(navigateToPost)('previous');
+      const isHorizontal = Math.abs(event.translationX) > Math.abs(event.translationY);
+      
+      if (isHorizontal) {
+        if (event.translationX < -swipeThreshold || event.velocityX < -velocityThreshold) {
+          // Swipe Left - Next Post
+          if (svImagesLength.value === 0 || svCurrentImageIndex.value === svImagesLength.value - 1) {
+            runOnJS(navigateToPost)('next');
+          }
+        } else if (event.translationX > swipeThreshold || event.velocityX > velocityThreshold) {
+          // Swipe Right - Previous Post
+          if (svImagesLength.value === 0 || svCurrentImageIndex.value === 0) {
+            runOnJS(navigateToPost)('previous');
+          }
+        }
+      } else {
+        if (event.translationY < -swipeThreshold || event.velocityY < -velocityThreshold) {
+          // Swipe up - next post
+          runOnJS(navigateToPost)('next');
+        } else if (event.translationY > swipeThreshold || event.velocityY > velocityThreshold) {
+          // Swipe down - previous post
+          runOnJS(navigateToPost)('previous');
+        }
       }
       
       // Reset animation
@@ -1113,6 +1137,7 @@ export default function PostPreviewScreen() {
             <View style={{ flex: 1, backgroundColor: "#000" }}>
               {currentImages.length > 0 ? (
                 <ScrollView
+                  ref={mainImageScrollRef}
                   horizontal
                   pagingEnabled
                   showsHorizontalScrollIndicator={false}
