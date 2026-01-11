@@ -362,7 +362,10 @@ const Header = () => {
       console.log('Navigating from notification:', {
         type: notificationType,
         data: data,
-        postID: data?.postID
+        postID: data?.postID,
+        actors: notification.actors,
+        firstActorId: notification.actors?.[0]?.actor?.id,
+        firstActorName: notification.actors?.[0]?.actor?.fname
       });
       
       // Close the notification panel first
@@ -394,14 +397,31 @@ const Header = () => {
           
         case 'new_follower':
         case 'follower':
-          // Navigate to profile screen
-          router.push('/profile/me');
+        case 'new_following':
+          // Navigate to follower's profile using their ID from actors
+          const followerActor = notification.actors?.[0]?.actor;
+          if (followerActor?.id) {
+            console.log('Navigating to follower profile:', followerActor.id);
+            router.push(`/profile/${followerActor.id}`);
+          } else {
+            console.warn('No follower ID found in notification actors');
+            // Fallback to user's own profile
+            router.push('/profile/me');
+          }
           break;
           
         case 'friend_request':
         case 'new_friend_request':
-          // Navigate to profile screen
-          router.push('/profile/me');
+          // Navigate to friend requester's profile using their ID from actors
+          const requesterActor = notification.actors?.[0]?.actor;
+          if (requesterActor?.id) {
+            console.log('Navigating to friend requester profile:', requesterActor.id);
+            router.push(`/profile/${requesterActor.id}`);
+          } else {
+            console.warn('No requester ID found in notification actors');
+            // Fallback to user's own profile
+            router.push('/profile/me');
+          }
           break;
           
         default:
