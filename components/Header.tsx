@@ -10,7 +10,6 @@ import { useNotificationStore } from "@/state/notificationStore";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import { useRouter } from "expo-router";
-import * as SecureStore from 'expo-secure-store';
 import { StatusBar } from "expo-status-bar";
 import moment from "moment";
 import { useEffect, useRef, useState } from "react";
@@ -19,13 +18,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
 
 // Notification Item Component
-const NotificationItem = ({ notification, isDark, onFriendRequest, isLocallyRead, onNotificationClick }: {
-  notification: any;
-  isDark: boolean;
-  onFriendRequest: (id: string, action: 'accept' | 'decline') => void;
-  isLocallyRead: boolean;
-  onNotificationClick: (id: string) => void;
-}) => {
+  const NotificationItem = ({ notification, isDark, onFriendRequest, onNotificationClick }: {
+    notification: any;
+    isDark: boolean;
+    onFriendRequest: (id: string, action: 'accept' | 'decline') => void;
+    onNotificationClick: (id: string) => void;
+  }) => {
   // Helper function to get user info from the notification
   const getUserInfo = () => {
     const actor = notification.actors?.[0]?.actor;
@@ -134,7 +132,7 @@ const NotificationItem = ({ notification, isDark, onFriendRequest, isLocallyRead
       android_ripple={{ color: isDark ? "#444444" : "#F3F4F6" }}
     >
       {/* Unread indicator */}
-      {!notification.isRead && !isLocallyRead && (
+      {!notification.isRead && (
         <View style={styles.unreadIndicator} />
       )}
       
@@ -217,64 +215,48 @@ const Header = () => {
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeTab, setActiveTab] = useState<'all' | 'unread'>('all');
-  const [readNotificationIds, setReadNotificationIds] = useState<Set<string>>(new Set());
+
+
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(Dimensions.get('window').width)).current;
 
-  // SecureStore key for read notifications
-  const READ_NOTIFICATIONS_KEY = 'read_notification_ids';
-
-  // Load read notification IDs from SecureStore
-  const loadReadNotificationIds = async () => {
-    try {
-      const storedIds = await SecureStore.getItemAsync(READ_NOTIFICATIONS_KEY);
-      if (storedIds) {
-        const idsArray = JSON.parse(storedIds);
-        setReadNotificationIds(new Set(idsArray));
-        console.log('Loaded read notification IDs:', idsArray.length);
-      }
-    } catch (error) {
-      console.error('Error loading read notification IDs:', error);
-    }
-  };
-
-  // Save read notification IDs to SecureStore
-  const saveReadNotificationIds = async (ids: Set<string>) => {
-    try {
-      const idsArray = Array.from(ids);
-      await SecureStore.setItemAsync(READ_NOTIFICATIONS_KEY, JSON.stringify(idsArray));
-      console.log('Saved read notification IDs:', idsArray.length);
-    } catch (error) {
-      console.error('Error saving read notification IDs:', error);
-    }
-  };
-
-  // Mark notification as read locally
-  const markNotificationAsRead = async (notificationId: string) => {
-    const newReadIds = new Set([...readNotificationIds, notificationId]);
-    setReadNotificationIds(newReadIds);
-    await saveReadNotificationIds(newReadIds);
-  };
-
   // Mark all visible notifications as read when closing sidebar
   const markAllVisibleAsRead = async () => {
-    const visibleNotificationIds = notifications.map(notif => notif.id);
-    const newReadIds = new Set([...readNotificationIds, ...visibleNotificationIds]);
-    setReadNotificationIds(newReadIds);
-    await saveReadNotificationIds(newReadIds);
+    // Get IDs of unread notifications that are visible
+    const unreadNotificationIds = notifications
+      .filter(notif => !notif.isRead)
+      .map(notif => notif.id);
     
-    // Update unread count
-    updateUnreadCount(notifications, newReadIds);
-    
-    console.log('Marked all visible notifications as read:', visibleNotificationIds.length);
+    if (unreadNotificationIds.length === 0) {
+      return;
+    }
+
+    try {
+      // Call API to mark notifications as read
+      await api.put(UrlConstants.tarpNotifications, {
+        notificationIDs: unreadNotificationIds
+      });
+      
+      // Update local state to reflect read status
+      setNotifications(prevNotifications => 
+        prevNotifications.map(notif => 
+          unreadNotificationIds.includes(notif.id) 
+            ? { ...notif, isRead: true } 
+            : notif
+        )
+      );
+      
+      setUnreadCount(0);
+      console.log('Marked notifications as read on server:', unreadNotificationIds.length);
+    } catch (error) {
+      console.error('Error marking notifications as read:', error);
+    }
   };
 
-  // Update unread count based on notifications and read IDs
-  const updateUnreadCount = (notificationsList: any[], readIds: Set<string>) => {
-    const unread = notificationsList.filter((notif: any) => 
-      !notif.isRead && !readIds.has(notif.id)
-    ).length;
+  // Update unread count based on notifications
+  const updateUnreadCount = (notificationsList: any[]) => {
+    const unread = notificationsList.filter((notif: any) => !notif.isRead).length;
     setUnreadCount(unread);
   };
 
@@ -290,13 +272,13 @@ const Header = () => {
         const notificationsList = Array.isArray(response.data.data) ? response.data.data : [];
         setNotifications(notificationsList);
         
-        // Count unread notifications (server isRead + local read IDs)
-        updateUnreadCount(notificationsList, readNotificationIds);
+        // Count unread notifications based on server isRead status
+        const unread = notificationsList.filter((notif: any) => !notif.isRead).length;
+        setUnreadCount(unread);
         
         console.log('Notifications loaded:', { 
           total: notificationsList.length, 
-          unread: notificationsList.filter((notif: any) => !notif.isRead && !readNotificationIds.has(notif.id)).length,
-          locallyRead: Array.from(readNotificationIds).length,
+          unread: unread,
           sample: notificationsList[0] ? {
             id: notificationsList[0].id,
             type: notificationsList[0].type,
@@ -328,16 +310,20 @@ const Header = () => {
   // Mark all notifications as read
   const markAllAsRead = async () => {
     try {
-      // Mark all notifications as read locally
-      const allNotificationIds = notifications.map(notif => notif.id);
-      const newReadIds = new Set([...readNotificationIds, ...allNotificationIds]);
-      setReadNotificationIds(newReadIds);
-      await saveReadNotificationIds(newReadIds);
+      const unreadIds = notifications.filter(n => !n.isRead).map(n => n.id);
       
-      // Update unread count
-      setUnreadCount(0);
-      
-      toast.success('All notifications marked as read');
+      if (unreadIds.length > 0) {
+        await api.put(UrlConstants.tarpNotifications, {
+          notificationIDs: unreadIds
+        });
+
+        // Update local state
+        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+        setUnreadCount(0);
+        toast.success('All notifications marked as read');
+      } else {
+        toast.success('All notifications are already read');
+      }
     } catch (error) {
       console.error('Error marking notifications as read:', error);
       toast.error('Failed to mark notifications as read');
@@ -360,21 +346,34 @@ const Header = () => {
 
   // Handle individual notification click
   const handleNotificationClick = async (notificationId: string) => {
-    // Mark this notification as read
-    await markNotificationAsRead(notificationId);
-    
-    // Update unread count
-    updateUnreadCount(notifications, new Set([...readNotificationIds, notificationId]));
-    
     // Find the notification to get navigation data
     const notification = notifications.find(notif => notif.id === notificationId);
+    
+    // Mark this notification as read on server if it's not already read
+    if (notification && !notification.isRead) {
+      try {
+        await api.put(UrlConstants.tarpNotifications, {
+          notificationIDs: [notificationId]
+        });
+        
+        // Update local state
+        setNotifications(prev => prev.map(n => 
+          n.id === notificationId ? { ...n, isRead: true } : n
+        ));
+        
+        // Update unread count
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      } catch (error) {
+        console.error('Error marking single notification as read:', error);
+      }
+    }
     
     if (notification) {
       // Handle navigation based on notification type
       handleNotificationNavigation(notification);
     }
     
-    console.log('Notification clicked and marked as read:', notificationId);
+    console.log('Notification clicked:', notificationId);
   };
 
   // Handle navigation based on notification type and data
@@ -610,11 +609,6 @@ const Header = () => {
   };
 
   const totalNotifications = notifications.length;
-
-  // Load read notification IDs on mount
-  useEffect(() => {
-    loadReadNotificationIds();
-  }, []);
 
   // Load notifications when authenticated
   useEffect(() => {
@@ -915,7 +909,7 @@ const Header = () => {
                         styles.tabBadgeText,
                         { color: activeTab === 'unread' ? "#FFFFFF" : (isDark ? "#CCCCCC" : "#666666") }
                       ]}>
-                        {notifications.filter(notif => !notif.isRead && !readNotificationIds.has(notif.id)).length}
+                        {notifications.filter(notif => !notif.isRead).length}
                       </Text>
                     </View>
                   </Pressable>
@@ -946,18 +940,16 @@ const Header = () => {
                 <View style={styles.notificationsContainer}>
                   {notifications
                     .filter(notif => {
-                      const isRead = notif.isRead || readNotificationIds.has(notif.id);
-                      return activeTab === 'all' || !isRead;
+                      return activeTab === 'all' || !notif.isRead;
                     })
                     .map((notification, index) => (
                       <NotificationItem
-                        key={notification.id || index}
-                        notification={notification}
-                        isDark={isDark}
-                        onFriendRequest={handleFriendRequest}
-                        isLocallyRead={readNotificationIds.has(notification.id)}
-                        onNotificationClick={handleNotificationClick}
-                      />
+                          key={notification.id}
+                          notification={notification}
+                          isDark={isDark}
+                          onFriendRequest={handleFriendRequest}
+                          onNotificationClick={handleNotificationClick}
+                        />
                     ))}
                 </View>
               )}
