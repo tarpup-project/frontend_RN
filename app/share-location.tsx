@@ -4,21 +4,22 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
 import * as MediaLibrary from "expo-media-library";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Dimensions,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View
+  ActivityIndicator,
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import uuid from "react-native-uuid";
@@ -47,6 +48,43 @@ export default function ShareLocationScreen() {
 
   const suggestions = ["Studying", "Eating", "Hanging out", "Working", "Exercising", "Shopping"];
   const durationOptions = ["15 minutes", "30 minutes", "1 hour", "2 hours", "4 hours", "Until I turn it off"];
+
+  // Check location permission on screen entry
+  useEffect(() => {
+    const checkLocationPermission = async () => {
+      try {
+        // First check current permission status
+        const { status: currentStatus } = await Location.getForegroundPermissionsAsync();
+        
+        if (currentStatus === "granted") {
+          // Permission already granted, no need to request again
+          return;
+        }
+        
+        if (currentStatus === "denied") {
+          // Permission was previously denied, can't request again
+          toast.error("Location permission was denied. Please enable it in Settings to share your location");
+          router.back();
+          return;
+        }
+        
+        // Permission not determined yet, request it
+        const { status: requestedStatus } = await Location.requestForegroundPermissionsAsync();
+        
+        if (requestedStatus !== "granted") {
+          toast.error("Location permission is required to share your location");
+          router.back();
+          return;
+        }
+      } catch (error) {
+        console.error("Error checking location permission:", error);
+        toast.error("Unable to access location services");
+        router.back();
+      }
+    };
+
+    checkLocationPermission();
+  }, [router]);
 
   // Load recents when photo option is enabled
   useEffect(() => {

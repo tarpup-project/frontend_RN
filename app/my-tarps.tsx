@@ -1,5 +1,6 @@
 import { api } from "@/api/client";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import { useRouter } from "expo-router";
@@ -7,18 +8,19 @@ import { StatusBar } from "expo-status-bar";
 import moment from "moment";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Modal,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View
+  ActivityIndicator,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View
 } from "react-native";
 import { toast } from "sonner-native";
 
 export default function MyTarpsScreen() {
   const { isDark } = useTheme();
+  const { user } = useAuthStore();
   const nav = useRouter();
 
   // State
@@ -266,9 +268,120 @@ export default function MyTarpsScreen() {
                       <Pressable 
                         style={[styles.actionButton, isDark ? styles.viewButtonDark : styles.viewButton]}
                         onPress={() => {
-                          setPostToPreview(post);
-                          setCurrentImageIndex(0);
-                          setShowPostPreview(true);
+                          try {
+                            // Add current user as creator/owner since these are user's own posts
+                            const enhancedPost = {
+                              ...post,
+                              creator: user ? {
+                                id: user.id,
+                                fname: user.fname,
+                                lname: user.lname,
+                                name: `${user.fname || ''} ${user.lname || ''}`.trim() || user.fname || 'User',
+                                bgUrl: user.bgUrl,
+                                avatar: user.bgUrl,
+                                profileImage: user.bgUrl
+                              } : null,
+                              owner: user ? {
+                                id: user.id,
+                                fname: user.fname,
+                                lname: user.lname,
+                                name: `${user.fname || ''} ${user.lname || ''}`.trim() || user.fname || 'User',
+                                bgUrl: user.bgUrl,
+                                avatar: user.bgUrl,
+                                profileImage: user.bgUrl
+                              } : null,
+                              // Ensure proper like/comment counts and status
+                              likedByMe: false, // User's own posts - typically not self-liked
+                              isLiked: false,
+                              hasLiked: false,
+                              liked: false,
+                              isFollowing: false, // User doesn't follow themselves
+                              following: false,
+                              isFriend: null, // User isn't friends with themselves
+                              friendStatus: null,
+                              // Use the actual counts from the API response
+                              commentsCount: post.tarpImgComments || 0,
+                              likesCount: post.tarpImgLikes || 0,
+                              // Ensure images have proper structure with actual counts
+                              images: post.images?.map((img: any) => ({
+                                ...img,
+                                hasLiked: false, // User's own posts - typically not self-liked
+                                likes: img._count?.tarpImgLikes || 0,
+                                comments: img._count?.tarpImgComments || 0,
+                                _count: {
+                                  tarpImgLikes: img._count?.tarpImgLikes || 0,
+                                  tarpImgComments: img._count?.tarpImgComments || 0
+                                }
+                              })) || []
+                            };
+
+                            // Use the same navigation pattern as tarps screen
+                            const resolveItemImageSet = (item: any): { urls: string[]; ids: (string | null)[] } => {
+                              const urls: string[] = [];
+                              const ids: (string | null)[] = [];
+                              if (Array.isArray(item?.images) && item.images.length > 0) {
+                                item.images.forEach((im: any) => {
+                                  const raw = typeof im === "string" ? im : im?.url;
+                                  const id = typeof im?.id === "string" || typeof im?.id === "number" ? String(im.id) : null;
+                                  if (typeof raw === "string" && raw.length > 0) {
+                                    const cleaned = raw.replace(/`/g, "").trim();
+                                    urls.push(cleaned);
+                                    ids.push(id);
+                                  }
+                                });
+                              } else {
+                                // Fallback for single image
+                                const cover = post.images?.[0]?.url || post.images?.[0];
+                                const extractImageId = (item: any): string | null => {
+                                  const candidates: any[] = [
+                                    item?.imageId, item?.imageID, item?.postImageID, item?.postImageId,
+                                    Array.isArray(item?.images) ? item.images[0]?.id : null,
+                                    Array.isArray(item?.files) ? item.files[0]?.id : null,
+                                    Array.isArray(item?.medias) ? item.medias[0]?.id : null,
+                                    item?.id
+                                  ];
+                                  const v = candidates.find((x) => typeof x === "string" || typeof x === "number");
+                                  return v != null ? String(v) : null;
+                                };
+                                const fallbackId = extractImageId(post);
+                                if (cover) {
+                                  urls.push(cover);
+                                  ids.push(fallbackId);
+                                }
+                              }
+                              return { urls, ids };
+                            };
+                            
+                            const set = resolveItemImageSet(enhancedPost);
+                            
+                            // Create enhanced userPosts array with user data
+                            const enhancedUserPosts = userPosts.map(p => ({
+                              ...p,
+                              creator: user ? {
+                                id: user.id,
+                                fname: user.fname,
+                                lname: user.lname,
+                                name: `${user.fname || ''} ${user.lname || ''}`.trim() || user.fname || 'User',
+                                bgUrl: user.bgUrl,
+                                avatar: user.bgUrl,
+                                profileImage: user.bgUrl
+                              } : null,
+                              owner: user ? {
+                                id: user.id,
+                                fname: user.fname,
+                                lname: user.lname,
+                                name: `${user.fname || ''} ${user.lname || ''}`.trim() || user.fname || 'User',
+                                bgUrl: user.bgUrl,
+                                avatar: user.bgUrl,
+                                profileImage: user.bgUrl
+                              } : null
+                            }));
+                            
+                            nav.push(`/post/${enhancedPost.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(enhancedPost))}&images=${encodeURIComponent(JSON.stringify(set))}&idx=0&serverPosts=${encodeURIComponent(JSON.stringify(enhancedUserPosts))}`);
+                          } catch (error) {
+                            console.error("Failed to navigate to post:", error);
+                            toast.error("Failed to open post");
+                          }
                         }}
                       >
                         <Ionicons name="eye" size={16} color={isDark ? "#FFFFFF" : "#007AFF"} />
@@ -338,9 +451,120 @@ export default function MyTarpsScreen() {
               onPress={() => {
                 const post = userPosts.find(p => p.id === showDropdownMenu);
                 if (post) {
-                  setPostToPreview(post);
-                  setCurrentImageIndex(0);
-                  setShowPostPreview(true);
+                  try {
+                    // Add current user as creator/owner since these are user's own posts
+                    const enhancedPost = {
+                      ...post,
+                      creator: user ? {
+                        id: user.id,
+                        fname: user.fname,
+                        lname: user.lname,
+                        name: `${user.fname || ''} ${user.lname || ''}`.trim() || user.fname || 'User',
+                        bgUrl: user.bgUrl,
+                        avatar: user.bgUrl,
+                        profileImage: user.bgUrl
+                      } : null,
+                      owner: user ? {
+                        id: user.id,
+                        fname: user.fname,
+                        lname: user.lname,
+                        name: `${user.fname || ''} ${user.lname || ''}`.trim() || user.fname || 'User',
+                        bgUrl: user.bgUrl,
+                        avatar: user.bgUrl,
+                        profileImage: user.bgUrl
+                      } : null,
+                      // Ensure proper like/comment counts and status
+                      likedByMe: false, // User's own posts - typically not self-liked
+                      isLiked: false,
+                      hasLiked: false,
+                      liked: false,
+                      isFollowing: false, // User doesn't follow themselves
+                      following: false,
+                      isFriend: null, // User isn't friends with themselves
+                      friendStatus: null,
+                      // Use the actual counts from the API response
+                      commentsCount: post.tarpImgComments || 0,
+                      likesCount: post.tarpImgLikes || 0,
+                      // Ensure images have proper structure with actual counts
+                      images: post.images?.map((img: any) => ({
+                        ...img,
+                        hasLiked: false, // User's own posts - typically not self-liked
+                        likes: img._count?.tarpImgLikes || 0,
+                        comments: img._count?.tarpImgComments || 0,
+                        _count: {
+                          tarpImgLikes: img._count?.tarpImgLikes || 0,
+                          tarpImgComments: img._count?.tarpImgComments || 0
+                        }
+                      })) || []
+                    };
+
+                    // Use the same navigation pattern as tarps screen
+                    const resolveItemImageSet = (item: any): { urls: string[]; ids: (string | null)[] } => {
+                      const urls: string[] = [];
+                      const ids: (string | null)[] = [];
+                      if (Array.isArray(item?.images) && item.images.length > 0) {
+                        item.images.forEach((im: any) => {
+                          const raw = typeof im === "string" ? im : im?.url;
+                          const id = typeof im?.id === "string" || typeof im?.id === "number" ? String(im.id) : null;
+                          if (typeof raw === "string" && raw.length > 0) {
+                            const cleaned = raw.replace(/`/g, "").trim();
+                            urls.push(cleaned);
+                            ids.push(id);
+                          }
+                        });
+                      } else {
+                        // Fallback for single image
+                        const cover = post.images?.[0]?.url || post.images?.[0];
+                        const extractImageId = (item: any): string | null => {
+                          const candidates: any[] = [
+                            item?.imageId, item?.imageID, item?.postImageID, item?.postImageId,
+                            Array.isArray(item?.images) ? item.images[0]?.id : null,
+                            Array.isArray(item?.files) ? item.files[0]?.id : null,
+                            Array.isArray(item?.medias) ? item.medias[0]?.id : null,
+                            item?.id
+                          ];
+                          const v = candidates.find((x) => typeof x === "string" || typeof x === "number");
+                          return v != null ? String(v) : null;
+                        };
+                        const fallbackId = extractImageId(post);
+                        if (cover) {
+                          urls.push(cover);
+                          ids.push(fallbackId);
+                        }
+                      }
+                      return { urls, ids };
+                    };
+                    
+                    const set = resolveItemImageSet(enhancedPost);
+                    
+                    // Create enhanced userPosts array with user data
+                    const enhancedUserPosts = userPosts.map(p => ({
+                      ...p,
+                      creator: user ? {
+                        id: user.id,
+                        fname: user.fname,
+                        lname: user.lname,
+                        name: `${user.fname || ''} ${user.lname || ''}`.trim() || user.fname || 'User',
+                        bgUrl: user.bgUrl,
+                        avatar: user.bgUrl,
+                        profileImage: user.bgUrl
+                      } : null,
+                      owner: user ? {
+                        id: user.id,
+                        fname: user.fname,
+                        lname: user.lname,
+                        name: `${user.fname || ''} ${user.lname || ''}`.trim() || user.fname || 'User',
+                        bgUrl: user.bgUrl,
+                        avatar: user.bgUrl,
+                        profileImage: user.bgUrl
+                      } : null
+                    }));
+                    
+                    nav.push(`/post/${enhancedPost.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(enhancedPost))}&images=${encodeURIComponent(JSON.stringify(set))}&idx=0&serverPosts=${encodeURIComponent(JSON.stringify(enhancedUserPosts))}`);
+                  } catch (error) {
+                    console.error("Failed to navigate to post:", error);
+                    toast.error("Failed to open post");
+                  }
                 }
                 setShowDropdownMenu(null);
               }}
