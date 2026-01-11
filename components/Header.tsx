@@ -204,16 +204,23 @@ const Header = () => {
     clearNotifications,
     initialized,
     markInitialized,
+    setNotifications: setGlobalNotifications,
+    unreadCount,
+    notificationsList,
+    setNotificationsList,
   } = useNotificationStore();
-  const { groupNotifications, personalNotifications: apiPersonalNotifications } = useNotifications();
+  const { 
+    groupNotifications, 
+    personalNotifications: apiPersonalNotifications,
+    refetchNotifications
+  } = useNotifications();
   const { pendingMatches, markMatchAsViewed, unviewedCount } = usePendingMatches();
   const unviewedMatchesCount = unviewedCount !== undefined ? unviewedCount : pendingMatches.length;
 
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showNotificationPanel, setShowNotificationPanel] = useState(false);
-  const [notifications, setNotifications] = useState<any[]>([]);
+  // notifications state replaced by store
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [activeTab, setActiveTab] = useState<'all' | 'unread'>('all');
 
 
@@ -224,7 +231,7 @@ const Header = () => {
   // Mark all visible notifications as read when closing sidebar
   const markAllVisibleAsRead = async () => {
     // Get IDs of unread notifications that are visible
-    const unreadNotificationIds = notifications
+    const unreadNotificationIds = notificationsList
       .filter(notif => !notif.isRead)
       .map(notif => notif.id);
     
@@ -239,15 +246,14 @@ const Header = () => {
       });
       
       // Update local state to reflect read status
-      setNotifications(prevNotifications => 
-        prevNotifications.map(notif => 
+      setNotificationsList(notificationsList.map(notif => 
           unreadNotificationIds.includes(notif.id) 
             ? { ...notif, isRead: true } 
             : notif
         )
       );
       
-      setUnreadCount(0);
+      setGlobalNotifications({ unreadCount: 0 });
       console.log('Marked notifications as read on server:', unreadNotificationIds.length);
     } catch (error) {
       console.error('Error marking notifications as read:', error);
@@ -257,7 +263,7 @@ const Header = () => {
   // Update unread count based on notifications
   const updateUnreadCount = (notificationsList: any[]) => {
     const unread = notificationsList.filter((notif: any) => !notif.isRead).length;
-    setUnreadCount(unread);
+    setGlobalNotifications({ unreadCount: unread });
   };
 
   // Fetch notifications from the new endpoint
@@ -266,42 +272,12 @@ const Header = () => {
     
     try {
       setIsLoadingNotifications(true);
-      const response = await api.get(UrlConstants.tarpNotifications);
-      
-      if (response.data?.status === 'success' && response.data?.data) {
-        const notificationsList = Array.isArray(response.data.data) ? response.data.data : [];
-        setNotifications(notificationsList);
-        
-        // Count unread notifications based on server isRead status
-        const unread = notificationsList.filter((notif: any) => !notif.isRead).length;
-        setUnreadCount(unread);
-        
-        console.log('Notifications loaded:', { 
-          total: notificationsList.length, 
-          unread: unread,
-          sample: notificationsList[0] ? {
-            id: notificationsList[0].id,
-            type: notificationsList[0].type,
-            message: notificationsList[0].message?.substring(0, 50),
-            hasActors: !!notificationsList[0].actors,
-            actorName: notificationsList[0].actors?.[0]?.actor?.fname,
-            bgUrl: notificationsList[0].actors?.[0]?.actor?.bgUrl?.substring(0, 50),
-            data: notificationsList[0].data,
-            postID: notificationsList[0].data?.postID
-          } : null
-        });
-      } else {
-        console.log('No notifications found or invalid response format');
-        setNotifications([]);
-        setUnreadCount(0);
-      }
+      await refetchNotifications();
     } catch (error: any) {
       console.error('Error fetching notifications:', error);
       if (error.response?.status !== 401) {
         toast.error('Failed to load notifications');
       }
-      setNotifications([]);
-      setUnreadCount(0);
     } finally {
       setIsLoadingNotifications(false);
     }
@@ -310,7 +286,7 @@ const Header = () => {
   // Mark all notifications as read
   const markAllAsRead = async () => {
     try {
-      const unreadIds = notifications.filter(n => !n.isRead).map(n => n.id);
+      const unreadIds = notificationsList.filter(n => !n.isRead).map(n => n.id);
       
       if (unreadIds.length > 0) {
         await api.put(UrlConstants.tarpNotifications, {
@@ -318,8 +294,8 @@ const Header = () => {
         });
 
         // Update local state
-        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-        setUnreadCount(0);
+        setNotificationsList(notificationsList.map(n => ({ ...n, isRead: true })));
+        setGlobalNotifications({ unreadCount: 0 });
         toast.success('All notifications marked as read');
       } else {
         toast.success('All notifications are already read');
@@ -333,8 +309,8 @@ const Header = () => {
   // Clear all notifications
   const clearAllNotifications = async () => {
     try {
-      setNotifications([]);
-      setUnreadCount(0);
+      setNotificationsList([]);
+      setGlobalNotifications({ unreadCount: 0 });
       
       // TODO: Add API call to clear all notifications on server
       toast.success('All notifications cleared');
@@ -347,7 +323,7 @@ const Header = () => {
   // Handle individual notification click
   const handleNotificationClick = async (notificationId: string) => {
     // Find the notification to get navigation data
-    const notification = notifications.find(notif => notif.id === notificationId);
+    const notification = notificationsList.find(notif => notif.id === notificationId);
     
     // Mark this notification as read on server if it's not already read
     if (notification && !notification.isRead) {
@@ -357,12 +333,13 @@ const Header = () => {
         });
         
         // Update local state
-        setNotifications(prev => prev.map(n => 
+        setNotificationsList(notificationsList.map(n => 
           n.id === notificationId ? { ...n, isRead: true } : n
         ));
         
         // Update unread count
-        setUnreadCount(prev => Math.max(0, prev - 1));
+        const newCount = Math.max(0, unreadCount - 1);
+        setGlobalNotifications({ unreadCount: newCount });
       } catch (error) {
         console.error('Error marking single notification as read:', error);
       }
@@ -598,8 +575,9 @@ const Header = () => {
       // TODO: Add API call to handle friend request
       
       // Update local state
-      setNotifications(prev => prev.filter(notif => notif.id !== notificationId));
-      setUnreadCount(prev => Math.max(0, prev - 1));
+      setNotificationsList(notificationsList.filter(notif => notif.id !== notificationId));
+      const newCount = Math.max(0, unreadCount - 1);
+      setGlobalNotifications({ unreadCount: newCount });
       
       toast.success(action === 'accept' ? 'Friend request accepted' : 'Friend request declined');
     } catch (error) {
@@ -608,15 +586,7 @@ const Header = () => {
     }
   };
 
-  const totalNotifications = notifications.length;
-
-  // Load notifications when authenticated
-  useEffect(() => {
-    if (isAuthenticated && !initialized) {
-      markInitialized();
-      fetchNotifications();
-    }
-  }, [isAuthenticated, initialized, markInitialized]);
+  const totalNotifications = notificationsList.length;
 
   // Refresh notifications when panel opens
   useEffect(() => {
@@ -627,7 +597,7 @@ const Header = () => {
 
   useEffect(() => {
     // Start pulse animation if there are notifications or pending matches
-    if ((notifications.some((n: any) => !n.isRead) || unviewedMatchesCount > 0) && isAuthenticated) {
+    if ((notificationsList.some((n: any) => !n.isRead) || unviewedMatchesCount > 0) && isAuthenticated) {
       Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
@@ -641,11 +611,11 @@ const Header = () => {
             useNativeDriver: true,
           }),
         ])
-      ).start();
-    } else {
-      pulseAnim.setValue(1);
-    }
-  }, [notifications, unviewedMatchesCount, isAuthenticated]);
+        ).start();
+      } else {
+        pulseAnim.setValue(1);
+      }
+    }, [notificationsList, unviewedMatchesCount, isAuthenticated]);
 
   const handleNotificationPress = () => {
     if (!isAuthenticated) {
@@ -833,7 +803,7 @@ const Header = () => {
               </View>
 
               {/* Action Buttons */}
-              {notifications.length > 0 && (
+              {notificationsList.length > 0 && (
                 <View style={styles.actionButtonsRow}>
                   <Pressable 
                     style={[styles.actionButton, { backgroundColor: isDark ? "#333333" : "#F3F4F6" }]}
@@ -858,7 +828,7 @@ const Header = () => {
               )}
 
               {/* Tab Selector */}
-              {notifications.length > 0 && (
+              {notificationsList.length > 0 && (
                 <View style={[styles.tabSelector, { backgroundColor: isDark ? "#333333" : "#F3F4F6" }]}>
                   <Pressable 
                     style={[
@@ -882,7 +852,7 @@ const Header = () => {
                         styles.tabBadgeText,
                         { color: activeTab === 'all' ? "#FFFFFF" : (isDark ? "#CCCCCC" : "#666666") }
                       ]}>
-                        {notifications.length}
+                        {notificationsList.length}
                       </Text>
                     </View>
                   </Pressable>
@@ -909,7 +879,7 @@ const Header = () => {
                         styles.tabBadgeText,
                         { color: activeTab === 'unread' ? "#FFFFFF" : (isDark ? "#CCCCCC" : "#666666") }
                       ]}>
-                        {notifications.filter(notif => !notif.isRead).length}
+                        {notificationsList.filter(notif => !notif.isRead).length}
                       </Text>
                     </View>
                   </Pressable>
@@ -926,7 +896,7 @@ const Header = () => {
                     Loading notifications...
                   </Text>
                 </View>
-              ) : notifications.length === 0 ? (
+              ) : notificationsList.length === 0 ? (
                 <View style={styles.emptyState}>
                   <Ionicons name="notifications-off-outline" size={48} color="#9CA3AF" />
                   <Text style={[styles.emptyText, { color: isDark ? "#CCCCCC" : "#666666" }]}>
@@ -938,7 +908,7 @@ const Header = () => {
                 </View>
               ) : (
                 <View style={styles.notificationsContainer}>
-                  {notifications
+                  {notificationsList
                     .filter(notif => {
                       return activeTab === 'all' || !notif.isRead;
                     })

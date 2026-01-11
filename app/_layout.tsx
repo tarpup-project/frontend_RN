@@ -1,6 +1,7 @@
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import { WatermelonProvider } from "@/contexts/WatermelonProvider";
 import { useDeepLinking } from "@/hooks/useDeepLinking";
+import { useNotifications } from "@/hooks/useNotification";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useAuthStore } from "@/state/authStore";
 import { asyncStoragePersister, initializeQueryPersistence, queryClient } from "@/utils/queryClient";
@@ -22,6 +23,7 @@ SplashScreen.preventAutoHideAsync();
 function RootLayoutContent() {
   // ✅ SINGLE SOURCE OF NOTIFICATIONS
   usePushNotifications();
+  useNotifications(true);
   
   // ✅ HANDLE DEEP LINKING FOR REFERRALS
   useDeepLinking();
