@@ -85,6 +85,8 @@ export default function PostPreviewScreen() {
   const [buttonsVisible, setButtonsVisible] = useState(true);
   const buttonsOpacity = useRef(new Animated.Value(1)).current;
   const buttonsScale = useRef(new Animated.Value(1)).current;
+  const [showOptionsDropdown, setShowOptionsDropdown] = useState(false);
+  const [isReporting, setIsReporting] = useState(false);
 
   // Function to mark post as viewed (remove red border)
   const markPostAsViewed = async (postId: string) => {
@@ -957,6 +959,39 @@ export default function PostPreviewScreen() {
       setIsSendingComment(false);
     }
   };
+
+  const reportPost = async () => {
+    const postId = getCurrentPostItem()?.id;
+    if (!postId || isReporting) return;
+
+    try {
+      setIsReporting(true);
+      setShowOptionsDropdown(false);
+      
+      console.log("Reporting post with ID:", postId);
+      
+      const response = await api.post(UrlConstants.tarpReportPost(postId));
+      
+      console.log("Report response:", response.data);
+      toast.success("Post reported successfully");
+    } catch (error: any) {
+      console.error("Failed to report post:", error);
+      console.error("Error response:", error.response?.data);
+      console.error("Error status:", error.response?.status);
+      
+      if (error.response?.status === 401) {
+        toast.error("Please log in to report posts");
+      } else if (error.response?.status === 404) {
+        toast.error("Post not found or endpoint unavailable");
+      } else if (error.response?.status === 409) {
+        toast.error("Post already reported");
+      } else {
+        toast.error("Failed to report post");
+      }
+    } finally {
+      setIsReporting(false);
+    }
+  };
   // Removed scroll control functions for performance
   const getCommentId = (c: any): string | null => {
     const v = c?.id ?? c?._id ?? c?.commentId ?? c?.commentID ?? c?.comment_id;
@@ -1133,6 +1168,11 @@ export default function PostPreviewScreen() {
             style={{ flex: 1 }} 
             onPressIn={handlePressIn}
             onPressOut={handlePressOut}
+            onPress={() => {
+              if (showOptionsDropdown) {
+                setShowOptionsDropdown(false);
+              }
+            }}
           >
             <View style={{ flex: 1, backgroundColor: "#000" }}>
               {currentImages.length > 0 ? (
@@ -1190,9 +1230,37 @@ export default function PostPreviewScreen() {
                 <Text style={styles.headerTitle}>{getCurrentPostItem() ? extractLocationName(getCurrentPostItem()) : "Location"}</Text>
                 <Text style={styles.headerSub}>{currentImageIndex + 1} / {Math.max(1, currentImages.length || 1)}</Text>
               </View>
-              <Pressable style={styles.headerIcon} onPress={(e) => { e.stopPropagation(); toast.success("Options coming soon"); }}>
+              <Pressable 
+                style={styles.headerIcon} 
+                onPress={(e) => { 
+                  e.stopPropagation(); 
+                  setShowOptionsDropdown(!showOptionsDropdown); 
+                }}
+              >
                 <Ionicons name="ellipsis-vertical" size={18} color="#FFFFFF" />
               </Pressable>
+              
+              {/* Options Dropdown */}
+              {showOptionsDropdown && (
+                <View style={[styles.optionsDropdown, isDark ? styles.optionsDropdownDark : styles.optionsDropdownLight]}>
+                  <Pressable 
+                    style={styles.optionItem}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      reportPost();
+                    }}
+                    disabled={isReporting}
+                  >
+                    <Ionicons name="flag-outline" size={16} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
+                    <Text style={[styles.optionText, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
+                      {isReporting ? "Reporting..." : "Report"}
+                    </Text>
+                    {isReporting && (
+                      <ActivityIndicator size="small" color={isDark ? "#FFFFFF" : "#0a0a0a"} />
+                    )}
+                  </Pressable>
+                </View>
+              )}
             </Animated.View>
             
             {/* Blinking arrow for navigation hint */}
@@ -1770,5 +1838,39 @@ const styles = StyleSheet.create({
   },
   statsLoadingText: {
     fontSize: 12,
+  },
+  optionsDropdown: {
+    position: "absolute",
+    top: 60,
+    right: 0,
+    minWidth: 120,
+    borderRadius: 8,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    zIndex: 1000,
+  },
+  optionsDropdownDark: {
+    backgroundColor: "#1A1A1A",
+    borderColor: "#333333",
+  },
+  optionsDropdownLight: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#E0E0E0",
+  },
+  optionItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  optionText: {
+    fontSize: 14,
+    fontWeight: "500",
+    flex: 1,
   },
 });

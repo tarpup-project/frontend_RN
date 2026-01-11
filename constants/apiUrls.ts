@@ -94,6 +94,7 @@ class UrlConstants {
     return `/tarps/people/navigate?${q.toString()}`;
   };
   static tarpLikePost = `/tarps/posts/like`;
+  static tarpReportPost = (postId: string) => `/tarps/posts/report/${postId}`;
   static fetchPostLikes = `/tarps/posts/likes`;
   static tarpPostComments = (postImageID: string) => `/tarps/posts/${postImageID}/comments`;
   static tarpToggleFriend = `/tarps/user/friend`;
