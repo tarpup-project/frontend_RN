@@ -943,17 +943,27 @@ export default function PostPreviewScreen() {
       setCommentText("");
       setReplyingToID(null);
       
+      // Immediately update comment count (optimistic update)
+      setCommentCount(prev => prev + 1);
+      
       // Refresh comments
       try {
         setIsLoadingComments(true);
         const res = await api.get(UrlConstants.tarpPostComments(imageID));
         const list = (res as any)?.data?.data ?? (res as any)?.data?.comments ?? (res as any)?.data;
         setComments(Array.isArray(list) ? list : []);
+        
+        // Update comment count with actual count from server (in case of discrepancy)
+        if (Array.isArray(list)) {
+          setCommentCount(list.length);
+        }
       } finally {
         setIsLoadingComments(false);
       }
       toast.success("Comment posted");
     } catch {
+      // Revert the optimistic update on error
+      setCommentCount(prev => Math.max(0, prev - 1));
       toast.error("Failed to post comment");
     } finally {
       setIsSendingComment(false);

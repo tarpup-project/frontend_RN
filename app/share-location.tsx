@@ -43,6 +43,7 @@ export default function ShareLocationScreen() {
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [loadingLocSuggest, setLoadingLocSuggest] = useState(false);
   const [showDurationDropdown, setShowDurationDropdown] = useState(false);
+  const [locationJustSelected, setLocationJustSelected] = useState(false);
 
   const suggestions = ["Studying", "Eating", "Hanging out", "Working", "Exercising", "Shopping"];
   const durationOptions = ["15 minutes", "30 minutes", "1 hour", "2 hours", "4 hours", "Until I turn it off"];
@@ -60,6 +61,14 @@ export default function ShareLocationScreen() {
       setShowLocationDropdown(false);
       return;
     }
+    
+    // Don't show dropdown if location was just selected
+    if (locationJustSelected) {
+      // Clear suggestions so they don't pop up on focus
+      setLocationSuggestions([]);
+      return;
+    }
+    
     setLoadingLocSuggest(true);
     const t = setTimeout(async () => {
       try {
@@ -77,7 +86,7 @@ export default function ShareLocationScreen() {
       }
     }, 300);
     return () => clearTimeout(t);
-  }, [statusLocation]);
+  }, [statusLocation, locationJustSelected]);
 
   const loadRecents = async () => {
     try {
@@ -250,10 +259,19 @@ export default function ShareLocationScreen() {
               <Ionicons name="location-outline" size={16} color={isDark ? "#FFFFFF" : "#000000"} />
               <TextInput
                 value={statusLocation}
-                onChangeText={setStatusLocation}
+                onChangeText={(text) => {
+                  setStatusLocation(text);
+                  setLocationJustSelected(false); // Reset flag when user types manually
+                }}
                 placeholder="Type or select a location"
                 placeholderTextColor={isDark ? "#888" : "#999"}
                 style={[styles.textInput, { color: isDark ? "#FFFFFF" : "#000000" }]}
+                onFocus={() => {
+                  // Show dropdown if there are suggestions and user focuses input
+                  if (locationSuggestions.length > 0 && statusLocation.trim().length > 0) {
+                    setShowLocationDropdown(true);
+                  }
+                }}
               />
               <Ionicons name="compass-outline" size={16} color={isDark ? "#888" : "#999"} />
             </View>
@@ -272,6 +290,7 @@ export default function ShareLocationScreen() {
                       onPress={() => {
                         setStatusLocation(option);
                         setShowLocationDropdown(false);
+                        setLocationJustSelected(true);
                       }}
                     >
                       <Text style={{color: isDark ? "#FFF" : "#000", fontSize: 13}}>{option}</Text>

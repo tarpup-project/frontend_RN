@@ -133,6 +133,8 @@ export default function TarpsScreen() {
   const [chatText, setChatText] = useState("");
   const chatScrollRef = useRef<FlatList | null>(null);
   const socketRef = useRef<any | null>(null);
+  const lastPostRequestId = useRef(0);
+  const lastPeopleRequestId = useRef(0);
 
   // Profile modal state - REMOVED (now using full screen)
 
@@ -415,11 +417,13 @@ export default function TarpsScreen() {
  
   const loadPostsInView = async (region: typeof location) => {
     if (!region) return;
+    const requestId = ++lastPostRequestId.current;
     const vp = buildViewport(region);
     try {
       const url = postsUrl(vp);
       console.log("PostsInView:request", { url, ...vp });
       const res = await api.get(url);
+      if (requestId !== lastPostRequestId.current) return;
       console.log("PostsInView:response", { status: res?.status, ok: res?.status >= 200 && res?.status < 300 });
       console.log("PostsInView:rawData", res?.data);
       const list = (res as any).data?.data || (res as any).data?.posts || (res as any).data;
@@ -559,17 +563,19 @@ export default function TarpsScreen() {
       console.log("PostsInView:loaded", { count: mapped.length });
     } catch (e: any) {
       console.log("PostsInView:error", { status: e?.response?.status, data: e?.response?.data, message: e?.message });
-      setServerPosts([]);
+      // Keep previous posts on error to prevent flickering
     }
   };
  
   const loadPeopleInView = async (region: typeof location) => {
     if (!region) return;
+    const requestId = ++lastPeopleRequestId.current;
     const vp = buildViewport(region);
     try {
       const url = peopleUrl(vp);
       console.log("PeopleInView:request", { url, ...vp });
       const res = await api.get(url);
+      if (requestId !== lastPeopleRequestId.current) return;
       console.log("PeopleInView:response", { status: res?.status, ok: res?.status >= 200 && res?.status < 300 });
 console.log(
   "PeopleInView:rawData",
@@ -623,7 +629,7 @@ console.log(
       console.log("PeopleInView:loaded", { count: mapped.length });
     } catch (e: any) {
       console.log("PeopleInView:error", { status: e?.response?.status, data: e?.response?.data, message: e?.message });
-      setServerPeople([]);
+      // Keep previous people on error
     }
   };
 
