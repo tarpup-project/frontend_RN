@@ -1,5 +1,6 @@
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import { WatermelonProvider } from "@/contexts/WatermelonProvider";
+import { useAppUpdate } from "@/hooks/useAppUpdate";
 import { useDeepLinking } from "@/hooks/useDeepLinking";
 import { useNotifications } from "@/hooks/useNotification";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -25,6 +26,9 @@ function RootLayoutContent() {
   usePushNotifications();
   useNotifications(true);
   
+  // ✅ CHECK FOR APP UPDATES
+  useAppUpdate(true);
+
   // ✅ HANDLE DEEP LINKING FOR REFERRALS
   useDeepLinking();
 
