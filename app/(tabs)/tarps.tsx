@@ -1188,7 +1188,23 @@ console.log(
                       setMapboxCamera({
                         centerCoordinate: [centerLng, centerLat],
                         zoomLevel: zoomLevel,
-                        animationDuration: 500,
+                        animationDuration: 200,
+                      });
+                      
+                      // Optimistically update markers for immediate separation
+                      const expandedPosts = p.items.map((item: any) => ({
+                        id: String(item.id ?? `${item.lat ?? item.latitude}-${item.lng ?? item.longitude}-${extractImageUrl(item)}`),
+                        image: extractImageUrl(item),
+                        latitude: Number(item.lat ?? item.latitude),
+                        longitude: Number(item.lng ?? item.longitude),
+                        count: 1,
+                        isCluster: false,
+                        items: [item],
+                      })).filter((post: any) => !isNaN(post.latitude) && !isNaN(post.longitude) && !!post.image);
+                      
+                      setServerPosts(prev => {
+                        const others = prev.filter(post => post.id !== p.id);
+                        return [...others, ...expandedPosts];
                       });
                     }
                   } else if (p.image && Array.isArray(p.items) && p.items.length > 0) {
@@ -1311,7 +1327,7 @@ console.log(
             if (viewMode === "posts") {
               setTimeout(() => {
                 loadPostsInView(reg);
-              }, 250);
+              }, 50);
             }
             if (viewMode === "people") {
               loadPeopleInView(reg);
@@ -1440,7 +1456,23 @@ console.log(
                           latitudeDelta: Math.max(0.01, Math.abs(bounds.maxLat - bounds.minLat) * 1.5),
                           longitudeDelta: Math.max(0.01, Math.abs(bounds.maxLng - bounds.minLng) * 1.5),
                         } as any;
-                        mapRef.current?.animateToRegion(region, 500);
+                        mapRef.current?.animateToRegion(region, 200);
+                        
+                        // Optimistically update markers for immediate separation
+                        const expandedPosts = p.items.map((item: any) => ({
+                          id: String(item.id ?? `${item.lat ?? item.latitude}-${item.lng ?? item.longitude}-${extractImageUrl(item)}`),
+                          image: extractImageUrl(item),
+                          latitude: Number(item.lat ?? item.latitude),
+                          longitude: Number(item.lng ?? item.longitude),
+                          count: 1,
+                          isCluster: false,
+                          items: [item],
+                        })).filter((post: any) => !isNaN(post.latitude) && !isNaN(post.longitude) && !!post.image);
+                        
+                        setServerPosts(prev => {
+                          const others = prev.filter(post => post.id !== p.id);
+                          return [...others, ...expandedPosts];
+                        });
                       }
                     } else if (p.image && Array.isArray(p.items) && p.items.length > 0) {
                       const item = p.items[0];
