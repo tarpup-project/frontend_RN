@@ -8,6 +8,7 @@ interface NotificationState {
   friendPostsNotifications: number;
   postLikesNotifications: number;
   commentsNotifications: number;
+  pendingMatchesNotifications: number;
   initialized: boolean;
   
   setNotifications: (notifications: {
@@ -18,6 +19,7 @@ interface NotificationState {
     friendPostsNotifications?: number;
     postLikesNotifications?: number;
     commentsNotifications?: number;
+    pendingMatchesNotifications?: number;
   }) => void;
   
   setLists: (lists: {
@@ -26,11 +28,11 @@ interface NotificationState {
   
   markInitialized: () => void;
   
-  clearNotifications: (type?: 'group' | 'personal' | 'chat' | 'follower' | 'friendPosts' | 'postLikes' | 'comments') => void;
+  clearNotifications: (type?: 'group' | 'personal' | 'chat' | 'follower' | 'friendPosts' | 'postLikes' | 'comments' | 'pendingMatches') => void;
   
-  incrementNotification: (type: 'group' | 'personal' | 'chat' | 'follower' | 'friendPosts' | 'postLikes' | 'comments') => void;
+  incrementNotification: (type: 'group' | 'personal' | 'chat' | 'follower' | 'friendPosts' | 'postLikes' | 'comments' | 'pendingMatches') => void;
   
-  decrementNotification: (type: 'group' | 'personal' | 'chat' | 'follower' | 'friendPosts' | 'postLikes' | 'comments') => void;
+  decrementNotification: (type: 'group' | 'personal' | 'chat' | 'follower' | 'friendPosts' | 'postLikes' | 'comments' | 'pendingMatches') => void;
 }
 
 export const useNotificationStore = create<NotificationState>((set) => ({
@@ -41,6 +43,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
   friendPostsNotifications: 0,
   postLikesNotifications: 0,
   commentsNotifications: 0,
+  pendingMatchesNotifications: 0,
   initialized: false,
 
   setNotifications: (notifications) => {
@@ -68,6 +71,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
         friendPostsNotifications: 0,
         postLikesNotifications: 0,
         commentsNotifications: 0,
+        pendingMatchesNotifications: 0,
         initialized: false,
       });
     } else {

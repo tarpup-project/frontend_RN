@@ -20,7 +20,7 @@ export const useNotifications = () => {
     friendPostsNotifications,
     postLikesNotifications,
     commentsNotifications,
-    pendingMatchesNotifications,
+    pendingMatchesNotifications, // Pending matches notification count
     setNotifications,
     incrementNotification,
   } = useNotificationStore();
