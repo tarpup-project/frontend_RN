@@ -129,6 +129,8 @@ export default function TarpsScreen() {
   const [loadingNavigate, setLoadingNavigate] = useState(false);
   const [showMapConfirmModal, setShowMapConfirmModal] = useState(false);
   const [modalTransitioning, setModalTransitioning] = useState(false);
+  const [globalPosts, setGlobalPosts] = useState<any[]>([]);
+  const [isLoadingGlobalPosts, setIsLoadingGlobalPosts] = useState(false);
 
   // Debug modal state changes and prevent conflicts
   useEffect(() => {
@@ -297,11 +299,16 @@ export default function TarpsScreen() {
         loadPostsInView(currentRegion);
       }
     };
+    (global as any).getGlobalPosts = () => {
+      console.log("📋 Providing global posts to post screen:", globalPosts.length);
+      return globalPosts;
+    };
     return () => {
       delete (global as any).markPostsAsViewed;
       delete (global as any).refreshPostsInView;
+      delete (global as any).getGlobalPosts;
     };
-  }, [mapRegion, location, viewMode]);
+  }, [mapRegion, location, viewMode, globalPosts]);
 
   // Hand animation blinking effect
   useEffect(() => {
@@ -873,6 +880,82 @@ console.log(
     setRecents(assets.assets);
   };
 
+  const loadGlobalPosts = async () => {
+    if (isLoadingGlobalPosts) return;
+    
+    try {
+      setIsLoadingGlobalPosts(true);
+      
+      // World view parameters - covers the entire globe
+      const worldViewport = {
+        minLat: -90,
+        maxLat: 90,
+        minLng: -180,
+        maxLng: 180,
+        zoomLevel: 1 // World zoom level
+      };
+      
+      const query = new URLSearchParams({
+        minLat: worldViewport.minLat.toString(),
+        maxLat: worldViewport.maxLat.toString(),
+        minLng: worldViewport.minLng.toString(),
+        maxLng: worldViewport.maxLng.toString(),
+        zoomLevel: worldViewport.zoomLevel.toString(),
+      });
+      
+      const url = `/tarps/posts?${query.toString()}`;
+      console.log("🌍 Loading global posts in background:", { url, viewport: worldViewport });
+      
+      const res = await api.get(url);
+      console.log("🌍 Global posts response:", { status: res?.status, ok: res?.status >= 200 && res?.status < 300 });
+      
+      const list = (res as any).data?.data || (res as any).data?.posts || (res as any).data;
+      console.log("🌍 Global posts raw data:", { isArray: Array.isArray(list), length: Array.isArray(list) ? list.length : undefined });
+      
+      // Process the posts similar to loadPostsInView
+      const resolveImageUrl = (item: any): string | null => {
+        if (!item || typeof item !== "object") return null;
+        const candidates: any[] = [
+          item.imageUrl, item.photoUrl, item.image, item.coverUrl, item.thumbnail, item.thumbUrl, item.bgUrl, item.url,
+          item?.image?.url, item?.photo?.url,
+          Array.isArray(item.images) ? (typeof item.images[0] === "string" ? item.images[0] : item.images[0]?.url) : null,
+          Array.isArray(item.files) ? (typeof item.files[0] === "string" ? item.files[0] : item.files[0]?.url) : null,
+          Array.isArray(item.medias) ? (typeof item.medias[0] === "string" ? item.medias[0] : item.medias[0]?.url) : null,
+        ];
+        const raw = candidates.find((v) => typeof v === "string" && v.length > 0) ?? null;
+        if (!raw) return null;
+        if (/^https?:\/\//i.test(raw)) return raw;
+        return `${UrlConstants.baseUrl}${raw.startsWith("/") ? "" : "/"}${raw}`;
+      };
+      
+      let mapped: any[] = [];
+      if (Array.isArray(list)) {
+        const looksLikeGrid = list.length > 0 && typeof list[0]?.avgLat === "number" && typeof list[0]?.avgLng === "number" && "result" in list[0];
+        if (looksLikeGrid) {
+          // Grid format - flatten all items
+          mapped = list.flatMap((cell: any) => {
+            const items = Array.isArray(cell.result) ? cell.result : [];
+            return items.filter((item: any) => resolveImageUrl(item));
+          });
+        } else {
+          // Direct posts format
+          mapped = list.filter((p: any) => resolveImageUrl(p));
+        }
+      }
+      
+      setGlobalPosts(mapped);
+      console.log("🌍 Global posts loaded successfully:", { count: mapped.length });
+      
+      return mapped;
+    } catch (e: any) {
+      console.log("🌍 Global posts error:", { status: e?.response?.status, data: e?.response?.data, message: e?.message });
+      // Don't show error toast here since it's background loading
+      return [];
+    } finally {
+      setIsLoadingGlobalPosts(false);
+    }
+  };
+
   useEffect(() => {
     if (!location) return;
     
@@ -883,6 +966,12 @@ console.log(
       loadPostsInView(location);
     }
   }, [location, viewMode]);
+
+  // Load global posts on tarps screen mount for faster post browsing
+  useEffect(() => {
+    console.log("🚀 Starting background global posts loading...");
+    loadGlobalPosts();
+  }, []);
 
   useEffect(() => {
     if (!chatOpen || !groupDetails || !user) return;
