@@ -185,7 +185,7 @@ import { toast } from "sonner-native";
       
       {/* Navigation Arrow - only show for navigable notifications */}
       {(notification.data?.postID || 
-        ['new_comment', 'comment', 'new_like', 'like', 'new_match', 'match'].includes(notification.type?.toLowerCase())) && (
+        ['new_comment', 'comment', 'new_like', 'like', 'new_match', 'match', 'new_follower', 'follower', 'new_following', 'friend_request', 'new_friend_request'].includes(notification.type?.toLowerCase())) && (
         <View style={styles.navigationArrow}>
           <Ionicons name="chevron-forward" size={16} color={isDark ? "#666666" : "#CCCCCC"} />
         </View>
@@ -385,7 +385,10 @@ const Header = () => {
       console.log('Navigating from notification:', {
         type: notificationType,
         data: data,
-        postID: data?.postID
+        postID: data?.postID,
+        actors: notification.actors,
+        firstActorId: notification.actors?.[0]?.actor?.id,
+        firstActorName: notification.actors?.[0]?.actor?.fname
       });
       
       // Close the notification panel first
@@ -417,14 +420,31 @@ const Header = () => {
           
         case 'new_follower':
         case 'follower':
-          // Navigate to profile screen
-          router.push('/profile/me');
+        case 'new_following':
+          // Navigate to follower's profile using their ID from actors
+          const followerActor = notification.actors?.[0]?.actor;
+          if (followerActor?.id) {
+            console.log('Navigating to follower profile:', followerActor.id);
+            router.push(`/profile/${followerActor.id}`);
+          } else {
+            console.warn('No follower ID found in notification actors');
+            // Fallback to user's own profile
+            router.push('/profile/me');
+          }
           break;
           
         case 'friend_request':
         case 'new_friend_request':
-          // Navigate to profile screen
-          router.push('/profile/me');
+          // Navigate to friend requester's profile using their ID from actors
+          const requesterActor = notification.actors?.[0]?.actor;
+          if (requesterActor?.id) {
+            console.log('Navigating to friend requester profile:', requesterActor.id);
+            router.push(`/profile/${requesterActor.id}`);
+          } else {
+            console.warn('No requester ID found in notification actors');
+            // Fallback to user's own profile
+            router.push('/profile/me');
+          }
           break;
           
         default:
