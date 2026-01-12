@@ -47,7 +47,6 @@ export default function PostPreviewScreen() {
   const [viewedPosts, setViewedPosts] = useState<Set<string>>(new Set()); // Track viewed posts
   const [allAvailablePosts, setAllAvailablePosts] = useState<any[]>([]); // All posts available for browsing
   const [currentPostIndex, setCurrentPostIndex] = useState(0); // Index in all available posts
-  const [isLoadingGlobalPosts, setIsLoadingGlobalPosts] = useState(false);
   const [arrowVisible, setArrowVisible] = useState(true);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [userStats, setUserStats] = useState<{
@@ -213,82 +212,6 @@ export default function PostPreviewScreen() {
     }
   };
 
-  const loadGlobalPosts = async () => {
-    if (isLoadingGlobalPosts) return;
-    
-    try {
-      setIsLoadingGlobalPosts(true);
-      
-      // World view parameters - covers the entire globe
-      const worldViewport = {
-        minLat: -90,
-        maxLat: 90,
-        minLng: -180,
-        maxLng: 180,
-        zoomLevel: 1 // World zoom level
-      };
-      
-      const query = new URLSearchParams({
-        minLat: worldViewport.minLat.toString(),
-        maxLat: worldViewport.maxLat.toString(),
-        minLng: worldViewport.minLng.toString(),
-        maxLng: worldViewport.maxLng.toString(),
-        zoomLevel: worldViewport.zoomLevel.toString(),
-      });
-      
-      const url = `/tarps/posts?${query.toString()}`;
-      console.log("Loading global posts:", { url, viewport: worldViewport });
-      
-      const res = await api.get(url);
-      console.log("Global posts response:", { status: res?.status, ok: res?.status >= 200 && res?.status < 300 });
-      
-      const list = (res as any).data?.data || (res as any).data?.posts || (res as any).data;
-      console.log("Global posts raw data:", { isArray: Array.isArray(list), length: Array.isArray(list) ? list.length : undefined });
-      
-      // Process the posts similar to loadPostsInView
-      const resolveImageUrl = (item: any): string | null => {
-        if (!item || typeof item !== "object") return null;
-        const candidates: any[] = [
-          item.imageUrl, item.photoUrl, item.image, item.coverUrl, item.thumbnail, item.thumbUrl, item.bgUrl, item.url,
-          item?.image?.url, item?.photo?.url,
-          Array.isArray(item.images) ? (typeof item.images[0] === "string" ? item.images[0] : item.images[0]?.url) : null,
-          Array.isArray(item.files) ? (typeof item.files[0] === "string" ? item.files[0] : item.files[0]?.url) : null,
-          Array.isArray(item.medias) ? (typeof item.medias[0] === "string" ? item.medias[0] : item.medias[0]?.url) : null,
-        ];
-        const raw = candidates.find((v) => typeof v === "string" && v.length > 0) ?? null;
-        if (!raw) return null;
-        if (/^https?:\/\//i.test(raw)) return raw;
-        return `${UrlConstants.baseUrl}${raw.startsWith("/") ? "" : "/"}${raw}`;
-      };
-      
-      let mapped: any[] = [];
-      if (Array.isArray(list)) {
-        const looksLikeGrid = list.length > 0 && typeof list[0]?.avgLat === "number" && typeof list[0]?.avgLng === "number" && "result" in list[0];
-        if (looksLikeGrid) {
-          // Grid format - flatten all items
-          mapped = list.flatMap((cell: any) => {
-            const items = Array.isArray(cell.result) ? cell.result : [];
-            return items.filter((item: any) => resolveImageUrl(item));
-          });
-        } else {
-          // Direct posts format
-          mapped = list.filter((p: any) => resolveImageUrl(p));
-        }
-      }
-      
-      setGlobalPosts(mapped);
-      console.log("Global posts loaded:", { count: mapped.length });
-      
-      return mapped;
-    } catch (e: any) {
-      console.log("Global posts error:", { status: e?.response?.status, data: e?.response?.data, message: e?.message });
-      toast.error("Failed to load global posts");
-      return [];
-    } finally {
-      setIsLoadingGlobalPosts(false);
-    }
-  };
-
   useEffect(() => {
     try {
       const rawItem = typeof params.item === "string" ? params.item : undefined;
@@ -320,44 +243,46 @@ export default function PostPreviewScreen() {
       setAllPostItems(parsedAllItems.length > 0 ? parsedAllItems : [parsedItem].filter(Boolean));
       setServerPosts(parsedServerPosts);
       
-      // Load global posts for browsing
-      loadGlobalPosts().then((globalPostsList) => {
-        // Mark current post as viewed and set up all available posts
-        if (parsedItem?.id) {
-          // Mark post as viewed to remove red border
-          markPostAsViewed(parsedItem.id);
-          
-          // If this is a stacked post with multiple items, mark all as viewed
-          if (parsedAllItems.length > 1) {
-            const allPostIds = parsedAllItems.map((item: any) => item.id).filter(Boolean);
-            markMultiplePostsAsViewed(allPostIds);
-          }
-          
-          setViewedPosts(new Set([parsedItem.id]));
-          
-          // Combine server posts and global posts, remove duplicates
-          const allPosts = [
-            ...(Array.isArray(parsedServerPosts) ? parsedServerPosts : []), 
-            ...(Array.isArray(globalPostsList) ? globalPostsList : [])
-          ]
-            .flatMap((post: any) => post.items || [post])
-            .filter((item: any, index: any, arr: any) => 
-              item.id && arr.findIndex((p: any) => p.id === item.id) === index
-            );
-          
-          setAllAvailablePosts(allPosts);
-          
-          // Find current post index in the combined list
-          const currentIndex = allPosts.findIndex((post: any) => post.id === parsedItem.id);
-          setCurrentPostIndex(currentIndex >= 0 ? currentIndex : 0);
-          
-          console.log("All posts setup:", { 
-            totalPosts: allPosts.length,
-            currentIndex: currentIndex >= 0 ? currentIndex : 0,
-            currentPostId: parsedItem.id
-          });
+      // Get pre-loaded global posts from tarps screen (no loading needed!)
+      const globalPostsList = (global as any).getGlobalPosts ? (global as any).getGlobalPosts() : [];
+      console.log("📋 Using pre-loaded global posts:", globalPostsList.length);
+      
+      // Mark current post as viewed and set up all available posts
+      if (parsedItem?.id) {
+        // Mark post as viewed to remove red border
+        markPostAsViewed(parsedItem.id);
+        
+        // If this is a stacked post with multiple items, mark all as viewed
+        if (parsedAllItems.length > 1) {
+          const allPostIds = parsedAllItems.map((item: any) => item.id).filter(Boolean);
+          markMultiplePostsAsViewed(allPostIds);
         }
-      });
+        
+        setViewedPosts(new Set([parsedItem.id]));
+        
+        // Combine server posts and global posts, remove duplicates
+        const allPosts = [
+          ...(Array.isArray(parsedServerPosts) ? parsedServerPosts : []), 
+          ...(Array.isArray(globalPostsList) ? globalPostsList : [])
+        ]
+          .flatMap((post: any) => post.items || [post])
+          .filter((item: any, index: any, arr: any) => 
+            item.id && arr.findIndex((p: any) => p.id === item.id) === index
+          );
+        
+        setAllAvailablePosts(allPosts);
+        
+        // Find current post index in the combined list
+        const currentIndex = allPosts.findIndex((post: any) => post.id === parsedItem.id);
+        setCurrentPostIndex(currentIndex >= 0 ? currentIndex : 0);
+        
+        console.log("All posts setup:", { 
+          totalPosts: allPosts.length,
+          currentIndex: currentIndex >= 0 ? currentIndex : 0,
+          currentPostId: parsedItem.id,
+          globalPostsFromTarps: globalPostsList.length
+        });
+      }
       
       console.log("Post screen initialized:", { 
         hasAllItems: parsedAllItems.length > 0, 
@@ -365,7 +290,7 @@ export default function PostPreviewScreen() {
         imagesCount: urls.length,
         isStackedPost: parsedAllItems.length > 1,
         serverPostsCount: parsedServerPosts.length,
-        loadingGlobalPosts: true
+        usingPreLoadedGlobalPosts: true
       });
       
       const idx = typeof params.idx === "string" ? Number(params.idx) : 0;
