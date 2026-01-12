@@ -12,18 +12,18 @@ import { StatusBar } from "expo-status-bar";
 import moment from "moment";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Animated,
-  Dimensions,
-  FlatList,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View
+    ActivityIndicator,
+    Animated,
+    Dimensions,
+    FlatList,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    Pressable,
+    StyleSheet,
+    Text,
+    TextInput,
+    View
 } from "react-native";
 import { Gesture, GestureDetector, GestureHandlerRootView, ScrollView } from "react-native-gesture-handler";
 import { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
@@ -829,14 +829,22 @@ export default function PostPreviewScreen() {
       }
       
       const targetPost = allAvailablePosts[newIndex];
-      updateCurrentPost(targetPost, newIndex, 'next');
+      if (targetPost) {
+        updateCurrentPost(targetPost, newIndex, 'next');
+      } else {
+        console.error("Target post not found at index:", newIndex);
+        toast.error("Post not found");
+      }
       
     } else {
       // Swipe down - go to previous post (allow reviewing viewed posts)
-      const newIndex = currentPostIndex === 0 ? allAvailablePosts.length - 1 : currentPostIndex - 1;
+      // Ensure currentPostIndex is within bounds after potential array modifications
+      const safeCurrentIndex = Math.min(currentPostIndex, allAvailablePosts.length - 1);
+      const newIndex = safeCurrentIndex === 0 ? allAvailablePosts.length - 1 : safeCurrentIndex - 1;
       const targetPost = allAvailablePosts[newIndex];
       
       if (!targetPost) {
+        console.error("Previous post not found at index:", newIndex, "Array length:", allAvailablePosts.length);
         toast.error("Post not found");
         return;
       }
@@ -984,6 +992,44 @@ export default function PostPreviewScreen() {
       
       console.log("Report response:", response.data);
       toast.success("Post reported successfully");
+      
+      // Store current index before filtering
+      const currentIndex = currentPostIndex;
+      
+      // Remove reported post from available posts array
+      setAllAvailablePosts(prev => {
+        const filtered = prev.filter(post => post.id !== postId);
+        console.log("Removed reported post from available posts:", {
+          originalCount: prev.length,
+          newCount: filtered.length,
+          removedPostId: postId
+        });
+        
+        // Update current post index after filtering
+        setTimeout(() => {
+          const newIndex = currentIndex >= filtered.length ? Math.max(0, filtered.length - 1) : currentIndex;
+          setCurrentPostIndex(newIndex);
+          console.log("Updated current post index after report:", { currentIndex, newIndex, arrayLength: filtered.length });
+        }, 0);
+        
+        return filtered;
+      });
+      
+      // Navigate to next post after successful report (with a small delay to ensure state is updated)
+      setTimeout(() => {
+        navigateToPost('next');
+      }, 100);
+      
+      // Refresh posts in tarps screen to remove reported post
+      try {
+        // Call global function to refresh posts if available
+        if ((global as any).refreshPostsInView) {
+          (global as any).refreshPostsInView();
+        }
+      } catch (refreshError) {
+        console.log("Could not refresh posts in tarps screen:", refreshError);
+      }
+      
     } catch (error: any) {
       console.error("Failed to report post:", error);
       console.error("Error response:", error.response?.data);
@@ -995,6 +1041,18 @@ export default function PostPreviewScreen() {
         toast.error("Post not found or endpoint unavailable");
       } else if (error.response?.status === 409) {
         toast.error("Post already reported");
+        // Even if already reported, remove from available posts and navigate
+        setAllAvailablePosts(prev => {
+          const filtered = prev.filter(post => post.id !== postId);
+          setTimeout(() => {
+            const newIndex = currentPostIndex >= filtered.length ? Math.max(0, filtered.length - 1) : currentPostIndex;
+            setCurrentPostIndex(newIndex);
+          }, 0);
+          return filtered;
+        });
+        setTimeout(() => {
+          navigateToPost('next');
+        }, 100);
       } else {
         toast.error("Failed to report post");
       }

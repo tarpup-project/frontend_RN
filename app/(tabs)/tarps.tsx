@@ -127,6 +127,32 @@ export default function TarpsScreen() {
   }>>([]);
   const [loadingMessage, setLoadingMessage] = useState(false);
   const [loadingNavigate, setLoadingNavigate] = useState(false);
+  const [showMapConfirmModal, setShowMapConfirmModal] = useState(false);
+  const [modalTransitioning, setModalTransitioning] = useState(false);
+
+  // Debug modal state changes and prevent conflicts
+  useEffect(() => {
+    console.log("🔍 Map confirm modal state changed:", showMapConfirmModal);
+    
+    // If trying to show confirmation modal while person modal is still open, delay it
+    if (showMapConfirmModal && personOpen) {
+      console.log("⚠️ Modal conflict detected! Person modal still open, delaying confirmation modal");
+      setShowMapConfirmModal(false);
+      
+      // Retry after person modal closes
+      setTimeout(() => {
+        if (!personOpen) {
+          console.log("✅ Person modal closed, now showing confirmation modal");
+          setShowMapConfirmModal(true);
+        }
+      }, 500);
+    }
+  }, [showMapConfirmModal, personOpen]);
+
+  // Debug person modal state changes
+  useEffect(() => {
+    console.log("🔍 Person modal state changed:", personOpen);
+  }, [personOpen]);
   const [chatOpen, setChatOpen] = useState(false);
   const [groupDetails, setGroupDetails] = useState<any | null>(null);
   const [groupMessages, setGroupMessages] = useState<any[]>([]);
@@ -264,10 +290,18 @@ export default function TarpsScreen() {
   // Expose global function for post screen communication
   useEffect(() => {
     (global as any).markPostsAsViewed = markPostsAsViewed;
+    (global as any).refreshPostsInView = () => {
+      console.log("🔄 Refreshing posts in view after report");
+      const currentRegion = mapRegion || location;
+      if (currentRegion && viewMode === "posts") {
+        loadPostsInView(currentRegion);
+      }
+    };
     return () => {
       delete (global as any).markPostsAsViewed;
+      delete (global as any).refreshPostsInView;
     };
-  }, []);
+  }, [mapRegion, location, viewMode]);
 
   // Hand animation blinking effect
   useEffect(() => {
@@ -675,35 +709,155 @@ console.log(
     }
   };
 
-  const handleNavigate = async () => {
-    if (!selectedPerson?.id || !location) return;
-    if (!user) {
-      toast.error("Please sign in to load navigation");
+  const handleNavigate = () => {
+    console.log("🔄 Navigate button clicked - SIMPLE VERSION");
+    
+    // Prevent multiple rapid clicks during modal transitions
+    if (modalTransitioning) {
+      console.log("⚠️ Modal transition in progress, ignoring click");
       return;
     }
     
-    if (!hasLocationPermission) {
-      toast.error("Location permission required for navigation");
+    // Simple validation
+    if (!selectedPerson) {
+      console.log("❌ No selected person");
+      toast.error("No person selected");
+      return;
+    }
+    
+    if (!user) {
+      console.log("❌ User not authenticated");
+      toast.error("Please sign in first");
+      return;
+    }
+    
+    console.log("✅ Starting modal transition...");
+    setModalTransitioning(true);
+    
+    // Close the person modal first to prevent conflicts
+    setPersonOpen(false);
+    
+    // Use longer timeout to ensure person modal fully closes and React Native modal stack is cleared
+    setTimeout(() => {
+      console.log("✅ Person modal should be closed, now showing confirmation modal");
+      setShowMapConfirmModal(true);
+      setModalTransitioning(false);
+    }, 400); // Increased delay to 400ms for better reliability
+  };
+
+  const handleViewInMap = () => {
+    console.log("🗺️ View in map clicked - SIMPLE VERSION");
+    
+    if (!selectedPerson?.latitude || !selectedPerson?.longitude) {
+      console.log("❌ No person coordinates");
+      toast.error("Location coordinates not available");
+      setShowMapConfirmModal(false);
       return;
     }
     
     try {
+      console.log("🔄 Starting map navigation...");
       setLoadingNavigate(true);
-      const res = await api.get(
-        UrlConstants.tarpNavigateToUser({
-          locationID: String(selectedPerson.id),
-          startingLat: Number(location.latitude),
-          startingLng: Number(location.longitude),
-          startingLocation: hasLocationPermission ? "Current Location" : "Default Location",
-        })
-      );
-      console.log("PeopleNavigate:response", { status: res?.status });
-      toast.success("Loaded navigation steps");
-    } catch (e: any) {
-      console.log("PeopleNavigate:error", { status: e?.response?.status, data: e?.response?.data, message: e?.message });
-      toast.error("Failed to load navigation");
-    } finally {
+      
+      // Close modals first with explicit state updates
+      console.log("🔄 Closing all modals...");
+      setShowMapConfirmModal(false);
+      setPersonOpen(false);
+      
+      // Use setTimeout to ensure modals close before map operations
+      setTimeout(() => {
+        try {
+          // Validate coordinates again
+          const lat = Number(selectedPerson.latitude);
+          const lng = Number(selectedPerson.longitude);
+          
+          if (isNaN(lat) || isNaN(lng)) {
+            throw new Error("Invalid coordinates");
+          }
+          
+          // SAVE CURRENT ZOOM STATE TO HISTORY BEFORE NAVIGATING
+          const currentRegion = mapRegion || location;
+          if (currentRegion) {
+            console.log("💾 Saving current zoom state to history before navigation");
+            
+            if (Platform.OS === 'android' && useMapboxGL) {
+              // Save Mapbox camera state
+              setZoomHistory(prev => [...prev, {
+                latitude: mapboxCamera.centerCoordinate[1],
+                longitude: mapboxCamera.centerCoordinate[0],
+                latitudeDelta: 0, // Not used for Mapbox
+                longitudeDelta: 0, // Not used for Mapbox
+                zoomLevel: mapboxCamera.zoomLevel
+              }]);
+            } else {
+              // Save Apple Maps region state
+              setZoomHistory(prev => [...prev, {
+                latitude: currentRegion.latitude,
+                longitude: currentRegion.longitude,
+                latitudeDelta: currentRegion.latitudeDelta,
+                longitudeDelta: currentRegion.longitudeDelta
+              }]);
+            }
+            
+            console.log("✅ Zoom history saved, total entries:", zoomHistory.length + 1);
+          }
+          
+          // Create new location object
+          const personLocation = {
+            latitude: lat,
+            longitude: lng,
+            latitudeDelta: 0.08, // Increased from 0.02 to 0.08 for less aggressive zoom
+            longitudeDelta: 0.08, // Increased from 0.02 to 0.08 for less aggressive zoom
+          };
+          
+          console.log("📍 Setting new location:", personLocation);
+          
+          // Update location state
+          setLocation(personLocation);
+          
+          // Try to animate map if available
+          if (mapRef.current) {
+            console.log("🗺️ Animating map to region");
+            mapRef.current.animateToRegion(personLocation, 1500);
+            setMapRegion(personLocation); // Update map region state
+          }
+          
+          // For Android Mapbox
+          if (Platform.OS === 'android' && useMapboxGL && lng && lat) {
+            console.log("🗺️ Setting Mapbox camera");
+            setMapboxCamera({
+              centerCoordinate: [lng, lat],
+              zoomLevel: 11, // Reduced from 14 to 11 for less aggressive zoom
+              animationDuration: 1500,
+            });
+            
+            // Update current zoom level for Mapbox
+            setCurrentZoomLevel(11); // Updated to match new zoom level
+          } else {
+            // Update current zoom level for Apple Maps based on delta
+            const zoomLevel = Math.round(Math.log2(360 / personLocation.latitudeDelta));
+            setCurrentZoomLevel(Math.max(1, Math.min(20, zoomLevel)));
+          }
+          
+          console.log("✅ Map navigation completed");
+          toast.success(`Viewing ${selectedPerson?.owner?.fname || 'location'} on map`);
+          
+        } catch (mapError) {
+          console.error("❌ Map error:", mapError);
+          toast.error("Failed to navigate to location");
+        } finally {
+          // Clear loading state after a delay to ensure animation completes
+          setTimeout(() => {
+            setLoadingNavigate(false);
+          }, 1000);
+        }
+      }, 400); // Increased delay to ensure modals fully close
+      
+    } catch (error) {
+      console.error("❌ ViewInMap error:", error);
+      toast.error("Navigation failed");
       setLoadingNavigate(false);
+      setShowMapConfirmModal(false);
     }
   };
 
@@ -1005,20 +1159,25 @@ console.log(
       return;
     }
 
+    console.log("🔙 Zooming out using saved history, entries available:", zoomHistory.length);
+
     // Get the last recorded state and remove it from history
     const previousState = zoomHistory[zoomHistory.length - 1];
     setZoomHistory(prev => prev.slice(0, -1));
+
+    console.log("📍 Restoring previous zoom state:", previousState);
 
     if (Platform.OS === 'android' && useMapboxGL) {
       // Mapbox GL zoom out using recorded history
       setMapboxCamera({
         centerCoordinate: [previousState.longitude, previousState.latitude],
         zoomLevel: previousState.zoomLevel || 1,
-        animationDuration: 800,
+        animationDuration: 1500, // Increased from 800ms to 1500ms for smoother animation
       });
       
       // Update current zoom level based on history
-      setCurrentZoomLevel(prev => Math.max(prev - 1, 0));
+      setCurrentZoomLevel(previousState.zoomLevel || 1);
+      console.log("🗺️ Mapbox camera restored to zoom level:", previousState.zoomLevel || 1);
     } else if (mapRef.current) {
       // Apple Maps zoom out using recorded history
       const newRegion = {
@@ -1028,11 +1187,22 @@ console.log(
         longitudeDelta: previousState.longitudeDelta,
       };
       
-      mapRef.current.animateToRegion(newRegion, 800);
+      mapRef.current.animateToRegion(newRegion, 1500); // Increased from 800ms to 1500ms for smoother animation
       setMapRegion(newRegion);
+      setLocation(newRegion); // Also update location state
       
-      // Update current zoom level
-      setCurrentZoomLevel(prev => Math.max(prev - 1, 0));
+      // Calculate and update current zoom level based on delta
+      const zoomLevel = Math.round(Math.log2(360 / newRegion.latitudeDelta));
+      setCurrentZoomLevel(Math.max(1, Math.min(20, zoomLevel)));
+      console.log("🗺️ Apple Maps region restored, zoom level:", zoomLevel);
+    }
+
+    // Provide user feedback
+    const remainingHistory = zoomHistory.length - 1; // -1 because we just removed one
+    if (remainingHistory > 0) {
+      toast.success(`Zoomed out (${remainingHistory} more steps available)`);
+    } else {
+      toast.success("Zoomed out to previous view");
     }
   };
 
@@ -1868,11 +2038,23 @@ console.log(
                   </>
                 )}
               </Pressable>
-              <Pressable style={[styles.actionBtnSecondary, isDark ? { borderColor: "#333" } : { borderColor: "#e0e0e0" }]} onPress={handleNavigate} disabled={loadingNavigate}>
-                {loadingNavigate ? (
+              <Pressable 
+                style={[
+                  styles.actionBtnSecondary, 
+                  isDark ? { borderColor: "#333" } : { borderColor: "#e0e0e0" }
+                ]} 
+                onPress={() => {
+                  console.log("🔘 Navigate button pressed");
+                  handleNavigate();
+                }} 
+                disabled={loadingNavigate || loadingMessage || modalTransitioning}
+              >
+                {loadingNavigate || modalTransitioning ? (
                   <>
                     <ActivityIndicator size="small" color={isDark ? "#FFFFFF" : "#0a0a0a"} />
-                    <Text style={[styles.actionTextSecondary, { marginLeft: 8 }, isDark ? { color: "#FFFFFF" } : { color: "#0a0a0a" }]}>Navigate...</Text>
+                    <Text style={[styles.actionTextSecondary, { marginLeft: 8 }, isDark ? { color: "#FFFFFF" } : { color: "#0a0a0a" }]}>
+                      {modalTransitioning ? "Opening..." : "Navigate..."}
+                    </Text>
                   </>
                 ) : (
                   <>
@@ -1881,6 +2063,73 @@ console.log(
                   </>
                 )}
               </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Map Confirmation Modal */}
+      <Modal visible={showMapConfirmModal} transparent animationType="fade" onRequestClose={() => setShowMapConfirmModal(false)}>
+        <Pressable style={styles.confirmOverlay} onPress={() => setShowMapConfirmModal(false)}>
+          <Pressable style={[styles.dialogCard, isDark ? styles.sheetDark : styles.sheetLight, { width: '85%', maxWidth: 320 }]} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.dialogHeader}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                <View style={[styles.iconContainer, { backgroundColor: isDark ? "#333" : "#F3F4F6" }]}>
+                  <Ionicons name="map-outline" size={20} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
+                </View>
+                <View>
+                  <Text style={[styles.dialogTitle, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
+                    View in Map
+                  </Text>
+                  <Text style={[styles.dialogSubtitle, { color: isDark ? "#CCCCCC" : "#666666" }]}>
+                    Navigate to location
+                  </Text>
+                </View>
+              </View>
+              <Pressable style={styles.headerIcon} onPress={() => setShowMapConfirmModal(false)}>
+                <Ionicons name="close" size={20} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
+              </Pressable>
+            </View>
+            
+            <View style={{ paddingHorizontal: 20, paddingBottom: 20 }}>
+              <Text style={[styles.confirmText, { color: isDark ? "#FFFFFF" : "#0a0a0a", textAlign: 'center', marginBottom: 20 }]}>
+                Do you want to view {selectedPerson?.owner?.fname || 'this person'}'s location on the map?
+              </Text>
+              
+              <View style={styles.dialogActions}>
+                <Pressable 
+                  style={[styles.actionBtnSecondary, isDark ? { borderColor: "#333" } : { borderColor: "#e0e0e0" }]} 
+                  onPress={() => {
+                    console.log("🔘 Cancel button pressed");
+                    setShowMapConfirmModal(false);
+                  }}
+                >
+                  <Text style={[styles.actionTextSecondary, isDark ? { color: "#FFFFFF" } : { color: "#0a0a0a" }]}>
+                    Cancel
+                  </Text>
+                </Pressable>
+                
+                <Pressable 
+                  style={[styles.actionBtnPrimary, { backgroundColor: "#3b82f6", borderColor: "#3b82f6" }]} 
+                  onPress={() => {
+                    console.log("🔘 Yes, View in Map button pressed");
+                    handleViewInMap();
+                  }}
+                  disabled={loadingNavigate}
+                >
+                  {loadingNavigate ? (
+                    <>
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                      <Text style={[styles.actionTextPrimary, { marginLeft: 8 }]}>Loading...</Text>
+                    </>
+                  ) : (
+                    <>
+                      <Ionicons name="map" size={16} color="#FFFFFF" />
+                      <Text style={[styles.actionTextPrimary, { marginLeft: 8 }]}>Yes</Text>
+                    </>
+                  )}
+                </Pressable>
+              </View>
             </View>
           </Pressable>
         </Pressable>
@@ -1979,6 +2228,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 16,
+  },
+  confirmOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+    zIndex: 1000, // Higher z-index to ensure it appears above other modals
   },
   createSheet: {
     width: "100%",
@@ -2100,7 +2357,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
   },
   markerContainerNew: {
-    borderWidth: 4,
+    borderWidth: 2,
     borderColor: "#FF0000",
   },
   markerDark: { borderColor: "#333333", backgroundColor: "#1A1A1A" },
@@ -2375,6 +2632,32 @@ const styles = StyleSheet.create({
   },
   actionTextPrimary: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
   actionTextSecondary: {color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
+  dialogHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 20,
+    paddingBottom: 16,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  confirmText: {
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  dialogTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 2,
+  },
+  dialogSubtitle: {
+    fontSize: 14,
+  },
   miniGalleryItem: {
     width: '31%',
     aspectRatio: 1,

@@ -10,16 +10,16 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Dimensions,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View
+    ActivityIndicator,
+    Dimensions,
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import uuid from "react-native-uuid";
@@ -45,6 +45,8 @@ export default function ShareLocationScreen() {
   const [loadingLocSuggest, setLoadingLocSuggest] = useState(false);
   const [showDurationDropdown, setShowDurationDropdown] = useState(false);
   const [locationJustSelected, setLocationJustSelected] = useState(false);
+  const [loadingCurrentLocation, setLoadingCurrentLocation] = useState(false);
+  const [privacySettingsConfigured, setPrivacySettingsConfigured] = useState(false);
 
   const suggestions = ["Studying", "Eating", "Hanging out", "Working", "Exercising", "Shopping"];
   const durationOptions = ["15 minutes", "30 minutes", "1 hour", "2 hours", "4 hours", "Until I turn it off"];
@@ -160,7 +162,7 @@ export default function ShareLocationScreen() {
   };
 
   const handleShareStatus = async () => {
-    if (!statusLocation.trim() || isSharing) return;
+    if (!isFormValid() || isSharing) return;
     
     setIsSharing(true);
     try {
@@ -259,6 +261,90 @@ export default function ShareLocationScreen() {
     router.back();
   };
 
+  const getCurrentLocation = async () => {
+    if (loadingCurrentLocation) return;
+    
+    setLoadingCurrentLocation(true);
+    try {
+      // Check permission first
+      const { status } = await Location.getForegroundPermissionsAsync();
+      if (status !== "granted") {
+        toast.error("Location permission is required");
+        return;
+      }
+
+      // Get current position
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+
+      // Reverse geocode to get address
+      const reverseGeocode = await Location.reverseGeocodeAsync({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+
+      if (reverseGeocode.length > 0) {
+        const address = reverseGeocode[0];
+        let locationString = "";
+        
+        // Build a readable address string
+        if (address.name) {
+          locationString = address.name;
+        } else if (address.street) {
+          locationString = address.street;
+          if (address.streetNumber) {
+            locationString = `${address.streetNumber} ${locationString}`;
+          }
+        }
+        
+        // Add city/region if available
+        if (address.city || address.subregion) {
+          const cityPart = address.city || address.subregion;
+          locationString = locationString ? `${locationString}, ${cityPart}` : cityPart;
+        }
+        
+        // Add state/region if available
+        if (address.region && address.region !== (address.city || address.subregion)) {
+          locationString = locationString ? `${locationString}, ${address.region}` : address.region;
+        }
+
+        if (locationString) {
+          setStatusLocation(locationString);
+          setLocationJustSelected(true);
+          setShowLocationDropdown(false);
+          toast.success("Current location detected");
+        } else {
+          toast.error("Unable to determine location name");
+        }
+      } else {
+        toast.error("Unable to determine location name");
+      }
+    } catch (error) {
+      console.error("Error getting current location:", error);
+      toast.error("Failed to get current location");
+    } finally {
+      setLoadingCurrentLocation(false);
+    }
+  };
+
+  // Check if all required fields are valid
+  const isFormValid = () => {
+    // Location is required
+    if (!statusLocation.trim()) return false;
+    
+    // Duration is required (but has default, so should always be valid)
+    if (!statusDuration) return false;
+    
+    // If photo option is enabled, photo must be selected
+    if (withPhoto && !shareSelectedPhoto) return false;
+    
+    // Privacy settings must be configured
+    if (!privacySettingsConfigured) return false;
+    
+    return true;
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: isDark ? "#000000" : "#FFFFFF" }]}>
       <StatusBar style={isDark ? "light" : "dark"} />
@@ -294,7 +380,21 @@ export default function ShareLocationScreen() {
               Where are you?
             </Text>
             <View style={[styles.inputWrapper, isDark ? styles.inputDark : styles.inputLight]}>
-              <Ionicons name="location-outline" size={16} color={isDark ? "#FFFFFF" : "#000000"} />
+              <Pressable 
+                onPress={getCurrentLocation}
+                style={styles.locationButton}
+                disabled={loadingCurrentLocation}
+              >
+                {loadingCurrentLocation ? (
+                  <ActivityIndicator size="small" color={isDark ? "#FFFFFF" : "#000000"} />
+                ) : (
+                  <Ionicons 
+                    name="location-outline" 
+                    size={16} 
+                    color={loadingCurrentLocation ? (isDark ? "#444" : "#ccc") : (isDark ? "#FFFFFF" : "#000000")} 
+                  />
+                )}
+              </Pressable>
               <TextInput
                 value={statusLocation}
                 onChangeText={(text) => {
@@ -311,7 +411,21 @@ export default function ShareLocationScreen() {
                   }
                 }}
               />
-              <Ionicons name="compass-outline" size={16} color={isDark ? "#888" : "#999"} />
+              <Pressable 
+                onPress={getCurrentLocation}
+                style={styles.compassButton}
+                disabled={loadingCurrentLocation}
+              >
+                {loadingCurrentLocation ? (
+                  <ActivityIndicator size="small" color={isDark ? "#888" : "#999"} />
+                ) : (
+                  <Ionicons 
+                    name="compass-outline" 
+                    size={16} 
+                    color={loadingCurrentLocation ? (isDark ? "#444" : "#ccc") : (isDark ? "#888" : "#999")} 
+                  />
+                )}
+              </Pressable>
             </View>
             
             {showLocationDropdown && (
@@ -510,26 +624,49 @@ export default function ShareLocationScreen() {
           {/* Privacy Card */}
           <View style={[styles.privacyCard, { 
             backgroundColor: isDark ? "#111" : "#f9f9f9", 
-            borderColor: isDark ? "#333" : "#e0e0e0" 
+            borderColor: privacySettingsConfigured ? "#3b82f6" : (isDark ? "#333" : "#e0e0e0")
           }]}>
             <View style={styles.privacyCardContent}>
-              <Ionicons name="shield-checkmark-outline" size={24} color={isDark ? "#888" : "#666"} />
+              <Ionicons 
+                name={privacySettingsConfigured ? "shield-checkmark" : "shield-checkmark-outline"} 
+                size={24} 
+                color={privacySettingsConfigured ? "#3b82f6" : (isDark ? "#888" : "#666")} 
+              />
               <View style={styles.privacyCardText}>
                 <Text style={[styles.privacyCardTitle, { color: isDark ? "#FFF" : "#000" }]}>
                   Share with
                 </Text>
                 <Text style={[styles.privacyCardSubtitle, { color: isDark ? "#888" : "#666" }]}>
-                  All friends can see your location by default
+                  {privacySettingsConfigured 
+                    ? "Privacy settings configured" 
+                    : "All friends can see your location by default"
+                  }
                 </Text>
               </View>
             </View>
             <Pressable 
-              style={[styles.privacyBtn, { borderColor: isDark ? "#444" : "#ddd" }]}
-              onPress={() => router.push('/location-privacy')}
+              style={[
+                styles.privacyBtn, 
+                { 
+                  borderColor: privacySettingsConfigured ? "#3b82f6" : (isDark ? "#444" : "#ddd"),
+                  backgroundColor: privacySettingsConfigured ? "rgba(59, 130, 246, 0.1)" : "transparent"
+                }
+              ]}
+              onPress={() => {
+                setPrivacySettingsConfigured(true);
+                router.push('/location-privacy');
+              }}
             >
-              <Ionicons name="eye-outline" size={14} color={isDark ? "#FFF" : "#000"} />
-              <Text style={[styles.privacyBtnText, { color: isDark ? "#FFF" : "#000" }]}>
-                Manage
+              <Ionicons 
+                name={privacySettingsConfigured ? "checkmark" : "eye-outline"} 
+                size={14} 
+                color={privacySettingsConfigured ? "#3b82f6" : (isDark ? "#FFF" : "#000")} 
+              />
+              <Text style={[
+                styles.privacyBtnText, 
+                { color: privacySettingsConfigured ? "#3b82f6" : (isDark ? "#FFF" : "#000") }
+              ]}>
+                {privacySettingsConfigured ? "Configured" : "Manage"}
               </Text>
             </Pressable>
           </View>
@@ -550,9 +687,9 @@ export default function ShareLocationScreen() {
             style={[
               styles.shareBtn,
               { backgroundColor: isDark ? "#E0E0E0" : "#0a0a0a" },
-              (isSharing || !statusLocation.trim()) && styles.shareBtnDisabled
+              (isSharing || !isFormValid()) && styles.shareBtnDisabled
             ]}
-            disabled={isSharing || !statusLocation.trim()}
+            disabled={isSharing || !isFormValid()}
             onPress={handleShareStatus}
           >
             {isSharing ? (
@@ -646,6 +783,14 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     fontSize: 16,
+  },
+  locationButton: {
+    padding: 4,
+    borderRadius: 4,
+  },
+  compassButton: {
+    padding: 4,
+    borderRadius: 4,
   },
   dropdownTrigger: {
     justifyContent: "space-between",
