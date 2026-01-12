@@ -1,5 +1,6 @@
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import { WatermelonProvider } from "@/contexts/WatermelonProvider";
+import { useAppUpdate } from "@/hooks/useAppUpdate";
 import { useDeepLinking } from "@/hooks/useDeepLinking";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useAuthStore } from "@/state/authStore";
@@ -20,6 +21,9 @@ SplashScreen.preventAutoHideAsync();
 /*                              ROOT CONTENT                                  */
 /* -------------------------------------------------------------------------- */
 function RootLayoutContent() {
+  // ✅ CHECK FOR APP UPDATES
+  useAppUpdate();
+
   // ✅ SINGLE SOURCE OF NOTIFICATIONS
   usePushNotifications();
   
