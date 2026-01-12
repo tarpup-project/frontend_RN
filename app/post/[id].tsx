@@ -642,6 +642,13 @@ export default function PostPreviewScreen() {
       return;
     }
     
+    // Optimistic UI update
+    const newLiked = action === "like";
+    const newLikeCount = action === "like" ? likeCount + 1 : Math.max(0, likeCount - 1);
+    
+    setLiked(newLiked);
+    setLikeCount(newLikeCount);
+    
     try {
       console.log("Making like API call:", { imageID, action });
       
@@ -661,18 +668,91 @@ export default function PostPreviewScreen() {
       
       console.log("Like API success:", response.data);
       
-      if (action === "like") {
-        setLiked(true);
-        setLikeCount((c) => c + 1);
-      } else {
-        setLiked(false);
-        setLikeCount((c) => (c > 0 ? c - 1 : 0));
+      // Update the underlying data structures to persist the change
+      const updateItemLikeData = (item: any) => {
+        if (!item) return item;
+        
+        // Update the specific image in the images array if it exists
+        if (item.images && Array.isArray(item.images) && currentImageIndex < item.images.length) {
+          const updatedImages = [...item.images];
+          const currentImage = { ...updatedImages[currentImageIndex] };
+          
+          // Update the image's like data
+          currentImage.hasLiked = newLiked;
+          if (currentImage._count) {
+            currentImage._count = { ...currentImage._count, tarpImgLikes: newLikeCount };
+          } else {
+            currentImage._count = { tarpImgLikes: newLikeCount };
+          }
+          currentImage.likes = newLikeCount;
+          
+          updatedImages[currentImageIndex] = currentImage;
+          
+          return {
+            ...item,
+            images: updatedImages,
+            // Also update item-level like data as fallback
+            hasLiked: newLiked,
+            likedByMe: newLiked,
+            isLiked: newLiked,
+            liked: newLiked,
+            likesCount: newLikeCount,
+            numLikes: newLikeCount,
+          };
+        } else {
+          // Update item-level like data
+          return {
+            ...item,
+            hasLiked: newLiked,
+            likedByMe: newLiked,
+            isLiked: newLiked,
+            liked: newLiked,
+            likesCount: newLikeCount,
+            numLikes: newLikeCount,
+          };
+        }
+      };
+      
+      // Update currentPostItem
+      if (currentPostItem) {
+        const updatedCurrentItem = updateItemLikeData(currentPostItem);
+        setCurrentPostItem(updatedCurrentItem);
       }
+      
+      // Update allPostItems
+      if (allPostItems.length > 0) {
+        const updatedAllItems = allPostItems.map((item, index) => {
+          if (index === currentImageIndex || item.id === activeItem?.id) {
+            return updateItemLikeData(item);
+          }
+          return item;
+        });
+        setAllPostItems(updatedAllItems);
+      }
+      
+      // Update allAvailablePosts to persist across navigation
+      setAllAvailablePosts(prev => prev.map(post => {
+        if (post.id === activeItem?.id) {
+          return updateItemLikeData(post);
+        }
+        return post;
+      }));
+      
+      console.log("Updated underlying data structures with new like state:", {
+        newLiked,
+        newLikeCount,
+        activeItemId: activeItem?.id
+      });
+      
       toast.success(action === "like" ? "Liked" : "Unliked");
     } catch (error: any) {
       console.error("Like API error:", error);
       console.error("Error response:", error.response?.data);
       console.error("Error status:", error.response?.status);
+      
+      // Revert optimistic update on error
+      setLiked(!newLiked);
+      setLikeCount(action === "like" ? likeCount : likeCount + 1);
       
       if (error.response?.status === 401) {
         toast.error("Authentication error. Please log in again.");
@@ -869,6 +949,12 @@ export default function PostPreviewScreen() {
     // Prevent double submissions
     if (!imageID || msg.length === 0 || isSendingComment) return;
     
+    const activeItem = getCurrentPostItem();
+    
+    // Optimistic UI update
+    const newCommentCount = commentCount + 1;
+    setCommentCount(newCommentCount);
+    
     try {
       setIsSendingComment(true);
       const body = { message: msg, ...(replyingToID ? { replyingToID } : {}) };
@@ -876,10 +962,74 @@ export default function PostPreviewScreen() {
       setCommentText("");
       setReplyingToID(null);
       
-      // Immediately update comment count (optimistic update)
-      setCommentCount(prev => prev + 1);
+      // Update the underlying data structures to persist the change
+      const updateItemCommentData = (item: any) => {
+        if (!item) return item;
+        
+        // Update the specific image in the images array if it exists
+        if (item.images && Array.isArray(item.images) && currentImageIndex < item.images.length) {
+          const updatedImages = [...item.images];
+          const currentImage = { ...updatedImages[currentImageIndex] };
+          
+          // Update the image's comment data
+          if (currentImage._count) {
+            currentImage._count = { ...currentImage._count, tarpImgComments: newCommentCount };
+          } else {
+            currentImage._count = { tarpImgComments: newCommentCount };
+          }
+          currentImage.comments = newCommentCount;
+          
+          updatedImages[currentImageIndex] = currentImage;
+          
+          return {
+            ...item,
+            images: updatedImages,
+            // Also update item-level comment data as fallback
+            commentsCount: newCommentCount,
+            comments: Array.isArray(item.comments) ? [...item.comments, { message: msg }] : [{ message: msg }],
+          };
+        } else {
+          // Update item-level comment data
+          return {
+            ...item,
+            commentsCount: newCommentCount,
+            comments: Array.isArray(item.comments) ? [...item.comments, { message: msg }] : [{ message: msg }],
+          };
+        }
+      };
       
-      // Refresh comments
+      // Update currentPostItem
+      if (currentPostItem) {
+        const updatedCurrentItem = updateItemCommentData(currentPostItem);
+        setCurrentPostItem(updatedCurrentItem);
+      }
+      
+      // Update allPostItems
+      if (allPostItems.length > 0) {
+        const updatedAllItems = allPostItems.map((item, index) => {
+          if (index === currentImageIndex || item.id === activeItem?.id) {
+            return updateItemCommentData(item);
+          }
+          return item;
+        });
+        setAllPostItems(updatedAllItems);
+      }
+      
+      // Update allAvailablePosts to persist across navigation
+      setAllAvailablePosts(prev => prev.map(post => {
+        if (post.id === activeItem?.id) {
+          return updateItemCommentData(post);
+        }
+        return post;
+      }));
+      
+      console.log("Updated underlying data structures with new comment count:", {
+        newCommentCount,
+        activeItemId: activeItem?.id,
+        imageID
+      });
+      
+      // Refresh comments to get the actual server data
       try {
         setIsLoadingComments(true);
         const res = await api.get(UrlConstants.tarpPostComments(imageID));
@@ -888,13 +1038,69 @@ export default function PostPreviewScreen() {
         
         // Update comment count with actual count from server (in case of discrepancy)
         if (Array.isArray(list)) {
-          setCommentCount(list.length);
+          const actualCommentCount = list.length;
+          setCommentCount(actualCommentCount);
+          
+          // Update data structures with actual count if different
+          if (actualCommentCount !== newCommentCount) {
+            const updateWithActualCount = (item: any) => {
+              if (!item) return item;
+              
+              if (item.images && Array.isArray(item.images) && currentImageIndex < item.images.length) {
+                const updatedImages = [...item.images];
+                const currentImage = { ...updatedImages[currentImageIndex] };
+                
+                if (currentImage._count) {
+                  currentImage._count = { ...currentImage._count, tarpImgComments: actualCommentCount };
+                } else {
+                  currentImage._count = { tarpImgComments: actualCommentCount };
+                }
+                currentImage.comments = actualCommentCount;
+                
+                updatedImages[currentImageIndex] = currentImage;
+                
+                return {
+                  ...item,
+                  images: updatedImages,
+                  commentsCount: actualCommentCount,
+                };
+              } else {
+                return {
+                  ...item,
+                  commentsCount: actualCommentCount,
+                };
+              }
+            };
+            
+            // Update all data structures with actual count
+            if (currentPostItem) {
+              setCurrentPostItem(updateWithActualCount(currentPostItem));
+            }
+            
+            if (allPostItems.length > 0) {
+              setAllPostItems(prev => prev.map((item, index) => {
+                if (index === currentImageIndex || item.id === activeItem?.id) {
+                  return updateWithActualCount(item);
+                }
+                return item;
+              }));
+            }
+            
+            setAllAvailablePosts(prev => prev.map(post => {
+              if (post.id === activeItem?.id) {
+                return updateWithActualCount(post);
+              }
+              return post;
+            }));
+          }
         }
       } finally {
         setIsLoadingComments(false);
       }
       toast.success("Comment posted");
-    } catch {
+    } catch (error) {
+      console.error("Failed to post comment:", error);
+      
       // Revert the optimistic update on error
       setCommentCount(prev => Math.max(0, prev - 1));
       toast.error("Failed to post comment");
