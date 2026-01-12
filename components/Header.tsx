@@ -185,7 +185,7 @@ import { toast } from "sonner-native";
       
       {/* Navigation Arrow - only show for navigable notifications */}
       {(notification.data?.postID || 
-        ['new_comment', 'comment', 'new_like', 'like', 'new_match', 'match'].includes(notification.type?.toLowerCase())) && (
+        ['new_comment', 'comment', 'new_like', 'like', 'new_match', 'match', 'new_follower', 'follower', 'new_following', 'friend_request', 'new_friend_request'].includes(notification.type?.toLowerCase())) && (
         <View style={styles.navigationArrow}>
           <Ionicons name="chevron-forward" size={16} color={isDark ? "#666666" : "#CCCCCC"} />
         </View>
