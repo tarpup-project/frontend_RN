@@ -163,6 +163,18 @@ export default function TarpsScreen() {
   const socketRef = useRef<any | null>(null);
   const lastPostRequestId = useRef(0);
   const lastPeopleRequestId = useRef(0);
+  
+  // Refs for accessing latest state in async functions
+  const knownPostsRef = useRef(knownPosts);
+  const previewedPostsRef = useRef(previewedPosts);
+
+  useEffect(() => {
+    knownPostsRef.current = knownPosts;
+  }, [knownPosts]);
+
+  useEffect(() => {
+    previewedPostsRef.current = previewedPosts;
+  }, [previewedPosts]);
 
   // Profile modal state - REMOVED (now using full screen)
 
@@ -928,23 +940,96 @@ console.log(
         return `${UrlConstants.baseUrl}${raw.startsWith("/") ? "" : "/"}${raw}`;
       };
       
-      let mapped: any[] = [];
+      let mapped: { id: string; image: string | null; latitude: number; longitude: number; count?: number; items?: any[] }[] = [];
       if (Array.isArray(list)) {
         const looksLikeGrid = list.length > 0 && typeof list[0]?.avgLat === "number" && typeof list[0]?.avgLng === "number" && "result" in list[0];
         if (looksLikeGrid) {
           // Grid format - flatten all items
-          mapped = list.flatMap((cell: any) => {
-            const items = Array.isArray(cell.result) ? cell.result : [];
-            return items.filter((item: any) => resolveImageUrl(item));
-          });
+          mapped = list
+            .map((cell: any) => {
+              const items = Array.isArray(cell.result) ? cell.result : [];
+              const cover = resolveImageUrl(items[0]);
+              return {
+                id: String(cell.id ?? `${cell.avgLat}-${cell.avgLng}`),
+                image: cover,
+                latitude: Number(cell.avgLat),
+                longitude: Number(cell.avgLng),
+                count: items.length,
+                isCluster: items.length !== 1,
+                items,
+              };
+            })
+            .filter((c: any) => !isNaN(c.latitude) && !isNaN(c.longitude) && !!c.image);
         } else {
           // Direct posts format
-          mapped = list.filter((p: any) => resolveImageUrl(p));
+          mapped = list
+            .map((p: any) => ({
+              id: String(p.id ?? `${p.latitude}-${p.longitude}-${p.image}`),
+              image: resolveImageUrl(p),
+              latitude: Number(p.latitude ?? p.lat),
+              longitude: Number(p.longitude ?? p.lng),
+              count: 1,
+              isCluster: false,
+              items: [p],
+            }))
+            .filter((p: any) => !isNaN(p.latitude) && !isNaN(p.longitude) && !!p.image);
         }
       }
       
+      // Detect new posts by comparing individual post IDs and locations
+      const newPosts = new Set<string>();
+      // Use ref to get latest known posts (avoid closure staleness)
+      const currentKnownPosts = new Map(knownPostsRef.current);
+      let hasNewPosts = false;
+      
+      // Process all individual posts from clusters and single posts
+      const allIndividualPosts: any[] = [];
+      mapped.forEach(cluster => {
+        if (cluster.items && cluster.items.length > 0) {
+          allIndividualPosts.push(...cluster.items);
+        }
+      });
+      
+      // Check each individual post
+      allIndividualPosts.forEach(post => {
+        const postId = post.id;
+        const postLat = Number(post.lat || post.latitude);
+        const postLng = Number(post.lng || post.longitude);
+        
+        if (!postId || isNaN(postLat) || isNaN(postLng)) return;
+        
+        // Check if this post ID is known
+        if (!knownPostsRef.current.has(postId)) {
+          // Add to known posts (posts seen on map)
+          currentKnownPosts.set(postId, {
+            lat: postLat,
+            lng: postLng,
+            timestamp: Date.now()
+          });
+          hasNewPosts = true;
+        }
+        
+        // Check if post should show red border (known but not previewed)
+        if (knownPostsRef.current.has(postId) && !previewedPostsRef.current.has(postId)) {
+          newPosts.add(postId);
+        } else if (!knownPostsRef.current.has(postId) && !previewedPostsRef.current.has(postId)) {
+          // New post that hasn't been previewed
+          newPosts.add(postId);
+        }
+      });
+      
+      // Update known posts if we found new ones
+      if (hasNewPosts) {
+        setKnownPosts(currentKnownPosts);
+        saveKnownPosts(currentKnownPosts);
+      }
+      
+      // Update new posts state
+      setNewPostIds(newPosts);
+      
       setGlobalPosts(mapped);
-      console.log("🌍 Global posts loaded successfully:", { count: mapped.length });
+      setServerPosts(mapped); // Populate map with global posts
+      console.log("🌍 Global posts loaded and mapped successfully:", { count: mapped.length });
       
       return mapped;
     } catch (e: any) {
@@ -963,9 +1048,15 @@ console.log(
     if (viewMode === "people") {
       loadPeopleInView(location);
     } else if (viewMode === "posts") {
-      loadPostsInView(location);
+      // Use global posts if available to avoid refetching on every move
+      if (globalPosts.length > 0) {
+        setServerPosts(globalPosts);
+      } else if (!isLoadingGlobalPosts) {
+        // Fallback to fetch if global posts are empty and not loading
+        loadPostsInView(location);
+      }
     }
-  }, [location, viewMode]);
+  }, [location, viewMode, globalPosts, isLoadingGlobalPosts]);
 
   // Load global posts on tarps screen mount for faster post browsing
   useEffect(() => {
@@ -1159,7 +1250,7 @@ console.log(
       : serverPeople;
     
     if (flatItems.length === 0) {
-      toast.error(`No ${viewMode} found to zoom to`);
+      console.log(`No ${viewMode} found to zoom to`);
       return;
     }
 
@@ -1175,7 +1266,7 @@ console.log(
       const zoomLevels = [2, 5, 8, 11, 14, 16, 18];
       
       if (currentZoomLevel >= zoomLevels.length - 1) {
-        toast.error("Already at maximum zoom level");
+        console.log("Already at maximum zoom level");
         return;
       }
       
@@ -1244,7 +1335,7 @@ console.log(
   const handleZoomOut = () => {
     // Check if we have zoom history to go back to
     if (zoomHistory.length === 0) {
-      toast.error("No zoom history to go back to");
+      console.log("No zoom history to go back to");
       return;
     }
 
@@ -1288,11 +1379,7 @@ console.log(
 
     // Provide user feedback
     const remainingHistory = zoomHistory.length - 1; // -1 because we just removed one
-    if (remainingHistory > 0) {
-      toast.success(`Zoomed out (${remainingHistory} more steps available)`);
-    } else {
-      toast.success("Zoomed out to previous view");
-    }
+    // Removed toast notifications for zoom out actions
   };
 
   // Function to zoom out to world view level when switching view modes
