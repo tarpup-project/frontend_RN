@@ -1146,20 +1146,15 @@ export default function PostPreviewScreen() {
         return filtered;
       });
       
-      // Navigate to next post after successful report (with a small delay to ensure state is updated)
-      setTimeout(() => {
-        navigateToPost('next');
-      }, 100);
-      
-      // Refresh posts in tarps screen to remove reported post
+      // Return to tarps and refresh posts after successful report
+      router.back();
       try {
-        // Call global function to refresh posts if available
-        if ((global as any).refreshPostsInView) {
+        if ((global as any).refreshAfterReport) {
+          (global as any).refreshAfterReport();
+        } else if ((global as any).refreshPostsInView) {
           (global as any).refreshPostsInView();
         }
-      } catch (refreshError) {
-        console.log("Could not refresh posts in tarps screen:", refreshError);
-      }
+      } catch {}
       
     } catch (error: any) {
       console.error("Failed to report post:", error);
@@ -1181,9 +1176,15 @@ export default function PostPreviewScreen() {
           }, 0);
           return filtered;
         });
-        setTimeout(() => {
-          navigateToPost('next');
-        }, 100);
+        // Return to tarps and refresh posts even if already reported
+        router.back();
+        try {
+          if ((global as any).refreshAfterReport) {
+            (global as any).refreshAfterReport();
+          } else if ((global as any).refreshPostsInView) {
+            (global as any).refreshPostsInView();
+          }
+        } catch {}
       } else {
         toast.error("Failed to report post");
       }
