@@ -1127,6 +1127,11 @@ export default function PostPreviewScreen() {
       // Store current index before filtering
       const currentIndex = currentPostIndex;
       
+      // Update global state to banish this post forever
+      if ((global as any).handleReportedPost) {
+        (global as any).handleReportedPost(postId);
+      }
+      
       // Remove reported post from available posts array
       setAllAvailablePosts(prev => {
         const filtered = prev.filter(post => post.id !== postId);
@@ -1136,25 +1141,24 @@ export default function PostPreviewScreen() {
           removedPostId: postId
         });
         
-        // Update current post index after filtering
-        setTimeout(() => {
-          const newIndex = currentIndex >= filtered.length ? Math.max(0, filtered.length - 1) : currentIndex;
-          setCurrentPostIndex(newIndex);
-          console.log("Updated current post index after report:", { currentIndex, newIndex, arrayLength: filtered.length });
-        }, 0);
+        if (filtered.length === 0) {
+          router.back();
+        } else {
+           // Update current post index and item after filtering
+           setTimeout(() => {
+             const newIndex = currentIndex >= filtered.length ? Math.max(0, filtered.length - 1) : currentIndex;
+             const nextPost = filtered[newIndex];
+             
+             if (nextPost) {
+               updateCurrentPost(nextPost, newIndex, 'next');
+             }
+             
+             console.log("Updated current post after report:", { currentIndex, newIndex, arrayLength: filtered.length });
+           }, 0);
+        }
         
         return filtered;
       });
-      
-      // Return to tarps and refresh posts after successful report
-      router.back();
-      try {
-        if ((global as any).refreshAfterReport) {
-          (global as any).refreshAfterReport();
-        } else if ((global as any).refreshPostsInView) {
-          (global as any).refreshPostsInView();
-        }
-      } catch {}
       
     } catch (error: any) {
       console.error("Failed to report post:", error);
@@ -1167,24 +1171,29 @@ export default function PostPreviewScreen() {
         toast.error("Post not found or endpoint unavailable");
       } else if (error.response?.status === 409) {
         toast.error("Post already reported");
-        // Even if already reported, remove from available posts and navigate
+        
+        // Update global state to banish this post forever
+        if ((global as any).handleReportedPost) {
+          (global as any).handleReportedPost(postId);
+        }
+
+        // Even if already reported, remove from available posts
         setAllAvailablePosts(prev => {
           const filtered = prev.filter(post => post.id !== postId);
-          setTimeout(() => {
-            const newIndex = currentPostIndex >= filtered.length ? Math.max(0, filtered.length - 1) : currentPostIndex;
-            setCurrentPostIndex(newIndex);
-          }, 0);
+          
+          if (filtered.length === 0) {
+            router.back();
+          } else {
+            setTimeout(() => {
+              const newIndex = currentPostIndex >= filtered.length ? Math.max(0, filtered.length - 1) : currentPostIndex;
+              const nextPost = filtered[newIndex];
+              if (nextPost) {
+                updateCurrentPost(nextPost, newIndex, 'next');
+              }
+            }, 0);
+          }
           return filtered;
         });
-        // Return to tarps and refresh posts even if already reported
-        router.back();
-        try {
-          if ((global as any).refreshAfterReport) {
-            (global as any).refreshAfterReport();
-          } else if ((global as any).refreshPostsInView) {
-            (global as any).refreshPostsInView();
-          }
-        } catch {}
       } else {
         toast.error("Failed to report post");
       }
