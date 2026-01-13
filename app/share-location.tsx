@@ -299,8 +299,8 @@ export default function ShareLocationScreen() {
                 ) : (
                   <Ionicons 
                     name="location-outline" 
-                    size={16} 
-                    color={loadingCurrentLocation ? (isDark ? "#444" : "#ccc") : (isDark ? "#FFFFFF" : "#000000")} 
+                    size={20} 
+                    color="#1e40af"
                   />
                 )}
               </Pressable>
