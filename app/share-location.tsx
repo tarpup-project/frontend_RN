@@ -2,10 +2,7 @@ import { api } from "@/api/client";
 import { UrlConstants } from "@/constants/apiUrls";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
-import { Image as ExpoImage } from "expo-image";
-import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
-import * as MediaLibrary from "expo-media-library";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
@@ -22,7 +19,6 @@ import {
     View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import uuid from "react-native-uuid";
 import { toast } from "sonner-native";
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -34,12 +30,8 @@ export default function ShareLocationScreen() {
 
   // State
   const [statusLocation, setStatusLocation] = useState("");
-  const [statusActivity, setStatusActivity] = useState("");
   const [statusDuration, setStatusDuration] = useState("30 minutes");
-  const [withPhoto, setWithPhoto] = useState(false);
-  const [shareSelectedPhoto, setShareSelectedPhoto] = useState<string | null>(null);
   const [isSharing, setIsSharing] = useState(false);
-  const [recents, setRecents] = useState<MediaLibrary.Asset[]>([]);
   const [locationSuggestions, setLocationSuggestions] = useState<string[]>([]);
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [loadingLocSuggest, setLoadingLocSuggest] = useState(false);
@@ -48,7 +40,6 @@ export default function ShareLocationScreen() {
   const [loadingCurrentLocation, setLoadingCurrentLocation] = useState(false);
   const [privacySettingsConfigured, setPrivacySettingsConfigured] = useState(false);
 
-  const suggestions = ["Studying", "Eating", "Hanging out", "Working", "Exercising", "Shopping"];
   const durationOptions = ["15 minutes", "30 minutes", "1 hour", "2 hours", "4 hours", "Until I turn it off"];
 
   // Check location permission on screen entry
@@ -88,11 +79,6 @@ export default function ShareLocationScreen() {
     checkLocationPermission();
   }, [router]);
 
-  // Load recents when photo option is enabled
-  useEffect(() => {
-    if (withPhoto) loadRecents();
-  }, [withPhoto]);
-
   // Location suggestions
   useEffect(() => {
     const q = statusLocation.trim();
@@ -128,39 +114,6 @@ export default function ShareLocationScreen() {
     return () => clearTimeout(t);
   }, [statusLocation, locationJustSelected]);
 
-  const loadRecents = async () => {
-    try {
-      const perm = await MediaLibrary.requestPermissionsAsync();
-      if (!perm.granted) return;
-      
-      const assets = await MediaLibrary.getAssetsAsync({ 
-        first: 99, 
-        mediaType: MediaLibrary.MediaType.photo, 
-        sortBy: MediaLibrary.SortBy.creationTime 
-      });
-      setRecents(assets.assets);
-    } catch (error) {
-      console.error('Error loading recents:', error);
-    }
-  };
-
-  const pickLocationPhoto = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 1,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        setShareSelectedPhoto(result.assets[0].uri);
-      }
-    } catch (error) {
-      console.error('Error picking photo:', error);
-    }
-  };
-
   const handleShareStatus = async () => {
     if (!isFormValid() || isSharing) return;
     
@@ -169,58 +122,20 @@ export default function ShareLocationScreen() {
       const form = new FormData();
       form.append("address", statusLocation.trim());
       
-      // Send activity as caption (like the original implementation)
-      if (statusActivity.trim().length > 0) {
-        form.append("caption", statusActivity.trim());
-      }
+      // Add dummy caption to maintain API compatibility
+      form.append("caption", "Sharing location");
       
       // Add duration field
       form.append("duration", statusDuration);
-      
-      if (withPhoto && shareSelectedPhoto) {
-        let resolvedUri = shareSelectedPhoto;
-        
-        // Handle ph:// URIs from iOS Photos
-        if (shareSelectedPhoto.startsWith('ph://')) {
-          try {
-            // Find the asset to get more info
-            const assets = await MediaLibrary.getAssetsAsync({ 
-              first: 1000, 
-              mediaType: MediaLibrary.MediaType.photo, 
-              sortBy: MediaLibrary.SortBy.creationTime 
-            });
-            const asset = assets.assets.find(a => a.uri === shareSelectedPhoto);
-            if (asset) {
-              const info = await MediaLibrary.getAssetInfoAsync(asset.id);
-              resolvedUri = (info as any)?.localUri || (info as any)?.uri || shareSelectedPhoto;
-              console.log('Resolved ph:// URI:', { original: shareSelectedPhoto, resolved: resolvedUri });
-            }
-          } catch (error) {
-            console.error('Error resolving ph:// URI:', error);
-            // Continue with original URI as fallback
-          }
-        }
-        
-        const filename = `location_photo_${uuid.v4()}.jpg`;
-        form.append("image", {
-          uri: resolvedUri,
-          name: filename,
-          type: "image/jpeg",
-        } as any);
-        
-        console.log('Adding image to form:', { uri: resolvedUri, name: filename });
-      }
 
       console.log("ShareLocation:start", {
         address: statusLocation.trim(),
-        caption: statusActivity.trim(),
+        caption: "Sharing location", // dummy value
         duration: statusDuration,
-        withPhoto: withPhoto && !!shareSelectedPhoto,
         formData: {
           address: statusLocation.trim(),
-          caption: statusActivity.trim() || undefined,
+          caption: "Sharing location", // dummy value
           duration: statusDuration,
-          hasImage: withPhoto && !!shareSelectedPhoto
         }
       });
 
@@ -238,10 +153,7 @@ export default function ShareLocationScreen() {
       
       // Reset form
       setStatusLocation("");
-      setStatusActivity("");
       setStatusDuration("30 minutes");
-      setWithPhoto(false);
-      setShareSelectedPhoto(null);
       
       // Navigate back
       router.back();
@@ -335,9 +247,6 @@ export default function ShareLocationScreen() {
     
     // Duration is required (but has default, so should always be valid)
     if (!statusDuration) return false;
-    
-    // If photo option is enabled, photo must be selected
-    if (withPhoto && !shareSelectedPhoto) return false;
     
     // Privacy settings must be configured
     if (!privacySettingsConfigured) return false;
@@ -453,46 +362,6 @@ export default function ShareLocationScreen() {
             )}
           </View>
 
-          {/* Activity Input */}
-          <View style={styles.inputSection}>
-            <Text style={[styles.inputLabel, { color: isDark ? "#FFFFFF" : "#000000" }]}>
-              What are you doing?
-            </Text>
-            <View style={[styles.inputWrapper, isDark ? styles.inputDark : styles.inputLight]}>
-              <TextInput
-                value={statusActivity}
-                onChangeText={setStatusActivity}
-                placeholder="e.g., studying, eating lunch, hanging out"
-                placeholderTextColor={isDark ? "#888" : "#999"}
-                style={[styles.textInput, { color: isDark ? "#FFFFFF" : "#000000" }]}
-              />
-            </View>
-            <Text style={[styles.inputHint, { color: isDark ? "#9AA0A6" : "#666" }]}>
-              Quick suggestions:
-            </Text>
-            <View style={styles.chipContainer}>
-              {suggestions.map((s) => (
-                <Pressable 
-                  key={s} 
-                  style={[
-                    styles.chip, 
-                    statusActivity === s && styles.chipActive, 
-                    { borderColor: isDark ? "#333" : "#e0e0e0" }
-                  ]}
-                  onPress={() => setStatusActivity(s)}
-                >
-                  <Text style={[
-                    styles.chipText, 
-                    statusActivity === s && { color: "#FFF" }, 
-                    { color: isDark ? "#FFF" : "#000" }
-                  ]}>
-                    {s}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-
           {/* Duration */}
           <View style={styles.inputSection}>
             <View style={styles.labelWithIcon}>
@@ -536,89 +405,6 @@ export default function ShareLocationScreen() {
             <Text style={[styles.inputHint, { color: isDark ? "#9AA0A6" : "#666" }]}>
               Your location will automatically stop being shared after this time
             </Text>
-          </View>
-
-          {/* Photo Option */}
-          <View style={styles.inputSection}>
-            <View style={[styles.photoOption, isDark ? styles.inputDark : styles.inputLight]}>
-              <View style={styles.photoOptionContent}>
-                <View style={[styles.iconBox, { backgroundColor: isDark ? "#222" : "#f0f0f0" }]}>
-                  <Ionicons name="camera-outline" size={20} color={isDark ? "#FFF" : "#000"} />
-                </View>
-                <View style={styles.photoOptionText}>
-                  <Text style={[styles.photoOptionTitle, { color: isDark ? "#FFF" : "#000" }]}>
-                    Share a photo with your location
-                  </Text>
-                  <Text style={[styles.photoOptionSubtitle, { color: isDark ? "#888" : "#666" }]}>
-                    Let friends see where you are
-                  </Text>
-                </View>
-              </View>
-              <Pressable onPress={() => setWithPhoto(!withPhoto)}>
-                <Ionicons 
-                  name={withPhoto ? "checkbox" : "square-outline"} 
-                  size={24} 
-                  color={isDark ? "#FFF" : "#000"} 
-                />
-              </Pressable>
-            </View>
-
-            {withPhoto && (
-              <View style={styles.photoSection}>
-                {!shareSelectedPhoto ? (
-                  <>
-                    <View style={styles.recentsHeader}>
-                      <Text style={[styles.recentsTitle, { color: isDark ? "#FFF" : "#000" }]}>
-                        Recents
-                      </Text>
-                      <Pressable onPress={pickLocationPhoto}>
-                        <Text style={[styles.seeAllText, { color: isDark ? "#FFF" : "#000" }]}>
-                          See All
-                        </Text>
-                      </Pressable>
-                    </View>
-                    <ScrollView 
-                      style={styles.galleryScrollView}
-                      showsVerticalScrollIndicator={false}
-                      nestedScrollEnabled={true}
-                    >
-                      <View style={styles.miniGalleryGrid}>
-                        {recents.map((asset, i) => (
-                          <Pressable 
-                            key={asset.id ?? i} 
-                            style={styles.miniGalleryItem} 
-                            onPress={() => setShareSelectedPhoto(asset.uri)}
-                          >
-                            <ExpoImage 
-                              source={{ uri: asset.uri }} 
-                              style={styles.gridImage} 
-                              contentFit="cover" 
-                            />
-                          </Pressable>
-                        ))}
-                      </View>
-                    </ScrollView>
-                  </>
-                ) : (
-                  <View style={styles.selectedPhotoContainer}>
-                    <ExpoImage 
-                      source={{ uri: shareSelectedPhoto }} 
-                      style={styles.selectedPhoto} 
-                      contentFit="cover" 
-                    />
-                    <Pressable 
-                      style={styles.removePhotoBtn} 
-                      onPress={() => setShareSelectedPhoto(null)}
-                    >
-                      <Ionicons name="trash-outline" size={16} color="#FFF" />
-                    </Pressable>
-                    <Text style={styles.photoOverlayText}>
-                      Photo will be shared with your location
-                    </Text>
-                  </View>
-                )}
-              </View>
-            )}
           </View>
 
           {/* Privacy Card */}
@@ -798,125 +584,6 @@ const styles = StyleSheet.create({
   inputHint: {
     fontSize: 12,
     marginTop: 4,
-  },
-  chipContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginTop: 8,
-  },
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-  },
-  chipActive: {
-    backgroundColor: "#3b82f6",
-    borderColor: "#3b82f6",
-  },
-  chipText: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  photoOption: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  photoOptionContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    flex: 1,
-  },
-  iconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  photoOptionText: {
-    flex: 1,
-  },
-  photoOptionTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    marginBottom: 2,
-  },
-  photoOptionSubtitle: {
-    fontSize: 12,
-  },
-  photoSection: {
-    marginTop: 12,
-    gap: 12,
-  },
-  recentsHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  recentsTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  seeAllText: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  galleryScrollView: {
-    maxHeight: 300,
-  },
-  miniGalleryGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 4,
-  },
-  miniGalleryItem: {
-    width: (screenWidth - 48) / 3 - 4,
-    height: (screenWidth - 48) / 3 - 4,
-    borderRadius: 8,
-    overflow: "hidden",
-  },
-  gridImage: {
-    width: "100%",
-    height: "100%",
-  },
-  selectedPhotoContainer: {
-    position: "relative",
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  selectedPhoto: {
-    width: "100%",
-    height: 200,
-  },
-  removePhotoBtn: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    borderRadius: 16,
-    padding: 8,
-  },
-  photoOverlayText: {
-    position: "absolute",
-    bottom: 8,
-    left: 8,
-    right: 8,
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "500",
-    textAlign: "center",
-    backgroundColor: "rgba(0,0,0,0.6)",
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 4,
   },
   privacyCard: {
     flexDirection: "row",

@@ -11,7 +11,7 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import moment from "moment";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Dimensions, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Dimensions, FlatList, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import uuid from "react-native-uuid";
@@ -311,6 +311,16 @@ export default function TarpsScreen() {
         loadPostsInView(currentRegion);
       }
     };
+    (global as any).refreshAfterReport = () => {
+      setViewMode("posts");
+      zoomToWorldView();
+      setTimeout(() => {
+        const currentRegion = mapRegion || location;
+        if (currentRegion) {
+          loadPostsInView(currentRegion);
+        }
+      }, 100);
+    };
     (global as any).getGlobalPosts = () => {
       console.log("📋 Providing global posts to post screen:", globalPosts.length);
       return globalPosts;
@@ -318,6 +328,7 @@ export default function TarpsScreen() {
     return () => {
       delete (global as any).markPostsAsViewed;
       delete (global as any).refreshPostsInView;
+      delete (global as any).refreshAfterReport;
       delete (global as any).getGlobalPosts;
     };
   }, [mapRegion, location, viewMode, globalPosts]);
@@ -764,119 +775,48 @@ console.log(
     }, 400); // Increased delay to 400ms for better reliability
   };
 
-  const handleViewInMap = () => {
-    console.log("🗺️ View in map clicked - SIMPLE VERSION");
-    
+  const handleViewInMap = async () => {
     if (!selectedPerson?.latitude || !selectedPerson?.longitude) {
-      console.log("❌ No person coordinates");
       toast.error("Location coordinates not available");
       setShowMapConfirmModal(false);
       return;
     }
-    
     try {
-      console.log("🔄 Starting map navigation...");
       setLoadingNavigate(true);
-      
-      // Close modals first with explicit state updates
-      console.log("🔄 Closing all modals...");
       setShowMapConfirmModal(false);
-      setPersonOpen(false);
-      
-      // Use setTimeout to ensure modals close before map operations
-      setTimeout(() => {
-        try {
-          // Validate coordinates again
-          const lat = Number(selectedPerson.latitude);
-          const lng = Number(selectedPerson.longitude);
-          
-          if (isNaN(lat) || isNaN(lng)) {
-            throw new Error("Invalid coordinates");
-          }
-          
-          // SAVE CURRENT ZOOM STATE TO HISTORY BEFORE NAVIGATING
-          const currentRegion = mapRegion || location;
-          if (currentRegion) {
-            console.log("💾 Saving current zoom state to history before navigation");
-            
-            if (Platform.OS === 'android' && useMapboxGL) {
-              // Save Mapbox camera state
-              setZoomHistory(prev => [...prev, {
-                latitude: mapboxCamera.centerCoordinate[1],
-                longitude: mapboxCamera.centerCoordinate[0],
-                latitudeDelta: 0, // Not used for Mapbox
-                longitudeDelta: 0, // Not used for Mapbox
-                zoomLevel: mapboxCamera.zoomLevel
-              }]);
-            } else {
-              // Save Apple Maps region state
-              setZoomHistory(prev => [...prev, {
-                latitude: currentRegion.latitude,
-                longitude: currentRegion.longitude,
-                latitudeDelta: currentRegion.latitudeDelta,
-                longitudeDelta: currentRegion.longitudeDelta
-              }]);
-            }
-            
-            console.log("✅ Zoom history saved, total entries:", zoomHistory.length + 1);
-          }
-          
-          // Create new location object
-          const personLocation = {
-            latitude: lat,
-            longitude: lng,
-            latitudeDelta: 0.08, // Increased from 0.02 to 0.08 for less aggressive zoom
-            longitudeDelta: 0.08, // Increased from 0.02 to 0.08 for less aggressive zoom
-          };
-          
-          console.log("📍 Setting new location:", personLocation);
-          
-          // Update location state
-          setLocation(personLocation);
-          
-          // Try to animate map if available
-          if (mapRef.current) {
-            console.log("🗺️ Animating map to region");
-            mapRef.current.animateToRegion(personLocation, 1500);
-            setMapRegion(personLocation); // Update map region state
-          }
-          
-          // For Android Mapbox
-          if (Platform.OS === 'android' && useMapboxGL && lng && lat) {
-            console.log("🗺️ Setting Mapbox camera");
-            setMapboxCamera({
-              centerCoordinate: [lng, lat],
-              zoomLevel: 11, // Reduced from 14 to 11 for less aggressive zoom
-              animationDuration: 1500,
-            });
-            
-            // Update current zoom level for Mapbox
-            setCurrentZoomLevel(11); // Updated to match new zoom level
-          } else {
-            // Update current zoom level for Apple Maps based on delta
-            const zoomLevel = Math.round(Math.log2(360 / personLocation.latitudeDelta));
-            setCurrentZoomLevel(Math.max(1, Math.min(20, zoomLevel)));
-          }
-          
-          console.log("✅ Map navigation completed");
-          toast.success(`Viewing ${selectedPerson?.owner?.fname || 'location'} on map`);
-          
-        } catch (mapError) {
-          console.error("❌ Map error:", mapError);
-          toast.error("Failed to navigate to location");
-        } finally {
-          // Clear loading state after a delay to ensure animation completes
-          setTimeout(() => {
-            setLoadingNavigate(false);
-          }, 1000);
+      const lat = Number(selectedPerson.latitude);
+      const lng = Number(selectedPerson.longitude);
+      if (isNaN(lat) || isNaN(lng)) {
+        throw new Error("Invalid coordinates");
+      }
+      if (Platform.OS === 'android') {
+        const scheme = `comgooglemaps://?q=${lat},${lng}`;
+        const geo = `geo:${lat},${lng}?q=${lat},${lng}`;
+        const https = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+        const canGoogle = await Linking.canOpenURL(scheme);
+        const canGeo = await Linking.canOpenURL(geo);
+        if (canGoogle) {
+          await Linking.openURL(scheme);
+        } else if (canGeo) {
+          await Linking.openURL(geo);
+        } else {
+          await Linking.openURL(https);
         }
-      }, 400); // Increased delay to ensure modals fully close
-      
+      } else {
+        const scheme = `maps://?q=${lat},${lng}`;
+        const http = `http://maps.apple.com/?ll=${lat},${lng}`;
+        const canApple = await Linking.canOpenURL(scheme);
+        if (canApple) {
+          await Linking.openURL(scheme);
+        } else {
+          await Linking.openURL(http);
+        }
+      }
+      toast.success("Opening in Maps");
     } catch (error) {
-      console.error("❌ ViewInMap error:", error);
-      toast.error("Navigation failed");
+      toast.error("Failed to open Maps");
+    } finally {
       setLoadingNavigate(false);
-      setShowMapConfirmModal(false);
     }
   };
 
@@ -1542,22 +1482,6 @@ console.log(
                         zoomLevel: zoomLevel,
                         animationDuration: 200,
                       });
-                      
-                      // Optimistically update markers for immediate separation
-                      const expandedPosts = p.items.map((item: any) => ({
-                        id: String(item.id ?? `${item.lat ?? item.latitude}-${item.lng ?? item.longitude}-${extractImageUrl(item)}`),
-                        image: extractImageUrl(item),
-                        latitude: Number(item.lat ?? item.latitude),
-                        longitude: Number(item.lng ?? item.longitude),
-                        count: 1,
-                        isCluster: false,
-                        items: [item],
-                      })).filter((post: any) => !isNaN(post.latitude) && !isNaN(post.longitude) && !!post.image);
-                      
-                      setServerPosts(prev => {
-                        const others = prev.filter(post => post.id !== p.id);
-                        return [...others, ...expandedPosts];
-                      });
                     }
                   } else if (p.image && Array.isArray(p.items) && p.items.length > 0) {
                     // Handle single post
@@ -1809,22 +1733,6 @@ console.log(
                           longitudeDelta: Math.max(0.01, Math.abs(bounds.maxLng - bounds.minLng) * 1.5),
                         } as any;
                         mapRef.current?.animateToRegion(region, 200);
-                        
-                        // Optimistically update markers for immediate separation
-                        const expandedPosts = p.items.map((item: any) => ({
-                          id: String(item.id ?? `${item.lat ?? item.latitude}-${item.lng ?? item.longitude}-${extractImageUrl(item)}`),
-                          image: extractImageUrl(item),
-                          latitude: Number(item.lat ?? item.latitude),
-                          longitude: Number(item.lng ?? item.longitude),
-                          count: 1,
-                          isCluster: false,
-                          items: [item],
-                        })).filter((post: any) => !isNaN(post.latitude) && !isNaN(post.longitude) && !!post.image);
-                        
-                        setServerPosts(prev => {
-                          const others = prev.filter(post => post.id !== p.id);
-                          return [...others, ...expandedPosts];
-                        });
                       }
                     } else if (p.image && Array.isArray(p.items) && p.items.length > 0) {
                       const item = p.items[0];
