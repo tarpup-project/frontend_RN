@@ -8,18 +8,18 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Animated,
-  Dimensions,
-  Easing,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View
+    ActivityIndicator,
+    Animated,
+    Dimensions,
+    Easing,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View
 } from "react-native";
 import { PanGestureHandler, PanGestureHandlerGestureEvent, State } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -222,21 +222,10 @@ export default function CreatePostScreen() {
         sortBy: MediaLibrary.SortBy.creationTime 
       });
       console.log('Loaded photos:', photoAssets.assets.length);
-      
-      // Load all videos
-      const videoAssets = await MediaLibrary.getAssetsAsync({ 
-        first: 200, 
-        mediaType: MediaLibrary.MediaType.video, 
-        sortBy: MediaLibrary.SortBy.creationTime 
-      });
-      console.log('Loaded videos:', videoAssets.assets.length);
-      
-      // Combine and sort by creation time (newest first)
-      const combined = [...photoAssets.assets, ...videoAssets.assets];
-      combined.sort((a, b) => b.creationTime - a.creationTime);
-      
-      console.log('Total media items:', combined.length);
-      setAllMedia(combined);
+      const photos = [...photoAssets.assets];
+      photos.sort((a, b) => b.creationTime - a.creationTime);
+      console.log('Total photo items:', photos.length);
+      setAllMedia(photos);
       
     } catch (error) {
       console.error('Error loading media:', error);
@@ -313,6 +302,12 @@ export default function CreatePostScreen() {
   };
 
   const handleBack = () => {
+    if (selectedImages.length > 0) {
+      setSelectedImages([]);
+      // Small delay to prevent crash on unmount when images are selected
+      setTimeout(() => router.back(), 50);
+      return;
+    }
     router.back();
   };
 
@@ -561,7 +556,7 @@ export default function CreatePostScreen() {
               {/* Gallery Header */}
               <View style={styles.galleryHeader}>
                 <Text style={[styles.galleryTitle, { color: isDark ? "#FFFFFF" : "#000000" }]}>
-                  {isLoadingMedia ? "Loading..." : `All Media (${allMedia.length})`}
+                  {isLoadingMedia ? "Loading..." : `Photos (${allMedia.length})`}
                 </Text>
                 <View style={styles.galleryHeaderRight}>
 
@@ -623,14 +618,14 @@ export default function CreatePostScreen() {
                   <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={isDark ? "#FFFFFF" : "#000000"} />
                     <Text style={[styles.loadingText, { color: isDark ? "#666" : "#999" }]}>
-                      Loading your photos and videos...
+                      Loading your photos...
                     </Text>
                   </View>
                 ) : allMedia.length === 0 ? (
                   <View style={styles.emptyState}>
                     <Ionicons name="images-outline" size={48} color={isDark ? "#666" : "#999"} />
                     <Text style={[styles.emptyStateText, { color: isDark ? "#666" : "#999" }]}>
-                      No photos or videos found
+                      No photos found
                     </Text>
                     <Text style={[styles.emptyStateSubtext, { color: isDark ? "#888" : "#BBB" }]}>
                       Check console logs for debugging info
@@ -643,7 +638,6 @@ export default function CreatePostScreen() {
                       const order = selectedImages.indexOf(uri);
                       const active = order !== -1;
                       const isPreview = selectedImages.length > 0 && uri === selectedImages[selectedImages.length - 1]; // Preview is last selected image
-                      const isVideo = asset.mediaType === MediaLibrary.MediaType.video;
                       
                       return (
                         <Pressable 
@@ -666,19 +660,6 @@ export default function CreatePostScreen() {
                               if (i < 5) console.log(`Grid image ${i} loaded successfully`);
                             }}
                           />
-                          
-                          {/* Video indicator */}
-                          {isVideo && (
-                            <View style={styles.videoIndicator}>
-                              <Ionicons name="play" size={16} color="#FFFFFF" />
-                              {asset.duration && (
-                                <Text style={styles.videoDuration}>
-                                  {Math.floor(asset.duration / 60)}:{(asset.duration % 60).toFixed(0).padStart(2, '0')}
-                                </Text>
-                              )}
-                            </View>
-                          )}
-                          
                           {active && (
                             <View style={styles.orderBadge}>
                               <Text style={styles.orderText}>{order + 1}</Text>
