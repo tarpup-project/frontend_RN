@@ -15,14 +15,14 @@ import { router } from "expo-router";
 import moment from "moment";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-    ActivityIndicator,
-    Image,
-    Modal,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    View,
+  ActivityIndicator,
+  Image,
+  Modal,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
 } from "react-native";
 import { toast } from "sonner-native";
 
@@ -397,10 +397,24 @@ const Prompts = () => {
             </>
           )}
           {!isLoadingPrompts && prompts.length === 0 && (
-            <View style={styles.emptyContainer}>
-              <Text style={[styles.emptyText, dynamicStyles.subtitle]}>
-                No prompts found
-              </Text>
+            <View style={styles.emptyStateContainer}>
+              {/* Character/Mascot */}
+              <View style={styles.emptyCharacter}>
+                <Text style={styles.emptyCharacterEmoji}>👋</Text>
+              </View>
+              
+              {/* Message box */}
+              <View style={styles.emptyMessageBox}>
+                <Text style={[
+                  styles.emptyMessageTitle,
+                  { color: isDark ? "#FFFFFF" : "#3a3a3aff" }
+                ]}>
+                  Be the first to create an AI prompt
+                </Text>
+                <Text style={styles.emptyMessageSubtitle}>
+                  Nobody is currently looking for anything you've not seen. Share with TarpAI what you want, so others can find you.
+                </Text>
+              </View>
             </View>
           )}
           {!isLoadingPrompts &&
@@ -751,6 +765,42 @@ const styles = StyleSheet.create({
     padding: 40,
     alignItems: "center",
     justifyContent: "center",
+  },
+  emptyStateContainer: {
+    padding: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 20,
+  },
+  emptyCharacter: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#f0f0f0",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  emptyCharacterEmoji: {
+    fontSize: 40,
+  },
+  emptyMessageBox: {
+    padding: 20,
+    backgroundColor: "transparent",
+    width: "100%",
+    maxWidth: 320,
+  },
+  emptyMessageTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  emptyMessageSubtitle: {
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 20,
+    color: "#888888",
   },
   imageContainer: {
     width: "100%",

@@ -83,7 +83,6 @@ export const usePrompts = (params?: UsePromptsParams) => {
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
     placeholderData: (previousData) => previousData,
-    enabled: !!user?.id, // Only fetch when user is available
   });
 
   const submitRequest = async (requestID: string) => {
