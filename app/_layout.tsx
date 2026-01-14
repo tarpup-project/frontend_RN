@@ -3,6 +3,7 @@ import { WatermelonProvider } from "@/contexts/WatermelonProvider";
 import { SocketProvider } from "@/contexts/SocketProvider";
 import { useAppUpdate } from "@/hooks/useAppUpdate";
 import { useDeepLinking } from "@/hooks/useDeepLinking";
+import { useNotifications } from "@/hooks/useNotification";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useAuthStore } from "@/state/authStore";
 import { asyncStoragePersister, initializeQueryPersistence, queryClient } from "@/utils/queryClient";
@@ -27,7 +28,11 @@ function RootLayoutContent() {
 
   // ✅ SINGLE SOURCE OF NOTIFICATIONS
   usePushNotifications();
+  useNotifications(true);
   
+  // ✅ CHECK FOR APP UPDATES
+  useAppUpdate(true);
+
   // ✅ HANDLE DEEP LINKING FOR REFERRALS
   useDeepLinking();
 

@@ -10,7 +10,7 @@ interface NotificationResponse {
   personalNotification: number;
 }
 
-export const useNotifications = () => {
+export const useNotifications = (enablePolling = false) => {
   const { isAuthenticated, user } = useAuthStore();
   const {
     groupNotifications,
@@ -21,24 +21,40 @@ export const useNotifications = () => {
     postLikesNotifications,
     commentsNotifications,
     pendingMatchesNotifications, // Pending matches notification count
+    unreadCount,
     setNotifications,
+    setNotificationsList,
     incrementNotification,
+    markInitialized,
   } = useNotificationStore();
 
   const fetchNotifications = async () => {
     if (!isAuthenticated || !user) return;
 
     try {
-      const response = await api.get<{
-        status: string;
-        data: NotificationResponse;
-      }>(UrlConstants.allNotifications);
+      const [response, tarpResponse] = await Promise.all([
+        api.get<{
+          status: string;
+          data: NotificationResponse;
+        }>(UrlConstants.allNotifications),
+        api.get(UrlConstants.tarpNotifications)
+      ]);
+
+      let unread = 0;
+      let notifList = [];
+      if (tarpResponse.data?.status === 'success' && Array.isArray(tarpResponse.data?.data)) {
+         notifList = tarpResponse.data.data;
+         unread = notifList.filter((n: any) => !n.isRead).length;
+      }
 
       if (response.data.status === "success") {
         setNotifications({
           groupNotifications: response.data.data.groupNotifications,
           personalNotifications: response.data.data.personalNotification,
+          unreadCount: unread,
         });
+        setNotificationsList(notifList);
+        markInitialized();
       }
     } catch (error: any) {
       console.error("Failed to fetch notifications:", error);
@@ -49,53 +65,38 @@ export const useNotifications = () => {
           groupNotifications: 0,
           personalNotifications: 0,
           chatNotifications: 0,
+          unreadCount: 0,
         });
       }
     }
   };
 
   useEffect(() => {
-    if (isAuthenticated && user) {
-      // Initial fetch with delay to avoid immediate rate limiting
-      const initialTimeout = setTimeout(async () => {
-        fetchNotifications();
-      }, 1000);
+    if (!enablePolling || !isAuthenticated || !user) return;
 
-      return () => clearTimeout(initialTimeout);
-    } else {
-      setNotifications({
-        groupNotifications: 0,
-        personalNotifications: 0,
-        chatNotifications: 0,
-      });
-    }
-  }, [isAuthenticated, user]);
+    // Initial fetch with delay to avoid immediate rate limiting
+    // Increased delay to 5 seconds to reduce initial load and allow other components to fetch first
+    const initialTimeout = setTimeout(async () => {
+      fetchNotifications();
+    }, 5000);
 
-  useEffect(() => {
-    if (!isAuthenticated || !user) return;
-
-    // Enable automatic notification polling every 30 seconds for more responsive counters
+    // Enable automatic notification polling every 2 minutes (120 seconds)
+    // Increased from 30s to avoid 429 Too Many Requests errors
     console.log('🔄 Starting automatic notification polling');
-    
     const interval = setInterval(() => {
       console.log('📊 Fetching notifications automatically');
       fetchNotifications();
-    }, 30000); // Poll every 30 seconds
-
-    // Initial fetch after 2 seconds
-    const initialTimeout = setTimeout(() => {
-      fetchNotifications();
-    }, 2000);
+    }, 120000);
 
     return () => {
-      clearInterval(interval);
       clearTimeout(initialTimeout);
+      clearInterval(interval);
     };
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, enablePolling]);
 
   // Listen for app state changes to refresh notifications when app becomes active
   useEffect(() => {
-    if (!isAuthenticated || !user) return;
+    if (!enablePolling || !isAuthenticated || !user) return;
 
     const handleAppStateChange = (nextAppState: string) => {
       if (nextAppState === 'active') {
@@ -109,7 +110,7 @@ export const useNotifications = () => {
     return () => {
       subscription?.remove();
     };
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, enablePolling]);
 
   return {
     groupNotifications,
@@ -120,6 +121,7 @@ export const useNotifications = () => {
     postLikesNotifications,
     commentsNotifications,
     pendingMatchesNotifications,
+    unreadCount,
     refetchNotifications: fetchNotifications,
     incrementNotification,
     setNotifications,

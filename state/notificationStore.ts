@@ -9,6 +9,7 @@ interface NotificationState {
   postLikesNotifications: number;
   commentsNotifications: number;
   pendingMatchesNotifications: number;
+  unreadCount: number;
   initialized: boolean;
   activeGroupId?: string | null;
   
@@ -21,7 +22,10 @@ interface NotificationState {
     postLikesNotifications?: number;
     commentsNotifications?: number;
     pendingMatchesNotifications?: number;
+    unreadCount?: number;
   }) => void;
+
+  setNotificationsList: (list: any[]) => void;
   
   setLists: (lists: {
     // Removed all lists
@@ -46,6 +50,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
   postLikesNotifications: 0,
   commentsNotifications: 0,
   pendingMatchesNotifications: 0,
+  unreadCount: 0,
   initialized: false,
   activeGroupId: null,
 
@@ -54,6 +59,10 @@ export const useNotificationStore = create<NotificationState>((set) => ({
       ...state,
       ...notifications,
     }));
+  },
+
+  setNotificationsList: (list) => {
+    set({ notificationsList: list });
   },
   
   setLists: (lists) => {
@@ -79,6 +88,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
         postLikesNotifications: 0,
         commentsNotifications: 0,
         pendingMatchesNotifications: 0,
+        unreadCount: 0,
         initialized: false,
         activeGroupId: null,
       });
