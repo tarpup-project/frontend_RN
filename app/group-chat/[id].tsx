@@ -157,13 +157,15 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     const subscription = AppState.addEventListener("change", (nextState) => {
       if (nextState === "active") {
         retryConnection();
+        markAsRead();
+        refetchNotifications();
       }
     });
 
     return () => {
       subscription.remove();
     };
-  }, [retryConnection]);
+  }, [retryConnection, markAsRead, refetchNotifications]);
 
   useEffect(() => {
     console.log("🔍 showGroupInfo state changed:", showGroupInfo);
