@@ -1,11 +1,11 @@
 import { GroupOptionsDropdown } from "@/components/GroupOptionsDropdown";
 import { useTheme } from "@/contexts/ThemeContext";
+import { CachedImage } from "@/components/CachedImage";
 import { GroupMember } from "@/types/groups";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
-    Image,
     Pressable,
     StyleSheet,
     Text,
@@ -97,9 +97,12 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                   ]}
                 >
                   {member.bgUrl ? (
-                    <Image
-                      source={{ uri: member.bgUrl }}
+                    <CachedImage
+                      uri={member.bgUrl}
                       style={styles.avatarImage}
+                      fallbackText={(member.fname || "U")[0]}
+                      fallbackColor={colors[index % colors.length]}
+                      cacheKey={`avatar_${member.id}_chat_header`}
                     />
                   ) : (
                     <Text style={styles.avatarText}>{(member.fname || 'U')[0]}</Text>
