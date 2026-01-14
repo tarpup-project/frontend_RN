@@ -23,6 +23,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     Alert,
     Animated,
+    AppState,
     Keyboard,
     KeyboardAvoidingView, Linking, Platform,
     Pressable,
@@ -67,7 +68,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   } = useGroupDetails(groupId);
   const finalGroupDetails = passedGroupData || groupDetails;
 
-  const { messages, isLoading, error, sendMessage, markAsRead, isCached, isRefreshing, isSending } =
+  const { messages, isLoading, error, sendMessage, markAsRead, isCached, isRefreshing, isSending, retryConnection } =
     useEnhancedGroupMessages({ groupId, socket: socket && user ? socket : undefined });
 
   const { refetchNotifications } = useNotifications();
@@ -151,6 +152,18 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
       };
     }, [markAsRead, refetchNotifications, groupId, setActiveGroupId])
   );
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active") {
+        retryConnection();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [retryConnection]);
 
   useEffect(() => {
     console.log("🔍 showGroupInfo state changed:", showGroupInfo);
