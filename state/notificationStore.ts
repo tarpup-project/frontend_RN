@@ -10,6 +10,7 @@ interface NotificationState {
   commentsNotifications: number;
   pendingMatchesNotifications: number;
   initialized: boolean;
+  activeGroupId?: string | null;
   
   setNotifications: (notifications: {
     groupNotifications?: number;
@@ -27,6 +28,7 @@ interface NotificationState {
   }) => void;
   
   markInitialized: () => void;
+  setActiveGroupId: (groupId: string | null) => void;
   
   clearNotifications: (type?: 'group' | 'personal' | 'chat' | 'follower' | 'friendPosts' | 'postLikes' | 'comments' | 'pendingMatches') => void;
   
@@ -45,6 +47,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
   commentsNotifications: 0,
   pendingMatchesNotifications: 0,
   initialized: false,
+  activeGroupId: null,
 
   setNotifications: (notifications) => {
     set((state) => ({
@@ -60,6 +63,10 @@ export const useNotificationStore = create<NotificationState>((set) => ({
   markInitialized: () => {
     set({ initialized: true });
   },
+  
+  setActiveGroupId: (groupId) => {
+    set({ activeGroupId: groupId });
+  },
 
   clearNotifications: (type) => {
     if (!type) {
@@ -73,6 +80,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
         commentsNotifications: 0,
         pendingMatchesNotifications: 0,
         initialized: false,
+        activeGroupId: null,
       });
     } else {
       set((state) => ({

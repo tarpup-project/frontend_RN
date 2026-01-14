@@ -4,6 +4,7 @@ import { UrlConstants } from '@/constants/apiUrls';
 import { asyncStorageDB, isWatermelonAvailable } from '@/database';
 import { useAuthStore } from '@/state/authStore';
 import { CacheUtils } from '@/utils/queryClient';
+import { useNotificationStore } from '@/state/notificationStore';
 import { watermelonOfflineSyncManager } from '@/utils/watermelonOfflineSync';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -822,6 +823,17 @@ export const useEnhancedGroupMessages = ({
     try {
       await api.post(UrlConstants.markGroupMessageAsRead(groupId));
       
+      // Determine how many unread messages existed for this group before clearing
+      const matchedLists = queryClient.getQueriesData<Group[]>({ queryKey: groupsKeys.lists() });
+      let previousUnread = 0;
+      for (const [, groups] of matchedLists) {
+        const found = (groups || []).find(g => String(g.id) === String(groupId));
+        if (found) {
+          previousUnread = Number(found.unread || 0);
+          break;
+        }
+      }
+
       // Update groups cache to reset unread count
       queryClient.setQueriesData<Group[]>(
         { queryKey: groupsKeys.lists() }, 
@@ -830,6 +842,13 @@ export const useEnhancedGroupMessages = ({
           return old.map(g => (g.id === groupId ? { ...g, unread: 0 } : g));
         }
       );
+
+      // Decrement footer badge by the group's previous unread count
+      if (previousUnread > 0) {
+        const { groupNotifications, setNotifications } = useNotificationStore.getState();
+        const newCount = Math.max(0, Number(groupNotifications || 0) - previousUnread);
+        setNotifications({ groupNotifications: newCount });
+      }
       
       // Invalidate groups queries to refresh
       CacheUtils.invalidateAll();
