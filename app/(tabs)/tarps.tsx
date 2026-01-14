@@ -1,4 +1,5 @@
 import { api } from "@/api/client";
+import AuthModal from "@/components/AuthModal";
 import { UrlConstants } from "@/constants/apiUrls";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthStore } from "@/state/authStore";
@@ -68,6 +69,7 @@ export default function TarpsScreen() {
   const { user } = useAuthStore();
   const insets = useSafeAreaInsets();
   const nav = useRouter();
+  const [showAuthModal, setShowAuthModal] = useState(false);
   // Correct type for Map region
   const [location, setLocation] = useState<{
     latitude: number;
@@ -198,13 +200,28 @@ export default function TarpsScreen() {
     "at event", "playing sports"
   ];
 
-  // Function to open profile screen
   const openProfileScreen = () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     nav.push('/my-tarps');
   };
 
   const handleShareLocation = () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     nav.push('/share-location');
+  };
+
+  const handleCreatePostPress = () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    nav.push('/create-post');
   };
 
   // Function to load known posts from storage
@@ -2164,7 +2181,7 @@ console.log(
       {viewMode === "posts" ? (
         <Pressable
           style={[styles.uploadButton, isDark ? styles.uploadBtnDark : styles.uploadBtnLight]}
-          onPress={() => nav.push('/create-post')}
+          onPress={handleCreatePostPress}
           accessibilityLabel="Post Photo"
         >
           <Ionicons name="add" size={24} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
@@ -2445,7 +2462,7 @@ console.log(
         </Pressable>
       </Modal>
 
-      {/* My Tarps Modal - REMOVED (now using full screen) */}
+      <AuthModal visible={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </View>
   );
 }
