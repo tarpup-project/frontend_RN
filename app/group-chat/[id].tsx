@@ -8,7 +8,7 @@ import { LinkConfirmModal } from "@/components/chatComponents/LinkConfirmModal";
 import { MessageInput } from "@/components/chatComponents/MessageInput";
 import { MessageList } from "@/components/chatComponents/MessageList";
 import { UrlConstants } from "@/constants/apiUrls";
-import { GroupSocketProvider, useGroupSocket } from "@/contexts/SocketProvider";
+import { useSocket } from "@/contexts/SocketProvider";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useEnhancedGroupMessages, useMessageReply } from "@/hooks/useEnhancedGroupMessages";
 import { useFileUpload } from "@/hooks/useFileUpload";
@@ -23,8 +23,7 @@ import {
     Alert,
     Animated,
     Keyboard,
-    KeyboardAvoidingView,
-    Platform,
+    KeyboardAvoidingView, Linking, Platform,
     Pressable,
     StyleSheet,
     View
@@ -40,9 +39,7 @@ const GroupChat = () => {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <GroupSocketProvider groupId={id as string}>
-        <GroupChatContent groupId={id as string} />
-      </GroupSocketProvider>
+      <GroupChatContent groupId={id as string} />
     </GestureHandlerRootView>
   );
 };
@@ -51,7 +48,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   const { isDark } = useTheme();
   const router = useRouter();
   const { user } = useAuthStore();
-  const { socket } = useGroupSocket();
+  const { socket } = useSocket();
   const messageRefs = useRef<Map<string, any>>(new Map());
   const infoButtonRef = useRef<View>(null); // Added back
   const slideAnim = useRef(new Animated.Value(300)).current;
