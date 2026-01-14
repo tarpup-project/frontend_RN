@@ -1,9 +1,10 @@
 
 import { CachedMessageImage } from "@/components/CachedMessageImage";
+import { CachedImage } from "@/components/CachedImage";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Hyperlink from "react-native-hyperlink";
 import Animated, {
@@ -297,9 +298,12 @@ export const MessageItem: React.FC<MessageItemProps> = ({
               >
                 {typeof msg.avatar === "string" &&
                 msg.avatar.startsWith("http") ? (
-                  <Image
-                    source={{ uri: msg.avatar }}
+                  <CachedImage
+                    uri={msg.avatar}
                     style={styles.messageAvatarImage}
+                    fallbackText={msg.sender[0]}
+                    fallbackColor="#666666"
+                    cacheKey={`avatar_${msg.rawMessage?.sender?.id || msg.sender}_message`}
                   />
                 ) : (
                   <View
