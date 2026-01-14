@@ -1,5 +1,6 @@
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import { WatermelonProvider } from "@/contexts/WatermelonProvider";
+import { SocketProvider } from "@/contexts/SocketProvider";
 import { useAppUpdate } from "@/hooks/useAppUpdate";
 import { useDeepLinking } from "@/hooks/useDeepLinking";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -132,7 +133,9 @@ export default function RootLayout() {
         <GestureHandlerRootView style={{ flex: 1 }}>
           <SafeAreaProvider>
             <ThemeProvider>
-              <RootLayoutContent />
+              <SocketProvider>
+                <RootLayoutContent />
+              </SocketProvider>
             </ThemeProvider>
           </SafeAreaProvider>
         </GestureHandlerRootView>
