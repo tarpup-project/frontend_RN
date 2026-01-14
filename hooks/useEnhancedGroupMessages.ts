@@ -1,12 +1,13 @@
 import { api } from '@/api/client';
 import { MessageImageCacheUtils } from '@/components/CachedMessageImage';
 import { UrlConstants } from '@/constants/apiUrls';
-import { asyncStorageDB, isWatermelonAvailable } from '@/database';
+import { asyncStorageDB, database, groupsCollection, isWatermelonAvailable } from '@/database';
 import { useAuthStore } from '@/state/authStore';
 import { CacheUtils } from '@/utils/queryClient';
 import { useNotificationStore } from '@/state/notificationStore';
 import { watermelonOfflineSyncManager } from '@/utils/watermelonOfflineSync';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Q } from '@nozbe/watermelondb';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AlertMessage,
@@ -823,7 +824,6 @@ export const useEnhancedGroupMessages = ({
     try {
       await api.post(UrlConstants.markGroupMessageAsRead(groupId));
       
-      // Determine how many unread messages existed for this group before clearing
       const matchedLists = queryClient.getQueriesData<Group[]>({ queryKey: groupsKeys.lists() });
       let previousUnread = 0;
       for (const [, groups] of matchedLists) {
@@ -834,7 +834,6 @@ export const useEnhancedGroupMessages = ({
         }
       }
 
-      // Update groups cache to reset unread count
       queryClient.setQueriesData<Group[]>(
         { queryKey: groupsKeys.lists() }, 
         (old) => {
@@ -843,14 +842,30 @@ export const useEnhancedGroupMessages = ({
         }
       );
 
-      // Decrement footer badge by the group's previous unread count
       if (previousUnread > 0) {
         const { groupNotifications, setNotifications } = useNotificationStore.getState();
         const newCount = Math.max(0, Number(groupNotifications || 0) - previousUnread);
         setNotifications({ groupNotifications: newCount });
       }
+
+      if (isWatermelonAvailable && database && groupsCollection) {
+        try {
+          const wmGroups = await groupsCollection
+            .query(Q.where('server_id', groupId))
+            .fetch();
+
+          if (wmGroups.length > 0) {
+            await database.write(async () => {
+              await wmGroups[0].update((g: any) => {
+                g.unreadCount = 0;
+              });
+            });
+          }
+        } catch (wmError) {
+          console.error('❌ Failed to sync Watermelon unread count:', wmError);
+        }
+      }
       
-      // Invalidate groups queries to refresh
       CacheUtils.invalidateAll();
     } catch (err) {
       console.error('❌ Failed to mark messages as read:', err);
