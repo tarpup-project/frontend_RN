@@ -12,18 +12,18 @@ import { StatusBar } from "expo-status-bar";
 import moment from "moment";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Animated,
-  Dimensions,
-  FlatList,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View
+    ActivityIndicator,
+    Animated,
+    Dimensions,
+    FlatList,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    Pressable,
+    StyleSheet,
+    Text,
+    TextInput,
+    View
 } from "react-native";
 import { Gesture, GestureDetector, GestureHandlerRootView, ScrollView } from "react-native-gesture-handler";
 import { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
@@ -47,7 +47,6 @@ export default function PostPreviewScreen() {
   const [viewedPosts, setViewedPosts] = useState<Set<string>>(new Set()); // Track viewed posts
   const [allAvailablePosts, setAllAvailablePosts] = useState<any[]>([]); // All posts available for browsing
   const [currentPostIndex, setCurrentPostIndex] = useState(0); // Index in all available posts
-  const [isLoadingGlobalPosts, setIsLoadingGlobalPosts] = useState(false);
   const [arrowVisible, setArrowVisible] = useState(true);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [userStats, setUserStats] = useState<{
@@ -213,82 +212,6 @@ export default function PostPreviewScreen() {
     }
   };
 
-  const loadGlobalPosts = async () => {
-    if (isLoadingGlobalPosts) return;
-    
-    try {
-      setIsLoadingGlobalPosts(true);
-      
-      // World view parameters - covers the entire globe
-      const worldViewport = {
-        minLat: -90,
-        maxLat: 90,
-        minLng: -180,
-        maxLng: 180,
-        zoomLevel: 1 // World zoom level
-      };
-      
-      const query = new URLSearchParams({
-        minLat: worldViewport.minLat.toString(),
-        maxLat: worldViewport.maxLat.toString(),
-        minLng: worldViewport.minLng.toString(),
-        maxLng: worldViewport.maxLng.toString(),
-        zoomLevel: worldViewport.zoomLevel.toString(),
-      });
-      
-      const url = `/tarps/posts?${query.toString()}`;
-      console.log("Loading global posts:", { url, viewport: worldViewport });
-      
-      const res = await api.get(url);
-      console.log("Global posts response:", { status: res?.status, ok: res?.status >= 200 && res?.status < 300 });
-      
-      const list = (res as any).data?.data || (res as any).data?.posts || (res as any).data;
-      console.log("Global posts raw data:", { isArray: Array.isArray(list), length: Array.isArray(list) ? list.length : undefined });
-      
-      // Process the posts similar to loadPostsInView
-      const resolveImageUrl = (item: any): string | null => {
-        if (!item || typeof item !== "object") return null;
-        const candidates: any[] = [
-          item.imageUrl, item.photoUrl, item.image, item.coverUrl, item.thumbnail, item.thumbUrl, item.bgUrl, item.url,
-          item?.image?.url, item?.photo?.url,
-          Array.isArray(item.images) ? (typeof item.images[0] === "string" ? item.images[0] : item.images[0]?.url) : null,
-          Array.isArray(item.files) ? (typeof item.files[0] === "string" ? item.files[0] : item.files[0]?.url) : null,
-          Array.isArray(item.medias) ? (typeof item.medias[0] === "string" ? item.medias[0] : item.medias[0]?.url) : null,
-        ];
-        const raw = candidates.find((v) => typeof v === "string" && v.length > 0) ?? null;
-        if (!raw) return null;
-        if (/^https?:\/\//i.test(raw)) return raw;
-        return `${UrlConstants.baseUrl}${raw.startsWith("/") ? "" : "/"}${raw}`;
-      };
-      
-      let mapped: any[] = [];
-      if (Array.isArray(list)) {
-        const looksLikeGrid = list.length > 0 && typeof list[0]?.avgLat === "number" && typeof list[0]?.avgLng === "number" && "result" in list[0];
-        if (looksLikeGrid) {
-          // Grid format - flatten all items
-          mapped = list.flatMap((cell: any) => {
-            const items = Array.isArray(cell.result) ? cell.result : [];
-            return items.filter((item: any) => resolveImageUrl(item));
-          });
-        } else {
-          // Direct posts format
-          mapped = list.filter((p: any) => resolveImageUrl(p));
-        }
-      }
-      
-      setGlobalPosts(mapped);
-      console.log("Global posts loaded:", { count: mapped.length });
-      
-      return mapped;
-    } catch (e: any) {
-      console.log("Global posts error:", { status: e?.response?.status, data: e?.response?.data, message: e?.message });
-      toast.error("Failed to load global posts");
-      return [];
-    } finally {
-      setIsLoadingGlobalPosts(false);
-    }
-  };
-
   useEffect(() => {
     try {
       const rawItem = typeof params.item === "string" ? params.item : undefined;
@@ -320,44 +243,46 @@ export default function PostPreviewScreen() {
       setAllPostItems(parsedAllItems.length > 0 ? parsedAllItems : [parsedItem].filter(Boolean));
       setServerPosts(parsedServerPosts);
       
-      // Load global posts for browsing
-      loadGlobalPosts().then((globalPostsList) => {
-        // Mark current post as viewed and set up all available posts
-        if (parsedItem?.id) {
-          // Mark post as viewed to remove red border
-          markPostAsViewed(parsedItem.id);
-          
-          // If this is a stacked post with multiple items, mark all as viewed
-          if (parsedAllItems.length > 1) {
-            const allPostIds = parsedAllItems.map((item: any) => item.id).filter(Boolean);
-            markMultiplePostsAsViewed(allPostIds);
-          }
-          
-          setViewedPosts(new Set([parsedItem.id]));
-          
-          // Combine server posts and global posts, remove duplicates
-          const allPosts = [
-            ...(Array.isArray(parsedServerPosts) ? parsedServerPosts : []), 
-            ...(Array.isArray(globalPostsList) ? globalPostsList : [])
-          ]
-            .flatMap((post: any) => post.items || [post])
-            .filter((item: any, index: any, arr: any) => 
-              item.id && arr.findIndex((p: any) => p.id === item.id) === index
-            );
-          
-          setAllAvailablePosts(allPosts);
-          
-          // Find current post index in the combined list
-          const currentIndex = allPosts.findIndex((post: any) => post.id === parsedItem.id);
-          setCurrentPostIndex(currentIndex >= 0 ? currentIndex : 0);
-          
-          console.log("All posts setup:", { 
-            totalPosts: allPosts.length,
-            currentIndex: currentIndex >= 0 ? currentIndex : 0,
-            currentPostId: parsedItem.id
-          });
+      // Get pre-loaded global posts from tarps screen (no loading needed!)
+      const globalPostsList = (global as any).getGlobalPosts ? (global as any).getGlobalPosts() : [];
+      console.log("📋 Using pre-loaded global posts:", globalPostsList.length);
+      
+      // Mark current post as viewed and set up all available posts
+      if (parsedItem?.id) {
+        // Mark post as viewed to remove red border
+        markPostAsViewed(parsedItem.id);
+        
+        // If this is a stacked post with multiple items, mark all as viewed
+        if (parsedAllItems.length > 1) {
+          const allPostIds = parsedAllItems.map((item: any) => item.id).filter(Boolean);
+          markMultiplePostsAsViewed(allPostIds);
         }
-      });
+        
+        setViewedPosts(new Set([parsedItem.id]));
+        
+        // Combine server posts and global posts, remove duplicates
+        const allPosts = [
+          ...(Array.isArray(parsedServerPosts) ? parsedServerPosts : []), 
+          ...(Array.isArray(globalPostsList) ? globalPostsList : [])
+        ]
+          .flatMap((post: any) => post.items || [post])
+          .filter((item: any, index: any, arr: any) => 
+            item.id && arr.findIndex((p: any) => p.id === item.id) === index
+          );
+        
+        setAllAvailablePosts(allPosts);
+        
+        // Find current post index in the combined list
+        const currentIndex = allPosts.findIndex((post: any) => post.id === parsedItem.id);
+        setCurrentPostIndex(currentIndex >= 0 ? currentIndex : 0);
+        
+        console.log("All posts setup:", { 
+          totalPosts: allPosts.length,
+          currentIndex: currentIndex >= 0 ? currentIndex : 0,
+          currentPostId: parsedItem.id,
+          globalPostsFromTarps: globalPostsList.length
+        });
+      }
       
       console.log("Post screen initialized:", { 
         hasAllItems: parsedAllItems.length > 0, 
@@ -365,7 +290,7 @@ export default function PostPreviewScreen() {
         imagesCount: urls.length,
         isStackedPost: parsedAllItems.length > 1,
         serverPostsCount: parsedServerPosts.length,
-        loadingGlobalPosts: true
+        usingPreLoadedGlobalPosts: true
       });
       
       const idx = typeof params.idx === "string" ? Number(params.idx) : 0;
@@ -717,6 +642,13 @@ export default function PostPreviewScreen() {
       return;
     }
     
+    // Optimistic UI update
+    const newLiked = action === "like";
+    const newLikeCount = action === "like" ? likeCount + 1 : Math.max(0, likeCount - 1);
+    
+    setLiked(newLiked);
+    setLikeCount(newLikeCount);
+    
     try {
       console.log("Making like API call:", { imageID, action });
       
@@ -736,18 +668,91 @@ export default function PostPreviewScreen() {
       
       console.log("Like API success:", response.data);
       
-      if (action === "like") {
-        setLiked(true);
-        setLikeCount((c) => c + 1);
-      } else {
-        setLiked(false);
-        setLikeCount((c) => (c > 0 ? c - 1 : 0));
+      // Update the underlying data structures to persist the change
+      const updateItemLikeData = (item: any) => {
+        if (!item) return item;
+        
+        // Update the specific image in the images array if it exists
+        if (item.images && Array.isArray(item.images) && currentImageIndex < item.images.length) {
+          const updatedImages = [...item.images];
+          const currentImage = { ...updatedImages[currentImageIndex] };
+          
+          // Update the image's like data
+          currentImage.hasLiked = newLiked;
+          if (currentImage._count) {
+            currentImage._count = { ...currentImage._count, tarpImgLikes: newLikeCount };
+          } else {
+            currentImage._count = { tarpImgLikes: newLikeCount };
+          }
+          currentImage.likes = newLikeCount;
+          
+          updatedImages[currentImageIndex] = currentImage;
+          
+          return {
+            ...item,
+            images: updatedImages,
+            // Also update item-level like data as fallback
+            hasLiked: newLiked,
+            likedByMe: newLiked,
+            isLiked: newLiked,
+            liked: newLiked,
+            likesCount: newLikeCount,
+            numLikes: newLikeCount,
+          };
+        } else {
+          // Update item-level like data
+          return {
+            ...item,
+            hasLiked: newLiked,
+            likedByMe: newLiked,
+            isLiked: newLiked,
+            liked: newLiked,
+            likesCount: newLikeCount,
+            numLikes: newLikeCount,
+          };
+        }
+      };
+      
+      // Update currentPostItem
+      if (currentPostItem) {
+        const updatedCurrentItem = updateItemLikeData(currentPostItem);
+        setCurrentPostItem(updatedCurrentItem);
       }
+      
+      // Update allPostItems
+      if (allPostItems.length > 0) {
+        const updatedAllItems = allPostItems.map((item, index) => {
+          if (index === currentImageIndex || item.id === activeItem?.id) {
+            return updateItemLikeData(item);
+          }
+          return item;
+        });
+        setAllPostItems(updatedAllItems);
+      }
+      
+      // Update allAvailablePosts to persist across navigation
+      setAllAvailablePosts(prev => prev.map(post => {
+        if (post.id === activeItem?.id) {
+          return updateItemLikeData(post);
+        }
+        return post;
+      }));
+      
+      console.log("Updated underlying data structures with new like state:", {
+        newLiked,
+        newLikeCount,
+        activeItemId: activeItem?.id
+      });
+      
       toast.success(action === "like" ? "Liked" : "Unliked");
     } catch (error: any) {
       console.error("Like API error:", error);
       console.error("Error response:", error.response?.data);
       console.error("Error status:", error.response?.status);
+      
+      // Revert optimistic update on error
+      setLiked(!newLiked);
+      setLikeCount(action === "like" ? likeCount : likeCount + 1);
       
       if (error.response?.status === 401) {
         toast.error("Authentication error. Please log in again.");
@@ -829,14 +834,22 @@ export default function PostPreviewScreen() {
       }
       
       const targetPost = allAvailablePosts[newIndex];
-      updateCurrentPost(targetPost, newIndex, 'next');
+      if (targetPost) {
+        updateCurrentPost(targetPost, newIndex, 'next');
+      } else {
+        console.error("Target post not found at index:", newIndex);
+        toast.error("Post not found");
+      }
       
     } else {
       // Swipe down - go to previous post (allow reviewing viewed posts)
-      const newIndex = currentPostIndex === 0 ? allAvailablePosts.length - 1 : currentPostIndex - 1;
+      // Ensure currentPostIndex is within bounds after potential array modifications
+      const safeCurrentIndex = Math.min(currentPostIndex, allAvailablePosts.length - 1);
+      const newIndex = safeCurrentIndex === 0 ? allAvailablePosts.length - 1 : safeCurrentIndex - 1;
       const targetPost = allAvailablePosts[newIndex];
       
       if (!targetPost) {
+        console.error("Previous post not found at index:", newIndex, "Array length:", allAvailablePosts.length);
         toast.error("Post not found");
         return;
       }
@@ -936,6 +949,12 @@ export default function PostPreviewScreen() {
     // Prevent double submissions
     if (!imageID || msg.length === 0 || isSendingComment) return;
     
+    const activeItem = getCurrentPostItem();
+    
+    // Optimistic UI update
+    const newCommentCount = commentCount + 1;
+    setCommentCount(newCommentCount);
+    
     try {
       setIsSendingComment(true);
       const body = { message: msg, ...(replyingToID ? { replyingToID } : {}) };
@@ -943,10 +962,74 @@ export default function PostPreviewScreen() {
       setCommentText("");
       setReplyingToID(null);
       
-      // Immediately update comment count (optimistic update)
-      setCommentCount(prev => prev + 1);
+      // Update the underlying data structures to persist the change
+      const updateItemCommentData = (item: any) => {
+        if (!item) return item;
+        
+        // Update the specific image in the images array if it exists
+        if (item.images && Array.isArray(item.images) && currentImageIndex < item.images.length) {
+          const updatedImages = [...item.images];
+          const currentImage = { ...updatedImages[currentImageIndex] };
+          
+          // Update the image's comment data
+          if (currentImage._count) {
+            currentImage._count = { ...currentImage._count, tarpImgComments: newCommentCount };
+          } else {
+            currentImage._count = { tarpImgComments: newCommentCount };
+          }
+          currentImage.comments = newCommentCount;
+          
+          updatedImages[currentImageIndex] = currentImage;
+          
+          return {
+            ...item,
+            images: updatedImages,
+            // Also update item-level comment data as fallback
+            commentsCount: newCommentCount,
+            comments: Array.isArray(item.comments) ? [...item.comments, { message: msg }] : [{ message: msg }],
+          };
+        } else {
+          // Update item-level comment data
+          return {
+            ...item,
+            commentsCount: newCommentCount,
+            comments: Array.isArray(item.comments) ? [...item.comments, { message: msg }] : [{ message: msg }],
+          };
+        }
+      };
       
-      // Refresh comments
+      // Update currentPostItem
+      if (currentPostItem) {
+        const updatedCurrentItem = updateItemCommentData(currentPostItem);
+        setCurrentPostItem(updatedCurrentItem);
+      }
+      
+      // Update allPostItems
+      if (allPostItems.length > 0) {
+        const updatedAllItems = allPostItems.map((item, index) => {
+          if (index === currentImageIndex || item.id === activeItem?.id) {
+            return updateItemCommentData(item);
+          }
+          return item;
+        });
+        setAllPostItems(updatedAllItems);
+      }
+      
+      // Update allAvailablePosts to persist across navigation
+      setAllAvailablePosts(prev => prev.map(post => {
+        if (post.id === activeItem?.id) {
+          return updateItemCommentData(post);
+        }
+        return post;
+      }));
+      
+      console.log("Updated underlying data structures with new comment count:", {
+        newCommentCount,
+        activeItemId: activeItem?.id,
+        imageID
+      });
+      
+      // Refresh comments to get the actual server data
       try {
         setIsLoadingComments(true);
         const res = await api.get(UrlConstants.tarpPostComments(imageID));
@@ -955,13 +1038,69 @@ export default function PostPreviewScreen() {
         
         // Update comment count with actual count from server (in case of discrepancy)
         if (Array.isArray(list)) {
-          setCommentCount(list.length);
+          const actualCommentCount = list.length;
+          setCommentCount(actualCommentCount);
+          
+          // Update data structures with actual count if different
+          if (actualCommentCount !== newCommentCount) {
+            const updateWithActualCount = (item: any) => {
+              if (!item) return item;
+              
+              if (item.images && Array.isArray(item.images) && currentImageIndex < item.images.length) {
+                const updatedImages = [...item.images];
+                const currentImage = { ...updatedImages[currentImageIndex] };
+                
+                if (currentImage._count) {
+                  currentImage._count = { ...currentImage._count, tarpImgComments: actualCommentCount };
+                } else {
+                  currentImage._count = { tarpImgComments: actualCommentCount };
+                }
+                currentImage.comments = actualCommentCount;
+                
+                updatedImages[currentImageIndex] = currentImage;
+                
+                return {
+                  ...item,
+                  images: updatedImages,
+                  commentsCount: actualCommentCount,
+                };
+              } else {
+                return {
+                  ...item,
+                  commentsCount: actualCommentCount,
+                };
+              }
+            };
+            
+            // Update all data structures with actual count
+            if (currentPostItem) {
+              setCurrentPostItem(updateWithActualCount(currentPostItem));
+            }
+            
+            if (allPostItems.length > 0) {
+              setAllPostItems(prev => prev.map((item, index) => {
+                if (index === currentImageIndex || item.id === activeItem?.id) {
+                  return updateWithActualCount(item);
+                }
+                return item;
+              }));
+            }
+            
+            setAllAvailablePosts(prev => prev.map(post => {
+              if (post.id === activeItem?.id) {
+                return updateWithActualCount(post);
+              }
+              return post;
+            }));
+          }
         }
       } finally {
         setIsLoadingComments(false);
       }
       toast.success("Comment posted");
-    } catch {
+    } catch (error) {
+      console.error("Failed to post comment:", error);
+      
       // Revert the optimistic update on error
       setCommentCount(prev => Math.max(0, prev - 1));
       toast.error("Failed to post comment");
@@ -984,6 +1123,43 @@ export default function PostPreviewScreen() {
       
       console.log("Report response:", response.data);
       toast.success("Post reported successfully");
+      
+      // Store current index before filtering
+      const currentIndex = currentPostIndex;
+      
+      // Update global state to banish this post forever
+      if ((global as any).handleReportedPost) {
+        (global as any).handleReportedPost(postId);
+      }
+      
+      // Remove reported post from available posts array
+      setAllAvailablePosts(prev => {
+        const filtered = prev.filter(post => post.id !== postId);
+        console.log("Removed reported post from available posts:", {
+          originalCount: prev.length,
+          newCount: filtered.length,
+          removedPostId: postId
+        });
+        
+        if (filtered.length === 0) {
+          router.back();
+        } else {
+           // Update current post index and item after filtering
+           setTimeout(() => {
+             const newIndex = currentIndex >= filtered.length ? Math.max(0, filtered.length - 1) : currentIndex;
+             const nextPost = filtered[newIndex];
+             
+             if (nextPost) {
+               updateCurrentPost(nextPost, newIndex, 'next');
+             }
+             
+             console.log("Updated current post after report:", { currentIndex, newIndex, arrayLength: filtered.length });
+           }, 0);
+        }
+        
+        return filtered;
+      });
+      
     } catch (error: any) {
       console.error("Failed to report post:", error);
       console.error("Error response:", error.response?.data);
@@ -995,6 +1171,29 @@ export default function PostPreviewScreen() {
         toast.error("Post not found or endpoint unavailable");
       } else if (error.response?.status === 409) {
         toast.error("Post already reported");
+        
+        // Update global state to banish this post forever
+        if ((global as any).handleReportedPost) {
+          (global as any).handleReportedPost(postId);
+        }
+
+        // Even if already reported, remove from available posts
+        setAllAvailablePosts(prev => {
+          const filtered = prev.filter(post => post.id !== postId);
+          
+          if (filtered.length === 0) {
+            router.back();
+          } else {
+            setTimeout(() => {
+              const newIndex = currentPostIndex >= filtered.length ? Math.max(0, filtered.length - 1) : currentPostIndex;
+              const nextPost = filtered[newIndex];
+              if (nextPost) {
+                updateCurrentPost(nextPost, newIndex, 'next');
+              }
+            }, 0);
+          }
+          return filtered;
+        });
       } else {
         toast.error("Failed to report post");
       }

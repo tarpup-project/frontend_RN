@@ -3,17 +3,15 @@ import AuthModal from "@/components/AuthModal";
 import { Text } from "@/components/Themedtext";
 import { UrlConstants } from "@/constants/apiUrls";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useNotifications } from "@/hooks/useNotification";
 import { usePendingMatches } from "@/hooks/usePendingMatches";
 import { useAuthStore } from "@/state/authStore";
-import { useNotificationStore } from "@/state/notificationStore";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import moment from "moment";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Animated, Dimensions, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Animated, Dimensions, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
 
@@ -199,28 +197,13 @@ const Header = () => {
   const router = useRouter();
   const { isDark, toggleTheme } = useTheme();
   const { isAuthenticated } = useAuthStore();
-  const {
-    personalNotifications,
-    clearNotifications,
-    initialized,
-    markInitialized,
-    setNotifications: setGlobalNotifications,
-    unreadCount,
-    notificationsList,
-    setNotificationsList,
-  } = useNotificationStore();
-  const { 
-    groupNotifications, 
-    personalNotifications: apiPersonalNotifications,
-    refetchNotifications
-  } = useNotifications();
   const { pendingMatches, markMatchAsViewed, unviewedCount } = usePendingMatches();
   const unviewedMatchesCount = unviewedCount !== undefined ? unviewedCount : pendingMatches.length;
 
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showNotificationPanel, setShowNotificationPanel] = useState(false);
-  // notifications state replaced by store
-  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [activeTab, setActiveTab] = useState<'all' | 'unread'>('all');
 
 
@@ -266,20 +249,36 @@ const Header = () => {
     setGlobalNotifications({ unreadCount: unread });
   };
 
-  // Fetch notifications from the new endpoint
+  // Fetch notifications from the API - OPTIMIZED for background polling only
   const fetchNotifications = async () => {
-    if (!isAuthenticated || isLoadingNotifications) return;
+    if (!isAuthenticated) return;
     
     try {
-      setIsLoadingNotifications(true);
-      await refetchNotifications();
-    } catch (error: any) {
-      console.error('Error fetching notifications:', error);
-      if (error.response?.status !== 401) {
-        toast.error('Failed to load notifications');
+      const response = await api.get(UrlConstants.tarpNotifications);
+      
+      if (response.data?.status === 'success' && response.data?.data) {
+        const notificationsList = Array.isArray(response.data.data) ? response.data.data : [];
+        
+        // Always update notifications list
+        setNotifications(notificationsList);
+        
+        // Count unread notifications based on server isRead status
+        const unread = notificationsList.filter((notif: any) => !notif.isRead).length;
+        setUnreadCount(unread);
+        
+        console.log('Notifications loaded (background):', { 
+          total: notificationsList.length, 
+          unread: unread
+        });
+      } else {
+        console.log('No notifications found or invalid response format');
+        setNotifications([]);
+        setUnreadCount(0);
       }
-    } finally {
-      setIsLoadingNotifications(false);
+    } catch (error: any) {
+      console.error('Error fetching notifications (background):', error);
+      // Don't show toast errors for background fetches
+      // Don't clear existing notifications on background fetch errors
     }
   };
 
@@ -606,14 +605,31 @@ const Header = () => {
     }
   };
 
-  const totalNotifications = notificationsList.length;
+  const totalNotifications = notifications.length;
 
-  // Refresh notifications when panel opens
+  // Load notifications when authenticated - FIXED: Load immediately on app start
   useEffect(() => {
-    if (showNotificationPanel && isAuthenticated) {
+    if (isAuthenticated) {
+      // Fetch notifications immediately when authenticated
       fetchNotifications();
+      
+      // Set up polling every 60 seconds for notification count
+      const notificationInterval = setInterval(() => {
+        fetchNotifications();
+      }, 60000); // 60 seconds
+      
+      return () => {
+        clearInterval(notificationInterval);
+      };
     }
-  }, [showNotificationPanel, isAuthenticated]);
+  }, [isAuthenticated]);
+
+  // Remove the old effect that only fetched when panel opened
+  // useEffect(() => {
+  //   if (showNotificationPanel && isAuthenticated) {
+  //     fetchNotifications();
+  //   }
+  // }, [showNotificationPanel, isAuthenticated]);
 
   useEffect(() => {
     // Start pulse animation if there are notifications or pending matches
@@ -642,6 +658,7 @@ const Header = () => {
       setShowAuthModal(true);
     } else {
       setShowNotificationPanel(true);
+      // No need to fetch again - use already loaded data
       // Slide in animation
       Animated.timing(slideAnim, {
         toValue: 0,
@@ -669,7 +686,6 @@ const Header = () => {
     if (!isAuthenticated) {
       setShowAuthModal(true);
     } else {
-      clearNotifications('personal');
       router.push("/chat");
     }
   };
@@ -909,14 +925,7 @@ const Header = () => {
 
             {/* Notifications List */}
             <ScrollView style={styles.notificationsList} showsVerticalScrollIndicator={false}>
-              {isLoadingNotifications ? (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="large" color={isDark ? "#FFFFFF" : "#0a0a0a"} />
-                  <Text style={[styles.loadingText, { color: isDark ? "#CCCCCC" : "#666666" }]}>
-                    Loading notifications...
-                  </Text>
-                </View>
-              ) : notificationsList.length === 0 ? (
+              {notifications.length === 0 ? (
                 <View style={styles.emptyState}>
                   <Ionicons name="notifications-off-outline" size={48} color="#9CA3AF" />
                   <Text style={[styles.emptyText, { color: isDark ? "#CCCCCC" : "#666666" }]}>

@@ -1,100 +1,77 @@
-import * as Application from 'expo-application';
-import { useCallback, useEffect, useState } from 'react';
-import { Alert, Linking, Platform } from 'react-native';
+import { useEffect } from 'react';
+import { Alert, Linking } from 'react-native';
+// @ts-ignore - Type declarations not available
 import VersionCheck from 'react-native-version-check';
 
-export const useAppUpdate = (autoPrompt = false) => {
-  const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
-  const [currentVersion, setCurrentVersion] = useState('');
-  const [storeVersion, setStoreVersion] = useState('');
-  const [storeUrl, setStoreUrl] = useState('');
-  const [loading, setLoading] = useState(true);
-
-  const checkUpdate = useCallback(async () => {
-    try {
-      setLoading(true);
-      // Use expo-application to avoid native module crash in Expo Go
-      const current = Application.nativeApplicationVersion || '1.0.0';
-      const packageName = Application.applicationId || 'com.Tarpup.app';
-      
-      setCurrentVersion(current);
-
-      // Get the latest version from the store
-      // We pass currentVersion and packageName explicitly to avoid VersionCheck calling native methods that might fail
-      const update = await VersionCheck.needUpdate({
-        currentVersion: current,
-        packageName: packageName,
-        country: 'US', // Default to US to avoid calling native getCountry() which might fail
-      } as any);
-      
-      if (update && update.isNeeded) {
-        setIsUpdateAvailable(true);
-        setStoreVersion(update.latestVersion);
-        setStoreUrl(update.storeUrl);
-      } else {
-        setIsUpdateAvailable(false);
-      }
-    } catch (error) {
-      console.error('Error checking for app update:', error);
-      // Fail silently for the user, but log the error
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const openStore = useCallback(async () => {
-    if (storeUrl) {
-      await Linking.openURL(storeUrl);
-    } else {
-      // Fallback if storeUrl is missing for some reason
-      const appId = Application.applicationId || 'com.Tarpup.app';
-      if (Platform.OS === 'ios') {
-        // Fallback for iOS usually requires numeric ID, but bundle ID works in some links
-        // Ideally storeUrl is populated by VersionCheck
-        await Linking.openURL(`https://apps.apple.com/app/bundle-id/${appId}`); 
-      } else {
-        await Linking.openURL(`market://details?id=${appId}`);
-      }
-    }
-  }, [storeUrl]);
-
-  const promptUser = useCallback(() => {
-    Alert.alert(
-      'Update Available',
-      `A new version of Tarpup (${storeVersion}) is available. Please update to continue using the app with the latest features and fixes.`,
-      [
-        {
-          text: 'Later',
-          style: 'cancel',
-        },
-        {
-          text: 'Update Now',
-          onPress: openStore,
-        },
-      ],
-      { cancelable: true }
-    );
-  }, [storeVersion, openStore]);
-
-  // Auto-check on mount
+/**
+ * Hook to check for app updates on Play Store (Android) or App Store (iOS)
+ * and prompt the user to update if a new version is available.
+ * 
+ * Note: This only works in production builds of published apps.
+ * In development mode, it will return undefined.
+ */
+export const useAppUpdate = () => {
   useEffect(() => {
+    const checkUpdate = async () => {
+      try {
+        console.log('🔍 Checking for app updates via react-native-version-check...');
+        
+        // Check if we're in development mode
+        const isDevelopment = __DEV__;
+        
+        if (isDevelopment) {
+          console.log('🚧 App is in development mode - skipping update check');
+          return;
+        }
+        
+        // This will fetch the latest version from Play Store / App Store
+        const updateNeeded = await VersionCheck.needUpdate();
+        
+        console.log('📦 App update check result:', updateNeeded);
+
+        if (updateNeeded?.isNeeded) {
+          Alert.alert(
+            'Update Available',
+            'A new version of the app is available. Please update for the best experience.',
+            [
+              {
+                text: 'Later',
+                style: 'cancel',
+              },
+              {
+                text: 'Update Now',
+                onPress: async () => {
+                  try {
+                    // Get the store URL (automatically detects Play Store or App Store)
+                    const url = await VersionCheck.getStoreUrl();
+                    if (url) {
+                      Linking.openURL(url);
+                    }
+                  } catch (e) {
+                    console.error('❌ Failed to open store URL:', e);
+                  }
+                },
+              },
+            ],
+            { cancelable: true }
+          );
+        } else if (updateNeeded === null || updateNeeded === undefined) {
+          console.log('ℹ️ Unable to check for updates - app may not be published yet or network issue');
+        } else {
+          console.log('✅ App is up to date');
+        }
+      } catch (error) {
+        // Errors can happen if app is not in store yet or network issues
+        console.error('⚠️ App update check failed:', error);
+        
+        // Common reasons for failure:
+        // - App not published on store yet
+        // - Bundle ID mismatch
+        // - Network connectivity issues
+        // - Store API temporarily unavailable
+      }
+    };
+
     checkUpdate();
-  }, [checkUpdate]);
-
-  // Auto-prompt when update is available
-  useEffect(() => {
-    if (autoPrompt && isUpdateAvailable) {
-      promptUser();
-    }
-  }, [isUpdateAvailable, autoPrompt, promptUser]);
-
-  return {
-    isUpdateAvailable,
-    currentVersion,
-    storeVersion,
-    checkUpdate,
-    openStore,
-    promptUser,
-    loading
-  };
+  }, []);
 };

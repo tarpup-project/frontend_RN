@@ -1,5 +1,6 @@
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import { WatermelonProvider } from "@/contexts/WatermelonProvider";
+import { SocketProvider } from "@/contexts/SocketProvider";
 import { useAppUpdate } from "@/hooks/useAppUpdate";
 import { useDeepLinking } from "@/hooks/useDeepLinking";
 import { useNotifications } from "@/hooks/useNotification";
@@ -22,6 +23,9 @@ SplashScreen.preventAutoHideAsync();
 /*                              ROOT CONTENT                                  */
 /* -------------------------------------------------------------------------- */
 function RootLayoutContent() {
+  // ✅ CHECK FOR APP UPDATES
+  useAppUpdate();
+
   // ✅ SINGLE SOURCE OF NOTIFICATIONS
   usePushNotifications();
   useNotifications(true);
@@ -134,7 +138,9 @@ export default function RootLayout() {
         <GestureHandlerRootView style={{ flex: 1 }}>
           <SafeAreaProvider>
             <ThemeProvider>
-              <RootLayoutContent />
+              <SocketProvider>
+                <RootLayoutContent />
+              </SocketProvider>
             </ThemeProvider>
           </SafeAreaProvider>
         </GestureHandlerRootView>

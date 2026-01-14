@@ -11,7 +11,7 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import moment from "moment";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Dimensions, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Dimensions, FlatList, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import uuid from "react-native-uuid";
@@ -93,6 +93,7 @@ export default function TarpsScreen() {
   const [newPostIds, setNewPostIds] = useState<Set<string>>(new Set());
   const [knownPosts, setKnownPosts] = useState<Map<string, { lat: number; lng: number; timestamp: number }>>(new Map());
   const [previewedPosts, setPreviewedPosts] = useState<Set<string>>(new Set());
+  const [reportedPosts, setReportedPosts] = useState<Set<string>>(new Set());
   const [showHandAnimation, setShowHandAnimation] = useState(true);
   const [handAnimationVisible, setHandAnimationVisible] = useState(true);
   const [serverPeople, setServerPeople] = useState<
@@ -127,6 +128,39 @@ export default function TarpsScreen() {
   }>>([]);
   const [loadingMessage, setLoadingMessage] = useState(false);
   const [loadingNavigate, setLoadingNavigate] = useState(false);
+  const [showViewersList, setShowViewersList] = useState(false);
+  const [locationViewers, setLocationViewers] = useState<any[]>([]);
+  const [loadingViewers, setLoadingViewers] = useState(false);
+  const [showMapConfirmModal, setShowMapConfirmModal] = useState(false);
+  const [modalTransitioning, setModalTransitioning] = useState(false);
+  const [globalPosts, setGlobalPosts] = useState<any[]>([]);
+  const [isLoadingGlobalPosts, setIsLoadingGlobalPosts] = useState(false);
+  const [canLoadImages, setCanLoadImages] = useState(false);
+  const [isRestoringGlobalPosts, setIsRestoringGlobalPosts] = useState(true);
+
+  // Debug modal state changes and prevent conflicts
+  useEffect(() => {
+    console.log("🔍 Map confirm modal state changed:", showMapConfirmModal);
+    
+    // If trying to show confirmation modal while person modal is still open, delay it
+    if (showMapConfirmModal && personOpen) {
+      console.log("⚠️ Modal conflict detected! Person modal still open, delaying confirmation modal");
+      setShowMapConfirmModal(false);
+      
+      // Retry after person modal closes
+      setTimeout(() => {
+        if (!personOpen) {
+          console.log("✅ Person modal closed, now showing confirmation modal");
+          setShowMapConfirmModal(true);
+        }
+      }, 500);
+    }
+  }, [showMapConfirmModal, personOpen]);
+
+  // Debug person modal state changes
+  useEffect(() => {
+    console.log("🔍 Person modal state changed:", personOpen);
+  }, [personOpen]);
   const [chatOpen, setChatOpen] = useState(false);
   const [groupDetails, setGroupDetails] = useState<any | null>(null);
   const [groupMessages, setGroupMessages] = useState<any[]>([]);
@@ -135,6 +169,23 @@ export default function TarpsScreen() {
   const socketRef = useRef<any | null>(null);
   const lastPostRequestId = useRef(0);
   const lastPeopleRequestId = useRef(0);
+  
+  // Refs for accessing latest state in async functions
+  const knownPostsRef = useRef(knownPosts);
+  const previewedPostsRef = useRef(previewedPosts);
+  const reportedPostsRef = useRef(reportedPosts);
+
+  useEffect(() => {
+    knownPostsRef.current = knownPosts;
+  }, [knownPosts]);
+
+  useEffect(() => {
+    previewedPostsRef.current = previewedPosts;
+  }, [previewedPosts]);
+
+  useEffect(() => {
+    reportedPostsRef.current = reportedPosts;
+  }, [reportedPosts]);
 
   // Profile modal state - REMOVED (now using full screen)
 
@@ -255,19 +306,93 @@ export default function TarpsScreen() {
     console.log("Posts marked as previewed:", postIds);
   };
 
+  // Function to load reported posts from storage
+  const loadReportedPosts = async () => {
+    try {
+      const reportedPostsData = await AsyncStorage.getItem('reportedPosts');
+      if (reportedPostsData) {
+        const parsedData = JSON.parse(reportedPostsData);
+        setReportedPosts(new Set(parsedData));
+      }
+    } catch (error) {
+      console.error('Error loading reported posts:', error);
+    }
+  };
+
+  // Function to handle reported post
+  const handleReportedPost = (postId: string) => {
+    console.log("🚫 Handling reported post:", postId);
+    
+    // Update reported posts set
+    const updatedReported = new Set(reportedPostsRef.current);
+    updatedReported.add(postId);
+    setReportedPosts(updatedReported);
+    AsyncStorage.setItem('reportedPosts', JSON.stringify(Array.from(updatedReported)));
+    
+    // Remove from global posts
+    const updatedGlobal = globalPosts.filter(p => {
+      // Check if this post is the reported one
+      if (p.id === postId) return false;
+      
+      // Check if it's a cluster containing the reported post
+      if (p.items && Array.isArray(p.items)) {
+        p.items = p.items.filter((item: any) => item.id !== postId);
+        // If items are empty after filtering, remove the cluster
+        if (p.items.length === 0) return false;
+        // Update count if items changed
+        p.count = p.items.length;
+      }
+      return true;
+    });
+    
+    setGlobalPosts(updatedGlobal);
+    if (viewMode === 'posts') {
+      setServerPosts(updatedGlobal);
+    }
+    AsyncStorage.setItem('globalPosts', JSON.stringify(updatedGlobal)).catch(e => console.error("Failed to save global posts", e));
+    
+    // Also remove from known/previewed if needed, but not strictly required as they won't render
+  };
+
   // Load both known and previewed posts on mount
   useEffect(() => {
     loadKnownPosts();
     loadPreviewedPosts();
+    loadReportedPosts();
   }, []);
 
   // Expose global function for post screen communication
   useEffect(() => {
     (global as any).markPostsAsViewed = markPostsAsViewed;
+    (global as any).handleReportedPost = handleReportedPost;
+    (global as any).refreshPostsInView = () => {
+      console.log("🔄 Refreshing posts in view after report");
+      const currentRegion = mapRegion || location;
+      if (currentRegion && viewMode === "posts") {
+        loadPostsInView(currentRegion);
+      }
+    };
+    (global as any).refreshAfterReport = () => {
+      setViewMode("posts");
+      zoomToWorldView();
+      setTimeout(() => {
+        const currentRegion = mapRegion || location;
+        if (currentRegion) {
+          loadPostsInView(currentRegion);
+        }
+      }, 100);
+    };
+    (global as any).getGlobalPosts = () => {
+      console.log("📋 Providing global posts to post screen:", globalPosts.length);
+      return globalPosts;
+    };
     return () => {
       delete (global as any).markPostsAsViewed;
+      delete (global as any).refreshPostsInView;
+      delete (global as any).refreshAfterReport;
+      delete (global as any).getGlobalPosts;
     };
-  }, []);
+  }, [mapRegion, location, viewMode, globalPosts]);
 
   // Hand animation blinking effect
   useEffect(() => {
@@ -487,7 +612,20 @@ export default function TarpsScreen() {
             .filter((p: any) => !isNaN(p.latitude) && !isNaN(p.longitude) && !!p.image);
         }
       }
-      
+
+      // Filter out reported posts
+      if (reportedPostsRef.current.size > 0) {
+        mapped = mapped.filter(p => {
+          if (reportedPostsRef.current.has(p.id)) return false;
+          if (p.items && Array.isArray(p.items)) {
+             p.items = p.items.filter((item: any) => !reportedPostsRef.current.has(item.id));
+             if (p.items.length === 0) return false;
+             p.count = p.items.length;
+          }
+          return true;
+        });
+      }
+
       // Detect new posts by comparing individual post IDs and locations
       const newPosts = new Set<string>();
       const currentKnownPosts = new Map(knownPosts);
@@ -675,33 +813,113 @@ console.log(
     }
   };
 
-  const handleNavigate = async () => {
-    if (!selectedPerson?.id || !location) return;
+  const handleNavigate = () => {
+    console.log("🔄 Navigate button clicked - SIMPLE VERSION");
+    
+    // Prevent multiple rapid clicks during modal transitions
+    if (modalTransitioning) {
+      console.log("⚠️ Modal transition in progress, ignoring click");
+      return;
+    }
+    
+    // Simple validation
+    if (!selectedPerson) {
+      console.log("❌ No selected person");
+      toast.error("No person selected");
+      return;
+    }
+    
     if (!user) {
-      toast.error("Please sign in to load navigation");
+      console.log("❌ User not authenticated");
+      toast.error("Please sign in first");
       return;
     }
     
-    if (!hasLocationPermission) {
-      toast.error("Location permission required for navigation");
+    console.log("✅ Starting modal transition...");
+    setModalTransitioning(true);
+    
+    // Close the person modal first to prevent conflicts
+    setPersonOpen(false);
+    
+    // Use longer timeout to ensure person modal fully closes and React Native modal stack is cleared
+    setTimeout(() => {
+      console.log("✅ Person modal should be closed, now showing confirmation modal");
+      setShowMapConfirmModal(true);
+      setModalTransitioning(false);
+    }, 400); // Increased delay to 400ms for better reliability
+  };
+
+  const handleViewLocationViewers = async () => {
+    if (showViewersList) {
+      setShowViewersList(false);
       return;
     }
-    
+
+    try {
+      setLoadingViewers(true);
+      setShowViewersList(true);
+      
+      const response = await api.get(UrlConstants.fetchFriendsPrivacy);
+      
+      if (response.data?.status === 'success' && Array.isArray(response.data?.data)) {
+        const viewers = response.data.data
+          .filter((f: any) => f.locationVisible !== false) // Include undefined (default true) and explicit true
+          .map((f: any) => ({
+            id: f.friend?.id || f.friendID,
+            name: `${f.friend?.fname || ''} ${f.friend?.lname || ''}`.trim(),
+            username: f.friend?.username,
+            avatar: f.friend?.bgUrl
+          }));
+        setLocationViewers(viewers);
+      }
+    } catch (error) {
+      console.error('Error fetching location viewers:', error);
+      toast.error('Failed to load viewers');
+    } finally {
+      setLoadingViewers(false);
+    }
+  };
+
+  const handleViewInMap = async () => {
+    if (!selectedPerson?.latitude || !selectedPerson?.longitude) {
+      toast.error("Location coordinates not available");
+      setShowMapConfirmModal(false);
+      return;
+    }
     try {
       setLoadingNavigate(true);
-      const res = await api.get(
-        UrlConstants.tarpNavigateToUser({
-          locationID: String(selectedPerson.id),
-          startingLat: Number(location.latitude),
-          startingLng: Number(location.longitude),
-          startingLocation: hasLocationPermission ? "Current Location" : "Default Location",
-        })
-      );
-      console.log("PeopleNavigate:response", { status: res?.status });
-      toast.success("Loaded navigation steps");
-    } catch (e: any) {
-      console.log("PeopleNavigate:error", { status: e?.response?.status, data: e?.response?.data, message: e?.message });
-      toast.error("Failed to load navigation");
+      setShowMapConfirmModal(false);
+      const lat = Number(selectedPerson.latitude);
+      const lng = Number(selectedPerson.longitude);
+      if (isNaN(lat) || isNaN(lng)) {
+        throw new Error("Invalid coordinates");
+      }
+      if (Platform.OS === 'android') {
+        const scheme = `comgooglemaps://?q=${lat},${lng}`;
+        const geo = `geo:${lat},${lng}?q=${lat},${lng}`;
+        const https = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+        const canGoogle = await Linking.canOpenURL(scheme);
+        const canGeo = await Linking.canOpenURL(geo);
+        if (canGoogle) {
+          await Linking.openURL(scheme);
+        } else if (canGeo) {
+          await Linking.openURL(geo);
+        } else {
+          await Linking.openURL(https);
+        }
+      } else {
+        const scheme = `maps://?q=${lat},${lng}`;
+        const http = `http://maps.apple.com/?ll=${lat},${lng}`;
+        const canApple = await Linking.canOpenURL(scheme);
+        if (canApple) {
+          await Linking.openURL(scheme);
+        } else {
+          await Linking.openURL(http);
+        }
+      }
+      toast.success("Opening in Maps");
+    } catch (error) {
+      toast.error("Failed to open Maps");
     } finally {
       setLoadingNavigate(false);
     }
@@ -719,16 +937,215 @@ console.log(
     setRecents(assets.assets);
   };
 
+  const loadGlobalPostsFromStorage = async () => {
+    try {
+      const data = await AsyncStorage.getItem('globalPosts');
+      if (data) {
+        const parsed = JSON.parse(data);
+        console.log("Loading global posts from storage:", parsed.length);
+        setGlobalPosts(parsed);
+        setServerPosts(parsed);
+      }
+    } catch (error) {
+      console.error('Error loading global posts from storage:', error);
+    } finally {
+      setIsRestoringGlobalPosts(false);
+    }
+  };
+
+  const loadGlobalPosts = async () => {
+    if (isLoadingGlobalPosts) return;
+    
+    try {
+      setIsLoadingGlobalPosts(true);
+      
+      // World view parameters - covers the entire globe
+      const worldViewport = {
+        minLat: -90,
+        maxLat: 90,
+        minLng: -180,
+        maxLng: 180,
+        zoomLevel: 1 // World zoom level
+      };
+      
+      const query = new URLSearchParams({
+        minLat: worldViewport.minLat.toString(),
+        maxLat: worldViewport.maxLat.toString(),
+        minLng: worldViewport.minLng.toString(),
+        maxLng: worldViewport.maxLng.toString(),
+        zoomLevel: worldViewport.zoomLevel.toString(),
+      });
+      
+      const url = `/tarps/posts?${query.toString()}`;
+      console.log("🌍 Loading global posts in background:", { url, viewport: worldViewport });
+      
+      const res = await api.get(url);
+      console.log("🌍 Global posts response:", { status: res?.status, ok: res?.status >= 200 && res?.status < 300 });
+      
+      const list = (res as any).data?.data || (res as any).data?.posts || (res as any).data;
+      console.log("🌍 Global posts raw data:", { isArray: Array.isArray(list), length: Array.isArray(list) ? list.length : undefined });
+      
+      // Process the posts similar to loadPostsInView
+      const resolveImageUrl = (item: any): string | null => {
+        if (!item || typeof item !== "object") return null;
+        const candidates: any[] = [
+          item.imageUrl, item.photoUrl, item.image, item.coverUrl, item.thumbnail, item.thumbUrl, item.bgUrl, item.url,
+          item?.image?.url, item?.photo?.url,
+          Array.isArray(item.images) ? (typeof item.images[0] === "string" ? item.images[0] : item.images[0]?.url) : null,
+          Array.isArray(item.files) ? (typeof item.files[0] === "string" ? item.files[0] : item.files[0]?.url) : null,
+          Array.isArray(item.medias) ? (typeof item.medias[0] === "string" ? item.medias[0] : item.medias[0]?.url) : null,
+        ];
+        const raw = candidates.find((v) => typeof v === "string" && v.length > 0) ?? null;
+        if (!raw) return null;
+        if (/^https?:\/\//i.test(raw)) return raw;
+        return `${UrlConstants.baseUrl}${raw.startsWith("/") ? "" : "/"}${raw}`;
+      };
+      
+      let mapped: { id: string; image: string | null; latitude: number; longitude: number; count?: number; items?: any[] }[] = [];
+      if (Array.isArray(list)) {
+        const looksLikeGrid = list.length > 0 && typeof list[0]?.avgLat === "number" && typeof list[0]?.avgLng === "number" && "result" in list[0];
+        if (looksLikeGrid) {
+          // Grid format - flatten all items
+          mapped = list
+            .map((cell: any) => {
+              const items = Array.isArray(cell.result) ? cell.result : [];
+              const cover = resolveImageUrl(items[0]);
+              return {
+                id: String(cell.id ?? `${cell.avgLat}-${cell.avgLng}`),
+                image: cover,
+                latitude: Number(cell.avgLat),
+                longitude: Number(cell.avgLng),
+                count: items.length,
+                isCluster: items.length !== 1,
+                items,
+              };
+            })
+            .filter((c: any) => !isNaN(c.latitude) && !isNaN(c.longitude) && !!c.image);
+        } else {
+          // Direct posts format
+          mapped = list
+            .map((p: any) => ({
+              id: String(p.id ?? `${p.latitude}-${p.longitude}-${p.image}`),
+              image: resolveImageUrl(p),
+              latitude: Number(p.latitude ?? p.lat),
+              longitude: Number(p.longitude ?? p.lng),
+              count: 1,
+              isCluster: false,
+              items: [p],
+            }))
+            .filter((p: any) => !isNaN(p.latitude) && !isNaN(p.longitude) && !!p.image);
+        }
+      }
+
+      // Filter out reported posts
+      if (reportedPostsRef.current.size > 0) {
+        mapped = mapped.filter(p => {
+          if (reportedPostsRef.current.has(p.id)) return false;
+          if (p.items && Array.isArray(p.items)) {
+             p.items = p.items.filter((item: any) => !reportedPostsRef.current.has(item.id));
+             if (p.items.length === 0) return false;
+             p.count = p.items.length;
+          }
+          return true;
+        });
+      }
+      
+      // Detect new posts by comparing individual post IDs and locations
+      const newPosts = new Set<string>();
+      // Use ref to get latest known posts (avoid closure staleness)
+      const currentKnownPosts = new Map(knownPostsRef.current);
+      let hasNewPosts = false;
+      
+      // Process all individual posts from clusters and single posts
+      const allIndividualPosts: any[] = [];
+      mapped.forEach(cluster => {
+        if (cluster.items && cluster.items.length > 0) {
+          allIndividualPosts.push(...cluster.items);
+        }
+      });
+      
+      // Check each individual post
+      allIndividualPosts.forEach(post => {
+        const postId = post.id;
+        const postLat = Number(post.lat || post.latitude);
+        const postLng = Number(post.lng || post.longitude);
+        
+        if (!postId || isNaN(postLat) || isNaN(postLng)) return;
+        
+        // Check if this post ID is known
+        if (!knownPostsRef.current.has(postId)) {
+          // Add to known posts (posts seen on map)
+          currentKnownPosts.set(postId, {
+            lat: postLat,
+            lng: postLng,
+            timestamp: Date.now()
+          });
+          hasNewPosts = true;
+        }
+        
+        // Check if post should show red border (known but not previewed)
+        if (knownPostsRef.current.has(postId) && !previewedPostsRef.current.has(postId)) {
+          newPosts.add(postId);
+        } else if (!knownPostsRef.current.has(postId) && !previewedPostsRef.current.has(postId)) {
+          // New post that hasn't been previewed
+          newPosts.add(postId);
+        }
+      });
+      
+      // Update known posts if we found new ones
+      if (hasNewPosts) {
+        setKnownPosts(currentKnownPosts);
+        saveKnownPosts(currentKnownPosts);
+      }
+      
+      // Update new posts state
+      setNewPostIds(newPosts);
+      
+      setGlobalPosts(mapped);
+      setServerPosts(mapped); // Populate map with global posts
+      AsyncStorage.setItem('globalPosts', JSON.stringify(mapped)).catch(e => console.error("Failed to save global posts", e));
+      console.log("🌍 Global posts loaded and mapped successfully:", { count: mapped.length });
+      
+      return mapped;
+    } catch (e: any) {
+      console.log("🌍 Global posts error:", { status: e?.response?.status, data: e?.response?.data, message: e?.message });
+      // Don't show error toast here since it's background loading
+      return [];
+    } finally {
+      setIsLoadingGlobalPosts(false);
+    }
+  };
+
   useEffect(() => {
-    if (!location) return;
+    if (!location || isRestoringGlobalPosts) return;
     
     // Load data for the current view mode
     if (viewMode === "people") {
       loadPeopleInView(location);
     } else if (viewMode === "posts") {
-      loadPostsInView(location);
+      // Use global posts if available to avoid refetching on every move
+      if (globalPosts.length > 0) {
+        setServerPosts(globalPosts);
+      } else if (!isLoadingGlobalPosts) {
+        // Fallback to fetch if global posts are empty and not loading
+        loadPostsInView(location);
+      }
     }
-  }, [location, viewMode]);
+  }, [location, viewMode, globalPosts, isLoadingGlobalPosts, isRestoringGlobalPosts]);
+
+  // Load global posts on tarps screen mount for faster post browsing
+  useEffect(() => {
+    console.log("🚀 Starting background global posts loading...");
+    loadGlobalPostsFromStorage().then(() => {
+      loadGlobalPosts();
+    });
+
+    const timer = setTimeout(() => {
+      setCanLoadImages(true);
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (!chatOpen || !groupDetails || !user) return;
@@ -916,7 +1333,7 @@ console.log(
       : serverPeople;
     
     if (flatItems.length === 0) {
-      toast.error(`No ${viewMode} found to zoom to`);
+      console.log(`No ${viewMode} found to zoom to`);
       return;
     }
 
@@ -932,7 +1349,7 @@ console.log(
       const zoomLevels = [2, 5, 8, 11, 14, 16, 18];
       
       if (currentZoomLevel >= zoomLevels.length - 1) {
-        toast.error("Already at maximum zoom level");
+        console.log("Already at maximum zoom level");
         return;
       }
       
@@ -1001,24 +1418,29 @@ console.log(
   const handleZoomOut = () => {
     // Check if we have zoom history to go back to
     if (zoomHistory.length === 0) {
-      toast.error("No zoom history to go back to");
+      console.log("No zoom history to go back to");
       return;
     }
+
+    console.log("🔙 Zooming out using saved history, entries available:", zoomHistory.length);
 
     // Get the last recorded state and remove it from history
     const previousState = zoomHistory[zoomHistory.length - 1];
     setZoomHistory(prev => prev.slice(0, -1));
+
+    console.log("📍 Restoring previous zoom state:", previousState);
 
     if (Platform.OS === 'android' && useMapboxGL) {
       // Mapbox GL zoom out using recorded history
       setMapboxCamera({
         centerCoordinate: [previousState.longitude, previousState.latitude],
         zoomLevel: previousState.zoomLevel || 1,
-        animationDuration: 800,
+        animationDuration: 1500, // Increased from 800ms to 1500ms for smoother animation
       });
       
       // Update current zoom level based on history
-      setCurrentZoomLevel(prev => Math.max(prev - 1, 0));
+      setCurrentZoomLevel(previousState.zoomLevel || 1);
+      console.log("🗺️ Mapbox camera restored to zoom level:", previousState.zoomLevel || 1);
     } else if (mapRef.current) {
       // Apple Maps zoom out using recorded history
       const newRegion = {
@@ -1028,12 +1450,19 @@ console.log(
         longitudeDelta: previousState.longitudeDelta,
       };
       
-      mapRef.current.animateToRegion(newRegion, 800);
+      mapRef.current.animateToRegion(newRegion, 1500); // Increased from 800ms to 1500ms for smoother animation
       setMapRegion(newRegion);
+      setLocation(newRegion); // Also update location state
       
-      // Update current zoom level
-      setCurrentZoomLevel(prev => Math.max(prev - 1, 0));
+      // Calculate and update current zoom level based on delta
+      const zoomLevel = Math.round(Math.log2(360 / newRegion.latitudeDelta));
+      setCurrentZoomLevel(Math.max(1, Math.min(20, zoomLevel)));
+      console.log("🗺️ Apple Maps region restored, zoom level:", zoomLevel);
     }
+
+    // Provide user feedback
+    const remainingHistory = zoomHistory.length - 1; // -1 because we just removed one
+    // Removed toast notifications for zoom out actions
   };
 
   // Function to zoom out to world view level when switching view modes
@@ -1074,6 +1503,9 @@ console.log(
       </View>
     );
   }
+
+  // Check if the selected person is the current user
+  const isCurrentUser = selectedPerson?.owner?.id === user?.id || selectedPerson?.id === user?.id;
 
   return (
     <View style={{ flex: 1 }}>
@@ -1195,22 +1627,6 @@ console.log(
                         centerCoordinate: [centerLng, centerLat],
                         zoomLevel: zoomLevel,
                         animationDuration: 200,
-                      });
-                      
-                      // Optimistically update markers for immediate separation
-                      const expandedPosts = p.items.map((item: any) => ({
-                        id: String(item.id ?? `${item.lat ?? item.latitude}-${item.lng ?? item.longitude}-${extractImageUrl(item)}`),
-                        image: extractImageUrl(item),
-                        latitude: Number(item.lat ?? item.latitude),
-                        longitude: Number(item.lng ?? item.longitude),
-                        count: 1,
-                        isCluster: false,
-                        items: [item],
-                      })).filter((post: any) => !isNaN(post.latitude) && !isNaN(post.longitude) && !!post.image);
-                      
-                      setServerPosts(prev => {
-                        const others = prev.filter(post => post.id !== p.id);
-                        return [...others, ...expandedPosts];
                       });
                     }
                   } else if (p.image && Array.isArray(p.items) && p.items.length > 0) {
@@ -1463,22 +1879,6 @@ console.log(
                           longitudeDelta: Math.max(0.01, Math.abs(bounds.maxLng - bounds.minLng) * 1.5),
                         } as any;
                         mapRef.current?.animateToRegion(region, 200);
-                        
-                        // Optimistically update markers for immediate separation
-                        const expandedPosts = p.items.map((item: any) => ({
-                          id: String(item.id ?? `${item.lat ?? item.latitude}-${item.lng ?? item.longitude}-${extractImageUrl(item)}`),
-                          image: extractImageUrl(item),
-                          latitude: Number(item.lat ?? item.latitude),
-                          longitude: Number(item.lng ?? item.longitude),
-                          count: 1,
-                          isCluster: false,
-                          items: [item],
-                        })).filter((post: any) => !isNaN(post.latitude) && !isNaN(post.longitude) && !!post.image);
-                        
-                        setServerPosts(prev => {
-                          const others = prev.filter(post => post.id !== p.id);
-                          return [...others, ...expandedPosts];
-                        });
                       }
                     } else if (p.image && Array.isArray(p.items) && p.items.length > 0) {
                       const item = p.items[0];
@@ -1532,7 +1932,7 @@ console.log(
                     p.items?.some((item: any) => newPostIds.has(item.id)) && styles.markerContainerNew
                   ]}>
                     <ExpoImage 
-                      source={{ uri: p.image as string }} 
+                      source={canLoadImages ? { uri: p.image as string } : require("@/assets/images/peop.png")} 
                       style={styles.markerImage} 
                       contentFit="cover" 
                       cachePolicy="none"
@@ -1855,32 +2255,191 @@ console.log(
               ) : null}
             </View>
             <View style={styles.dialogActions}>
-              <Pressable style={[styles.actionBtnPrimary, isDark ? { backgroundColor: "#0a0a0a", borderColor: "#333" } : { backgroundColor: "#0a0a0a", borderColor: "#0a0a0a" }]} onPress={handleLoadMessages} disabled={loadingMessage}>
-                {loadingMessage ? (
-                  <>
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                    <Text style={[styles.actionTextPrimary, { marginLeft: 8 }]}>Message...</Text>
-                  </>
-                ) : (
-                  <>
-                    <Ionicons name="chatbubble-outline" size={16} color="#FFFFFF" />
-                    <Text style={[styles.actionTextPrimary, { marginLeft: 8 }]}>Message</Text>
-                  </>
-                )}
+              {isCurrentUser ? (
+                <View style={{ flex: 1, flexDirection: 'column' }}>
+                  <Pressable 
+                    style={[
+                      styles.actionBtnPrimary, 
+                      isDark ? { backgroundColor: "#0a0a0a", borderColor: "#333" } : { backgroundColor: "#0a0a0a", borderColor: "#0a0a0a" }, 
+                      { width: '100%', flex: 0 }
+                    ]} 
+                    onPress={handleViewLocationViewers} 
+                    disabled={loadingViewers}
+                  >
+                    {loadingViewers ? (
+                      <>
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                        <Text style={[styles.actionTextPrimary, { marginLeft: 8 }]}>Loading...</Text>
+                      </>
+                    ) : (
+                      <>
+                        <Ionicons name={showViewersList ? "eye-off-outline" : "eye-outline"} size={16} color="#FFFFFF" />
+                        <Text style={[styles.actionTextPrimary, { marginLeft: 8 }]}>
+                          {showViewersList ? "Hide who can see your location" : "View who can see your location"}
+                        </Text>
+                      </>
+                    )}
+                  </Pressable>
+                  
+                  {showViewersList && (
+                    <View style={{ marginTop: 12, maxHeight: 200, width: '100%' }}>
+                      <ScrollView nestedScrollEnabled={true} style={{ width: '100%' }}>
+                        {locationViewers.length === 0 ? (
+                          <View style={{ padding: 10, alignItems: 'center' }}>
+                            <Text style={{ color: isDark ? "#9AA0A6" : "#666", fontSize: 14 }}>
+                              No one can see your location right now
+                            </Text>
+                          </View>
+                        ) : (
+                          locationViewers.map((viewer) => (
+                            <View 
+                              key={viewer.id} 
+                              style={{ 
+                                flexDirection: 'row', 
+                                alignItems: 'center', 
+                                paddingVertical: 8,
+                                borderBottomWidth: 1,
+                                borderBottomColor: isDark ? '#333' : '#eee'
+                              }}
+                            >
+                              <ExpoImage
+                                source={viewer.avatar ? { uri: viewer.avatar } : require("@/assets/images/peop.png")}
+                                style={{ width: 32, height: 32, borderRadius: 16, marginRight: 10 }}
+                                contentFit="cover"
+                              />
+                              <View>
+                                <Text style={{ 
+                                  color: isDark ? "#FFFFFF" : "#0a0a0a",
+                                  fontWeight: '600',
+                                  fontSize: 14
+                                }}>
+                                  {viewer.name}
+                                </Text>
+                                {viewer.username && (
+                                  <Text style={{ 
+                                    color: isDark ? "#9AA0A6" : "#666",
+                                    fontSize: 12
+                                  }}>
+                                    @{viewer.username}
+                                  </Text>
+                                )}
+                              </View>
+                            </View>
+                          ))
+                        )}
+                      </ScrollView>
+                    </View>
+                  )}
+                </View>
+              ) : (
+                <>
+                  <Pressable style={[styles.actionBtnPrimary, isDark ? { backgroundColor: "#0a0a0a", borderColor: "#333" } : { backgroundColor: "#0a0a0a", borderColor: "#0a0a0a" }]} onPress={handleLoadMessages} disabled={loadingMessage}>
+                    {loadingMessage ? (
+                      <>
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                        <Text style={[styles.actionTextPrimary, { marginLeft: 8 }]}>Message...</Text>
+                      </>
+                    ) : (
+                      <>
+                        <Ionicons name="chatbubble-outline" size={16} color="#FFFFFF" />
+                        <Text style={[styles.actionTextPrimary, { marginLeft: 8 }]}>Message</Text>
+                      </>
+                    )}
+                  </Pressable>
+                  <Pressable 
+                    style={[
+                      styles.actionBtnSecondary, 
+                      isDark ? { borderColor: "#333" } : { borderColor: "#e0e0e0" }
+                    ]} 
+                    onPress={() => {
+                      console.log("🔘 Navigate button pressed");
+                      handleNavigate();
+                    }} 
+                    disabled={loadingNavigate || loadingMessage || modalTransitioning}
+                  >
+                    {loadingNavigate || modalTransitioning ? (
+                      <>
+                        <ActivityIndicator size="small" color={isDark ? "#FFFFFF" : "#0a0a0a"} />
+                        <Text style={[styles.actionTextSecondary, { marginLeft: 8 }, isDark ? { color: "#FFFFFF" } : { color: "#0a0a0a" }]}>
+                          {modalTransitioning ? "Opening..." : "Navigate..."}
+                        </Text>
+                      </>
+                    ) : (
+                      <>
+                        <Ionicons name="paper-plane-outline" size={16} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
+                        <Text style={[styles.actionTextSecondary, { marginLeft: 8 }, isDark ? { color: "#FFFFFF" } : { color: "#0a0a0a" }]}>Navigate</Text>
+                      </>
+                    )}
+                  </Pressable>
+                </>
+              )}
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Map Confirmation Modal */}
+      <Modal visible={showMapConfirmModal} transparent animationType="fade" onRequestClose={() => setShowMapConfirmModal(false)}>
+        <Pressable style={styles.confirmOverlay} onPress={() => setShowMapConfirmModal(false)}>
+          <Pressable style={[styles.dialogCard, isDark ? styles.sheetDark : styles.sheetLight, { width: '85%', maxWidth: 320 }]} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.dialogHeader}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                <View style={[styles.iconContainer, { backgroundColor: isDark ? "#333" : "#F3F4F6" }]}>
+                  <Ionicons name="map-outline" size={20} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
+                </View>
+                <View>
+                  <Text style={[styles.dialogTitle, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
+                    View in Map
+                  </Text>
+                  <Text style={[styles.dialogSubtitle, { color: isDark ? "#CCCCCC" : "#666666" }]}>
+                    Navigate to location
+                  </Text>
+                </View>
+              </View>
+              <Pressable style={styles.headerIcon} onPress={() => setShowMapConfirmModal(false)}>
+                <Ionicons name="close" size={20} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
               </Pressable>
-              <Pressable style={[styles.actionBtnSecondary, isDark ? { borderColor: "#333" } : { borderColor: "#e0e0e0" }]} onPress={handleNavigate} disabled={loadingNavigate}>
-                {loadingNavigate ? (
-                  <>
-                    <ActivityIndicator size="small" color={isDark ? "#FFFFFF" : "#0a0a0a"} />
-                    <Text style={[styles.actionTextSecondary, { marginLeft: 8 }, isDark ? { color: "#FFFFFF" } : { color: "#0a0a0a" }]}>Navigate...</Text>
-                  </>
-                ) : (
-                  <>
-                    <Ionicons name="paper-plane-outline" size={16} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
-                    <Text style={[styles.actionTextSecondary, { marginLeft: 8 }, isDark ? { color: "#FFFFFF" } : { color: "#0a0a0a" }]}>Navigate</Text>
-                  </>
-                )}
-              </Pressable>
+            </View>
+            
+            <View style={{ paddingHorizontal: 20, paddingBottom: 20 }}>
+              <Text style={[styles.confirmText, { color: isDark ? "#FFFFFF" : "#0a0a0a", textAlign: 'center', marginBottom: 20 }]}>
+                Do you want to view {selectedPerson?.owner?.fname || 'this person'}'s location on the map?
+              </Text>
+              
+              <View style={styles.dialogActions}>
+                <Pressable 
+                  style={[styles.actionBtnSecondary, isDark ? { borderColor: "#333" } : { borderColor: "#e0e0e0" }]} 
+                  onPress={() => {
+                    console.log("🔘 Cancel button pressed");
+                    setShowMapConfirmModal(false);
+                  }}
+                >
+                  <Text style={[styles.actionTextSecondary, isDark ? { color: "#FFFFFF" } : { color: "#0a0a0a" }]}>
+                    Cancel
+                  </Text>
+                </Pressable>
+                
+                <Pressable 
+                  style={[styles.actionBtnPrimary, { backgroundColor: "#3b82f6", borderColor: "#3b82f6" }]} 
+                  onPress={() => {
+                    console.log("🔘 Yes, View in Map button pressed");
+                    handleViewInMap();
+                  }}
+                  disabled={loadingNavigate}
+                >
+                  {loadingNavigate ? (
+                    <>
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                      <Text style={[styles.actionTextPrimary, { marginLeft: 8 }]}>Loading...</Text>
+                    </>
+                  ) : (
+                    <>
+                      <Ionicons name="map" size={16} color="#FFFFFF" />
+                      <Text style={[styles.actionTextPrimary, { marginLeft: 8 }]}>Yes</Text>
+                    </>
+                  )}
+                </Pressable>
+              </View>
             </View>
           </Pressable>
         </Pressable>
@@ -1979,6 +2538,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 16,
+  },
+  confirmOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+    zIndex: 1000, // Higher z-index to ensure it appears above other modals
   },
   createSheet: {
     width: "100%",
@@ -2100,7 +2667,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
   },
   markerContainerNew: {
-    borderWidth: 4,
+    borderWidth: 2,
     borderColor: "#FF0000",
   },
   markerDark: { borderColor: "#333333", backgroundColor: "#1A1A1A" },
@@ -2375,6 +2942,32 @@ const styles = StyleSheet.create({
   },
   actionTextPrimary: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
   actionTextSecondary: {color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
+  dialogHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 20,
+    paddingBottom: 16,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  confirmText: {
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  dialogTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 2,
+  },
+  dialogSubtitle: {
+    fontSize: 14,
+  },
   miniGalleryItem: {
     width: '31%',
     aspectRatio: 1,

@@ -1,8 +1,12 @@
 import { api } from '@/api/client';
 import { UrlConstants } from '@/constants/apiUrls';
+import { asyncStorageDB } from '@/database';
+import { groupsKeys } from '@/hooks/useGroups';
 import { useAuthStore } from '@/state/authStore';
 import { useNotificationStore } from '@/state/notificationStore';
+import { AlertMessage, Group, GroupMessage, MessageType, UserMessage } from '@/types/groups';
 import { SocketEvents, SocketInterface, SocketState } from '@/types/socket';
+import { queryClient } from '@/utils/queryClient';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 
@@ -22,7 +26,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     reconnecting: false,
   });
   const { user } = useAuthStore();
-  const { incrementNotification } = useNotificationStore();
+  const { incrementNotification, activeGroupId } = useNotificationStore();
 
   // Refresh user authentication if socket gets unauthorized
   const refreshUser = async () => {
@@ -106,13 +110,146 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       }
     });
 
-    // Listen for new group messages globally to update badges
-    newSocket.on(SocketEvents.GROUP_ROOM_MESSAGE, (data) => {
-      // Don't count own messages
-      if (data.sender?.id === user?.id || data.senderId === user?.id) return;
-      
-      console.log('🔔 New message received via socket, updating badge');
-      incrementNotification('group');
+    newSocket.on(SocketEvents.GROUP_ROOM_MESSAGE, async (data) => {
+      const incomingRoomId = String(
+        data?.roomID ??
+          data?.roomId ??
+          data?.groupID ??
+          data?.groupId ??
+          data?.room ??
+          data?.group ??
+          ''
+      );
+      if (!incomingRoomId) return;
+
+      const sender = data?.sender ?? data?.user ?? {};
+      const createdAt = data?.createdAt || new Date().toISOString();
+      const contentId =
+        data?.content?.id ??
+        data?.id ??
+        `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      const contentMessage =
+        data?.content?.message ?? data?.message ?? data?.text ?? '';
+      const file = data?.file;
+      const replyingTo = data?.replyingTo;
+      const type =
+        data?.messageType ??
+        (sender?.id ? MessageType.USER : MessageType.ALERT);
+
+      const base = {
+        content: { id: contentId, message: contentMessage },
+        createdAt,
+      };
+
+      const newMessage: GroupMessage =
+        type === MessageType.USER
+          ? ({
+              messageType: MessageType.USER,
+              ...base,
+              sender: {
+                id: sender?.id,
+                fname: sender?.fname,
+              },
+              file,
+              replyingTo: replyingTo as UserMessage,
+            } as UserMessage)
+          : ({
+              messageType: MessageType.ALERT,
+              ...base,
+              sender: {
+                id: sender?.id,
+                fname: sender?.fname,
+              },
+            } as AlertMessage);
+
+      queryClient.setQueryData<GroupMessage[]>(
+        ['groups', 'messages', incomingRoomId],
+        (oldMessages = []) => {
+          const exists = oldMessages.find(
+            (msg) => msg.content.id === newMessage.content.id
+          );
+          if (exists) return oldMessages;
+          return [...oldMessages, newMessage];
+        }
+      );
+
+      try {
+        const senderId = sender?.id || data?.senderId || 'system';
+        const senderName = sender?.fname || 'System';
+        const messageText =
+          contentMessage || (file?.data ? '📷 Image' : '');
+        await asyncStorageDB.addMessage(incomingRoomId, {
+          id: contentId,
+          content: messageText,
+          senderId,
+          senderName,
+          fileUrl: file?.data,
+          fileType: file?.ext,
+          createdAt: new Date(createdAt).getTime(),
+        });
+      } catch (e) {
+        console.error('Failed to cache group message globally', e);
+      }
+
+      // Read the latest active group from store to avoid stale closure
+      const { activeGroupId: currentActiveGroupId } = useNotificationStore.getState();
+
+      queryClient.setQueriesData<Group[]>(
+        { queryKey: groupsKeys.lists() },
+        (old) => {
+          if (!old) return old as any;
+          return old.map((group) => {
+            if (String(group.id) !== String(incomingRoomId)) {
+              return group;
+            }
+            const messages = Array.isArray(group.messages)
+              ? [...group.messages]
+              : [];
+            const lastMessage = {
+              id: contentId,
+              content: contentMessage,
+              sender: {
+                id: sender?.id || '',
+                fname: sender?.fname || 'Someone',
+              },
+            };
+            const updatedMessages =
+              messages.length > 0
+                ? [...messages.slice(0, messages.length - 1), lastMessage]
+                : [lastMessage];
+            const isOwnMessage =
+              sender?.id === user?.id || data?.senderId === user?.id;
+            const isActiveGroup = String(currentActiveGroupId || '') === String(incomingRoomId);
+            return {
+              ...group,
+              unread: isOwnMessage
+                ? group.unread
+                : isActiveGroup
+                ? 0
+                : (group.unread || 0) + 1,
+              messages: updatedMessages,
+              lastMessageAt: createdAt,
+            };
+          });
+        }
+      );
+
+      if (sender?.id === user?.id || data?.senderId === user?.id) {
+        return;
+      }
+
+      const isActiveGroup = String(currentActiveGroupId || '') === String(incomingRoomId);
+      if (!isActiveGroup) {
+        console.log('🔔 New message received via socket, updating badge');
+        incrementNotification('group');
+      } else {
+        // If the message arrives while viewing the DM, mark as read on server immediately
+        try {
+          await api.post(UrlConstants.markGroupMessageAsRead(incomingRoomId));
+        } catch (err) {
+          console.error('Failed to mark active group message as read:', err);
+        }
+      }
     });
 
     setSocket(newSocket);
