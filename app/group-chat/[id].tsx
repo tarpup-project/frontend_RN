@@ -15,6 +15,7 @@ import { useFileUpload } from "@/hooks/useFileUpload";
 import { useGroupDetails } from "@/hooks/useGroups";
 import { useNotifications } from "@/hooks/useNotification";
 import { useAuthStore } from "@/state/authStore";
+import { useNotificationStore } from "@/state/notificationStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -70,6 +71,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     useEnhancedGroupMessages({ groupId, socket: socket && user ? socket : undefined });
 
   const { refetchNotifications } = useNotifications();
+  const { setActiveGroupId } = useNotificationStore();
 
   const { replyingTo, startReply, cancelReply } = useMessageReply();
   const {
@@ -139,9 +141,15 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
 
   useFocusEffect(
     useCallback(() => {
+      setActiveGroupId(groupId);
+      
       markAsRead();
       refetchNotifications();
-    }, [markAsRead, refetchNotifications])
+      
+      return () => {
+        setActiveGroupId(null);
+      };
+    }, [markAsRead, refetchNotifications, groupId, setActiveGroupId])
   );
 
   useEffect(() => {

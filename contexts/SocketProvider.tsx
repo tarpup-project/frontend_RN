@@ -1,12 +1,12 @@
 import { api } from '@/api/client';
 import { UrlConstants } from '@/constants/apiUrls';
 import { asyncStorageDB } from '@/database';
+import { groupsKeys } from '@/hooks/useGroups';
 import { useAuthStore } from '@/state/authStore';
 import { useNotificationStore } from '@/state/notificationStore';
-import { queryClient } from '@/utils/queryClient';
-import { Group, GroupMessage, MessageType, UserMessage, AlertMessage } from '@/types/groups';
+import { AlertMessage, Group, GroupMessage, MessageType, UserMessage } from '@/types/groups';
 import { SocketEvents, SocketInterface, SocketState } from '@/types/socket';
-import { groupsKeys } from '@/hooks/useGroups';
+import { queryClient } from '@/utils/queryClient';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 
@@ -26,7 +26,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     reconnecting: false,
   });
   const { user } = useAuthStore();
-  const { incrementNotification } = useNotificationStore();
+  const { incrementNotification, activeGroupId } = useNotificationStore();
 
   // Refresh user authentication if socket gets unauthorized
   const refreshUser = async () => {
@@ -191,6 +191,9 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         console.error('Failed to cache group message globally', e);
       }
 
+      // Read the latest active group from store to avoid stale closure
+      const { activeGroupId: currentActiveGroupId } = useNotificationStore.getState();
+
       queryClient.setQueriesData<Group[]>(
         { queryKey: groupsKeys.lists() },
         (old) => {
@@ -216,10 +219,13 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
                 : [lastMessage];
             const isOwnMessage =
               sender?.id === user?.id || data?.senderId === user?.id;
+            const isActiveGroup = String(currentActiveGroupId || '') === String(incomingRoomId);
             return {
               ...group,
               unread: isOwnMessage
                 ? group.unread
+                : isActiveGroup
+                ? 0
                 : (group.unread || 0) + 1,
               messages: updatedMessages,
               lastMessageAt: createdAt,
@@ -232,8 +238,18 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         return;
       }
 
-      console.log('🔔 New message received via socket, updating badge');
-      incrementNotification('group');
+      const isActiveGroup = String(currentActiveGroupId || '') === String(incomingRoomId);
+      if (!isActiveGroup) {
+        console.log('🔔 New message received via socket, updating badge');
+        incrementNotification('group');
+      } else {
+        // If the message arrives while viewing the DM, mark as read on server immediately
+        try {
+          await api.post(UrlConstants.markGroupMessageAsRead(incomingRoomId));
+        } catch (err) {
+          console.error('Failed to mark active group message as read:', err);
+        }
+      }
     });
 
     setSocket(newSocket);
