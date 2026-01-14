@@ -77,20 +77,12 @@ export default function TabLayout() {
               <ProtectedTabIcon
                 name={focused ? "pulse" : "pulse-outline"}
                 size={24}
-                color={isAuthenticated ? color : "#999999"}
+                color={color}
                 focused={focused}
-                isProtected={!isAuthenticated}
+                isProtected={false}
                 notificationCount={0}
               />
             )
-          }}
-          listeners={{
-            tabPress: (e) => {
-              if (!isAuthenticated) {
-                e.preventDefault();
-                setShowAuthModal(true);
-              }
-            }
           }}
         />
           <Tabs.Screen
@@ -101,20 +93,12 @@ export default function TabLayout() {
             <ProtectedTabIcon
               name={focused ? "location" : "location-outline"}
               size={28}
-              color={isAuthenticated ? color : "#999999"}
+              color={color}
               focused={focused}
-              isProtected={!isAuthenticated}
+              isProtected={false}
               notificationCount={0}
             />
           )
-        }}
-        listeners={{
-          tabPress: (e) => {
-            if (!isAuthenticated) {
-              e.preventDefault();
-              setShowAuthModal(true);
-            }
-          }
         }}
       />
 

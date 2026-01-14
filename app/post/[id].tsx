@@ -12,18 +12,18 @@ import { StatusBar } from "expo-status-bar";
 import moment from "moment";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Animated,
-    Dimensions,
-    FlatList,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    Pressable,
-    StyleSheet,
-    Text,
-    TextInput,
-    View
+  ActivityIndicator,
+  Animated,
+  Dimensions,
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
 } from "react-native";
 import { Gesture, GestureDetector, GestureHandlerRootView, ScrollView } from "react-native-gesture-handler";
 import { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
@@ -911,18 +911,12 @@ export default function PostPreviewScreen() {
       const isHorizontal = Math.abs(event.translationX) > Math.abs(event.translationY);
       
       if (isHorizontal) {
-        if (event.translationX < -swipeThreshold || event.velocityX < -velocityThreshold) {
-          // Swipe Left - Next Post
-          if (svImagesLength.value === 0 || svCurrentImageIndex.value === svImagesLength.value - 1) {
-            runOnJS(navigateToPost)('next');
-          }
-        } else if (event.translationX > swipeThreshold || event.velocityX > velocityThreshold) {
-          // Swipe Right - Previous Post
-          if (svImagesLength.value === 0 || svCurrentImageIndex.value === 0) {
-            runOnJS(navigateToPost)('previous');
-          }
-        }
+        // Horizontal swipe should ONLY navigate between images in the same post
+        // The ScrollView handles this automatically, so we don't need to do anything here
+        // Just prevent it from navigating to different posts
+        console.log("Horizontal swipe detected - handled by ScrollView for image navigation");
       } else {
+        // Vertical swipe navigates between different posts
         if (event.translationY < -swipeThreshold || event.velocityY < -velocityThreshold) {
           // Swipe up - next post
           runOnJS(navigateToPost)('next');
