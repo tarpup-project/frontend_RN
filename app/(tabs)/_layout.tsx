@@ -2,10 +2,11 @@ import AuthModal from "@/components/AuthModal";
 import ProtectedTabIcon from "@/components/ProtectedTabIcon";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useNotifications } from "@/hooks/useNotification";
+import { useUnifiedGroups } from "@/hooks/useUnifiedGroups";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Platform } from "react-native";
 
 export default function TabLayout() {
@@ -17,6 +18,10 @@ export default function TabLayout() {
     personalNotifications, 
     refetchNotifications 
   } = useNotifications();
+  const { uiGroups } = useUnifiedGroups();
+  const unreadTotal = useMemo(() => {
+    return (uiGroups || []).reduce((sum: number, g: any) => sum + (Number(g.unreadCount || 0)), 0);
+  }, [uiGroups]);
 
   // Refresh notifications when tab layout mounts or when switching tabs
   useEffect(() => {
@@ -114,7 +119,7 @@ export default function TabLayout() {
         color={isAuthenticated ? color : "#999999"}
         focused={focused}
         isProtected={!isAuthenticated}
-        notificationCount={isAuthenticated ? groupNotifications : 0}
+        notificationCount={isAuthenticated ? unreadTotal : 0}
       />
     )
   }}
