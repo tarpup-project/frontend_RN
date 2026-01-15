@@ -4,6 +4,8 @@ import { useAuthStore } from "@/state/authStore";
 import { useNotificationStore } from "@/state/notificationStore";
 import { useEffect } from "react";
 import { AppState } from "react-native";
+import { useQueryClient } from "@tanstack/react-query";
+import { groupsKeys } from "./useGroups";
 
 interface NotificationResponse {
   groupNotifications: number;
@@ -25,6 +27,8 @@ export const useNotifications = () => {
     incrementNotification,
   } = useNotificationStore();
 
+  const queryClient = useQueryClient();
+
   const fetchNotifications = async () => {
     if (!isAuthenticated || !user) return;
 
@@ -39,6 +43,7 @@ export const useNotifications = () => {
           groupNotifications: response.data.data.groupNotifications,
           personalNotifications: response.data.data.personalNotification,
         });
+        queryClient.invalidateQueries({ queryKey: groupsKeys.lists() });
       }
     } catch (error: any) {
       console.error("Failed to fetch notifications:", error);

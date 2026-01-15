@@ -286,21 +286,39 @@ const Groups = () => {
       return null;
     }
 
+    const toMs = (t: any): number => {
+      if (typeof t === "number") return t;
+      if (!t) return 0;
+      const ms = new Date(t).getTime();
+      return Number.isFinite(ms) ? ms : 0;
+    };
+
+    const latestMs = (group: any): number => {
+      const base = Math.max(
+        toMs(group?.rawGroup?.lastMessageAt),
+        toMs(group?.rawGroup?.createdAt)
+      );
+      const msgs = group?.rawGroup?.messages;
+      if (Array.isArray(msgs) && msgs.length > 0) {
+        const last = msgs[msgs.length - 1];
+        const lm = toMs(last?.createdAt);
+        return Math.max(base, lm);
+      }
+      return base;
+    };
+
     return uiGroups
       .slice()
       .sort((a: any, b: any) => {
         try {
-          // Sort by unread count first, then by activity time
+          const aMs = latestMs(a);
+          const bMs = latestMs(b);
+          if (bMs !== aMs) {
+            return bMs - aMs;
+          }
           if (a.unreadCount > 0 && b.unreadCount === 0) return -1;
           if (a.unreadCount === 0 && b.unreadCount > 0) return 1;
-          if (a.unreadCount > 0 && b.unreadCount > 0) {
-            return b.unreadCount - a.unreadCount;
-          }
-          
-          // Sort by last message time or created time
-          const aTime = a.rawGroup?.lastMessageAt || a.rawGroup?.createdAt || 0;
-          const bTime = b.rawGroup?.lastMessageAt || b.rawGroup?.createdAt || 0;
-          return bTime - aTime;
+          return (b.unreadCount || 0) - (a.unreadCount || 0);
         } catch (error) {
           console.error('Sort error:', error);
           return 0;
