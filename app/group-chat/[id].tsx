@@ -159,6 +159,8 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
         retryConnection();
         markAsRead();
         refetchNotifications();
+      } else if (nextState === "background") {
+        router.back();
       }
     });
 
