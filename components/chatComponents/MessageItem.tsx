@@ -1,6 +1,6 @@
 
-import { CachedMessageImage } from "@/components/CachedMessageImage";
 import { CachedImage } from "@/components/CachedImage";
+import { CachedMessageImage } from "@/components/CachedMessageImage";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
@@ -8,12 +8,12 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Hyperlink from "react-native-hyperlink";
 import Animated, {
-    Extrapolate,
-    interpolate,
-    runOnJS,
-    useAnimatedStyle,
-    useSharedValue,
-    withTiming
+  Extrapolate,
+  interpolate,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming
 } from "react-native-reanimated";
 
 interface MessageData {
@@ -70,7 +70,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
   scrollGesture,
 }) => {
   const { isDark } = useTheme();
-  
+
   // Animation values for swipe-to-reply
   const translateX = useSharedValue(0);
   const replyIconOpacity = useSharedValue(0);
@@ -79,7 +79,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
   // Helper function to calculate reply reference dimensions based on content
   const getReplyDimensions = (message: string) => {
     const length = message?.length || 0;
-    
+
     if (length <= 20) {
       return { minWidth: "50%", maxWidth: "70%", numberOfLines: 2 };
     } else if (length <= 40) {
@@ -129,16 +129,16 @@ export const MessageItem: React.FC<MessageItemProps> = ({
     .failOffsetY([-30, 30]) // Prevent vertical scrolling interference
     .onUpdate((event) => {
       const { translationX } = event;
-      
+
       // Define max swipe distance and direction
       const maxSwipe = 70;
       const isCorrectDirection = msg.isMe ? translationX < 0 : translationX > 0;
-      
+
       if (isCorrectDirection) {
         // Smooth constraint with resistance at the end
         let clampedTranslation;
         const absTranslation = Math.abs(translationX);
-        
+
         if (absTranslation <= maxSwipe) {
           clampedTranslation = translationX;
         } else {
@@ -146,13 +146,13 @@ export const MessageItem: React.FC<MessageItemProps> = ({
           const resistance = 0.3;
           const excess = absTranslation - maxSwipe;
           const resistedExcess = excess * resistance;
-          clampedTranslation = msg.isMe 
+          clampedTranslation = msg.isMe
             ? -(maxSwipe + resistedExcess)
             : (maxSwipe + resistedExcess);
         }
-        
+
         translateX.value = clampedTranslation;
-        
+
         // Smooth icon animation based on progress
         const progress = Math.min(Math.abs(clampedTranslation) / maxSwipe, 1);
         replyIconOpacity.value = interpolate(
@@ -178,23 +178,23 @@ export const MessageItem: React.FC<MessageItemProps> = ({
       const { translationX, velocityX } = event;
       const swipeThreshold = 50;
       const velocityThreshold = 200;
-      
+
       // Check if swipe meets the threshold for triggering reply
       const absTranslation = Math.abs(translationX);
       const absVelocity = Math.abs(velocityX);
       const isCorrectDirection = msg.isMe ? translationX < 0 : translationX > 0;
-      
-      const shouldTriggerReply = 
+
+      const shouldTriggerReply =
         isCorrectDirection &&
         (absTranslation > swipeThreshold || absVelocity > velocityThreshold) &&
         msg.rawMessage &&
         onReply;
-      
+
       if (shouldTriggerReply) {
         // Trigger reply action
         runOnJS(onReply)(msg.rawMessage);
       }
-      
+
       // Smooth return to original position without bounce
       translateX.value = withTiming(0, { duration: 200 });
       replyIconOpacity.value = withTiming(0, { duration: 200 });
@@ -251,7 +251,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
       <GestureDetector gesture={swipeGesture}>
         <View style={styles.swipeContainer}>
           {/* Reply icon that appears during swipe */}
-          <Animated.View 
+          <Animated.View
             style={[
               styles.replyIconContainer,
               msg.isMe ? styles.replyIconLeft : styles.replyIconRight,
@@ -273,191 +273,195 @@ export const MessageItem: React.FC<MessageItemProps> = ({
           {/* Animated message content */}
           <Animated.View style={[styles.messageContainer, animatedMessageStyle]}>
             <View style={[styles.messageRow, msg.isMe && styles.myMessageRow]}>
-            {msg.isMe && (
-              <Pressable
-                onPress={() => onReply(msg.rawMessage)}
-                style={styles.replyButton}
-              >
-                <Ionicons
-                  name="arrow-undo-outline"
-                  size={18}
-                  color={dynamicStyles.subtitle.color}
-                  style={{ opacity: 0.8 }}
-                />
-              </Pressable>
-            )}
-
-            {!msg.isMe && (
-              <Pressable
-                onPress={() => {
-                  if (msg.rawMessage?.sender?.id) {
-                    navigateToProfile(msg.rawMessage.sender.id);
-                  }
-                }}
-                style={styles.messageAvatarContainer}
-              >
-                {typeof msg.avatar === "string" &&
-                msg.avatar.startsWith("http") ? (
-                  <CachedImage
-                    uri={msg.avatar}
-                    style={styles.messageAvatarImage}
-                    fallbackText={msg.sender[0]}
-                    fallbackColor="#666666"
-                    cacheKey={`avatar_${msg.rawMessage?.sender?.id || msg.sender}_message`}
+              {msg.isMe && (
+                <Pressable
+                  onPress={() => onReply(msg.rawMessage)}
+                  style={styles.replyButton}
+                >
+                  <Ionicons
+                    name="arrow-undo-outline"
+                    size={18}
+                    color={dynamicStyles.subtitle.color}
+                    style={{ opacity: 0.8 }}
                   />
-                ) : (
-                  <View
-                    style={[
-                      styles.messageAvatar,
-                      { backgroundColor: msg.avatar },
-                    ]}
-                  >
-                    <Text style={styles.avatarText}>{msg.sender[0]}</Text>
-                  </View>
-                )}
-              </Pressable>
-            )}
-
-            <View style={styles.messageContent}>
-              {!msg.isMe && (
-                <Text style={[styles.senderName, dynamicStyles.subtitle]}>
-                  {msg.sender}
-                </Text>
+                </Pressable>
               )}
 
-              {/* Unified message container for image, reply + message */}
-              {(msg.file || msg.replyingTo || msg.text) && (
-                <View
-                  style={[
-                    styles.unifiedMessageBubble,
-                    // When there's an image with text, constrain width to image
-                    msg.file && msg.text && styles.imageConstrainedBubble,
-                    msg.isMe
-                      ? dynamicStyles.myMessage
-                      : dynamicStyles.theirMessage,
-                  ]}
+              {!msg.isMe && (
+                <Pressable
+                  onPress={() => {
+                    if (msg.rawMessage?.sender?.id) {
+                      navigateToProfile(msg.rawMessage.sender.id);
+                    }
+                  }}
+                  style={styles.messageAvatarContainer}
                 >
-                  {/* Image at the top of the bubble if it exists */}
-                  {msg.file && (
-                    <GestureDetector
-                      gesture={Gesture.Tap().onEnd(() => {
-                        runOnJS(onImagePress)(msg.file!.data);
-                      })}
-                    >
-                      <View collapsable={false}>
-                        <CachedMessageImage
-                          uri={msg.file.data}
-                          messageId={msg.id}
-                          groupId={msg.groupId || 'unknown'}
-                          style={[
-                            styles.messageImage,
-                            styles.messageImageInBubble,
-                          ]}
-                          fallbackText="📷"
-                          fallbackColor="#666666"
-                          onLoad={() => {
-                            console.log('📸 Message image loaded:', msg.id);
-                          }}
-                          onError={() => {
-                            console.warn('❌ Failed to load message image:', msg.id);
-                          }}
-                        />
-                      </View>
-                    </GestureDetector>
-                  )}
-
-                  {msg.replyingTo && (
-                    <Pressable
+                  {typeof msg.avatar === "string" &&
+                    msg.avatar.startsWith("http") ? (
+                    <CachedImage
+                      uri={msg.avatar}
+                      style={styles.messageAvatarImage}
+                      fallbackText={msg.sender[0]}
+                      fallbackColor="#666666"
+                      cacheKey={`avatar_${msg.rawMessage?.sender?.id || msg.sender}_message`}
+                    />
+                  ) : (
+                    <View
                       style={[
-                        styles.replyReference,
-                        msg.file && styles.replyReferenceWithImage,
+                        styles.messageAvatar,
+                        { backgroundColor: msg.avatar },
                       ]}
-                      onPress={() => scrollToMessage(msg.replyingTo!.content.id)}
                     >
-                      {/* Subtle overlay for reply section */}
-                      <View style={[StyleSheet.absoluteFill, dynamicStyles.replyOverlay]} />
-                      <View style={styles.replyContent}>
-                        <View style={styles.replyTextSection}>
-                          <Text
-                            style={[styles.replyAuthor, dynamicStyles.replyAuthorText]}
-                          >
-                            {msg.replyingTo.sender.fname || "Unknown User"}
-                          </Text>
-                          <Text
-                            style={[styles.replyText, dynamicStyles.replyContentText]}
-                            numberOfLines={getReplyDimensions(msg.replyingTo.content.message).numberOfLines}
-                          >
-                            {msg.replyingTo.content.message || "[Message not available]"}
-                          </Text>
-                        </View>
-                        {msg.replyingTo.file && (
-                          <CachedMessageImage
-                            uri={msg.replyingTo.file.data}
-                            messageId={msg.replyingTo.content.id}
-                            groupId={msg.groupId || 'unknown'}
-                            style={styles.replyImage}
-                            fallbackText="📷"
-                            fallbackColor="#666666"
-                          />
-                        )}
-                      </View>
-                    </Pressable>
-                  )}
-
-                  {msg.text && (
-                    <View style={[
-                      styles.messageTextContainer,
-                      msg.file && styles.messageTextWithImage,
-                    ]}>
-                      <Hyperlink
-                        linkDefault={false}
-                        onPress={(url) => onLinkPress(url)}
-                        linkStyle={{
-                          color: msg.isMe ? "#87CEEB" : "#007AFF",
-                          textDecorationLine: "underline",
-                        }}
-                      >
-                        <Text
-                          style={[
-                            styles.messageText,
-                            msg.isMe
-                              ? dynamicStyles.myMessageText
-                              : dynamicStyles.theirMessageText,
-                          ]}
-                        >
-                          {msg.text}
-                        </Text>
-                      </Hyperlink>
+                      <Text style={styles.avatarText}>{msg.sender[0]}</Text>
                     </View>
                   )}
-                </View>
+                </Pressable>
+              )}
+
+              <View style={styles.messageContent}>
+                {!msg.isMe && (
+                  <Text style={[styles.senderName, dynamicStyles.subtitle]}>
+                    {msg.sender}
+                  </Text>
+                )}
+
+                {/* Unified message container for image, reply + message */}
+                {(msg.file || msg.replyingTo || msg.text) && (
+                  <View
+                    style={[
+                      styles.unifiedMessageBubble,
+                      // When there's an image with text, constrain width to image
+                      msg.file && msg.text && styles.imageConstrainedBubble,
+                      msg.isMe
+                        ? dynamicStyles.myMessage
+                        : dynamicStyles.theirMessage,
+                    ]}
+                  >
+                    {/* 1. Reply Reference (Moved to Top) */}
+                    {msg.replyingTo && (
+                      <Pressable
+                        style={[
+                          styles.replyReference,
+                          // msg.file && styles.replyReferenceWithImage, // No longer needed as reply is top
+                        ]}
+                        onPress={() => scrollToMessage(msg.replyingTo!.content.id)}
+                      >
+                        {/* Subtle overlay for reply section */}
+                        <View style={[StyleSheet.absoluteFill, dynamicStyles.replyOverlay]} />
+                        <View style={styles.replyContent}>
+                          <View style={styles.replyTextSection}>
+                            <Text
+                              style={[styles.replyAuthor, dynamicStyles.replyAuthorText]}
+                            >
+                              {msg.replyingTo.sender.fname || "Unknown User"}
+                            </Text>
+                            <Text
+                              style={[styles.replyText, dynamicStyles.replyContentText]}
+                              numberOfLines={getReplyDimensions(msg.replyingTo.content.message).numberOfLines}
+                            >
+                              {msg.replyingTo.content.message || "[Message not available]"}
+                            </Text>
+                          </View>
+                          {msg.replyingTo.file && (
+                            <CachedMessageImage
+                              uri={msg.replyingTo.file.data}
+                              messageId={msg.replyingTo.content.id}
+                              groupId={msg.groupId || 'unknown'}
+                              style={styles.replyImage}
+                              fallbackText="📷"
+                              fallbackColor="#666666"
+                            />
+                          )}
+                        </View>
+                      </Pressable>
+                    )}
+
+                    {/* 2. Message Image (Moved to Middle) */}
+                    {msg.file && (
+                      <GestureDetector
+                        gesture={Gesture.Tap().onEnd(() => {
+                          runOnJS(onImagePress)(msg.file!.data);
+                        })}
+                      >
+                        <View collapsable={false}>
+                          <CachedMessageImage
+                            uri={msg.file.data}
+                            messageId={msg.id}
+                            groupId={msg.groupId || 'unknown'}
+                            style={[
+                              styles.messageImage,
+                              styles.messageImageInBubble,
+                              // If replying to something, remove top radius so it sits flush under reply
+                              msg.replyingTo && { borderTopLeftRadius: 0, borderTopRightRadius: 0 },
+                            ]}
+                            fallbackText="📷"
+                            fallbackColor="#666666"
+                            onLoad={() => {
+                              console.log('📸 Message image loaded:', msg.id);
+                            }}
+                            onError={() => {
+                              console.warn('❌ Failed to load message image:', msg.id);
+                            }}
+                          />
+                        </View>
+                      </GestureDetector>
+                    )}
+
+                    {/* 3. Message Text (Bottom) */}
+                    {msg.text && (
+                      <View style={[
+                        styles.messageTextContainer,
+                        msg.file && styles.messageTextWithImage,
+                      ]}>
+                        <Hyperlink
+                          linkDefault={false}
+                          onPress={(url) => onLinkPress(url)}
+                          linkStyle={{
+                            color: msg.isMe ? "#87CEEB" : "#007AFF",
+                            textDecorationLine: "underline",
+                          }}
+                        >
+                          <Text
+                            style={[
+                              styles.messageText,
+                              msg.isMe
+                                ? dynamicStyles.myMessageText
+                                : dynamicStyles.theirMessageText,
+                            ]}
+                          >
+                            {msg.text}
+                          </Text>
+                        </Hyperlink>
+                      </View>
+                    )}
+                  </View>
+                )}
+              </View>
+
+              {!msg.isMe && (
+                <Pressable
+                  onPress={() => onReply(msg.rawMessage)}
+                  style={styles.replyButton}
+                >
+                  <Ionicons
+                    name="arrow-undo-outline"
+                    size={18}
+                    color={dynamicStyles.subtitle.color}
+                    style={{ opacity: 0.8 }}
+                  />
+                </Pressable>
               )}
             </View>
 
-            {!msg.isMe && (
-              <Pressable
-                onPress={() => onReply(msg.rawMessage)}
-                style={styles.replyButton}
-              >
-                <Ionicons
-                  name="arrow-undo-outline"
-                  size={18}
-                  color={dynamicStyles.subtitle.color}
-                  style={{ opacity: 0.8 }}
-                />
-              </Pressable>
-            )}
-          </View>
-
-          <Text
-            style={[
-              styles.messageTimeBelow,
-              dynamicStyles.subtitle,
-              msg.isMe && styles.myMessageTime,
-            ]}
-          >
-            {msg.time}
-          </Text>
+            <Text
+              style={[
+                styles.messageTimeBelow,
+                dynamicStyles.subtitle,
+                msg.isMe && styles.myMessageTime,
+              ]}
+            >
+              {msg.time}
+            </Text>
           </Animated.View>
         </View>
       </GestureDetector>
@@ -567,7 +571,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   myReplyReference: {
-   // alignSelf: "flex-end",
+    // alignSelf: "flex-end",
   },
   senderName: {
     fontSize: 12,
