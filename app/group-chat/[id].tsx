@@ -146,16 +146,23 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
 
     // Initial load: Should be instant or quick
     if (displayedMessages.length === 0 && messages.length > 0) {
-      // If it's a large batch initially (e.g. from cache), show all at once to avoid long wait
-      // OR if we want "replay" effect on load, we can stagger. 
-      // User asked "load new messages one by one". 
-      // Let's assume initial load is instant for UX, and updates are staggered.
       setDisplayedMessages(messages);
       return;
     }
 
-    // Identify new messages
-    const currentIds = new Set(displayedMessages.map(m => m.content?.id));
+    // 1. Prune messages that no longer exist in the source
+    // This handles cases where IDs change (temp -> server) or messages are deleted/re-synced
+    const sourceIds = new Set(messages.map(m => m.content?.id));
+    const prunedMessages = displayedMessages.filter(m => sourceIds.has(m.content?.id));
+    const hasRemoved = prunedMessages.length !== displayedMessages.length;
+
+    if (hasRemoved) {
+      setDisplayedMessages(prunedMessages);
+    }
+
+    // 2. Identify new messages to add (comparing against what we KEPT, i.e., pruned list)
+    // We use the pruned list as the baseline to avoid re-adding things we just decided to keep
+    const currentIds = new Set(prunedMessages.map(m => m.content?.id));
     const newMsgs = messages.filter(m => !currentIds.has(m.content?.id));
 
     if (newMsgs.length > 0) {

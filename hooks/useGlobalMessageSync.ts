@@ -34,6 +34,16 @@ export const useGlobalMessageSync = () => {
 
             console.log(`🌍 Found ${groups.length} active groups on server`);
 
+            // 1b. Update React Query cache for immediate UI update (Last Message & Unread Count)
+            const queryCache = queryClient.getQueryCache();
+            const activeGroupQueries = queryCache.findAll({ queryKey: ['groups', 'list'] });
+
+            activeGroupQueries.forEach(query => {
+                queryClient.setQueryData(query.queryKey, groups);
+            });
+            // Also set default key if none active
+            queryClient.setQueryData(['groups', 'list', undefined], groups);
+
             // 2. Fetch local groups to compare timestamps
             const localGroups = await asyncStorageDB.getGroups();
             const localGroupsMap = new Map(localGroups.map(g => [g.id || g.serverId, g]));
@@ -204,6 +214,24 @@ export const useGlobalMessageSync = () => {
 
             // 5. Update local group cache with fresh server data
             await asyncStorageDB.saveGroups(groups);
+
+            // 5b. Update React Query cache for immediate UI update
+            // We iterate over potential campus IDs (or undefined) via invalidation or broad setting
+            // Since we don't know the exact campus ID key active, we can match broad 'groups' and 'list'
+            // But setQueryData requires exact key. 
+            // Better strategy: Invalidate 'groups' lists so they refetch from cache/network?
+            // No, user wants *immediate* load.
+            // Let's try to update the most likely keys or all active group list queries.
+
+            const finalActiveGroupQueries = queryCache.findAll({ queryKey: ['groups', 'list'] });
+
+            finalActiveGroupQueries.forEach(query => {
+                queryClient.setQueryData(query.queryKey, groups);
+            });
+
+            // Also set default key if none active (for next render)
+            queryClient.setQueryData(['groups', 'list', undefined], groups);
+
             console.log(`💾 Updated local group cache with ${groups.length} groups`);
 
             console.log('🌍 Global message sync completed');
