@@ -5,6 +5,7 @@ import { useAppUpdate } from "@/hooks/useAppUpdate";
 import { useDeepLinking } from "@/hooks/useDeepLinking";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useAuthStore } from "@/state/authStore";
+import { useSyncStore } from "@/state/syncStore";
 import { asyncStoragePersister, initializeQueryPersistence, queryClient } from "@/utils/queryClient";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { Stack, useRouter, useSegments } from "expo-router";
@@ -43,6 +44,7 @@ function RootLayoutContent() {
     isHydrated,
     hydrate,
   } = useAuthStore();
+  const { isSyncing, statusMessage } = useSyncStore();
 
   const segments = useSegments();
   const router = useRouter();
@@ -63,6 +65,10 @@ function RootLayoutContent() {
 
   /* --------------------------- SPLASH SCREEN ------------------------------- */
   useEffect(() => {
+    // Only hide splash screen when:
+    // 1. Auth loading is done
+    // 2. Hydration is complete
+    // 3. Global message sync is complete (not syncing)
     if (!isLoading && isHydrated) {
       SplashScreen.hideAsync();
     }
@@ -80,6 +86,9 @@ function RootLayoutContent() {
   }, [isAuthenticated, isLoading, isHydrated, segments]);
 
   /* ----------------------------- LOADING UI -------------------------------- */
+  // Show loading screen if:
+  // 1. Auth is loading or hydrating
+  // 2. Global sync is in progress
   if (isLoading || !isHydrated) {
     return (
       <View

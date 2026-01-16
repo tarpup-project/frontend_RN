@@ -3,13 +3,14 @@ import { api } from '@/api/client';
 import { UrlConstants } from '@/constants/apiUrls';
 import { asyncStorageDB, isWatermelonAvailable } from '@/database';
 import { useAuthStore } from '@/state/authStore';
-import { Group } from '@/types/groups';
+import { useSyncStore } from '@/state/syncStore';
+import { AlertMessage, Group, GroupMessage, MessageType, UserMessage } from '@/types/groups';
 import { useQueryClient } from '@tanstack/react-query';
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 
 export const useGlobalMessageSync = () => {
     const { user } = useAuthStore();
-    const [isSyncing, setIsSyncing] = useState(false);
+    const { isSyncing, setIsSyncing, setStatusMessage } = useSyncStore();
     const queryClient = useQueryClient();
 
     const syncAllMessages = useCallback(async () => {
@@ -17,6 +18,7 @@ export const useGlobalMessageSync = () => {
 
         try {
             setIsSyncing(true);
+            setStatusMessage("Getting all messages while you were away");
             console.log('🌍 Starting global message sync...');
 
             // 1. Fetch all groups
@@ -26,6 +28,7 @@ export const useGlobalMessageSync = () => {
             if (groups.length === 0) {
                 console.log('🌍 No groups to sync');
                 setIsSyncing(false);
+                setStatusMessage(null);
                 return;
             }
 
@@ -70,6 +73,7 @@ export const useGlobalMessageSync = () => {
             if (groupsToSync.length === 0) {
                 console.log('✅ All groups are up to date');
                 setIsSyncing(false);
+                setStatusMessage(null);
                 return;
             }
 
@@ -82,8 +86,8 @@ export const useGlobalMessageSync = () => {
 
                 await Promise.all(batch.map(async (group) => {
                     try {
-                        // Fetch messages via REST API
-                        const msgResponse = await api.get(UrlConstants.fetchGroupMessages(group.id));
+                        // Fetch messages via REST API with increased timeout
+                        const msgResponse = await api.get(UrlConstants.fetchGroupMessages(group.id), { timeout: 60000 });
                         const rawMessages = msgResponse.data?.messages || [];
 
                         if (rawMessages.length === 0) return;
@@ -117,6 +121,73 @@ export const useGlobalMessageSync = () => {
                             await asyncStorageDB.syncMessages(group.id, transformedMessages);
                         }
 
+                        // 4. Preload React Query Cache for instant UI access using rawMessages (source of truth)
+                        // Use a separate transformation for UI to ensure it matches GroupMessage type perfectly
+                        const transformedUIMessages: GroupMessage[] = rawMessages.map((msg: any) => {
+                            const contentId = msg.content?.id || msg.id;
+                            const sender = msg.sender || msg.user || {};
+                            const messageContent = msg.content?.message || msg.message || '';
+                            const fileData = msg.file?.data;
+                            const fileExt = msg.file?.ext;
+
+                            const baseMessage = {
+                                content: {
+                                    id: contentId,
+                                    message: messageContent
+                                },
+                                createdAt: msg.createdAt || new Date().toISOString()
+                            };
+
+                            if (sender.id === 'system' || !sender.id) {
+                                return {
+                                    messageType: MessageType.ALERT,
+                                    ...baseMessage,
+                                    sender: {
+                                        id: 'system',
+                                        fname: 'System'
+                                    }
+                                } as AlertMessage;
+                            }
+
+                            // Resolve replyingTo if it exists
+                            let replyingTo: UserMessage | undefined = undefined;
+                            if (msg.replyingTo) {
+                                // Basic shape for replyingTo
+                                const replyContent = msg.replyingTo.content?.message || (msg.replyingTo.file ? '📷 Image' : '');
+                                replyingTo = {
+                                    messageType: MessageType.USER,
+                                    content: {
+                                        id: msg.replyingTo.content?.id || msg.replyingTo.id,
+                                        message: replyContent
+                                    },
+                                    sender: {
+                                        id: msg.replyingTo.sender?.id || 'unknown',
+                                        fname: msg.replyingTo.sender?.fname || 'Unknown'
+                                    },
+                                    createdAt: msg.replyingTo.createdAt || new Date().toISOString()
+                                } as UserMessage;
+                            }
+
+                            return {
+                                messageType: MessageType.USER,
+                                ...baseMessage,
+                                sender: {
+                                    id: sender.id,
+                                    fname: sender.fname
+                                },
+                                file: fileData ? {
+                                    name: 'file',
+                                    size: 0,
+                                    data: fileData,
+                                    ext: fileExt || 'image'
+                                } : undefined,
+                                replyingTo
+                            } as UserMessage;
+                        });
+
+                        queryClient.setQueryData(['groups', 'messages', group.id], transformedUIMessages);
+                        console.log(`🧠 Preloaded ${transformedUIMessages.length} messages into cache for group ${group.name}`);
+
                         // Do NOT invalidate queries here. 
                         // invalidating triggers useQuery to refetch via socket in the active view, 
                         // which defeats the purpose of "background" sync and causes double-fetching.
@@ -140,6 +211,7 @@ export const useGlobalMessageSync = () => {
             console.error('❌ Global message sync failed:', error);
         } finally {
             setIsSyncing(false);
+            setStatusMessage(null);
         }
     }, [user?.id, isSyncing, queryClient]);
 

@@ -596,7 +596,19 @@ export const useEnhancedGroupMessages = ({
               fname: sender?.fname,
             },
             file,
-            replyingTo: replyingTo as UserMessage,
+            replyingTo: replyingTo ? {
+              messageType: MessageType.USER,
+              content: {
+                id: replyingTo.content?.id || replyingTo.id,
+                message: replyingTo.content?.message || (replyingTo.file ? '📷 Image' : '')
+              },
+              sender: {
+                id: replyingTo.sender?.id || 'unknown',
+                fname: replyingTo.sender?.fname || 'Unknown User'
+              },
+              createdAt: replyingTo.createdAt || new Date().toISOString(),
+              file: replyingTo.file
+            } as UserMessage : undefined,
           } as UserMessage)
           : ({
             messageType: MessageType.ALERT,

@@ -136,6 +136,58 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     };
   }, [showGroupInfo]);
 
+  // Staggered loading state
+  const [displayedMessages, setDisplayedMessages] = useState<any[]>([]);
+  const messageQueueRef = useRef<any[]>([]);
+  const processingRef = useRef(false);
+
+  useEffect(() => {
+    if (!messages) return;
+
+    // Initial load: Should be instant or quick
+    if (displayedMessages.length === 0 && messages.length > 0) {
+      // If it's a large batch initially (e.g. from cache), show all at once to avoid long wait
+      // OR if we want "replay" effect on load, we can stagger. 
+      // User asked "load new messages one by one". 
+      // Let's assume initial load is instant for UX, and updates are staggered.
+      setDisplayedMessages(messages);
+      return;
+    }
+
+    // Identify new messages
+    const currentIds = new Set(displayedMessages.map(m => m.content?.id));
+    const newMsgs = messages.filter(m => !currentIds.has(m.content?.id));
+
+    if (newMsgs.length > 0) {
+      // Add to queue
+      messageQueueRef.current = [...messageQueueRef.current, ...newMsgs];
+      processQueue();
+    }
+  }, [messages]);
+
+  const processQueue = useCallback(() => {
+    if (processingRef.current) return;
+    if (messageQueueRef.current.length === 0) return;
+
+    processingRef.current = true;
+
+    const processNext = () => {
+      if (messageQueueRef.current.length > 0) {
+        const nextMsg = messageQueueRef.current.shift();
+        setDisplayedMessages(prev => [...prev, nextMsg]);
+
+        // Delay for next message
+        setTimeout(() => {
+          requestAnimationFrame(processNext);
+        }, 300); // 300ms delay between messages
+      } else {
+        processingRef.current = false;
+      }
+    };
+
+    processNext();
+  }, []);
+
   useEffect(() => {
     console.log("🖼️ showImageModal state:", showImageModal);
   }, [showImageModal]);
@@ -352,7 +404,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
         />
 
         <MessageList
-          messages={messages || []}
+          messages={displayedMessages}
           userId={user?.id}
           onReply={startReply}
           onImagePress={setShowImageModal}
