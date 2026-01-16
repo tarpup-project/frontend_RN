@@ -3,11 +3,11 @@ import { MessageImageCacheUtils } from '@/components/CachedMessageImage';
 import { UrlConstants } from '@/constants/apiUrls';
 import { asyncStorageDB, database, groupsCollection, isWatermelonAvailable } from '@/database';
 import { useAuthStore } from '@/state/authStore';
-import { CacheUtils } from '@/utils/queryClient';
 import { useNotificationStore } from '@/state/notificationStore';
+import { CacheUtils } from '@/utils/queryClient';
 import { watermelonOfflineSyncManager } from '@/utils/watermelonOfflineSync';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Q } from '@nozbe/watermelondb';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AlertMessage,
@@ -45,9 +45,9 @@ interface UseEnhancedGroupMessagesReturn {
   isRefreshing: boolean;
 }
 
-export const useEnhancedGroupMessages = ({ 
-  groupId, 
-  socket 
+export const useEnhancedGroupMessages = ({
+  groupId,
+  socket
 }: UseEnhancedGroupMessagesProps): UseEnhancedGroupMessagesReturn => {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
@@ -57,17 +57,17 @@ export const useEnhancedGroupMessages = ({
 
   // CRITICAL FIX: Load cached messages BEFORE query initialization to prevent race condition
   const [initialCacheLoaded, setInitialCacheLoaded] = useState(false);
-  
+
   // Helper function to resolve reply messages from cache
   const resolveReplyMessage = useCallback(async (replyToId: string, messages: any[]): Promise<UserMessage | undefined> => {
     if (!replyToId) return undefined;
-    
+
     // First, try to find in the current messages array
     const replyMessage = messages.find((msg: any) => {
       const uid = msg?.content?.id ?? msg?.id ?? msg?.serverId;
       return uid === replyToId;
     });
-    
+
     if (replyMessage) {
       // Support both UI GroupMessage shape and raw cached shape
       const isUIShape = !!replyMessage.messageType;
@@ -116,15 +116,15 @@ export const useEnhancedGroupMessages = ({
         } as UserMessage;
       }
     }
-    
+
     // If not found in current messages, try to load from cache using the new method
     try {
       const cachedReply = await asyncStorageDB.getMessageById(replyToId);
-      
+
       if (cachedReply) {
         const fileUrl = cachedReply.fileUrl;
-        const messageContent = cachedReply.content && cachedReply.content.trim() !== '' 
-          ? cachedReply.content 
+        const messageContent = cachedReply.content && cachedReply.content.trim() !== ''
+          ? cachedReply.content
           : (fileUrl ? '📷 Image' : '');
         return {
           content: {
@@ -148,7 +148,7 @@ export const useEnhancedGroupMessages = ({
     } catch (error) {
       console.error('❌ Failed to resolve reply message:', error);
     }
-    
+
     // If still not found, return a placeholder with the ID for reference
     return {
       content: {
@@ -167,11 +167,11 @@ export const useEnhancedGroupMessages = ({
   // Helper function to transform cached messages with proper reply resolution
   const transformCachedMessages = useCallback(async (cachedMessages: any[]): Promise<GroupMessage[]> => {
     const transformedMessages: GroupMessage[] = [];
-    
+
     for (const msg of cachedMessages) {
       // Don't modify the display message for regular messages - only use "📷 Image" for replies
       const messageContent = msg.content;
-      
+
       const baseMessage = {
         content: {
           id: msg.serverId || msg.id,
@@ -192,7 +192,7 @@ export const useEnhancedGroupMessages = ({
       } else {
         // Resolve reply message if exists
         const replyingTo = msg.replyToId ? await resolveReplyMessage(msg.replyToId, cachedMessages) : undefined;
-        
+
         transformedMessages.push({
           messageType: MessageType.USER,
           ...baseMessage,
@@ -210,7 +210,7 @@ export const useEnhancedGroupMessages = ({
         } as UserMessage);
       }
     }
-    
+
     return transformedMessages;
   }, [resolveReplyMessage]);
 
@@ -218,19 +218,19 @@ export const useEnhancedGroupMessages = ({
     const asyncMessages = await asyncStorageDB.getMessages(groupId);
     return transformCachedMessages(asyncMessages);
   }, [groupId, transformCachedMessages]);
-  
+
   // Load cached messages immediately and synchronously set initial data
   useEffect(() => {
     const loadInitialCache = async () => {
       if (!groupId || initialCacheLoaded) return;
-      
+
       try {
         console.log('📦 Loading initial cached messages for group:', groupId);
-        
+
         let cachedMessages: GroupMessage[] = [];
-        
+
         const asyncMessages = await asyncStorageDB.getMessages(groupId);
-        
+
         if (asyncMessages.length === 0) {
           console.log('⚠️ No cached messages found, attempting backup restore for group:', groupId);
           const backupMessages = await asyncStorageDB.restoreMessageBackup(groupId);
@@ -241,17 +241,17 @@ export const useEnhancedGroupMessages = ({
         } else {
           cachedMessages = await transformCachedMessages(asyncMessages);
         }
-        
+
         if (cachedMessages.length > 0) {
           console.log('✅ Setting initial cache data:', cachedMessages.length, 'messages for group:', groupId);
-          
+
           // Set initial data immediately to prevent empty state
           queryClient.setQueryData<GroupMessage[]>(
             ['groups', 'messages', groupId],
             cachedMessages
           );
         }
-        
+
         setInitialCacheLoaded(true);
       } catch (error) {
         console.error('❌ Failed to load initial cached messages for group:', groupId, error);
@@ -268,7 +268,7 @@ export const useEnhancedGroupMessages = ({
     queryFn: async (): Promise<GroupMessage[]> => {
       console.log('🔄 Fetching fresh messages for group:', groupId);
       setIsRefreshing(true);
-      
+
       if (!socket || !user) {
         console.log('⚠️ No socket or user available');
         try {
@@ -307,10 +307,10 @@ export const useEnhancedGroupMessages = ({
         const handleJoinRoom = async (data: any) => {
           if (timeout) clearTimeout(timeout);
           cleanup();
-          
+
           const freshMessages = normalizeMessagesFromJoinPayload(data);
           console.log('📥 Received fresh messages for group:', groupId, '- Count:', freshMessages.length);
-          
+
           // Save fresh messages to database cache
           try {
             if (isWatermelonAvailable) {
@@ -333,17 +333,17 @@ export const useEnhancedGroupMessages = ({
                 createdAt: msg.createdAt ? new Date(msg.createdAt).getTime() : Date.now(),
                 updatedAt: Date.now(),
               }));
-              
+
               await asyncStorageDB.saveMessages(groupId, transformedMessages);
               console.log('💾 Saved', transformedMessages.length, 'messages to AsyncStorage for group:', groupId);
-              
+
               // CRITICAL FIX: Create backup after saving fresh messages
               await asyncStorageDB.createMessageBackup(groupId);
             }
           } catch (error) {
             console.error('❌ Failed to save fresh messages to cache:', error);
           }
-          
+
           finish(freshMessages);
         };
 
@@ -351,7 +351,7 @@ export const useEnhancedGroupMessages = ({
           if (timeout) clearTimeout(timeout);
           console.error('❌ Socket error for group:', groupId, error);
           cleanup();
-          
+
           // CRITICAL FIX: Load cached messages instead of returning empty array
           try {
             const cachedMessages = await loadCachedMessages();
@@ -397,7 +397,7 @@ export const useEnhancedGroupMessages = ({
         timeout = setTimeout(async () => {
           console.log('⏰ Socket timeout for group:', groupId, '- Loading cached messages instead');
           cleanup();
-          
+
           try {
             const cachedMessages = await loadCachedMessages();
             console.log('✅ Socket timeout - returning', cachedMessages.length, 'cached messages');
@@ -420,7 +420,7 @@ export const useEnhancedGroupMessages = ({
         [SocketEvents.ERROR, 'error'].forEach((evt) =>
           socket.on(evt as any, handleError)
         );
-        
+
         if (socket.connected) {
           emitJoin();
         } else {
@@ -428,7 +428,7 @@ export const useEnhancedGroupMessages = ({
           socket.once('connect' as any, emitJoin);
           try {
             socket.connect?.();
-          } catch {}
+          } catch { }
         }
       });
     },
@@ -449,17 +449,17 @@ export const useEnhancedGroupMessages = ({
   useEffect(() => {
     const processMessages = async () => {
       if (!messages || messages.length === 0) return;
-      
+
       let hasUnresolvedReplies = false;
       const updatedMessages: GroupMessage[] = [];
-      
+
       // Collect image messages for preloading
       const imageMessages: any[] = [];
-      
+
       for (const message of messages) {
         if (message.messageType === MessageType.USER) {
           const userMessage = message as UserMessage;
-          
+
           // Collect images for preloading
           if (userMessage.file?.data) {
             imageMessages.push({
@@ -467,16 +467,16 @@ export const useEnhancedGroupMessages = ({
               file: userMessage.file,
             });
           }
-          
+
           // Check if reply needs resolution (has replyingTo but with empty content)
-          if (userMessage.replyingTo && 
-              (!userMessage.replyingTo.content.message || 
-               userMessage.replyingTo.content.message === '' ||
-               userMessage.replyingTo.content.message === '[Message not available]')) {
-            
+          if (userMessage.replyingTo &&
+            (!userMessage.replyingTo.content.message ||
+              userMessage.replyingTo.content.message === '' ||
+              userMessage.replyingTo.content.message === '[Message not available]')) {
+
             hasUnresolvedReplies = true;
             const resolvedReply = await resolveReplyMessage(userMessage.replyingTo.content.id, messages);
-            
+
             updatedMessages.push({
               ...userMessage,
               replyingTo: resolvedReply,
@@ -488,7 +488,7 @@ export const useEnhancedGroupMessages = ({
           updatedMessages.push(message);
         }
       }
-      
+
       // Preload message images in background
       if (imageMessages.length > 0) {
         console.log('🖼️ Preloading', imageMessages.length, 'message images for group:', groupId);
@@ -496,7 +496,7 @@ export const useEnhancedGroupMessages = ({
           console.warn('⚠️ Some message images failed to preload:', error);
         });
       }
-      
+
       // Only update if we found and resolved replies
       if (hasUnresolvedReplies) {
         console.log('🔄 Resolved reply references for', updatedMessages.length, 'messages');
@@ -506,7 +506,7 @@ export const useEnhancedGroupMessages = ({
         );
       }
     };
-    
+
     processMessages();
   }, [messages, groupId, queryClient, resolveReplyMessage]);
 
@@ -532,12 +532,12 @@ export const useEnhancedGroupMessages = ({
     const handleNewMessage = async (data: any) => {
       const incomingRoomId = String(
         data?.roomID ??
-          data?.roomId ??
-          data?.groupID ??
-          data?.groupId ??
-          data?.room ??
-          data?.group ??
-          ''
+        data?.roomId ??
+        data?.groupID ??
+        data?.groupId ??
+        data?.room ??
+        data?.group ??
+        ''
       );
       if (incomingRoomId && incomingRoomId !== String(groupId)) return;
 
@@ -550,10 +550,10 @@ export const useEnhancedGroupMessages = ({
       const sender = data?.sender ?? data?.user ?? {};
       const createdAt = data?.createdAt || new Date().toISOString();
       const file = data?.file;
-      
+
       // Don't modify the display message for regular messages - only use "📷 Image" for replies
       const displayMessage = contentMessage;
-      
+
       const replyingTo = data?.replyingTo;
       const type =
         data?.messageType ??
@@ -567,23 +567,23 @@ export const useEnhancedGroupMessages = ({
       const newMessage: GroupMessage =
         type === MessageType.USER
           ? ({
-              messageType: MessageType.USER,
-              ...base,
-              sender: {
-                id: sender?.id,
-                fname: sender?.fname,
-              },
-              file,
-              replyingTo: replyingTo as UserMessage,
-            } as UserMessage)
+            messageType: MessageType.USER,
+            ...base,
+            sender: {
+              id: sender?.id,
+              fname: sender?.fname,
+            },
+            file,
+            replyingTo: replyingTo as UserMessage,
+          } as UserMessage)
           : ({
-              messageType: MessageType.ALERT,
-              ...base,
-              sender: {
-                id: sender?.id,
-                fname: sender?.fname,
-              },
-            } as AlertMessage);
+            messageType: MessageType.ALERT,
+            ...base,
+            sender: {
+              id: sender?.id,
+              fname: sender?.fname,
+            },
+          } as AlertMessage);
 
       // Optimistic update with deduplication
       queryClient.setQueryData<GroupMessage[]>(
@@ -593,9 +593,9 @@ export const useEnhancedGroupMessages = ({
             (msg) => msg.content.id === newMessage.content.id
           );
           if (exists) return oldMessages;
-          
+
           const updatedMessages = [...oldMessages, newMessage];
-          
+
           // Save to database cache
           const saveToCache = async () => {
             try {
@@ -617,7 +617,7 @@ export const useEnhancedGroupMessages = ({
                   createdAt: new Date(createdAt).getTime(),
                   updatedAt: Date.now(),
                 });
-                
+
                 // CRITICAL FIX: Create backup after adding new message
                 await asyncStorageDB.createMessageBackup(groupId);
               }
@@ -626,7 +626,7 @@ export const useEnhancedGroupMessages = ({
             }
           };
           saveToCache();
-          
+
           return updatedMessages;
         }
       );
@@ -648,10 +648,10 @@ export const useEnhancedGroupMessages = ({
     };
   }, [socket, user?.id, groupId, queryClient]);
 
-  const sendMessage = useCallback(async ({ 
-    message, 
-    file, 
-    replyingTo 
+  const sendMessage = useCallback(async ({
+    message,
+    file,
+    replyingTo
   }: SendMessageOptions): Promise<boolean> => {
     if (!user || (!message.trim() && !file)) {
       return false;
@@ -664,7 +664,7 @@ export const useEnhancedGroupMessages = ({
     try {
       // Don't modify the display message for regular messages - only use "📷 Image" for replies
       const displayMessage = message.trim();
-      
+
       const payload: SendMessagePayload = {
         roomID: groupId,
         messageType: MessageType.USER,
@@ -729,11 +729,11 @@ export const useEnhancedGroupMessages = ({
       // If offline, add to sync queue
       if (!socket || !socket.connected) {
         console.log('📱 Offline - adding message to sync queue');
-        
+
         try {
           watermelonOfflineSyncManager.addToQueue('message', { ...payload, tempId }, 3);
-        } catch {}
-        
+        } catch { }
+
         setIsSending(false);
         return true;
       }
@@ -746,15 +746,15 @@ export const useEnhancedGroupMessages = ({
             queryClient.setQueryData<GroupMessage[]>(
               ['groups', 'messages', groupId],
               (old = []) => {
-                const updated = old.map(msg => 
-                  msg.content.id === tempId 
+                const updated = old.map(msg =>
+                  msg.content.id === tempId
                     ? { ...msg, content: { ...msg.content, id: messageId } }
                     : msg
                 );
                 return updated;
               }
             );
-            
+
             // Update cache with real message ID
             const updateCache = async () => {
               try {
@@ -762,8 +762,8 @@ export const useEnhancedGroupMessages = ({
                   // TODO: Update WatermelonDB
                 } else {
                   const messages = await asyncStorageDB.getMessages(groupId);
-                  const updatedMessages = messages.map(msg => 
-                    msg.id === tempId 
+                  const updatedMessages = messages.map(msg =>
+                    msg.id === tempId
                       ? { ...msg, id: messageId, serverId: messageId, isPending: false, isSynced: true }
                       : msg
                   );
@@ -774,7 +774,7 @@ export const useEnhancedGroupMessages = ({
               }
             };
             updateCache();
-            
+
             markAsRead();
             resolve(true);
           } else {
@@ -786,7 +786,7 @@ export const useEnhancedGroupMessages = ({
                 return updated;
               }
             );
-            
+
             // Remove from cache
             const removeFromCache = async () => {
               try {
@@ -802,7 +802,7 @@ export const useEnhancedGroupMessages = ({
               }
             };
             removeFromCache();
-            
+
             resolve(false);
           }
           setIsSending(false);
@@ -823,7 +823,7 @@ export const useEnhancedGroupMessages = ({
   const markAsRead = useCallback(async () => {
     try {
       await api.post(UrlConstants.markGroupMessageAsRead(groupId));
-      
+
       const matchedLists = queryClient.getQueriesData<Group[]>({ queryKey: groupsKeys.lists() });
       let previousUnread = 0;
       for (const [, groups] of matchedLists) {
@@ -835,7 +835,7 @@ export const useEnhancedGroupMessages = ({
       }
 
       queryClient.setQueriesData<Group[]>(
-        { queryKey: groupsKeys.lists() }, 
+        { queryKey: groupsKeys.lists() },
         (old) => {
           if (!old) return old as any;
           return old.map(g => (g.id === groupId ? { ...g, unread: 0 } : g));
@@ -865,11 +865,11 @@ export const useEnhancedGroupMessages = ({
           console.error('❌ Failed to sync Watermelon unread count:', wmError);
         }
       }
-      
+
       CacheUtils.invalidateAll();
     } catch (err) {
       console.error('❌ Failed to mark messages as read:', err);
-      
+
       const status = (err as any)?.response?.status;
       const isNetworkLikeFailure = !status;
       if (!isNetworkLikeFailure) return;
@@ -880,7 +880,7 @@ export const useEnhancedGroupMessages = ({
 
       try {
         watermelonOfflineSyncManager.addToQueue('read_status', { groupId }, 2);
-      } catch {}
+      } catch { }
     }
   }, [groupId, queryClient]);
 
@@ -924,11 +924,11 @@ export const formatTimeAgo = (dateString: string): string => {
   const now = new Date();
   const date = new Date(dateString);
   const diffInMs = now.getTime() - date.getTime();
-  
+
   const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
   const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
   const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-  
+
   if (diffInMinutes < 1) {
     return 'Just now';
   } else if (diffInMinutes < 60) {
