@@ -1,6 +1,6 @@
 import { MessageType, UserMessage } from "@/types/groups";
 import { timeAgo } from "@/utils/timeUtils";
-import React, { useEffect, useMemo, useRef, useCallback } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { ScrollView, StyleSheet } from "react-native";
 import {
   Gesture,
@@ -34,13 +34,13 @@ export const MessageList: React.FC<MessageListProps> = ({
 
   const handleScrollToMessage = useCallback((messageId: string) => {
     console.log("🎯 Attempting to scroll to message:", messageId);
-    
+
     const messageRef = messageRefs.current.get(messageId);
     if (!messageRef) {
       console.log("❌ Message ref not found for:", messageId);
       return;
     }
-    
+
     if (!scrollViewRef.current) {
       console.log("❌ ScrollView ref not available");
       return;
@@ -50,9 +50,9 @@ export const MessageList: React.FC<MessageListProps> = ({
       scrollViewRef.current,
       (x: number, y: number) => {
         console.log("✅ Measured position:", { x, y });
-        scrollViewRef.current?.scrollTo({ 
-          y: Math.max(0, y - 100), 
-          animated: true 
+        scrollViewRef.current?.scrollTo({
+          y: Math.max(0, y - 100),
+          animated: true
         });
       },
       (error: any) => {
@@ -99,24 +99,65 @@ export const MessageList: React.FC<MessageListProps> = ({
   }, [messages, userId]);
 
 
-  useEffect(() => {
-    if (messages.length > 0) {
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+  const contentHeight = useRef(0);
+  const layoutHeight = useRef(0);
+  const msgListScrollY = useRef(0);
+  const isScrolling = useRef(false);
+
+  const smoothScrollToBottom = useCallback(() => {
+    if (isScrolling.current) return;
+
+    const maxOffset = contentHeight.current - layoutHeight.current;
+    if (maxOffset < 0) return;
+
+    const startY = msgListScrollY.current;
+    const distance = maxOffset - startY;
+
+    // If distance is small, just jump
+    if (distance < 50) {
+      scrollViewRef.current?.scrollTo({ y: maxOffset, animated: true });
+      return;
     }
-  }, [messages.length]);
+
+    const duration = 1500; // 1.5 seconds duration (slower than default)
+    const startTime = Date.now();
+    isScrolling.current = true;
+
+    const animateScroll = () => {
+      const now = Date.now();
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      // Easing function (easeOutQuart)
+      const ease = 1 - Math.pow(1 - progress, 4);
+
+      const currentY = startY + (distance * ease);
+
+      scrollViewRef.current?.scrollTo({ y: currentY, animated: false });
+
+      if (progress < 1) {
+        requestAnimationFrame(animateScroll);
+      } else {
+        isScrolling.current = false;
+      }
+    };
+
+    requestAnimationFrame(animateScroll);
+  }, []);
+
+  // Removed the basic useEffect that called scrollToEnd
+  // Scrolling is now handled in onContentSizeChange
 
   useEffect(() => {
     const currentMessageIds = new Set(messages.map(msg => msg.content.id));
     const refsToDelete: string[] = [];
-    
+
     messageRefs.current.forEach((_, id) => {
       if (!currentMessageIds.has(id)) {
         refsToDelete.push(id);
       }
     });
-    
+
     refsToDelete.forEach(id => messageRefs.current.delete(id));
   }, [messages, messageRefs]);
 
@@ -127,6 +168,24 @@ export const MessageList: React.FC<MessageListProps> = ({
         style={styles.messagesContainer}
         contentContainerStyle={styles.messagesContent}
         showsVerticalScrollIndicator={false}
+        onLayout={(e) => {
+          layoutHeight.current = e.nativeEvent.layout.height;
+        }}
+        onContentSizeChange={(w, h) => {
+          contentHeight.current = h;
+          // Auto-scroll when content size changes (new messages)
+          // Only scroll if we were already near bottom or it's the first load
+          if (messages.length > 0) {
+            // Use a small delay to ensure layout is stable
+            setTimeout(() => {
+              smoothScrollToBottom();
+            }, 100);
+          }
+        }}
+        onScroll={(e) => {
+          msgListScrollY.current = e.nativeEvent.contentOffset.y;
+        }}
+        scrollEventThrottle={16}
       >
         {transformedMessages.map((msg) => (
           <MessageItem

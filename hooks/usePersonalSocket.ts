@@ -15,6 +15,7 @@ export const usePersonalSocket = (): UsePersonalSocketReturn => {
   const { user } = useAuthStore();
   const { incrementNotification } = useNotificationStore();
   const reconnectTimeoutRef = useRef<number | undefined>(undefined);
+  const connectAtRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -25,6 +26,7 @@ export const usePersonalSocket = (): UsePersonalSocketReturn => {
     });
 
     newSocket.on("connect", () => {
+      connectAtRef.current = Date.now();
       console.log("✅ Personal socket connected");
       console.log("📤 Emitting joinPersonalRoom:", { roomID: user.id });
       setIsConnected(true);
@@ -49,6 +51,17 @@ export const usePersonalSocket = (): UsePersonalSocketReturn => {
       
       console.log('🔔 New personal message received via socket, updating badge');
       incrementNotification('personal');
+      if (connectAtRef.current) {
+        const latency = Date.now() - connectAtRef.current;
+        console.log(`⏱️ Personal DM latency since connect: ${latency}ms`);
+      }
+    });
+
+    newSocket.on("messagePersonalRoom", () => {
+      if (connectAtRef.current) {
+        const latency = Date.now() - connectAtRef.current;
+        console.log(`⏱️ Personal DM latency since connect: ${latency}ms`);
+      }
     });
 
     setSocket(newSocket);
@@ -57,6 +70,7 @@ export const usePersonalSocket = (): UsePersonalSocketReturn => {
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
+      connectAtRef.current = null;
       newSocket.disconnect();
     };
   }, [user?.id]);
