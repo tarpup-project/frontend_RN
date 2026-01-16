@@ -29,7 +29,7 @@ if (Platform.OS === 'android') {
     const MapboxGLModule = require('@react-native-mapbox-gl/maps');
     console.log('🔍 Raw MapboxGL module:', MapboxGLModule);
     console.log('🔍 MapboxGL keys:', Object.keys(MapboxGLModule));
-    
+
     // Try different possible structures
     if (MapboxGLModule.default) {
       MapboxGL = MapboxGLModule.default;
@@ -38,11 +38,11 @@ if (Platform.OS === 'android') {
       MapboxGL = MapboxGLModule;
       console.log('🔍 Using direct export, keys:', Object.keys(MapboxGL));
     }
-    
+
     // Initialize Mapbox GL for Android
     const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
     console.log('🔍 Token available:', !!token);
-    
+
     if (token) {
       if (MapboxGL.setAccessToken) {
         MapboxGL.setAccessToken(token);
@@ -87,7 +87,7 @@ export default function TarpsScreen() {
 
   const [myTarpsModalVisible, setMyTarpsModalVisible] = useState(false);
   const [recents, setRecents] = useState<MediaLibrary.Asset[]>([]);
-  
+
   // Map and Posts State
   const [viewMode, setViewMode] = useState<"people" | "posts">("posts");
   const [mapRegion, setMapRegion] = useState(location);
@@ -127,6 +127,7 @@ export default function TarpsScreen() {
     latitudeDelta: number;
     longitudeDelta: number;
     zoomLevel?: number; // For Mapbox
+    posts?: any[]; // Cached posts state
   }>>([]);
   const [loadingMessage, setLoadingMessage] = useState(false);
   const [loadingNavigate, setLoadingNavigate] = useState(false);
@@ -143,12 +144,12 @@ export default function TarpsScreen() {
   // Debug modal state changes and prevent conflicts
   useEffect(() => {
     console.log("🔍 Map confirm modal state changed:", showMapConfirmModal);
-    
+
     // If trying to show confirmation modal while person modal is still open, delay it
     if (showMapConfirmModal && personOpen) {
       console.log("⚠️ Modal conflict detected! Person modal still open, delaying confirmation modal");
       setShowMapConfirmModal(false);
-      
+
       // Retry after person modal closes
       setTimeout(() => {
         if (!personOpen) {
@@ -171,7 +172,7 @@ export default function TarpsScreen() {
   const socketRef = useRef<any | null>(null);
   const lastPostRequestId = useRef(0);
   const lastPeopleRequestId = useRef(0);
-  
+
   // Refs for accessing latest state in async functions
   const knownPostsRef = useRef(knownPosts);
   const previewedPostsRef = useRef(previewedPosts);
@@ -195,8 +196,8 @@ export default function TarpsScreen() {
   const durationOptions = ["1 hour", "2 hours", "5 hours", "1 day"];
 
   const suggestions = [
-    "studying", "eating lunch", "working out", "hanging out", 
-    "in class", "at meeting", "chilling", "grabbing coffee", 
+    "studying", "eating lunch", "working out", "hanging out",
+    "in class", "at meeting", "chilling", "grabbing coffee",
     "at event", "playing sports"
   ];
 
@@ -294,14 +295,14 @@ export default function TarpsScreen() {
       updated.delete(postId);
       return updated;
     });
-    
+
     setPreviewedPosts(prev => {
       const updated = new Set(prev);
       updated.add(postId);
       savePreviewedPosts(updated);
       return updated;
     });
-    
+
     console.log("Post marked as previewed:", postId);
   };
 
@@ -312,14 +313,14 @@ export default function TarpsScreen() {
       postIds.forEach(id => updated.delete(id));
       return updated;
     });
-    
+
     setPreviewedPosts(prev => {
       const updated = new Set(prev);
       postIds.forEach(id => updated.add(id));
       savePreviewedPosts(updated);
       return updated;
     });
-    
+
     console.log("Posts marked as previewed:", postIds);
   };
 
@@ -339,18 +340,18 @@ export default function TarpsScreen() {
   // Function to handle reported post
   const handleReportedPost = (postId: string) => {
     console.log("🚫 Handling reported post:", postId);
-    
+
     // Update reported posts set
     const updatedReported = new Set(reportedPostsRef.current);
     updatedReported.add(postId);
     setReportedPosts(updatedReported);
     AsyncStorage.setItem('reportedPosts', JSON.stringify(Array.from(updatedReported)));
-    
+
     // Remove from global posts
     const updatedGlobal = globalPosts.filter(p => {
       // Check if this post is the reported one
       if (p.id === postId) return false;
-      
+
       // Check if it's a cluster containing the reported post
       if (p.items && Array.isArray(p.items)) {
         p.items = p.items.filter((item: any) => item.id !== postId);
@@ -361,13 +362,13 @@ export default function TarpsScreen() {
       }
       return true;
     });
-    
+
     setGlobalPosts(updatedGlobal);
     if (viewMode === 'posts') {
       setServerPosts(updatedGlobal);
     }
     AsyncStorage.setItem('globalPosts', JSON.stringify(updatedGlobal)).catch(e => console.error("Failed to save global posts", e));
-    
+
     // Also remove from known/previewed if needed, but not strictly required as they won't render
   };
 
@@ -414,11 +415,11 @@ export default function TarpsScreen() {
   // Hand animation blinking effect
   useEffect(() => {
     if (!showHandAnimation) return;
-    
+
     const blinkInterval = setInterval(() => {
       setHandAnimationVisible(prev => !prev);
     }, 1500); // Blink every 1.5 seconds
-    
+
     return () => {
       clearInterval(blinkInterval);
     };
@@ -427,11 +428,11 @@ export default function TarpsScreen() {
   // Auto-hide hand animation after 10 seconds, but only in posts view
   useEffect(() => {
     if (viewMode !== "posts") return;
-    
+
     const hideTimer = setTimeout(() => {
       setShowHandAnimation(false);
     }, 10000); // Hide after 10 seconds
-    
+
     return () => {
       clearTimeout(hideTimer);
     };
@@ -469,7 +470,7 @@ export default function TarpsScreen() {
     (async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
-        
+
         if (status === "granted") {
           // User granted permission, get their actual location
           setHasLocationPermission(true);
@@ -498,7 +499,7 @@ export default function TarpsScreen() {
           try {
             const parsed = JSON.parse(saved);
             if (Array.isArray(parsed)) setMarkers(parsed);
-          } catch {}
+          } catch { }
         }
       } catch (error) {
         // Handle any errors by using default location
@@ -517,7 +518,7 @@ export default function TarpsScreen() {
 
 
 
-  
+
   const computeZoomLevel = (region: typeof location) => {
     if (!region) return 10;
     const delta = region.longitudeDelta || 0.05;
@@ -555,8 +556,8 @@ export default function TarpsScreen() {
     });
     return `/tarps/people?${query.toString()}`;
   };
- 
- 
+
+
   const loadPostsInView = async (region: typeof location) => {
     if (!region) return;
     const requestId = ++lastPostRequestId.current;
@@ -635,9 +636,9 @@ export default function TarpsScreen() {
         mapped = mapped.filter(p => {
           if (reportedPostsRef.current.has(p.id)) return false;
           if (p.items && Array.isArray(p.items)) {
-             p.items = p.items.filter((item: any) => !reportedPostsRef.current.has(item.id));
-             if (p.items.length === 0) return false;
-             p.count = p.items.length;
+            p.items = p.items.filter((item: any) => !reportedPostsRef.current.has(item.id));
+            if (p.items.length === 0) return false;
+            p.count = p.items.length;
           }
           return true;
         });
@@ -647,7 +648,7 @@ export default function TarpsScreen() {
       const newPosts = new Set<string>();
       const currentKnownPosts = new Map(knownPosts);
       let hasNewPosts = false;
-      
+
       // Process all individual posts from clusters and single posts
       const allIndividualPosts: any[] = [];
       mapped.forEach(cluster => {
@@ -655,22 +656,22 @@ export default function TarpsScreen() {
           allIndividualPosts.push(...cluster.items);
         }
       });
-      
+
       console.log("Processing individual posts:", {
         totalClusters: mapped.length,
         totalIndividualPosts: allIndividualPosts.length,
         knownPostsCount: knownPosts.size,
         previewedPostsCount: previewedPosts.size
       });
-      
+
       // Check each individual post
       allIndividualPosts.forEach(post => {
         const postId = post.id;
         const postLat = Number(post.lat || post.latitude);
         const postLng = Number(post.lng || post.longitude);
-        
+
         if (!postId || isNaN(postLat) || isNaN(postLng)) return;
-        
+
         // Check if this post ID is known
         if (!knownPosts.has(postId)) {
           console.log("🆕 New post detected:", {
@@ -678,7 +679,7 @@ export default function TarpsScreen() {
             location: `${postLat}, ${postLng}`,
             caption: post.caption?.substring(0, 30) + "..."
           });
-          
+
           // Add to known posts (posts seen on map)
           currentKnownPosts.set(postId, {
             lat: postLat,
@@ -687,7 +688,7 @@ export default function TarpsScreen() {
           });
           hasNewPosts = true;
         }
-        
+
         // Check if post should show red border (known but not previewed)
         if (knownPosts.has(postId) && !previewedPosts.has(postId)) {
           newPosts.add(postId);
@@ -696,23 +697,23 @@ export default function TarpsScreen() {
           newPosts.add(postId);
         }
       });
-      
+
       // Update known posts if we found new ones
       if (hasNewPosts) {
         setKnownPosts(currentKnownPosts);
         saveKnownPosts(currentKnownPosts);
       }
-      
+
       console.log("New post detection results:", {
         newPostsFound: newPosts.size,
         newPostIds: Array.from(newPosts),
         totalKnownPosts: currentKnownPosts.size,
         totalPreviewedPosts: previewedPosts.size
       });
-      
+
       // Update new posts state
       setNewPostIds(newPosts);
-      
+
       setServerPosts(mapped);
       console.log("PostsInView:mappedSample", JSON.stringify(mapped[0], null, 2));
       console.log("PostsInView:loaded", { count: mapped.length });
@@ -721,7 +722,7 @@ export default function TarpsScreen() {
       // Keep previous posts on error to prevent flickering
     }
   };
- 
+
   const loadPeopleInView = async (region: typeof location) => {
     if (!region) return;
     const requestId = ++lastPeopleRequestId.current;
@@ -732,10 +733,10 @@ export default function TarpsScreen() {
       const res = await api.get(url);
       if (requestId !== lastPeopleRequestId.current) return;
       console.log("PeopleInView:response", { status: res?.status, ok: res?.status >= 200 && res?.status < 300 });
-console.log(
-  "PeopleInView:rawData",
-  JSON.stringify(res?.data, null, 2)
-);
+      console.log(
+        "PeopleInView:rawData",
+        JSON.stringify(res?.data, null, 2)
+      );
       const list = (res as any).data?.data || (res as any).data?.people || (res as any).data;
       console.log("PeopleInView:listResolved", {
         isArray: Array.isArray(list),
@@ -766,18 +767,18 @@ console.log(
       };
       const mapped = Array.isArray(list)
         ? list
-            .map((p: any) => ({
-              id: String(p.id ?? `${p.lat}-${p.lng}-${p.owner?.id ?? ""}`),
-              latitude: Number(p.lat ?? p.latitude),
-              longitude: Number(p.lng ?? p.longitude),
-              imageUrl: resolveImageUrl(p) ?? resolveImageUrl(p?.owner) ?? undefined,
-              owner: p.owner,
-              locationName: p.locationName ?? p.owner?.locationName ?? p.location ?? p.owner?.location ?? "",
-              activity: p.activity ?? p.statusActivity ?? p.owner?.activity ?? p.owner?.status ?? "",
-              caption: p.caption ?? p.owner?.caption ?? "",
-              lastActiveAt: p.lastActiveAt ?? p.owner?.lastActiveAt ?? p.updatedAt ?? p.owner?.updatedAt ?? null,
-            }))
-            .filter((p: any) => !isNaN(p.latitude) && !isNaN(p.longitude))
+          .map((p: any) => ({
+            id: String(p.id ?? `${p.lat}-${p.lng}-${p.owner?.id ?? ""}`),
+            latitude: Number(p.lat ?? p.latitude),
+            longitude: Number(p.lng ?? p.longitude),
+            imageUrl: resolveImageUrl(p) ?? resolveImageUrl(p?.owner) ?? undefined,
+            owner: p.owner,
+            locationName: p.locationName ?? p.owner?.locationName ?? p.location ?? p.owner?.location ?? "",
+            activity: p.activity ?? p.statusActivity ?? p.owner?.activity ?? p.owner?.status ?? "",
+            caption: p.caption ?? p.owner?.caption ?? "",
+            lastActiveAt: p.lastActiveAt ?? p.owner?.lastActiveAt ?? p.updatedAt ?? p.owner?.updatedAt ?? null,
+          }))
+          .filter((p: any) => !isNaN(p.latitude) && !isNaN(p.longitude))
         : [];
       setServerPeople(mapped);
       console.log("PeopleInView:mappedSample", JSON.stringify(mapped[0], null, 2));
@@ -797,31 +798,31 @@ console.log(
       toast.error("Please sign in to message");
       return;
     }
-    
+
     try {
       setLoadingMessage(true);
       setChatOpen(true);
       setPersonOpen(false);
-      
+
       console.log("Loading messages for user:", selectedPerson.owner.id);
       const res = await api.get(UrlConstants.fetchPeopleMessages(String(selectedPerson.owner.id)));
       const data = (res as any)?.data?.data || (res as any)?.data;
-      
+
       console.log("Messages response:", data);
       setGroupDetails(data?.groupDetails || null);
       setGroupMessages(Array.isArray(data?.messages) ? data.messages : []);
-      
+
       setTimeout(() => {
         if (chatScrollRef.current) {
           chatScrollRef.current.scrollToEnd({ animated: true });
         }
       }, 100);
     } catch (e: any) {
-      console.log("PeopleMessage:error", { 
-        status: e?.response?.status, 
-        data: e?.response?.data, 
+      console.log("PeopleMessage:error", {
+        status: e?.response?.status,
+        data: e?.response?.data,
         message: e?.message,
-        stack: e?.stack 
+        stack: e?.stack
       });
       toast.error("Failed to load messages");
       setChatOpen(false); // Close chat on error
@@ -832,32 +833,32 @@ console.log(
 
   const handleNavigate = () => {
     console.log("🔄 Navigate button clicked - SIMPLE VERSION");
-    
+
     // Prevent multiple rapid clicks during modal transitions
     if (modalTransitioning) {
       console.log("⚠️ Modal transition in progress, ignoring click");
       return;
     }
-    
+
     // Simple validation
     if (!selectedPerson) {
       console.log("❌ No selected person");
       toast.error("No person selected");
       return;
     }
-    
+
     if (!user) {
       console.log("❌ User not authenticated");
       toast.error("Please sign in first");
       return;
     }
-    
+
     console.log("✅ Starting modal transition...");
     setModalTransitioning(true);
-    
+
     // Close the person modal first to prevent conflicts
     setPersonOpen(false);
-    
+
     // Use longer timeout to ensure person modal fully closes and React Native modal stack is cleared
     setTimeout(() => {
       console.log("✅ Person modal should be closed, now showing confirmation modal");
@@ -875,9 +876,9 @@ console.log(
     try {
       setLoadingViewers(true);
       setShowViewersList(true);
-      
+
       const response = await api.get(UrlConstants.fetchFriendsPrivacy);
-      
+
       if (response.data?.status === 'success' && Array.isArray(response.data?.data)) {
         const viewers = response.data.data
           .filter((f: any) => f.locationVisible !== false) // Include undefined (default true) and explicit true
@@ -972,10 +973,10 @@ console.log(
 
   const loadGlobalPosts = async () => {
     if (isLoadingGlobalPosts) return;
-    
+
     try {
       setIsLoadingGlobalPosts(true);
-      
+
       // World view parameters - covers the entire globe
       const worldViewport = {
         minLat: -90,
@@ -984,7 +985,7 @@ console.log(
         maxLng: 180,
         zoomLevel: 1 // World zoom level
       };
-      
+
       const query = new URLSearchParams({
         minLat: worldViewport.minLat.toString(),
         maxLat: worldViewport.maxLat.toString(),
@@ -992,16 +993,16 @@ console.log(
         maxLng: worldViewport.maxLng.toString(),
         zoomLevel: worldViewport.zoomLevel.toString(),
       });
-      
+
       const url = `/tarps/posts?${query.toString()}`;
       console.log("🌍 Loading global posts in background:", { url, viewport: worldViewport });
-      
+
       const res = await api.get(url);
       console.log("🌍 Global posts response:", { status: res?.status, ok: res?.status >= 200 && res?.status < 300 });
-      
+
       const list = (res as any).data?.data || (res as any).data?.posts || (res as any).data;
       console.log("🌍 Global posts raw data:", { isArray: Array.isArray(list), length: Array.isArray(list) ? list.length : undefined });
-      
+
       // Process the posts similar to loadPostsInView
       const resolveImageUrl = (item: any): string | null => {
         if (!item || typeof item !== "object") return null;
@@ -1017,7 +1018,7 @@ console.log(
         if (/^https?:\/\//i.test(raw)) return raw;
         return `${UrlConstants.baseUrl}${raw.startsWith("/") ? "" : "/"}${raw}`;
       };
-      
+
       let mapped: { id: string; image: string | null; latitude: number; longitude: number; count?: number; items?: any[] }[] = [];
       if (Array.isArray(list)) {
         const looksLikeGrid = list.length > 0 && typeof list[0]?.avgLat === "number" && typeof list[0]?.avgLng === "number" && "result" in list[0];
@@ -1059,20 +1060,20 @@ console.log(
         mapped = mapped.filter(p => {
           if (reportedPostsRef.current.has(p.id)) return false;
           if (p.items && Array.isArray(p.items)) {
-             p.items = p.items.filter((item: any) => !reportedPostsRef.current.has(item.id));
-             if (p.items.length === 0) return false;
-             p.count = p.items.length;
+            p.items = p.items.filter((item: any) => !reportedPostsRef.current.has(item.id));
+            if (p.items.length === 0) return false;
+            p.count = p.items.length;
           }
           return true;
         });
       }
-      
+
       // Detect new posts by comparing individual post IDs and locations
       const newPosts = new Set<string>();
       // Use ref to get latest known posts (avoid closure staleness)
       const currentKnownPosts = new Map(knownPostsRef.current);
       let hasNewPosts = false;
-      
+
       // Process all individual posts from clusters and single posts
       const allIndividualPosts: any[] = [];
       mapped.forEach(cluster => {
@@ -1080,15 +1081,15 @@ console.log(
           allIndividualPosts.push(...cluster.items);
         }
       });
-      
+
       // Check each individual post
       allIndividualPosts.forEach(post => {
         const postId = post.id;
         const postLat = Number(post.lat || post.latitude);
         const postLng = Number(post.lng || post.longitude);
-        
+
         if (!postId || isNaN(postLat) || isNaN(postLng)) return;
-        
+
         // Check if this post ID is known
         if (!knownPostsRef.current.has(postId)) {
           // Add to known posts (posts seen on map)
@@ -1099,7 +1100,7 @@ console.log(
           });
           hasNewPosts = true;
         }
-        
+
         // Check if post should show red border (known but not previewed)
         if (knownPostsRef.current.has(postId) && !previewedPostsRef.current.has(postId)) {
           newPosts.add(postId);
@@ -1108,21 +1109,21 @@ console.log(
           newPosts.add(postId);
         }
       });
-      
+
       // Update known posts if we found new ones
       if (hasNewPosts) {
         setKnownPosts(currentKnownPosts);
         saveKnownPosts(currentKnownPosts);
       }
-      
+
       // Update new posts state
       setNewPostIds(newPosts);
-      
+
       setGlobalPosts(mapped);
       setServerPosts(mapped); // Populate map with global posts
       AsyncStorage.setItem('globalPosts', JSON.stringify(mapped)).catch(e => console.error("Failed to save global posts", e));
       console.log("🌍 Global posts loaded and mapped successfully:", { count: mapped.length });
-      
+
       return mapped;
     } catch (e: any) {
       console.log("🌍 Global posts error:", { status: e?.response?.status, data: e?.response?.data, message: e?.message });
@@ -1135,7 +1136,7 @@ console.log(
 
   useEffect(() => {
     if (!location || isRestoringGlobalPosts) return;
-    
+
     // Load data for the current view mode
     if (viewMode === "people") {
       loadPeopleInView(location);
@@ -1236,13 +1237,13 @@ console.log(
     if (!groupMessages || !Array.isArray(groupMessages)) {
       return [];
     }
-    
+
     return groupMessages.map((m: any, index: number) => {
       const isOwn = m?.sender?.id === user?.id;
       const displayName = selectedPerson?.owner?.fname || "User";
       const initial = (displayName?.[0] ?? "U").toUpperCase();
       const timeString = m?.createdAt ? moment(m.createdAt).fromNow() : "";
-      
+
       return {
         ...m,
         isOwn,
@@ -1259,17 +1260,17 @@ console.log(
     if (!item) {
       return null;
     }
-    
+
     return (
       <View style={{ gap: 6 }}>
         <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
           {!item.isOwn && (
             <>
               {selectedPerson?.imageUrl ? (
-                <ExpoImage 
-                  source={{ uri: selectedPerson.imageUrl }} 
-                  style={{ width: 24, height: 24, borderRadius: 12 }} 
-                  contentFit="cover" 
+                <ExpoImage
+                  source={{ uri: selectedPerson.imageUrl }}
+                  style={{ width: 24, height: 24, borderRadius: 12 }}
+                  contentFit="cover"
                 />
               ) : (
                 <View style={{ width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "#888" }}>
@@ -1279,17 +1280,17 @@ console.log(
             </>
           )}
           <View style={[
-            { 
-              paddingHorizontal: 12, 
-              paddingVertical: 10, 
-              borderRadius: 12, 
-              flex: 1, 
+            {
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+              borderRadius: 12,
+              flex: 1,
               marginRight: item.isOwn ? 0 : 16,
               marginLeft: item.isOwn ? 16 : 0,
               alignSelf: item.isOwn ? "flex-end" : "flex-start",
               maxWidth: "80%"
             },
-            item.isOwn 
+            item.isOwn
               ? { backgroundColor: "#0a0a0a" }
               : isDark ? { backgroundColor: "#1A1A1A" } : { backgroundColor: "#F5F5F5" }
           ]}>
@@ -1321,19 +1322,19 @@ console.log(
   // Calculate optimal bounds for posts/people
   const calculateOptimalBounds = (items: any[]) => {
     if (items.length === 0) return null;
-    
+
     const lats = items.map(item => item.latitude || item.lat || 0);
     const lngs = items.map(item => item.longitude || item.lng || 0);
-    
+
     const minLat = Math.min(...lats);
     const maxLat = Math.max(...lats);
     const minLng = Math.min(...lngs);
     const maxLng = Math.max(...lngs);
-    
+
     // Add padding around the bounds
     const latPadding = (maxLat - minLat) * 0.1 || 0.01;
     const lngPadding = (maxLng - minLng) * 0.1 || 0.01;
-    
+
     return {
       latitude: (minLat + maxLat) / 2,
       longitude: (minLng + maxLng) / 2,
@@ -1342,94 +1343,123 @@ console.log(
     };
   };
 
-  // Intelligent zoom in - zoom to areas with posts/people
-  const handleZoomIn = () => {
-    const currentItems = viewMode === "posts" ? serverPosts : serverPeople;
-    const flatItems = viewMode === "posts" 
-      ? serverPosts.flatMap(p => p.items || [p])
-      : serverPeople;
-    
-    if (flatItems.length === 0) {
-      console.log(`No ${viewMode} found to zoom to`);
+  // Helper to immediately separate a cluster into individual posts or smaller sub-clusters
+  const handleClusterExpansion = (clusterId: string, items: any[]) => {
+    console.log("💥 Optimistically expanding cluster:", clusterId, "items:", items.length);
+
+    if (items.length <= 1) return;
+
+    // 1. Calculate the bounding box of the items to determine scale
+    const lats = items.map(i => Number(i.latitude ?? i.lat));
+    const lngs = items.map(i => Number(i.longitude ?? i.lng));
+    const minLat = Math.min(...lats);
+    const maxLat = Math.max(...lats);
+    const minLng = Math.min(...lngs);
+    const maxLng = Math.max(...lngs);
+
+    const latSpan = maxLat - minLat;
+    const lngSpan = maxLng - minLng;
+
+    // If items are practically at the same spot, we can't sub-cluster by location.
+    // Fallback to exploding them so they might be visible if the map handles collisions or just show them overlapping.
+    if (latSpan < 0.0001 && lngSpan < 0.0001) {
+      // Just explode to individuals (as before)
+      const expandedPosts = items
+        .map((item: any) => {
+          const img = extractImageUrl(item);
+          const lat = Number(item.latitude ?? item.lat);
+          const lng = Number(item.longitude ?? item.lng);
+          if (!img || isNaN(lat) || isNaN(lng)) return null;
+          return {
+            id: String(item.id ?? `${lat}-${lng}-${Math.random()}`),
+            image: img,
+            latitude: lat,
+            longitude: lng,
+            count: 1,
+            isCluster: false,
+            items: [item]
+          };
+        })
+        .filter((p: any) => p !== null) as typeof serverPosts;
+
+      if (expandedPosts.length === 0) return;
+      setServerPosts(prev => {
+        const otherPosts = prev.filter(p => p.id !== clusterId);
+        return [...otherPosts, ...expandedPosts];
+      });
       return;
     }
 
-    if (Platform.OS === 'android' && useMapboxGL) {
-      // Mapbox GL zoom in logic using state
-      const bounds = calculateOptimalBounds(flatItems);
-      if (!bounds) return;
+    // 2. Determine clustering radius (e.g., 1/3 or 1/4 of the span)
+    // This controls how aggressive the sub-clustering is.
+    // A divisor of 3 or 4 usually breaks a large cluster into 3-5 distinct sub-groups.
+    const radiusLat = Math.max(latSpan / 3.5, 0.00005);
+    const radiusLng = Math.max(lngSpan / 3.5, 0.00005);
 
-      const centerLat = bounds.latitude;
-      const centerLng = bounds.longitude;
-      
-      // Progressive zoom levels for Mapbox GL
-      const zoomLevels = [2, 5, 8, 11, 14, 16, 18];
-      
-      if (currentZoomLevel >= zoomLevels.length - 1) {
-        console.log("Already at maximum zoom level");
-        return;
-      }
-      
-      // Record current state before zooming in
-      setZoomHistory(prev => [...prev, {
-        latitude: mapboxCamera.centerCoordinate[1],
-        longitude: mapboxCamera.centerCoordinate[0],
-        latitudeDelta: 0, // Not used for Mapbox
-        longitudeDelta: 0, // Not used for Mapbox
-        zoomLevel: zoomLevels[currentZoomLevel]
-      }]);
-      
-      const targetZoom = zoomLevels[currentZoomLevel + 1];
-      
-      setMapboxCamera({
-        centerCoordinate: [centerLng, centerLat],
-        zoomLevel: targetZoom,
-        animationDuration: 800,
+    // 3. Greedy Clustering Algorithm
+    const unclustered = [...items];
+    const newClusters: typeof serverPosts = [];
+
+    while (unclustered.length > 0) {
+      // Pick a center (first available item)
+      const centerItem = unclustered[0];
+      const centerLat = Number(centerItem.latitude ?? centerItem.lat);
+      const centerLng = Number(centerItem.longitude ?? centerItem.lng);
+
+      // Find all items within the radius of this center
+      // (Using simple rectangular bounds for speed)
+      const clusterItems = unclustered.filter(item => {
+        const iLat = Number(item.latitude ?? item.lat);
+        const iLng = Number(item.longitude ?? item.lng);
+        return Math.abs(iLat - centerLat) <= radiusLat &&
+          Math.abs(iLng - centerLng) <= radiusLng;
       });
-      
-      setCurrentZoomLevel(prev => prev + 1);
-    } else if (mapRef.current) {
-      // Apple Maps zoom in logic - record current state before zooming
-      const bounds = calculateOptimalBounds(flatItems);
-      if (!bounds) return;
 
-      // Record current map state before zooming in
-      const currentRegion = mapRegion || location;
-      if (currentRegion) {
-        setZoomHistory(prev => [...prev, {
-          latitude: currentRegion.latitude,
-          longitude: currentRegion.longitude,
-          latitudeDelta: currentRegion.latitudeDelta,
-          longitudeDelta: currentRegion.longitudeDelta
-        }]);
+      // Remove these items from unclustered
+      const clusterIds = new Set(clusterItems.map((i: any) => i.id));
+      // Manual filter since we might have duplicates or tricky IDs in raw data
+      // We iterate backwards or just rebuild unclustered
+      let i = unclustered.length;
+      while (i--) {
+        if (clusterIds.has(unclustered[i].id)) {
+          unclustered.splice(i, 1);
+        }
       }
 
-      let targetDelta;
-      
-      if (currentZoomLevel === 0) {
-        // From world view, zoom to show all posts/people
-        targetDelta = Math.max(bounds.latitudeDelta, bounds.longitudeDelta);
-        setCurrentZoomLevel(1);
-      } else if (currentZoomLevel === 1) {
-        // Second level - tighter view of posts/people
-        targetDelta = Math.max(bounds.latitudeDelta * 0.8, 0.1);
-        setCurrentZoomLevel(2);
-      } else {
-        // Progressive zoom in - each step halves the view
-        const currentDelta = bounds.latitudeDelta * Math.pow(0.5, currentZoomLevel - 2);
-        targetDelta = Math.max(currentDelta * 0.5, 0.01);
-        setCurrentZoomLevel(prev => prev + 1);
+      // Create the new cluster/post object
+      const count = clusterItems.length;
+
+      // Calculate average position for the new marker
+      const avgLat = clusterItems.reduce((sum, i) => sum + Number(i.latitude ?? i.lat), 0) / count;
+      const avgLng = clusterItems.reduce((sum, i) => sum + Number(i.longitude ?? i.lng), 0) / count;
+
+      // Use image of the first item (or could pick representative)
+      const img = extractImageUrl(clusterItems[0]);
+
+      if (img && !isNaN(avgLat) && !isNaN(avgLng)) {
+        newClusters.push({
+          id: count === 1
+            ? String(clusterItems[0].id ?? `${avgLat}-${avgLng}-${Math.random()}`)
+            : `subcluster-${clusterId}-${avgLat}-${avgLng}`, // distinct ID for new cluster
+          image: img,
+          latitude: avgLat,
+          longitude: avgLng,
+          count: count,
+          items: clusterItems
+        });
       }
-      
-      const newRegion = {
-        ...bounds,
-        latitudeDelta: targetDelta,
-        longitudeDelta: targetDelta,
-      };
-      
-      mapRef.current.animateToRegion(newRegion, 800);
     }
+
+    if (newClusters.length === 0) return;
+
+    // 4. Update state immediately
+    setServerPosts(prev => {
+      const otherPosts = prev.filter(p => p.id !== clusterId);
+      return [...otherPosts, ...newClusters];
+    });
   };
+
+
 
   // Intelligent zoom out - use recorded zoom history to go back exactly
   const handleZoomOut = () => {
@@ -1447,14 +1477,20 @@ console.log(
 
     console.log("📍 Restoring previous zoom state:", previousState);
 
+    // Restore cached posts if available
+    if (viewMode === "posts" && previousState.posts && previousState.posts.length > 0) {
+      console.log("♻️ Restoring cached posts from history:", previousState.posts.length);
+      setServerPosts(previousState.posts);
+    }
+
     if (Platform.OS === 'android' && useMapboxGL) {
       // Mapbox GL zoom out using recorded history
       setMapboxCamera({
         centerCoordinate: [previousState.longitude, previousState.latitude],
         zoomLevel: previousState.zoomLevel || 1,
-        animationDuration: 1500, // Increased from 800ms to 1500ms for smoother animation
+        animationDuration: 50, // Matched to zoom-in speed for instant snap
       });
-      
+
       // Update current zoom level based on history
       setCurrentZoomLevel(previousState.zoomLevel || 1);
       console.log("🗺️ Mapbox camera restored to zoom level:", previousState.zoomLevel || 1);
@@ -1466,11 +1502,11 @@ console.log(
         latitudeDelta: previousState.latitudeDelta,
         longitudeDelta: previousState.longitudeDelta,
       };
-      
-      mapRef.current.animateToRegion(newRegion, 1500); // Increased from 800ms to 1500ms for smoother animation
+
+      mapRef.current.animateToRegion(newRegion, 50); // Matched to zoom-in speed for instant snap
       setMapRegion(newRegion);
       setLocation(newRegion); // Also update location state
-      
+
       // Calculate and update current zoom level based on delta
       const zoomLevel = Math.round(Math.log2(360 / newRegion.latitudeDelta));
       setCurrentZoomLevel(Math.max(1, Math.min(20, zoomLevel)));
@@ -1485,7 +1521,7 @@ console.log(
   // Function to zoom out to world view level when switching view modes
   const zoomToWorldView = () => {
     if (!location) return;
-    
+
     // Define world-level zoom (global view)
     const worldRegion = {
       latitude: location.latitude,
@@ -1508,7 +1544,7 @@ console.log(
       setMapRegion(worldRegion);
       setCurrentZoomLevel(0); // Reset zoom level
     }
-    
+
     // Clear zoom history when switching modes
     setZoomHistory([]);
   };
@@ -1542,7 +1578,7 @@ console.log(
             zoomLevel={mapboxCamera.zoomLevel}
             animationDuration={mapboxCamera.animationDuration}
           />
-          
+
           {/* Posts Markers for Mapbox GL */}
           {viewMode === "posts" && serverPosts
             .filter((p) => !!p.image)
@@ -1554,18 +1590,18 @@ console.log(
                 onSelected={() => {
                   // Same logic as Apple Maps marker press
                   if (p.count && p.count > 1 && Array.isArray(p.items)) {
-                    const latDiff = Math.max(...p.items.map((i: any) => Number(i.latitude ?? i.lat ?? p.latitude))) - 
-                                   Math.min(...p.items.map((i: any) => Number(i.latitude ?? i.lat ?? p.latitude)));
-                    const lngDiff = Math.max(...p.items.map((i: any) => Number(i.longitude ?? i.lng ?? p.longitude))) - 
-                                   Math.min(...p.items.map((i: any) => Number(i.longitude ?? i.lng ?? p.longitude)));
-                    
+                    const latDiff = Math.max(...p.items.map((i: any) => Number(i.latitude ?? i.lat ?? p.latitude))) -
+                      Math.min(...p.items.map((i: any) => Number(i.latitude ?? i.lat ?? p.latitude)));
+                    const lngDiff = Math.max(...p.items.map((i: any) => Number(i.longitude ?? i.lng ?? p.longitude))) -
+                      Math.min(...p.items.map((i: any) => Number(i.longitude ?? i.lng ?? p.longitude)));
+
                     if (latDiff < 0.001 && lngDiff < 0.001) {
                       // Handle stacked posts
                       try {
                         const allUrls: string[] = [];
                         const allIds: (string | null)[] = [];
                         const allItems: any[] = [];
-                        
+
                         p.items.forEach((item: any) => {
                           const resolveItemImageSet = (item: any): { urls: string[]; ids: (string | null)[] } => {
                             const urls: string[] = [];
@@ -1601,16 +1637,16 @@ console.log(
                             }
                             return { urls, ids };
                           };
-                          
+
                           const itemSet = resolveItemImageSet(item);
                           allUrls.push(...itemSet.urls);
                           allIds.push(...itemSet.ids);
                           itemSet.urls.forEach(() => allItems.push(item));
                         });
-                        
+
                         const primaryItem = p.items[0];
                         const combinedSet = { urls: allUrls, ids: allIds };
-                        
+
                         nav.push(`/post/${primaryItem.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(primaryItem))}&images=${encodeURIComponent(JSON.stringify(combinedSet))}&allItems=${encodeURIComponent(JSON.stringify(allItems))}&idx=0&serverPosts=${encodeURIComponent(JSON.stringify(serverPosts))}`);
                       } catch (error) {
                         console.error("Failed to navigate to stacked posts:", error);
@@ -1624,9 +1660,13 @@ console.log(
                         longitude: mapboxCamera.centerCoordinate[0],
                         latitudeDelta: 0, // Not used for Mapbox
                         longitudeDelta: 0, // Not used for Mapbox
-                        zoomLevel: mapboxCamera.zoomLevel
+                        zoomLevel: mapboxCamera.zoomLevel,
+                        posts: serverPosts // Cache current posts
                       }]);
-                      
+
+                      // Optimistically expand cluster
+                      handleClusterExpansion(p.id, p.items);
+
                       const bounds = {
                         minLat: Math.min(...p.items.map((i: any) => Number(i.latitude ?? i.lat ?? p.latitude))),
                         maxLat: Math.max(...p.items.map((i: any) => Number(i.latitude ?? i.lat ?? p.latitude))),
@@ -1636,14 +1676,14 @@ console.log(
                       const centerLat = (bounds.minLat + bounds.maxLat) / 2;
                       const centerLng = (bounds.minLng + bounds.maxLng) / 2;
                       const latDelta = Math.max(0.01, Math.abs(bounds.maxLat - bounds.minLat) * 1.5);
-                      
+
                       // Calculate zoom level from latitude delta and update camera state
                       const zoomLevel = Math.max(1, Math.min(18, Math.log2(360 / latDelta)));
-                      
+
                       setMapboxCamera({
                         centerCoordinate: [centerLng, centerLat],
                         zoomLevel: zoomLevel,
-                        animationDuration: 200,
+                        animationDuration: 50,
                       });
                     }
                   } else if (p.image && Array.isArray(p.items) && p.items.length > 0) {
@@ -1694,28 +1734,27 @@ console.log(
                 }}
               >
                 <View style={[
-                  styles.markerContainer, 
+                  styles.markerContainer,
                   isDark ? styles.markerDark : styles.markerLight,
                   p.items?.some((item: any) => newPostIds.has(item.id)) && styles.markerContainerNew
                 ]}>
-                  <ExpoImage 
-                    source={{ uri: p.image as string }} 
-                    style={styles.markerImage} 
-                    contentFit="cover" 
-                    cachePolicy="none"
+                  <ExpoImage
+                    source={{ uri: p.image as string }}
+                    style={styles.markerImage}
+                    contentFit="cover"
                     placeholder={require("@/assets/images/peop.png")}
                     placeholderContentFit="cover"
                     transition={200}
                   />
                   {!!p.count && p.count > 1 && (
                     <View style={styles.countBadge}>
-                      <Text style={styles.countText}>{p.count >= 1000 ? `${Math.floor(p.count/1000)}k` : `${p.count}`}</Text>
+                      <Text style={styles.countText}>{p.count >= 1000 ? `${Math.floor(p.count / 1000)}k` : `${p.count}`}</Text>
                     </View>
                   )}
                 </View>
               </MapboxGL.PointAnnotation>
             ))}
-          
+
           {/* People Markers for Mapbox GL */}
           {viewMode === "people" && serverPeople.map((p) => (
             <MapboxGL.PointAnnotation
@@ -1729,11 +1768,10 @@ console.log(
             >
               <View style={[styles.markerContainer, isDark ? styles.markerDark : styles.markerLight]}>
                 {p.imageUrl ? (
-                  <ExpoImage 
-                    source={{ uri: p.imageUrl }} 
-                    style={styles.markerImage} 
-                    contentFit="cover" 
-                    cachePolicy="none"
+                  <ExpoImage
+                    source={{ uri: p.imageUrl }}
+                    style={styles.markerImage}
+                    contentFit="cover"
                     placeholder={isDark ? require("@/assets/images/peop.png") : require("@/assets/images/peop.png")}
                     placeholderContentFit="cover"
                     transition={200}
@@ -1761,7 +1799,7 @@ console.log(
           onRegionChangeComplete={(r) => {
             const reg = { latitude: r.latitude, longitude: r.longitude, latitudeDelta: r.latitudeDelta, longitudeDelta: r.longitudeDelta } as typeof location;
             setMapRegion(reg);
-            
+
             // Load data for the current view mode (removed automatic zoom level updates)
             if (viewMode === "posts") {
               setTimeout(() => {
@@ -1791,21 +1829,21 @@ console.log(
         >
           {viewMode === "posts"
             ? serverPosts
-                .filter((p) => !!p.image)
-                .map((p) => (
+              .filter((p) => !!p.image)
+              .map((p) => (
                 <Marker
                   key={p.id}
                   coordinate={{ latitude: p.latitude, longitude: p.longitude }}
                   onPress={() => {
                     if (p.count && p.count > 1 && Array.isArray(p.items)) {
                       // Check if posts are actually stacked (very close together) or just clustered
-                      const latDiff = Math.max(...p.items.map((i: any) => Number(i.latitude ?? i.lat ?? p.latitude))) - 
-                                     Math.min(...p.items.map((i: any) => Number(i.latitude ?? i.lat ?? p.latitude)));
-                      const lngDiff = Math.max(...p.items.map((i: any) => Number(i.longitude ?? i.lng ?? p.longitude))) - 
-                                     Math.min(...p.items.map((i: any) => Number(i.longitude ?? i.lng ?? p.longitude)));
-                      
+                      const latDiff = Math.max(...p.items.map((i: any) => Number(i.latitude ?? i.lat ?? p.latitude))) -
+                        Math.min(...p.items.map((i: any) => Number(i.latitude ?? i.lat ?? p.latitude)));
+                      const lngDiff = Math.max(...p.items.map((i: any) => Number(i.longitude ?? i.lng ?? p.longitude))) -
+                        Math.min(...p.items.map((i: any) => Number(i.longitude ?? i.lng ?? p.longitude)));
+
                       console.log("Multiple posts detected:", { count: p.count, latDiff, lngDiff, threshold: 0.001 });
-                      
+
                       // If posts are very close together (stacked), open post preview with all items
                       if (latDiff < 0.001 && lngDiff < 0.001) {
                         console.log("Posts are stacked, opening combined preview");
@@ -1814,7 +1852,7 @@ console.log(
                           const allUrls: string[] = [];
                           const allIds: (string | null)[] = [];
                           const allItems: any[] = [];
-                          
+
                           p.items.forEach((item: any) => {
                             const resolveItemImageSet = (item: any): { urls: string[]; ids: (string | null)[] } => {
                               const urls: string[] = [];
@@ -1850,18 +1888,18 @@ console.log(
                               }
                               return { urls, ids };
                             };
-                            
+
                             const itemSet = resolveItemImageSet(item);
                             allUrls.push(...itemSet.urls);
                             allIds.push(...itemSet.ids);
                             // Add the item for each of its images so we can track which item each image belongs to
                             itemSet.urls.forEach(() => allItems.push(item));
                           });
-                          
+
                           // Use the first item as the primary item, but pass all images and items
                           const primaryItem = p.items[0];
                           const combinedSet = { urls: allUrls, ids: allIds };
-                          
+
                           console.log("Combined set created:", { totalImages: allUrls.length, totalItems: allItems.length });
                           nav.push(`/post/${primaryItem.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(primaryItem))}&images=${encodeURIComponent(JSON.stringify(combinedSet))}&allItems=${encodeURIComponent(JSON.stringify(allItems))}&idx=0&serverPosts=${encodeURIComponent(JSON.stringify(serverPosts))}`);
                         } catch (error) {
@@ -1871,7 +1909,7 @@ console.log(
                       } else {
                         // Posts are spread out, zoom in to separate them
                         console.log("Posts are spread out, zooming in to separate");
-                        
+
                         // Record current state before zooming in
                         const currentRegion = mapRegion || location;
                         if (currentRegion) {
@@ -1879,10 +1917,14 @@ console.log(
                             latitude: currentRegion.latitude,
                             longitude: currentRegion.longitude,
                             latitudeDelta: currentRegion.latitudeDelta,
-                            longitudeDelta: currentRegion.longitudeDelta
+                            longitudeDelta: currentRegion.longitudeDelta,
+                            posts: serverPosts // Cache current posts
                           }]);
                         }
-                        
+
+                        // Optimistically expand cluster
+                        handleClusterExpansion(p.id, p.items);
+
                         const bounds = {
                           minLat: Math.min(...p.items.map((i: any) => Number(i.latitude ?? i.lat ?? p.latitude))),
                           maxLat: Math.max(...p.items.map((i: any) => Number(i.latitude ?? i.lat ?? p.latitude))),
@@ -1895,7 +1937,7 @@ console.log(
                           latitudeDelta: Math.max(0.01, Math.abs(bounds.maxLat - bounds.minLat) * 1.5),
                           longitudeDelta: Math.max(0.01, Math.abs(bounds.maxLng - bounds.minLng) * 1.5),
                         } as any;
-                        mapRef.current?.animateToRegion(region, 200);
+                        mapRef.current?.animateToRegion(region, 50);
                       }
                     } else if (p.image && Array.isArray(p.items) && p.items.length > 0) {
                       const item = p.items[0];
@@ -1944,14 +1986,14 @@ console.log(
                   }}
                 >
                   <View style={[
-                    styles.markerContainer, 
+                    styles.markerContainer,
                     isDark ? styles.markerDark : styles.markerLight,
                     p.items?.some((item: any) => newPostIds.has(item.id)) && styles.markerContainerNew
                   ]}>
-                    <ExpoImage 
-                      source={canLoadImages ? { uri: p.image as string } : require("@/assets/images/peop.png")} 
-                      style={styles.markerImage} 
-                      contentFit="cover" 
+                    <ExpoImage
+                      source={canLoadImages ? { uri: p.image as string } : require("@/assets/images/peop.png")}
+                      style={styles.markerImage}
+                      contentFit="cover"
                       cachePolicy="none"
                       placeholder={require("@/assets/images/peop.png")}
                       placeholderContentFit="cover"
@@ -1959,7 +2001,7 @@ console.log(
                     />
                     {!!p.count && p.count > 1 && (
                       <View style={styles.countBadge}>
-                        <Text style={styles.countText}>{p.count >= 1000 ? `${Math.floor(p.count/1000)}k` : `${p.count}`}</Text>
+                        <Text style={styles.countText}>{p.count >= 1000 ? `${Math.floor(p.count / 1000)}k` : `${p.count}`}</Text>
                       </View>
                     )}
                   </View>
@@ -1967,40 +2009,39 @@ console.log(
                 </Marker>
               ))
             : serverPeople.map((p) => (
-                <Marker
-                  key={p.id}
-                  coordinate={{ latitude: p.latitude, longitude: p.longitude }}
-                  onPress={() => {
-                    setSelectedPerson(p);
-                    setPersonOpen(true);
-                  }}
-                >
-                  <View style={[styles.markerContainer, isDark ? styles.markerDark : styles.markerLight]}>
-                    {p.imageUrl ? (
-                      <ExpoImage 
-                        source={{ uri: p.imageUrl }} 
-                        style={styles.markerImage} 
-                        contentFit="cover" 
-                        cachePolicy="none"
-                        placeholder={isDark ? require("@/assets/images/peop.png") : require("@/assets/images/peop.png")}
-                        placeholderContentFit="cover"
-                        transition={200}
-                      />
-                    ) : (
-                      <View style={[styles.markerImage, { alignItems: "center", justifyContent: "center", backgroundColor: "#888" }]}>
-                        <Text style={{ color: "#fff", fontWeight: "700" }}>{p.owner?.fname?.[0]?.toUpperCase() || "F"}</Text>
-                      </View>
-                    )}
-                    <View style={styles.locBadge}>
-                      <Ionicons name="location-outline" size={14} color="#FFFFFF" />
+              <Marker
+                key={p.id}
+                coordinate={{ latitude: p.latitude, longitude: p.longitude }}
+                onPress={() => {
+                  setSelectedPerson(p);
+                  setPersonOpen(true);
+                }}
+              >
+                <View style={[styles.markerContainer, isDark ? styles.markerDark : styles.markerLight]}>
+                  {p.imageUrl ? (
+                    <ExpoImage
+                      source={{ uri: p.imageUrl }}
+                      style={styles.markerImage}
+                      contentFit="cover"
+                      placeholder={isDark ? require("@/assets/images/peop.png") : require("@/assets/images/peop.png")}
+                      placeholderContentFit="cover"
+                      transition={200}
+                    />
+                  ) : (
+                    <View style={[styles.markerImage, { alignItems: "center", justifyContent: "center", backgroundColor: "#888" }]}>
+                      <Text style={{ color: "#fff", fontWeight: "700" }}>{p.owner?.fname?.[0]?.toUpperCase() || "F"}</Text>
                     </View>
+                  )}
+                  <View style={styles.locBadge}>
+                    <Ionicons name="location-outline" size={14} color="#FFFFFF" />
                   </View>
-                  <View style={[styles.pointer, styles.pointerLight]} />
-                </Marker>
-              ))}
+                </View>
+                <View style={[styles.pointer, styles.pointerLight]} />
+              </Marker>
+            ))}
         </MapView>
       )}
-      
+
       <Modal visible={chatOpen} transparent animationType="fade" onRequestClose={() => setChatOpen(false)}>
         <View style={styles.modalOverlay}>
           <View
@@ -2028,7 +2069,7 @@ console.log(
                   <Ionicons name="close" size={20} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
                 </Pressable>
               </View>
-              
+
               {chatMessages && chatMessages.length >= 0 ? (
                 <FlatList
                   ref={chatScrollRef}
@@ -2053,10 +2094,10 @@ console.log(
                   <Text style={{ color: isDark ? "#9AA0A6" : "#666", marginTop: 10 }}>Loading messages...</Text>
                 </View>
               )}
-              
+
               <View style={[
-                styles.inputContainer, 
-                { 
+                styles.inputContainer,
+                {
                   paddingBottom: insets.bottom,
                   borderTopColor: isDark ? "#333" : "#E0E0E0",
                   backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF"
@@ -2085,14 +2126,9 @@ console.log(
 
       {/* Zoom Controls */}
       <View style={[styles.zoomControls, { bottom: insets.bottom + 20 }]}>
-        <Pressable 
-          style={[styles.zoomButton, isDark ? styles.zoomButtonDark : styles.zoomButtonLight]} 
-          onPress={handleZoomIn}
-        >
-          <Ionicons name="add" size={20} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
-        </Pressable>
-        <Pressable 
-          style={[styles.zoomButton, isDark ? styles.zoomButtonDark : styles.zoomButtonLight]} 
+
+        <Pressable
+          style={[styles.zoomButton, isDark ? styles.zoomButtonDark : styles.zoomButtonLight]}
           onPress={handleZoomOut}
         >
           <Ionicons name="remove" size={20} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
@@ -2102,10 +2138,10 @@ console.log(
       {/* Hand Animation Guide - Only show in posts view */}
       {showHandAnimation && viewMode === "posts" && (
         <View style={[styles.handAnimationContainer, { top: insets.top + 80 }]}>
-          <View 
+          <View
             style={[
               styles.handAnimationCard,
-              { 
+              {
                 opacity: handAnimationVisible ? 1 : 0.3,
                 transform: [{ scale: handAnimationVisible ? 1 : 0.95 }]
               },
@@ -2118,7 +2154,7 @@ console.log(
                 Rotate the globe to view posts in other continents
               </Text>
             </View>
-            <Pressable 
+            <Pressable
               style={styles.handAnimationClose}
               onPress={() => setShowHandAnimation(false)}
             >
@@ -2158,7 +2194,7 @@ console.log(
               <Ionicons name="people-outline" size={18} color={viewMode === "people" ? "#FFFFFF" : (isDark ? "#FFFFFF" : "#0a0a0a")} />
             </Pressable>
           </View>
-          
+
           {/* Location Permission Indicator */}
           {!hasLocationPermission && (
             <View style={[styles.locationIndicator, isDark ? styles.locationIndicatorDark : styles.locationIndicatorLight]}>
@@ -2180,11 +2216,11 @@ console.log(
 
       {viewMode === "posts" ? (
         <Pressable
-          style={[styles.uploadButton, isDark ? styles.uploadBtnDark : styles.uploadBtnLight]}
+          style={[styles.uploadButton, isDark ? styles.uploadBtnDark : styles.uploadBtnLight, { borderColor: "#FF0000" }]}
           onPress={handleCreatePostPress}
           accessibilityLabel="Post Photo"
         >
-          <Ionicons name="add" size={24} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
+          <Ionicons name="add" size={24} color="#FF0000" />
         </Pressable>
       ) : (
         <Pressable
@@ -2226,23 +2262,23 @@ console.log(
                     {(() => {
                       const locationName = selectedPerson.locationName;
                       if (!locationName) return "";
-                      
+
                       // Split by comma and get the last two parts (state, country)
                       const parts = locationName.split(',').map((part: string) => part.trim());
-                      
+
                       if (parts.length >= 2) {
                         // Get the last two parts and remove any numbers (zip codes)
                         let state = parts[parts.length - 2].replace(/\d+/g, '').trim();
                         const country = parts[parts.length - 1].replace(/\d+/g, '').trim();
-                        
+
                         // If state is empty after removing numbers, try the part before it
                         if (!state && parts.length >= 3) {
                           state = parts[parts.length - 3].replace(/\d+/g, '').trim();
                         }
-                        
+
                         return state && country ? `${state}, ${country}` : locationName;
                       }
-                      
+
                       // If less than 2 parts, return as is (but remove numbers)
                       return locationName.replace(/\d+/g, '').trim();
                     })()}
@@ -2274,13 +2310,13 @@ console.log(
             <View style={styles.dialogActions}>
               {isCurrentUser ? (
                 <View style={{ flex: 1, flexDirection: 'column' }}>
-                  <Pressable 
+                  <Pressable
                     style={[
-                      styles.actionBtnPrimary, 
-                      isDark ? { backgroundColor: "#0a0a0a", borderColor: "#333" } : { backgroundColor: "#0a0a0a", borderColor: "#0a0a0a" }, 
+                      styles.actionBtnPrimary,
+                      isDark ? { backgroundColor: "#0a0a0a", borderColor: "#333" } : { backgroundColor: "#0a0a0a", borderColor: "#0a0a0a" },
                       { width: '100%', flex: 0 }
-                    ]} 
-                    onPress={handleViewLocationViewers} 
+                    ]}
+                    onPress={handleViewLocationViewers}
                     disabled={loadingViewers}
                   >
                     {loadingViewers ? (
@@ -2297,7 +2333,7 @@ console.log(
                       </>
                     )}
                   </Pressable>
-                  
+
                   {showViewersList && (
                     <View style={{ marginTop: 12, maxHeight: 200, width: '100%' }}>
                       <ScrollView nestedScrollEnabled={true} style={{ width: '100%' }}>
@@ -2309,11 +2345,11 @@ console.log(
                           </View>
                         ) : (
                           locationViewers.map((viewer) => (
-                            <View 
-                              key={viewer.id} 
-                              style={{ 
-                                flexDirection: 'row', 
-                                alignItems: 'center', 
+                            <View
+                              key={viewer.id}
+                              style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
                                 paddingVertical: 8,
                                 borderBottomWidth: 1,
                                 borderBottomColor: isDark ? '#333' : '#eee'
@@ -2325,7 +2361,7 @@ console.log(
                                 contentFit="cover"
                               />
                               <View>
-                                <Text style={{ 
+                                <Text style={{
                                   color: isDark ? "#FFFFFF" : "#0a0a0a",
                                   fontWeight: '600',
                                   fontSize: 14
@@ -2333,7 +2369,7 @@ console.log(
                                   {viewer.name}
                                 </Text>
                                 {viewer.username && (
-                                  <Text style={{ 
+                                  <Text style={{
                                     color: isDark ? "#9AA0A6" : "#666",
                                     fontSize: 12
                                   }}>
@@ -2363,15 +2399,15 @@ console.log(
                       </>
                     )}
                   </Pressable>
-                  <Pressable 
+                  <Pressable
                     style={[
-                      styles.actionBtnSecondary, 
+                      styles.actionBtnSecondary,
                       isDark ? { borderColor: "#333" } : { borderColor: "#e0e0e0" }
-                    ]} 
+                    ]}
                     onPress={() => {
                       console.log("🔘 Navigate button pressed");
                       handleNavigate();
-                    }} 
+                    }}
                     disabled={loadingNavigate || loadingMessage || modalTransitioning}
                   >
                     {loadingNavigate || modalTransitioning ? (
@@ -2417,15 +2453,15 @@ console.log(
                 <Ionicons name="close" size={20} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
               </Pressable>
             </View>
-            
+
             <View style={{ paddingHorizontal: 20, paddingBottom: 20 }}>
               <Text style={[styles.confirmText, { color: isDark ? "#FFFFFF" : "#0a0a0a", textAlign: 'center', marginBottom: 20 }]}>
                 Do you want to view {selectedPerson?.owner?.fname || 'this person'}'s location on the map?
               </Text>
-              
+
               <View style={styles.dialogActions}>
-                <Pressable 
-                  style={[styles.actionBtnSecondary, isDark ? { borderColor: "#333" } : { borderColor: "#e0e0e0" }]} 
+                <Pressable
+                  style={[styles.actionBtnSecondary, isDark ? { borderColor: "#333" } : { borderColor: "#e0e0e0" }]}
                   onPress={() => {
                     console.log("🔘 Cancel button pressed");
                     setShowMapConfirmModal(false);
@@ -2435,9 +2471,9 @@ console.log(
                     Cancel
                   </Text>
                 </Pressable>
-                
-                <Pressable 
-                  style={[styles.actionBtnPrimary, { backgroundColor: "#3b82f6", borderColor: "#3b82f6" }]} 
+
+                <Pressable
+                  style={[styles.actionBtnPrimary, { backgroundColor: "#3b82f6", borderColor: "#3b82f6" }]}
                   onPress={() => {
                     console.log("🔘 Yes, View in Map button pressed");
                     handleViewInMap();
@@ -2511,16 +2547,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  pillSegActiveDark: { 
-    backgroundColor: "#3b82f6", 
+  pillSegActiveDark: {
+    backgroundColor: "#3b82f6",
     shadowColor: "#3b82f6",
     shadowOpacity: 0.4,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 4
   },
-  pillSegActiveLight: { 
-    backgroundColor: "#3b82f6", 
+  pillSegActiveLight: {
+    backgroundColor: "#3b82f6",
     shadowColor: "#3b82f6",
     shadowOpacity: 0.3,
     shadowRadius: 6,
@@ -2958,7 +2994,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   actionTextPrimary: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
-  actionTextSecondary: {color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
+  actionTextSecondary: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
   dialogHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -3090,13 +3126,13 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 4,
   },
-  zoomButtonDark: { 
-    backgroundColor: "#0a0a0a", 
-    borderColor: "#333333" 
+  zoomButtonDark: {
+    backgroundColor: "#0a0a0a",
+    borderColor: "#333333"
   },
-  zoomButtonLight: { 
-    backgroundColor: "#FFFFFF", 
-    borderColor: "#E0E0E0" 
+  zoomButtonLight: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#E0E0E0"
   },
   handAnimationContainer: {
     position: "absolute",
