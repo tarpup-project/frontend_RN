@@ -21,14 +21,14 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    Alert,
-    Animated,
-    AppState,
-    Keyboard,
-    KeyboardAvoidingView, Linking, Platform,
-    Pressable,
-    StyleSheet,
-    View
+  Alert,
+  Animated,
+  AppState,
+  Keyboard,
+  KeyboardAvoidingView, Linking, Platform,
+  Pressable,
+  StyleSheet,
+  View
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
@@ -143,10 +143,10 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   useFocusEffect(
     useCallback(() => {
       setActiveGroupId(groupId);
-      
+
       markAsRead();
       refetchNotifications();
-      
+
       return () => {
         setActiveGroupId(null);
       };
@@ -242,27 +242,30 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
 
     const fileData = selectedFile
       ? {
-          data: selectedFile.data,
-          name: selectedFile.name,
-          ext: selectedFile.ext || selectedFile.name.split(".").pop() || "",
-          size: selectedFile.size,
-        }
+        data: selectedFile.data,
+        name: selectedFile.name,
+        ext: selectedFile.ext || selectedFile.name.split(".").pop() || "",
+        size: selectedFile.size,
+      }
       : undefined;
 
     try {
-      const success = await sendMessage({
-        message: message.trim(),
+      const messageToSend = message.trim();
+
+      // Optimistically clear input to prevent lag
+      setMessage("");
+      removeFile();
+      cancelReply();
+
+      await sendMessage({
+        message: messageToSend,
         file: fileData,
         replyingTo,
       });
-
-      if (success) {
-        setMessage("");
-        removeFile();
-        cancelReply();
-      }
     } catch (error) {
       console.error("💥 Send error:", error);
+      // Optional: Restore message on critical error if needed
+      // setMessage(messageToSend); 
     }
   }, [message, selectedFile, sendMessage, replyingTo, removeFile, cancelReply]);
 
@@ -306,9 +309,9 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
 
   const handleShowGroupInfo = useCallback(() => {
     console.log("🔍 handleShowGroupInfo called!");
-    setIconPosition({ x: 0, y: 100 }); 
+    setIconPosition({ x: 0, y: 100 });
     setShowGroupInfo(true);
-    console.log("🔍 showGroupInfo set to true"); 
+    console.log("🔍 showGroupInfo set to true");
   }, []);
 
   const loadingState = useMemo(() => {
@@ -319,104 +322,104 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
 
   // Remove the loading state check - always render the main content
   return (
-      <KeyboardAvoidingView
-        style={[styles.container, dynamicStyles.container]}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={0}
-      >
-       <Header />    
-        {/* Content area - always show group header and messages */}
-        <View style={{ flex: 1 }}>
-          <ChatHeader
-            groupDetails={{
-              id: finalGroupDetails?.id || groupId,
-              name: finalGroupDetails?.name || passedGroupData?.name || "Group Chat",
-              members: finalGroupDetails?.members || passedGroupData?.members || [],
-              score: finalGroupDetails?.score || passedGroupData?.score || 0,
-              shareLink: finalGroupDetails?.shareLink || passedGroupData?.shareLink || "",
-              isJoined: finalGroupDetails?.isJoined !== false,
-              isAdmin: finalGroupDetails?.isAdmin || passedGroupData?.isAdmin || false,
-              isComplete: finalGroupDetails?.isComplete || passedGroupData?.isComplete || false,
-            }}
-            showDropdown={showDropdown}
-            onToggleDropdown={handleToggleDropdown}
-            onShowGroupInfo={handleShowGroupInfo}
-            onLeaveSuccess={() => router.back()}
-            navigateToProfile={navigateToProfile}
-            isCached={isCached}
-            isRefreshing={isRefreshing}
-            onRefresh={handleRefresh}
-          />
-
-          <MessageList
-            messages={messages || []}
-            userId={user?.id}
-            onReply={startReply}
-            onImagePress={setShowImageModal}
-            onLinkPress={handleLinkPress}
-            scrollToMessage={scrollToMessage}
-            messageRefs={messageRefs}
-            navigateToProfile={navigateToProfile}
-          />
-
-          <GroupInfoModal
-            visible={showGroupInfo}
-            groupDetails={{
-              id: finalGroupDetails?.id || groupId,
-              name: finalGroupDetails?.name || passedGroupData?.name || "Group Chat",
-              members: finalGroupDetails?.members || passedGroupData?.members || [],
-              score: finalGroupDetails?.score || passedGroupData?.score || 0,
-              category: finalGroupDetails?.category || passedGroupData?.category || [],
-            }}
-            iconPosition={iconPosition}
-            slideAnim={slideAnim}
-            fadeAnim={fadeAnim}
-            scaleAnim={scaleAnim}
-            onClose={() => setShowGroupInfo(false)}
-            navigateToProfile={navigateToProfile}
-          />
-
-          <ImageModal
-            imageUrl={showImageModal}
-            visible={!!showImageModal}
-            onClose={() => setShowImageModal(null)}
-          />
-
-          <LinkConfirmModal
-            url={linkToConfirm}
-            visible={!!linkToConfirm}
-            onConfirm={confirmOpenLink}
-            onCancel={() => setLinkToConfirm(null)}
-          />
-
-          {showDropdown && (
-            <Pressable
-              style={styles.overlay}
-              onPress={() => setShowDropdown(false)}
-            />
-          )}
-        </View>
-    
-        {/* MessageInput - ALWAYS VISIBLE */}
-        <MessageInput
-          message={message}
-          onChangeMessage={setMessage}
-          onSend={handleSend}
-          onAttachment={() => {}}
-          isJoined={finalGroupDetails?.isJoined !== false}
-          onJoinGroup={handleJoinGroup}
-          isJoining={isJoining}
-          selectedFile={selectedFile || null}
-          onRemoveFile={removeFile}
-          replyingTo={replyingTo || null}
-          onCancelReply={cancelReply}
-          selectImage={selectImage}
-          selectImageFromCamera={selectImageFromCamera}
-          selectFile={selectFile}
-          isSending={isSending}
-          isComplete={finalGroupDetails?.isComplete || passedGroupData?.isComplete || false}
+    <KeyboardAvoidingView
+      style={[styles.container, dynamicStyles.container]}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={0}
+    >
+      <Header />
+      {/* Content area - always show group header and messages */}
+      <View style={{ flex: 1 }}>
+        <ChatHeader
+          groupDetails={{
+            id: finalGroupDetails?.id || groupId,
+            name: finalGroupDetails?.name || passedGroupData?.name || "Group Chat",
+            members: finalGroupDetails?.members || passedGroupData?.members || [],
+            score: finalGroupDetails?.score || passedGroupData?.score || 0,
+            shareLink: finalGroupDetails?.shareLink || passedGroupData?.shareLink || "",
+            isJoined: finalGroupDetails?.isJoined !== false,
+            isAdmin: finalGroupDetails?.isAdmin || passedGroupData?.isAdmin || false,
+            isComplete: finalGroupDetails?.isComplete || passedGroupData?.isComplete || false,
+          }}
+          showDropdown={showDropdown}
+          onToggleDropdown={handleToggleDropdown}
+          onShowGroupInfo={handleShowGroupInfo}
+          onLeaveSuccess={() => router.back()}
+          navigateToProfile={navigateToProfile}
+          isCached={isCached}
+          isRefreshing={isRefreshing}
+          onRefresh={handleRefresh}
         />
-      </KeyboardAvoidingView>
+
+        <MessageList
+          messages={messages || []}
+          userId={user?.id}
+          onReply={startReply}
+          onImagePress={setShowImageModal}
+          onLinkPress={handleLinkPress}
+          scrollToMessage={scrollToMessage}
+          messageRefs={messageRefs}
+          navigateToProfile={navigateToProfile}
+        />
+
+        <GroupInfoModal
+          visible={showGroupInfo}
+          groupDetails={{
+            id: finalGroupDetails?.id || groupId,
+            name: finalGroupDetails?.name || passedGroupData?.name || "Group Chat",
+            members: finalGroupDetails?.members || passedGroupData?.members || [],
+            score: finalGroupDetails?.score || passedGroupData?.score || 0,
+            category: finalGroupDetails?.category || passedGroupData?.category || [],
+          }}
+          iconPosition={iconPosition}
+          slideAnim={slideAnim}
+          fadeAnim={fadeAnim}
+          scaleAnim={scaleAnim}
+          onClose={() => setShowGroupInfo(false)}
+          navigateToProfile={navigateToProfile}
+        />
+
+        <ImageModal
+          imageUrl={showImageModal}
+          visible={!!showImageModal}
+          onClose={() => setShowImageModal(null)}
+        />
+
+        <LinkConfirmModal
+          url={linkToConfirm}
+          visible={!!linkToConfirm}
+          onConfirm={confirmOpenLink}
+          onCancel={() => setLinkToConfirm(null)}
+        />
+
+        {showDropdown && (
+          <Pressable
+            style={styles.overlay}
+            onPress={() => setShowDropdown(false)}
+          />
+        )}
+      </View>
+
+      {/* MessageInput - ALWAYS VISIBLE */}
+      <MessageInput
+        message={message}
+        onChangeMessage={setMessage}
+        onSend={handleSend}
+        onAttachment={() => { }}
+        isJoined={finalGroupDetails?.isJoined !== false}
+        onJoinGroup={handleJoinGroup}
+        isJoining={isJoining}
+        selectedFile={selectedFile || null}
+        onRemoveFile={removeFile}
+        replyingTo={replyingTo || null}
+        onCancelReply={cancelReply}
+        selectImage={selectImage}
+        selectImageFromCamera={selectImageFromCamera}
+        selectFile={selectFile}
+        isSending={isSending}
+        isComplete={finalGroupDetails?.isComplete || passedGroupData?.isComplete || false}
+      />
+    </KeyboardAvoidingView>
   );
 };
 

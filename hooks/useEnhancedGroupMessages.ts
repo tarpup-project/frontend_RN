@@ -9,6 +9,7 @@ import { watermelonOfflineSyncManager } from '@/utils/watermelonOfflineSync';
 import { Q } from '@nozbe/watermelondb';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import {
   AlertMessage,
   Group,
@@ -54,6 +55,8 @@ export const useEnhancedGroupMessages = ({
   const [isSending, setIsSending] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const lastQueuedReadAtRef = useRef<number>(0);
+  const joinStartRef = useRef<number | null>(null);
+  const firstMessageLoggedRef = useRef<boolean>(false);
 
   // CRITICAL FIX: Load cached messages BEFORE query initialization to prevent race condition
   const [initialCacheLoaded, setInitialCacheLoaded] = useState(false);
@@ -260,6 +263,18 @@ export const useEnhancedGroupMessages = ({
     };
 
     loadInitialCache();
+
+    // CRITICAL FIX: Refetch messages when app comes to foreground
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') {
+        console.log('📱 App came to foreground, refreshing messages...');
+        queryClient.invalidateQueries({ queryKey: ['groups', 'messages', groupId] });
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
   }, [groupId, queryClient, transformCachedMessages]); // Remove initialCacheLoaded from deps to prevent re-runs
 
   // Enhanced React Query to fetch and cache messages with immediate cache loading
@@ -365,6 +380,8 @@ export const useEnhancedGroupMessages = ({
 
         const emitJoin = () => {
           try {
+            joinStartRef.current = Date.now();
+            firstMessageLoggedRef.current = false;
             socket.emit(
               SocketEvents.JOIN_GROUP_ROOM,
               {
@@ -540,6 +557,11 @@ export const useEnhancedGroupMessages = ({
         ''
       );
       if (incomingRoomId && incomingRoomId !== String(groupId)) return;
+      if (!firstMessageLoggedRef.current && joinStartRef.current) {
+        const dt = Date.now() - joinStartRef.current;
+        console.log(`⏱️ Group DM first message since join: ${dt}ms`);
+        firstMessageLoggedRef.current = true;
+      }
 
       const contentId =
         data?.content?.id ??

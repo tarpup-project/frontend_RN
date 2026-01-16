@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePersonalSocket } from './usePersonalSocket';
 import { useAuthStore } from '../state/authStore';
@@ -36,6 +36,7 @@ export const usePersonalChat = (): UsePersonalChatReturn => {
   const { socket } = usePersonalSocket();
   const { user } = useAuthStore();
   const { selectedUniversity } = useCampus();
+  const lastSentAtRef = useRef<number | null>(null);
 
   // React Query to fetch and cache messages
   const { data: messages = [], isLoading } = useQuery({
@@ -88,6 +89,7 @@ export const usePersonalChat = (): UsePersonalChatReturn => {
     );
 
     setIsTyping(true);
+    lastSentAtRef.current = Date.now();
 
     socket.emit('messagePersonalRoom', {
       ...userMessage,
@@ -138,6 +140,11 @@ export const usePersonalChat = (): UsePersonalChatReturn => {
 
     const handleMessagePersonalRoom = (data: PersonalMessage) => {
       setIsTyping(false);
+      if (lastSentAtRef.current) {
+        const rt = Date.now() - lastSentAtRef.current;
+        console.log(`⚡ Personal DM response time: ${rt}ms`);
+        lastSentAtRef.current = null;
+      }
       
       // Add AI response to cache
       queryClient.setQueryData<PersonalMessage[]>(

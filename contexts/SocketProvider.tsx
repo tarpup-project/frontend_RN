@@ -1,13 +1,15 @@
 import { api } from '@/api/client';
 import { UrlConstants } from '@/constants/apiUrls';
 import { asyncStorageDB } from '@/database';
+import { useGlobalMessageSync } from '@/hooks/useGlobalMessageSync';
 import { groupsKeys } from '@/hooks/useGroups';
 import { useAuthStore } from '@/state/authStore';
 import { useNotificationStore } from '@/state/notificationStore';
 import { AlertMessage, Group, GroupMessage, MessageType, UserMessage } from '@/types/groups';
 import { SocketEvents, SocketInterface, SocketState } from '@/types/socket';
 import { queryClient } from '@/utils/queryClient';
-import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import { AppState } from 'react-native';
 import { io, Socket } from 'socket.io-client';
 
 // Socket Context
@@ -27,6 +29,10 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   });
   const { user } = useAuthStore();
   const { incrementNotification, activeGroupId } = useNotificationStore();
+  const [connectedAt, setConnectedAt] = useState<number | null>(null);
+
+  // Custom hook for global message sync
+  const { syncAllMessages } = useGlobalMessageSync();
 
   // Refresh user authentication if socket gets unauthorized
   const refreshUser = async () => {
@@ -36,9 +42,9 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       connectSocket();
     } catch (err) {
       console.error('Session expired, user needs to login again');
-      setSocketState(prev => ({ 
-        ...prev, 
-        error: 'Session expired. Please login again.' 
+      setSocketState(prev => ({
+        ...prev,
+        error: 'Session expired. Please login again.'
       }));
     }
   };
@@ -60,6 +66,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     // Connection events
     newSocket.on(SocketEvents.CONNECT, () => {
       console.log('✅ Socket connected');
+      setConnectedAt(Date.now());
       setSocketState({
         connected: true,
         reconnecting: false,
@@ -70,6 +77,9 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         newSocket.emit(SocketEvents.JOIN_PERSONAL_ROOM, {
           roomID: user.id,
         });
+
+        // Trigger global message sync on connection
+        syncAllMessages();
       }
     });
 
@@ -99,7 +109,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
     newSocket.on(SocketEvents.ERROR, (data) => {
       console.error('❌ Socket error:', data);
-      
+
       if (data.message === 'unauthorized') {
         refreshUser();
       } else {
@@ -113,12 +123,12 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     newSocket.on(SocketEvents.GROUP_ROOM_MESSAGE, async (data) => {
       const incomingRoomId = String(
         data?.roomID ??
-          data?.roomId ??
-          data?.groupID ??
-          data?.groupId ??
-          data?.room ??
-          data?.group ??
-          ''
+        data?.roomId ??
+        data?.groupID ??
+        data?.groupId ??
+        data?.room ??
+        data?.group ??
+        ''
       );
       if (!incomingRoomId) return;
 
@@ -144,23 +154,23 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       const newMessage: GroupMessage =
         type === MessageType.USER
           ? ({
-              messageType: MessageType.USER,
-              ...base,
-              sender: {
-                id: sender?.id,
-                fname: sender?.fname,
-              },
-              file,
-              replyingTo: replyingTo as UserMessage,
-            } as UserMessage)
+            messageType: MessageType.USER,
+            ...base,
+            sender: {
+              id: sender?.id,
+              fname: sender?.fname,
+            },
+            file,
+            replyingTo: replyingTo as UserMessage,
+          } as UserMessage)
           : ({
-              messageType: MessageType.ALERT,
-              ...base,
-              sender: {
-                id: sender?.id,
-                fname: sender?.fname,
-              },
-            } as AlertMessage);
+            messageType: MessageType.ALERT,
+            ...base,
+            sender: {
+              id: sender?.id,
+              fname: sender?.fname,
+            },
+          } as AlertMessage);
 
       queryClient.setQueryData<GroupMessage[]>(
         ['groups', 'messages', incomingRoomId],
@@ -225,8 +235,8 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
               unread: isOwnMessage
                 ? group.unread
                 : isActiveGroup
-                ? 0
-                : (group.unread || 0) + 1,
+                  ? 0
+                  : (group.unread || 0) + 1,
               messages: updatedMessages,
               lastMessageAt: createdAt,
             };
@@ -243,6 +253,10 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         console.log('🔔 New message received via socket, updating badge');
         incrementNotification('group');
       } else {
+        if (connectedAt) {
+          const latency = Date.now() - connectedAt;
+          console.log(`⏱️ Active DM latency since connect: ${latency}ms`);
+        }
         // If the message arrives while viewing the DM, mark as read on server immediately
         try {
           await api.post(UrlConstants.markGroupMessageAsRead(incomingRoomId));
@@ -275,8 +289,29 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       disconnectSocket();
     }
 
+    // CRITICAL FIX: handle app state changes to force reconnection
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active' && user) {
+        console.log('📱 App came to foreground, forcing socket reconnection...');
+
+        // If socket exists but disconnected, connect manually to bypass backoff
+        if (socket && !socket.connected) {
+          console.log('🔌 Socket disconnected, calling connect()');
+          socket.connect();
+        } else if (!socket) {
+          // If no socket instance, create one
+          console.log('🔌 No socket instance, creating new connection');
+          connectSocket();
+        }
+
+        // Trigger global message sync when returning to app
+        syncAllMessages();
+      }
+    });
+
     // Cleanup on unmount
     return () => {
+      subscription.remove();
       disconnectSocket();
     };
   }, [user?.id]);
@@ -310,9 +345,9 @@ interface GroupSocketProviderProps {
   groupId: string;
 }
 
-export const GroupSocketProvider: React.FC<GroupSocketProviderProps> = ({ 
-  children, 
-  groupId 
+export const GroupSocketProvider: React.FC<GroupSocketProviderProps> = ({
+  children,
+  groupId
 }) => {
   const [groupSocket, setGroupSocket] = useState<Socket | undefined>();
   const { user } = useAuthStore();
@@ -330,7 +365,7 @@ export const GroupSocketProvider: React.FC<GroupSocketProviderProps> = ({
 
     socket.on(SocketEvents.CONNECT, () => {
       console.log(`✅ Connected to group ${groupId}`);
-      
+
       // Join the specific group room
       socket.emit(SocketEvents.JOIN_GROUP_ROOM, {
         roomID: groupId,

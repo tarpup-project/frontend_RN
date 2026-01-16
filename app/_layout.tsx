@@ -1,6 +1,6 @@
+import { SocketProvider } from "@/contexts/SocketProvider";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import { WatermelonProvider } from "@/contexts/WatermelonProvider";
-import { SocketProvider } from "@/contexts/SocketProvider";
 import { useAppUpdate } from "@/hooks/useAppUpdate";
 import { useDeepLinking } from "@/hooks/useDeepLinking";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -16,6 +16,11 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Toaster } from "sonner-native";
 
+import { setupBackgroundMessageHandler } from "@/utils/backgroundMessaging";
+
+// Register background handler immediately
+setupBackgroundMessageHandler();
+
 SplashScreen.preventAutoHideAsync();
 
 /* -------------------------------------------------------------------------- */
@@ -27,7 +32,7 @@ function RootLayoutContent() {
 
   // ✅ SINGLE SOURCE OF NOTIFICATIONS
   usePushNotifications();
-  
+
   // ✅ HANDLE DEEP LINKING FOR REFERRALS
   useDeepLinking();
 
@@ -46,10 +51,10 @@ function RootLayoutContent() {
   useEffect(() => {
     const init = async () => {
       console.log("🚀 App mounted, initializing...");
-      
+
       // Initialize query persistence (noop now, handled by provider, but kept for flow)
       await initializeQueryPersistence();
-      
+
       // Then hydrate auth store
       await hydrate();
     };
