@@ -16,12 +16,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
 
 // Notification Item Component
-  const NotificationItem = ({ notification, isDark, onFriendRequest, onNotificationClick }: {
-    notification: any;
-    isDark: boolean;
-    onFriendRequest: (id: string, action: 'accept' | 'decline') => void;
-    onNotificationClick: (id: string) => void;
-  }) => {
+const NotificationItem = ({ notification, isDark, onFriendRequest, onNotificationClick }: {
+  notification: any;
+  isDark: boolean;
+  onFriendRequest: (id: string, action: 'accept' | 'decline') => void;
+  onNotificationClick: (id: string) => void;
+}) => {
   // Helper function to get user info from the notification
   const getUserInfo = () => {
     const actor = notification.actors?.[0]?.actor;
@@ -32,7 +32,7 @@ import { toast } from "sonner-native";
         firstName: actor.fname || actor.name || 'User'
       };
     }
-    
+
     // Fallback to notification.user if no actors
     const user = notification.user;
     if (user) {
@@ -42,7 +42,7 @@ import { toast } from "sonner-native";
         firstName: user.firstName || user.name || 'User'
       };
     }
-    
+
     return {
       name: 'User',
       avatar: null,
@@ -99,17 +99,17 @@ import { toast } from "sonner-native";
   const renderAvatar = () => {
     if (userInfo.avatar) {
       return (
-        <ExpoImage 
-          source={{ uri: userInfo.avatar }} 
+        <ExpoImage
+          source={{ uri: userInfo.avatar }}
           style={styles.notificationAvatar}
           contentFit="cover"
         />
       );
     }
-    
+
     // Default avatar with user's initial
     const initial = userInfo.firstName[0] || 'U';
-    
+
     return (
       <View style={[styles.notificationAvatar, styles.defaultAvatar, { backgroundColor: '#4F46E5' }]}>
         <Text style={styles.avatarText}>{initial.toUpperCase()}</Text>
@@ -118,10 +118,10 @@ import { toast } from "sonner-native";
   };
 
   return (
-    <Pressable 
+    <Pressable
       style={[
-        styles.notificationItem, 
-        { 
+        styles.notificationItem,
+        {
           backgroundColor: isDark ? "#2a2a2a" : "#FFFFFF",
           borderBottomColor: isDark ? "#333333" : "#F3F4F6"
         }
@@ -133,28 +133,28 @@ import { toast } from "sonner-native";
       {!notification.isRead && (
         <View style={styles.unreadIndicator} />
       )}
-      
+
       {/* Avatar */}
       {renderAvatar()}
-      
+
       {/* Content */}
       <View style={styles.notificationContent}>
         <Text style={[styles.notificationTitle, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
           {getNotificationTitle(notification.type)}
         </Text>
-        
+
         <Text style={[styles.notificationMessage, { color: isDark ? "#CCCCCC" : "#666666" }]}>
           {(notification.message || notification.content || 'No message').replace(/\s+/g, ' ').trim()}
         </Text>
-        
+
         <Text style={[styles.notificationTime, { color: isDark ? "#999999" : "#999999" }]}>
           {moment(notification.createdAt || notification.updatedAt || notification.timestamp).fromNow()}
         </Text>
-        
+
         {/* Friend Request Actions */}
         {(notification.type?.toLowerCase() === 'friend_request' || notification.type?.toLowerCase() === 'new_friend_request') && (
           <View style={styles.friendRequestActions}>
-            <Pressable 
+            <Pressable
               style={[styles.acceptButton, { backgroundColor: isDark ? "#FFFFFF" : "#0a0a0a" }]}
               onPress={(e) => {
                 e.stopPropagation(); // Prevent notification click
@@ -165,8 +165,8 @@ import { toast } from "sonner-native";
                 Accept
               </Text>
             </Pressable>
-            
-            <Pressable 
+
+            <Pressable
               style={[styles.declineButton, { borderColor: isDark ? "#666666" : "#CCCCCC" }]}
               onPress={(e) => {
                 e.stopPropagation(); // Prevent notification click
@@ -180,14 +180,14 @@ import { toast } from "sonner-native";
           </View>
         )}
       </View>
-      
+
       {/* Navigation Arrow - only show for navigable notifications */}
-      {(notification.data?.postID || 
+      {(notification.data?.postID ||
         ['new_comment', 'comment', 'new_like', 'like', 'new_match', 'match', 'new_follower', 'follower', 'new_following', 'friend_request', 'new_friend_request'].includes(notification.type?.toLowerCase())) && (
-        <View style={styles.navigationArrow}>
-          <Ionicons name="chevron-forward" size={16} color={isDark ? "#666666" : "#CCCCCC"} />
-        </View>
-      )}
+          <View style={styles.navigationArrow}>
+            <Ionicons name="chevron-forward" size={16} color={isDark ? "#666666" : "#CCCCCC"} />
+          </View>
+        )}
     </Pressable>
   );
 };
@@ -217,7 +217,7 @@ const Header = () => {
     const unreadNotificationIds = notifications
       .filter(notif => !notif.isRead)
       .map(notif => notif.id);
-    
+
     if (unreadNotificationIds.length === 0) {
       return;
     }
@@ -227,16 +227,16 @@ const Header = () => {
       await api.put(UrlConstants.tarpNotifications, {
         notificationIDs: unreadNotificationIds
       });
-      
+
       // Update local state to reflect read status
-      setNotifications(prevNotifications => 
-        prevNotifications.map(notif => 
-          unreadNotificationIds.includes(notif.id) 
-            ? { ...notif, isRead: true } 
+      setNotifications(prevNotifications =>
+        prevNotifications.map(notif =>
+          unreadNotificationIds.includes(notif.id)
+            ? { ...notif, isRead: true }
             : notif
         )
       );
-      
+
       setUnreadCount(0);
       console.log('Marked notifications as read on server:', unreadNotificationIds.length);
     } catch (error) {
@@ -253,22 +253,22 @@ const Header = () => {
   // Fetch notifications from the API - OPTIMIZED for background polling only
   const fetchNotifications = async () => {
     if (!isAuthenticated) return;
-    
+
     try {
       const response = await api.get(UrlConstants.tarpNotifications);
-      
+
       if (response.data?.status === 'success' && response.data?.data) {
         const notificationsList = Array.isArray(response.data.data) ? response.data.data : [];
-        
+
         // Always update notifications list
         setNotifications(notificationsList);
-        
+
         // Count unread notifications based on server isRead status
         const unread = notificationsList.filter((notif: any) => !notif.isRead).length;
         setUnreadCount(unread);
-        
-        console.log('Notifications loaded (background):', { 
-          total: notificationsList.length, 
+
+        console.log('Notifications loaded (background):', {
+          total: notificationsList.length,
           unread: unread
         });
       } else {
@@ -287,7 +287,7 @@ const Header = () => {
   const markAllAsRead = async () => {
     try {
       const unreadIds = notifications.filter(n => !n.isRead).map(n => n.id);
-      
+
       if (unreadIds.length > 0) {
         await api.put(UrlConstants.tarpNotifications, {
           notificationIDs: unreadIds
@@ -311,7 +311,7 @@ const Header = () => {
     try {
       setNotifications([]);
       setUnreadCount(0);
-      
+
       // TODO: Add API call to clear all notifications on server
       toast.success('All notifications cleared');
     } catch (error) {
@@ -324,31 +324,31 @@ const Header = () => {
   const handleNotificationClick = async (notificationId: string) => {
     // Find the notification to get navigation data
     const notification = notifications.find(notif => notif.id === notificationId);
-    
+
     // Mark this notification as read on server if it's not already read
     if (notification && !notification.isRead) {
       try {
         await api.put(UrlConstants.tarpNotifications, {
           notificationIDs: [notificationId]
         });
-        
+
         // Update local state
-        setNotifications(prev => prev.map(n => 
+        setNotifications(prev => prev.map(n =>
           n.id === notificationId ? { ...n, isRead: true } : n
         ));
-        
+
         // Update unread count
         setUnreadCount(prev => Math.max(0, prev - 1));
       } catch (error) {
         console.error('Error marking single notification as read:', error);
       }
     }
-    
+
     if (notification) {
       // Handle navigation based on notification type
       handleNotificationNavigation(notification);
     }
-    
+
     console.log('Notification clicked:', notificationId);
   };
 
@@ -357,7 +357,7 @@ const Header = () => {
     try {
       const notificationType = notification.type?.toLowerCase();
       const data = notification.data;
-      
+
       console.log('Navigating from notification:', {
         type: notificationType,
         data: data,
@@ -366,71 +366,71 @@ const Header = () => {
         firstActorId: notification.actors?.[0]?.actor?.id,
         firstActorName: notification.actors?.[0]?.actor?.fname
       });
-      
+
       // Close the notification panel first
       setShowNotificationPanel(false);
-      
+
       // Add a small delay to allow panel to close smoothly
       setTimeout(async () => {
         // Navigate based on notification type
         switch (notificationType) {
-        case 'new_comment':
-        case 'comment':
-        case 'new_like':
-        case 'like':
-          // Navigate to post if postID is available
-          if (data?.postID) {
-            console.log('Fetching post data for navigation:', data.postID);
-            await navigateToPost(data.postID);
-          } else {
-            console.warn('No postID found in notification data');
-            toast.error('Unable to navigate to post');
-          }
-          break;
-          
-        case 'new_match':
-        case 'match':
-          // Navigate to matches screen - using the correct route
-          router.push('/matches/list');
-          break;
-          
-        case 'new_follower':
-        case 'follower':
-        case 'new_following':
-          // Navigate to follower's profile using their ID from actors
-          const followerActor = notification.actors?.[0]?.actor;
-          if (followerActor?.id) {
-            console.log('Navigating to follower profile:', followerActor.id);
-            router.push(`/profile/${followerActor.id}`);
-          } else {
-            console.warn('No follower ID found in notification actors');
-            // Fallback to user's own profile
-            router.push('/profile/me');
-          }
-          break;
-          
-        case 'friend_request':
-        case 'new_friend_request':
-          // Navigate to friend requester's profile using their ID from actors
-          const requesterActor = notification.actors?.[0]?.actor;
-          if (requesterActor?.id) {
-            console.log('Navigating to friend requester profile:', requesterActor.id);
-            router.push(`/profile/${requesterActor.id}`);
-          } else {
-            console.warn('No requester ID found in notification actors');
-            // Fallback to user's own profile
-            router.push('/profile/me');
-          }
-          break;
-          
-        default:
-          console.log('No specific navigation for notification type:', notificationType);
-          // For unknown types, try to navigate to post if postID exists
-          if (data?.postID) {
-            await navigateToPost(data.postID);
-          }
-          break;
-      }
+          case 'new_comment':
+          case 'comment':
+          case 'new_like':
+          case 'like':
+            // Navigate to post if postID is available
+            if (data?.postID) {
+              console.log('Fetching post data for navigation:', data.postID);
+              await navigateToPost(data.postID);
+            } else {
+              console.warn('No postID found in notification data');
+              toast.error('Unable to navigate to post');
+            }
+            break;
+
+          case 'new_match':
+          case 'match':
+            // Navigate to matches screen - using the correct route
+            router.push('/matches/list');
+            break;
+
+          case 'new_follower':
+          case 'follower':
+          case 'new_following':
+            // Navigate to follower's profile using their ID from actors
+            const followerActor = notification.actors?.[0]?.actor;
+            if (followerActor?.id) {
+              console.log('Navigating to follower profile:', followerActor.id);
+              router.push(`/profile/${followerActor.id}`);
+            } else {
+              console.warn('No follower ID found in notification actors');
+              // Fallback to user's own profile
+              router.push('/profile/me');
+            }
+            break;
+
+          case 'friend_request':
+          case 'new_friend_request':
+            // Navigate to friend requester's profile using their ID from actors
+            const requesterActor = notification.actors?.[0]?.actor;
+            if (requesterActor?.id) {
+              console.log('Navigating to friend requester profile:', requesterActor.id);
+              router.push(`/profile/${requesterActor.id}`);
+            } else {
+              console.warn('No requester ID found in notification actors');
+              // Fallback to user's own profile
+              router.push('/profile/me');
+            }
+            break;
+
+          default:
+            console.log('No specific navigation for notification type:', notificationType);
+            // For unknown types, try to navigate to post if postID exists
+            if (data?.postID) {
+              await navigateToPost(data.postID);
+            }
+            break;
+        }
       }, 300); // Small delay to allow smooth panel closing
     } catch (error) {
       console.error('Error navigating from notification:', error);
@@ -442,34 +442,34 @@ const Header = () => {
   const navigateToPost = async (postId: string) => {
     try {
       console.log('Fetching posts data to find post ID:', postId);
-      
+
       // Show loading toast
       toast.loading('Loading post...');
-      
+
       // Fetch both posts data and authenticated user data
       const [postsResponse, authResponse] = await Promise.all([
         api.get(UrlConstants.tarpStatsPosts),
         api.get(UrlConstants.fetchAuthUser)
       ]);
-      
+
       // Dismiss loading toast
       toast.dismiss();
-      
+
       if (postsResponse.data?.status === 'success' && postsResponse.data?.data) {
         const allPosts = postsResponse.data.data;
-        
+
         // Find the specific post by ID
         const postItem = allPosts.find((post: any) => post.id === postId);
-        
+
         if (!postItem) {
           console.error('Post not found in stats data:', postId);
           toast.error('Post not found');
           return;
         }
-        
+
         // Get authenticated user data
         const authUser = authResponse.data?.status === 'success' ? authResponse.data.data : null;
-        
+
         console.log('Post found in stats data:', {
           id: postItem.id,
           caption: postItem.caption?.substring(0, 50),
@@ -480,14 +480,14 @@ const Header = () => {
           tarpImgLikes: postItem.tarpImgLikes,
           firstImageComments: postItem.images?.[0]?._count?.tarpImgComments
         });
-        
+
         console.log('Auth user data:', {
           id: authUser?.id,
           fname: authUser?.fname,
           lname: authUser?.lname,
           bgUrl: authUser?.bgUrl?.substring(0, 50) + '...'
         });
-        
+
         // Enhance post item with authenticated user data
         const enhancedPostItem = {
           ...postItem,
@@ -524,12 +524,12 @@ const Header = () => {
             likes: img._count?.tarpImgLikes || 0
           })) || []
         };
-        
+
         // Process images using the exact structure from the API response
         const resolveItemImageSet = (item: any) => {
           const urls: string[] = [];
           const ids: (string | null)[] = [];
-          
+
           if (Array.isArray(item.images)) {
             item.images.forEach((img: any) => {
               if (img.url) {
@@ -539,22 +539,22 @@ const Header = () => {
               }
             });
           }
-          
+
           return { urls, ids };
         };
-        
+
         const imageSet = resolveItemImageSet(enhancedPostItem);
-        
+
         console.log('Image set processed:', {
           urlCount: imageSet.urls.length,
           idCount: imageSet.ids.length,
           firstUrl: imageSet.urls[0]?.substring(0, 50) + '...',
           firstId: imageSet.ids[0]
         });
-        
+
         // Navigate to post screen with proper parameters (same as tarps.tsx)
         const navigationUrl = `/post/${enhancedPostItem.id}?item=${encodeURIComponent(JSON.stringify(enhancedPostItem))}&images=${encodeURIComponent(JSON.stringify(imageSet))}&idx=0&serverPosts=${encodeURIComponent(JSON.stringify(allPosts))}`;
-        
+
         console.log('Navigating to post with complete data:', {
           postId: enhancedPostItem.id,
           imageCount: imageSet.urls.length,
@@ -565,19 +565,19 @@ const Header = () => {
           likeCount: enhancedPostItem.tarpImgLikes || 0,
           navigationUrlLength: navigationUrl.length
         });
-        
+
         router.push(navigationUrl as any);
-        
+
       } else {
         console.error('Failed to fetch posts data:', postsResponse.data);
         toast.error('Failed to load posts');
       }
     } catch (error: any) {
       console.error('Error fetching posts data:', error);
-      
+
       // Dismiss loading toast
       toast.dismiss();
-      
+
       if (error.response?.status === 404) {
         toast.error('Posts not found');
       } else if (error.response?.status === 401) {
@@ -592,11 +592,11 @@ const Header = () => {
   const handleFriendRequest = async (notificationId: string, action: 'accept' | 'decline') => {
     try {
       // TODO: Add API call to handle friend request
-      
+
       // Update local state
       setNotifications(prev => prev.filter(notif => notif.id !== notificationId));
       setUnreadCount(prev => Math.max(0, prev - 1));
-      
+
       toast.success(action === 'accept' ? 'Friend request accepted' : 'Friend request declined');
     } catch (error) {
       console.error('Error handling friend request:', error);
@@ -611,12 +611,12 @@ const Header = () => {
     if (isAuthenticated) {
       // Fetch notifications immediately when authenticated
       fetchNotifications();
-      
+
       // Set up polling every 60 seconds for notification count
       const notificationInterval = setInterval(() => {
         fetchNotifications();
       }, 60000); // 60 seconds
-      
+
       return () => {
         clearInterval(notificationInterval);
       };
@@ -670,7 +670,7 @@ const Header = () => {
   const handleCloseNotificationPanel = async () => {
     // Mark all visible notifications as read when closing
     await markAllVisibleAsRead();
-    
+
     // Slide out animation
     Animated.timing(slideAnim, {
       toValue: Dimensions.get('window').width,
@@ -724,15 +724,15 @@ const Header = () => {
       >
         {/* Left side - Notification Bell and Theme Toggle */}
         <View style={styles.leftContainer}>
-          <Pressable 
-            style={styles.notificationButton} 
+          <Pressable
+            style={styles.notificationButton}
             onPress={handleNotificationPress}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons 
-              name="notifications-outline" 
-              size={24} 
-              color={isAuthenticated ? dynamicStyles.icon.color : "#999999"} 
+            <Ionicons
+              name="notifications-outline"
+              size={24}
+              color={isAuthenticated ? dynamicStyles.icon.color : "#999999"}
             />
             {unreadCount > 0 && (
               <View style={styles.notificationBadge}>
@@ -742,7 +742,7 @@ const Header = () => {
               </View>
             )}
           </Pressable>
-          
+
           <Pressable style={styles.iconButton} onPress={handleThemeToggle} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             {isDark ? (
               <Ionicons name="moon" size={20} color={dynamicStyles.icon.color} />
@@ -759,11 +759,11 @@ const Header = () => {
         {/* Right side - Chat Button Only */}
         <View style={styles.iconsContainer}>
           <Pressable
-              style={[styles.chatButton, dynamicStyles.chatButton]}
-              onPress={handleChatPress}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}              
-            >
-          <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+            style={[styles.chatButton, dynamicStyles.chatButton]}
+            onPress={handleChatPress}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
               <View style={styles.chatContent}>
                 <Ionicons
                   name="chatbubble-outline"
@@ -782,8 +782,8 @@ const Header = () => {
                   </Text>
                 </View>
               )}
-              </Animated.View>
-              </Pressable>
+            </Animated.View>
+          </Pressable>
         </View>
       </View>
       <AuthModal
@@ -799,14 +799,14 @@ const Header = () => {
         onRequestClose={handleCloseNotificationPanel}
       >
         <View style={styles.modalOverlay}>
-          <Pressable 
-            style={styles.modalBackdrop} 
+          <Pressable
+            style={styles.modalBackdrop}
             onPress={handleCloseNotificationPanel}
           />
-          <Animated.View 
+          <Animated.View
             style={[
               styles.notificationPanel,
-              { 
+              {
                 backgroundColor: isDark ? "#1a1a1a" : "#FFFFFF",
                 transform: [{ translateX: slideAnim }]
               }
@@ -828,8 +828,8 @@ const Header = () => {
                     </Text>
                   </View>
                 </View>
-                <Pressable 
-                  style={styles.closeButton} 
+                <Pressable
+                  style={styles.closeButton}
                   onPress={handleCloseNotificationPanel}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
@@ -840,7 +840,7 @@ const Header = () => {
               {/* Action Buttons */}
               {notifications.length > 0 && (
                 <View style={styles.actionButtonsRow}>
-                  <Pressable 
+                  <Pressable
                     style={[styles.actionButton, { backgroundColor: isDark ? "#333333" : "#F3F4F6" }]}
                     onPress={markAllAsRead}
                   >
@@ -849,8 +849,8 @@ const Header = () => {
                       Mark all read
                     </Text>
                   </Pressable>
-                  
-                  <Pressable 
+
+                  <Pressable
                     style={styles.clearButton}
                     onPress={clearAllNotifications}
                   >
@@ -865,22 +865,22 @@ const Header = () => {
               {/* Tab Selector */}
               {notifications.length > 0 && (
                 <View style={[styles.tabSelector, { backgroundColor: isDark ? "#333333" : "#F3F4F6" }]}>
-                  <Pressable 
+                  <Pressable
                     style={[
-                      styles.tab, 
+                      styles.tab,
                       activeTab === 'all' && styles.activeTab,
                       activeTab === 'all' && { backgroundColor: isDark ? "#FFFFFF" : "#0a0a0a" }
                     ]}
                     onPress={() => setActiveTab('all')}
                   >
                     <Text style={[
-                      styles.tabText, 
+                      styles.tabText,
                       { color: activeTab === 'all' ? (isDark ? "#0a0a0a" : "#FFFFFF") : (isDark ? "#CCCCCC" : "#666666") }
                     ]}>
                       All
                     </Text>
                     <View style={[
-                      styles.tabBadge, 
+                      styles.tabBadge,
                       { backgroundColor: activeTab === 'all' ? (isDark ? "#666666" : "#CCCCCC") : (isDark ? "#555555" : "#E5E7EB") }
                     ]}>
                       <Text style={[
@@ -891,23 +891,23 @@ const Header = () => {
                       </Text>
                     </View>
                   </Pressable>
-                  
-                  <Pressable 
+
+                  <Pressable
                     style={[
-                      styles.tab, 
+                      styles.tab,
                       activeTab === 'unread' && styles.activeTab,
                       activeTab === 'unread' && { backgroundColor: isDark ? "#FFFFFF" : "#0a0a0a" }
                     ]}
                     onPress={() => setActiveTab('unread')}
                   >
                     <Text style={[
-                      styles.tabText, 
+                      styles.tabText,
                       { color: activeTab === 'unread' ? (isDark ? "#0a0a0a" : "#FFFFFF") : (isDark ? "#CCCCCC" : "#666666") }
                     ]}>
                       Unread
                     </Text>
                     <View style={[
-                      styles.tabBadge, 
+                      styles.tabBadge,
                       { backgroundColor: activeTab === 'unread' ? (isDark ? "#666666" : "#CCCCCC") : (isDark ? "#555555" : "#E5E7EB") }
                     ]}>
                       <Text style={[
@@ -942,12 +942,12 @@ const Header = () => {
                     })
                     .map((notification, index) => (
                       <NotificationItem
-                          key={notification.id}
-                          notification={notification}
-                          isDark={isDark}
-                          onFriendRequest={handleFriendRequest}
-                          onNotificationClick={handleNotificationClick}
-                        />
+                        key={notification.id}
+                        notification={notification}
+                        isDark={isDark}
+                        onFriendRequest={handleFriendRequest}
+                        onNotificationClick={handleNotificationClick}
+                      />
                     ))}
                 </View>
               )}

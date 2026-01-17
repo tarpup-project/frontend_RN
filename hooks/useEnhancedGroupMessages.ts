@@ -54,6 +54,8 @@ export const useEnhancedGroupMessages = ({
   const { user } = useAuthStore();
   const [isSending, setIsSending] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  // Add useMemo to imports
+  const { useMemo } = require('react');
   const lastQueuedReadAtRef = useRef<number>(0);
   const joinStartRef = useRef<number | null>(null);
   const firstMessageLoggedRef = useRef<boolean>(false);
@@ -225,7 +227,8 @@ export const useEnhancedGroupMessages = ({
   // Load cached messages immediately and synchronously set initial data
   useEffect(() => {
     const loadInitialCache = async () => {
-      if (!groupId || initialCacheLoaded) return;
+      // If groupId changed, we need to reload cache even if initialCacheLoaded was true
+      if (!groupId) return;
 
       try {
         console.log('📦 Loading initial cached messages for group:', groupId);
@@ -262,6 +265,8 @@ export const useEnhancedGroupMessages = ({
       }
     };
 
+    // Reset initialCacheLoaded when groupId changes
+    setInitialCacheLoaded(false);
     loadInitialCache();
 
     // CRITICAL FIX: Refetch messages when app comes to foreground
@@ -275,7 +280,7 @@ export const useEnhancedGroupMessages = ({
     return () => {
       subscription.remove();
     };
-  }, [groupId, queryClient, transformCachedMessages]); // Remove initialCacheLoaded from deps to prevent re-runs
+  }, [groupId, queryClient, transformCachedMessages]);
 
   // Enhanced React Query to fetch and cache messages with immediate cache loading
   const { data: messages = [], isLoading, error, isFetching } = useQuery({
@@ -285,7 +290,7 @@ export const useEnhancedGroupMessages = ({
       setIsRefreshing(true);
 
       if (!socket || !user) {
-        console.log('⚠️ No socket or user available');
+        console.log('⚠️ No socket or user available for group:', groupId, 'User:', !!user, 'Socket:', !!socket);
         try {
           return await loadCachedMessages();
         } finally {
@@ -319,7 +324,7 @@ export const useEnhancedGroupMessages = ({
           return [];
         };
 
-        const handleJoinRoom = async (data: any) => {
+        async function handleJoinRoom(data: any) {
           if (timeout) clearTimeout(timeout);
           cleanup();
 
@@ -349,8 +354,9 @@ export const useEnhancedGroupMessages = ({
                 updatedAt: Date.now(),
               }));
 
-              await asyncStorageDB.saveMessages(groupId, transformedMessages);
-              console.log('💾 Saved', transformedMessages.length, 'messages to AsyncStorage for group:', groupId);
+              // CRITICAL FIX: Use syncMessages instead of saveMessages to MERGE, not OVERWRITE
+              await asyncStorageDB.syncMessages(groupId, transformedMessages);
+              console.log('💾 Synced', transformedMessages.length, 'fresh messages to AsyncStorage for group:', groupId);
 
               // CRITICAL FIX: Create backup after saving fresh messages
               await asyncStorageDB.createMessageBackup(groupId);
@@ -359,10 +365,57 @@ export const useEnhancedGroupMessages = ({
             console.error('❌ Failed to save fresh messages to cache:', error);
           }
 
-          finish(freshMessages);
-        };
+          // Merge fresh messages with existing cache to prevent data loss
+          // This is critical if the backend only sends delta messages
+          try {
+            let currentData = queryClient.getQueryData<GroupMessage[]>(['groups', 'messages', groupId]) || [];
 
-        const handleError = async (error: any) => {
+            // CRITICAL FIX: If query cache is empty, ALWAYS try to get from local DB first
+            // This prevents overwriting full history with a delta update (single message)
+            if (currentData.length === 0) {
+              console.log('⚠️ Query cache empty during join, fetching from DB for merge...');
+              try {
+                const dbMessages = await asyncStorageDB.getMessages(groupId);
+                if (dbMessages.length > 0) {
+                  currentData = await transformCachedMessages(dbMessages);
+                  console.log(`✅ Retrieved ${currentData.length} messages from DB for merge`);
+                }
+              } catch (dbError) {
+                console.error('Failed to fetch from DB for merge:', dbError);
+              }
+            }
+
+            if (currentData.length > 0) {
+              // Logic to merge: 
+              // 1. Create a map of existing messages by ID
+              // 2. Add/Overwrite with fresh messages
+              // 3. Convert back to array
+              const messageMap = new Map();
+
+              currentData.forEach(msg => messageMap.set(msg.content.id, msg));
+              freshMessages.forEach(msg => messageMap.set(msg.content.id, msg));
+
+              const mergedMessages = Array.from(messageMap.values())
+                .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+              console.log(`✅ Merged ${freshMessages.length} fresh messages with ${currentData.length} cached messages. Total: ${mergedMessages.length}`);
+              finish(mergedMessages);
+            } else if (freshMessages.length > 0) {
+              // If we still have no current data (new install or cleared cache), just use fresh
+              console.log(`✅ No cached messages found, using ${freshMessages.length} fresh messages`);
+              finish(freshMessages);
+            } else {
+              // If no fresh messages, keep using cached data
+              console.log('✅ No fresh messages, keeping cached data');
+              finish(currentData.length > 0 ? currentData : []);
+            }
+          } catch (e) {
+            console.error('Error merging messages:', e);
+            finish(freshMessages);
+          }
+        }
+
+        async function handleError(error: any) {
           if (timeout) clearTimeout(timeout);
           console.error('❌ Socket error for group:', groupId, error);
           cleanup();
@@ -376,17 +429,42 @@ export const useEnhancedGroupMessages = ({
             console.error('❌ Failed to load cached messages on error:', cacheError);
             finish([]); // Only return empty if cache loading fails
           }
-        };
+        }
 
-        const emitJoin = () => {
+        async function emitJoin() {
           try {
+            // Get last message timestamp from cache for delta sync
+            let lastMessageAt = 0;
+            try {
+              if (isWatermelonAvailable) {
+                // TODO: Get from WatermelonDB
+              } else {
+                const cachedMessages = await asyncStorageDB.getMessages(groupId);
+                if (cachedMessages.length > 0) {
+                  // Messages are sorted by createdAt in getMessages
+                  const lastMessage = cachedMessages[cachedMessages.length - 1];
+                  // Use createdAt or updatedAt, whichever is newer
+                  lastMessageAt = Math.max(lastMessage.createdAt || 0, lastMessage.updatedAt || 0);
+                }
+              }
+            } catch (err) {
+              console.warn('⚠️ Failed to get last message timestamp for join:', err);
+            }
+
+            // Convert to ISO string for backend
+            // CRITICAL FIX: Strictly send null if no cache exists or lastMessageAt is 0
+            const lastMessageAtISO = (lastMessageAt && lastMessageAt > 0) ? new Date(lastMessageAt).toISOString() : null;
+
+            console.log('🔌 Joining room', groupId, 'with last_message_at:', lastMessageAtISO);
+
             joinStartRef.current = Date.now();
             firstMessageLoggedRef.current = false;
             socket.emit(
               SocketEvents.JOIN_GROUP_ROOM,
               {
                 roomID: groupId,
-                userID: user.id,
+                userID: user!.id,
+                last_message_at: lastMessageAtISO, // Send ISO timestamp for delta sync
               },
               (ack: any) => {
                 if (!ack) return;
@@ -396,9 +474,9 @@ export const useEnhancedGroupMessages = ({
           } catch (e) {
             handleError(e);
           }
-        };
+        }
 
-        const cleanup = () => {
+        function cleanup() {
           socket.off(SocketEvents.JOIN_GROUP_ROOM, handleJoinRoom as any);
           socket.off('joinGroupRoom', handleJoinRoom as any);
           socket.off('joinedGroupRoom', handleJoinRoom as any);
@@ -409,7 +487,7 @@ export const useEnhancedGroupMessages = ({
           socket.off('error', handleError as any);
           socket.off(SocketEvents.CONNECT, emitJoin as any);
           socket.off('connect', emitJoin as any);
-        };
+        }
 
         timeout = setTimeout(async () => {
           console.log('⏰ Socket timeout for group:', groupId, '- Loading cached messages instead');
@@ -454,9 +532,20 @@ export const useEnhancedGroupMessages = ({
     gcTime: 1000 * 60 * 60 * 24, // Keep in cache for 24 hours
     retry: 2,
     // CRITICAL FIX: Only merge fresh data if it's actually newer/different
-    placeholderData: (previousData) => {
-      // Always keep previous data to prevent empty states
-      return previousData;
+    placeholderData: (previousData, previousQuery) => {
+      // If we have previous data (from cache or previous fetch), use it
+      if (previousData) {
+        return previousData;
+      }
+
+      // If we don't have previous data, try to get it from the query cache directly
+      // This handles the case where setQueryData was called before useQuery initialized
+      const cachedData = queryClient.getQueryData<GroupMessage[]>(['groups', 'messages', groupId]);
+      if (cachedData) {
+        return cachedData;
+      }
+
+      return undefined;
     },
     refetchOnWindowFocus: false, // Don't refetch on focus to avoid interrupting user
     refetchOnReconnect: false, // CRITICAL FIX: Disable auto-refetch on reconnect to prevent clearing cache
@@ -542,145 +631,49 @@ export const useEnhancedGroupMessages = ({
     });
   }, [groupId, messages, isLoading, isRefreshing, isFetching, socket, error]);
 
-  // Listen for new messages and update cache with optimistic updates
-  useEffect(() => {
-    if (!socket || !user || !groupId) return;
+  // CRITICAL FIX: UI-level deduplication to hide any duplicates that slip through
+  const deduplicatedMessages = useMemo(() => {
+    if (!messages || messages.length === 0) return [];
 
-    const handleNewMessage = async (data: any) => {
-      const incomingRoomId = String(
-        data?.roomID ??
-        data?.roomId ??
-        data?.groupID ??
-        data?.groupId ??
-        data?.room ??
-        data?.group ??
-        ''
-      );
-      if (incomingRoomId && incomingRoomId !== String(groupId)) return;
-      if (!firstMessageLoggedRef.current && joinStartRef.current) {
-        const dt = Date.now() - joinStartRef.current;
-        console.log(`⏱️ Group DM first message since join: ${dt}ms`);
-        firstMessageLoggedRef.current = true;
+    // Use a Set to track unique signatures
+    const seenSignatures = new Set<string>();
+    const uniqueMessages: GroupMessage[] = [];
+
+    // Sort heavily to ensure stable order
+    const sorted = [...messages].sort((a, b) => new Date(a.createdAt || Date.now()).getTime() - new Date(b.createdAt || Date.now()).getTime());
+
+    for (const msg of sorted) {
+      if (msg.messageType === MessageType.ALERT) {
+        uniqueMessages.push(msg);
+        continue;
       }
 
-      const contentId =
-        data?.content?.id ??
-        data?.id ??
-        `${Date.now()}_${Math.random().toString(36).slice(2)}`;
-      const contentMessage =
-        data?.content?.message ?? data?.message ?? data?.text ?? '';
-      const sender = data?.sender ?? data?.user ?? {};
-      const createdAt = data?.createdAt || new Date().toISOString();
-      const file = data?.file;
+      const userMsg = msg as UserMessage;
+      // Signature: SenderID + Content + TimeBucket (2 sec window)
+      // This catches messages sent by same person with same text at almost same time
+      const timeBucket = Math.floor(new Date(msg.createdAt || Date.now()).getTime() / 2000);
+      const signature = `${userMsg.sender.id}_${userMsg.content.message.trim()}_${timeBucket}`;
 
-      // Don't modify the display message for regular messages - only use "📷 Image" for replies
-      const displayMessage = contentMessage;
+      // Check for exact ID match too
+      const idSignature = `ID_${msg.content.id}`;
 
-      const replyingTo = data?.replyingTo;
-      const type =
-        data?.messageType ??
-        (sender?.id ? MessageType.USER : MessageType.ALERT);
+      if (!seenSignatures.has(signature) && !seenSignatures.has(idSignature)) {
+        seenSignatures.add(signature);
+        seenSignatures.add(idSignature);
+        uniqueMessages.push(msg);
+      }
+    }
 
-      const base = {
-        content: { id: contentId, message: contentMessage },
-        createdAt,
-      };
+    return uniqueMessages;
+  }, [messages]);
 
-      const newMessage: GroupMessage =
-        type === MessageType.USER
-          ? ({
-            messageType: MessageType.USER,
-            ...base,
-            sender: {
-              id: sender?.id,
-              fname: sender?.fname,
-            },
-            file,
-            replyingTo: replyingTo ? {
-              messageType: MessageType.USER,
-              content: {
-                id: replyingTo.content?.id || replyingTo.id,
-                message: replyingTo.content?.message || (replyingTo.file ? '📷 Image' : '')
-              },
-              sender: {
-                id: replyingTo.sender?.id || 'unknown',
-                fname: replyingTo.sender?.fname || 'Unknown User'
-              },
-              createdAt: replyingTo.createdAt || new Date().toISOString(),
-              file: replyingTo.file
-            } as UserMessage : undefined,
-          } as UserMessage)
-          : ({
-            messageType: MessageType.ALERT,
-            ...base,
-            sender: {
-              id: sender?.id,
-              fname: sender?.fname,
-            },
-          } as AlertMessage);
+  // Listener for new messages moved to SocketProvider to prevent duplication
+  useEffect(() => {
+    // Only keeping this for debug/monitoring if needed, but no cache updates
+    if (!socket || !user || !groupId) return;
 
-      // Optimistic update with deduplication
-      queryClient.setQueryData<GroupMessage[]>(
-        ['groups', 'messages', groupId],
-        (oldMessages = []) => {
-          const exists = oldMessages.find(
-            (msg) => msg.content.id === newMessage.content.id
-          );
-          if (exists) return oldMessages;
-
-          const updatedMessages = [...oldMessages, newMessage];
-
-          // Save to database cache
-          const saveToCache = async () => {
-            try {
-              if (isWatermelonAvailable) {
-                // TODO: Save to WatermelonDB
-              } else {
-                await asyncStorageDB.addMessage(groupId, {
-                  id: contentId,
-                  serverId: contentId,
-                  groupId: groupId,
-                  content: contentMessage,
-                  senderId: sender?.id || 'system',
-                  senderName: sender?.fname || 'System',
-                  replyToId: replyingTo?.content?.id,
-                  fileUrl: file?.data,
-                  fileType: file?.ext,
-                  isPending: false,
-                  isSynced: true,
-                  createdAt: new Date(createdAt).getTime(),
-                  updatedAt: Date.now(),
-                });
-
-                // CRITICAL FIX: Create backup after adding new message
-                await asyncStorageDB.createMessageBackup(groupId);
-              }
-            } catch (error) {
-              console.error('❌ Failed to cache new message:', error);
-            }
-          };
-          saveToCache();
-
-          return updatedMessages;
-        }
-      );
-    };
-
-    const eventNames = [
-      SocketEvents.GROUP_ROOM_MESSAGE,
-      'groupRoomMessage',
-      'messageGroupRoom',
-      'group_message',
-      'groupMessage',
-      'newMessage',
-      'message',
-    ];
-    eventNames.forEach((evt) => socket.on(evt as any, handleNewMessage));
-
-    return () => {
-      eventNames.forEach((evt) => socket.off(evt as any, handleNewMessage));
-    };
-  }, [socket, user?.id, groupId, queryClient]);
+    // Logic moved to SocketProvider.tsx
+  }, [socket, user?.id, groupId]);
 
   const sendMessage = useCallback(async ({
     message,
@@ -692,8 +685,9 @@ export const useEnhancedGroupMessages = ({
     }
 
     setIsSending(true);
-    const tempId = `temp_${Date.now()}_${Math.random().toString(36)}`;
-    const messageId = Date.now().toString() + Math.random().toString(36);
+    // CRITICAL FIX: Use the SAME ID for optimistic update and server payload
+    // This prevents duplication when the server broadcasts the message back
+    const messageId = Date.now().toString() + Math.random().toString(36).slice(2);
 
     try {
       // Don't modify the display message for regular messages - only use "📷 Image" for replies
@@ -703,7 +697,7 @@ export const useEnhancedGroupMessages = ({
         roomID: groupId,
         messageType: MessageType.USER,
         content: {
-          id: messageId,
+          id: messageId, // Use the consistent ID
           message: displayMessage,
         },
         file,
@@ -716,7 +710,7 @@ export const useEnhancedGroupMessages = ({
 
       const optimisticMessage: UserMessage = {
         messageType: MessageType.USER,
-        content: { ...payload.content, id: tempId },
+        content: { ...payload.content, id: messageId }, // Use the consistent ID
         sender: payload.sender,
         file,
         replyingTo,
@@ -739,8 +733,8 @@ export const useEnhancedGroupMessages = ({
             // TODO: Save to WatermelonDB
           } else {
             await asyncStorageDB.addMessage(groupId, {
-              id: tempId,
-              serverId: tempId,
+              id: messageId,
+              serverId: messageId,
               groupId: groupId,
               content: message.trim(),
               senderId: user.id,
@@ -765,7 +759,7 @@ export const useEnhancedGroupMessages = ({
         console.log('📱 Offline - adding message to sync queue');
 
         try {
-          watermelonOfflineSyncManager.addToQueue('message', { ...payload, tempId }, 3);
+          watermelonOfflineSyncManager.addToQueue('message', payload, 3);
         } catch { }
 
         setIsSending(false);
@@ -776,20 +770,7 @@ export const useEnhancedGroupMessages = ({
       return new Promise((resolve) => {
         socket.emit(SocketEvents.GROUP_ROOM_MESSAGE, payload, (response: any) => {
           if (response.status === 'ok') {
-            // Replace temp message with real message
-            queryClient.setQueryData<GroupMessage[]>(
-              ['groups', 'messages', groupId],
-              (old = []) => {
-                const updated = old.map(msg =>
-                  msg.content.id === tempId
-                    ? { ...msg, content: { ...msg.content, id: messageId } }
-                    : msg
-                );
-                return updated;
-              }
-            );
-
-            // Update cache with real message ID
+            // Mark message as synced (no need to replace ID since it's the same)
             const updateCache = async () => {
               try {
                 if (isWatermelonAvailable) {
@@ -797,8 +778,8 @@ export const useEnhancedGroupMessages = ({
                 } else {
                   const messages = await asyncStorageDB.getMessages(groupId);
                   const updatedMessages = messages.map(msg =>
-                    msg.id === tempId
-                      ? { ...msg, id: messageId, serverId: messageId, isPending: false, isSynced: true }
+                    msg.id === messageId
+                      ? { ...msg, isPending: false, isSynced: true }
                       : msg
                   );
                   await asyncStorageDB.saveMessages(groupId, updatedMessages);
@@ -816,7 +797,7 @@ export const useEnhancedGroupMessages = ({
             queryClient.setQueryData<GroupMessage[]>(
               ['groups', 'messages', groupId],
               (old = []) => {
-                const updated = old.filter(msg => msg.content.id !== tempId);
+                const updated = old.filter(msg => msg.content.id !== messageId);
                 return updated;
               }
             );
@@ -828,7 +809,7 @@ export const useEnhancedGroupMessages = ({
                   // TODO: Remove from WatermelonDB
                 } else {
                   const messages = await asyncStorageDB.getMessages(groupId);
-                  const filteredMessages = messages.filter(msg => msg.id !== tempId);
+                  const filteredMessages = messages.filter(msg => msg.id !== messageId);
                   await asyncStorageDB.saveMessages(groupId, filteredMessages);
                 }
               } catch (error) {
@@ -847,7 +828,7 @@ export const useEnhancedGroupMessages = ({
       // Remove optimistic message on error
       queryClient.setQueryData<GroupMessage[]>(
         ['groups', 'messages', groupId],
-        (old = []) => old.filter(msg => msg.content.id !== tempId)
+        (old = []) => old.filter(msg => msg.content.id !== messageId)
       );
       setIsSending(false);
       return false;
@@ -918,8 +899,10 @@ export const useEnhancedGroupMessages = ({
     }
   }, [groupId, queryClient]);
 
+
+
   return {
-    messages,
+    messages: deduplicatedMessages, // Return filtered messages
     isLoading,
     error: error ? String(error) : null,
     isSending,
@@ -931,7 +914,7 @@ export const useEnhancedGroupMessages = ({
       queryClient.invalidateQueries({ queryKey: ['groups', 'messages', groupId] });
     },
     retryConnection: () => queryClient.invalidateQueries({ queryKey: ['groups', 'messages', groupId] }),
-    isCached: messages.length > 0 && !isLoading,
+    isCached: deduplicatedMessages.length > 0 && !isLoading,
     isRefreshing,
   };
 };
