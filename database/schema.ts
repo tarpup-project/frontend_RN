@@ -1,7 +1,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
 export const schema = appSchema({
-  version: 2, // Increment version for new fields
+  version: 3, // Increment version for new fields
   tables: [
     // Groups table
     tableSchema({
@@ -42,6 +42,8 @@ export const schema = appSchema({
         { name: 'temp_id', type: 'string', isOptional: true },
         { name: 'is_pending', type: 'boolean' },
         { name: 'is_synced', type: 'boolean' },
+        { name: 'message_id', type: 'string', isIndexed: true },
+        { name: 'deleted_at', type: 'number', isOptional: true },
         { name: 'created_at', type: 'number' },
         { name: 'updated_at', type: 'number' },
       ],
