@@ -21,6 +21,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Animated,
   AppState,
@@ -410,16 +411,25 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
           onRefresh={handleRefresh}
         />
 
-        <MessageList
-          messages={displayedMessages}
-          userId={user?.id}
-          onReply={startReply}
-          onImagePress={setShowImageModal}
-          onLinkPress={handleLinkPress}
-          scrollToMessage={scrollToMessage}
-          messageRefs={messageRefs}
-          navigateToProfile={navigateToProfile}
-        />
+        {isLoading && displayedMessages.length === 0 ? (
+          <View style={[styles.centerContainer, { flex: 1 }]}>
+            <ActivityIndicator size="small" color={isDark ? "#FFFFFF" : "#000000"} />
+            <Text style={[{ marginTop: 10, color: isDark ? "#888" : "#666" }]}>
+              Getting past messages...
+            </Text>
+          </View>
+        ) : (
+          <MessageList
+            messages={displayedMessages}
+            userId={user?.id}
+            onReply={startReply}
+            onImagePress={setShowImageModal}
+            onLinkPress={handleLinkPress}
+            scrollToMessage={scrollToMessage}
+            messageRefs={messageRefs}
+            navigateToProfile={navigateToProfile}
+          />
+        )}
 
         <GroupInfoModal
           visible={showGroupInfo}

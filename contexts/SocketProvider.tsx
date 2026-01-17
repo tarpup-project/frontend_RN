@@ -94,30 +94,75 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
       messagesByRoom[incomingRoomId].push(newMessage);
 
-      // Async Cache
-      try {
-        const senderId = sender?.id || data?.senderId || 'system';
-        const senderName = sender?.fname || 'System';
-        const messageText = contentMessage || (file?.data ? '📷 Image' : '');
-        asyncStorageDB.addMessage(incomingRoomId, {
-          id: contentId,
-          content: messageText,
-          senderId,
-          senderName,
-          fileUrl: file?.data,
-          fileType: file?.ext,
-          createdAt: new Date(createdAt).getTime(),
-        }).catch(e => console.error('Failed to cache group message globally', e));
-      } catch (e) { console.error('Error preparing cache write', e); }
+      // Removed individual asyncStorageDB.addMessage call to prevent race conditions
+      // We will batch sync them after the loop
+    });
+
+    // 0. Batch Persist Messages to Local DB (CRITICAL FIX)
+    Object.entries(messagesByRoom).forEach(([roomId, newMsgs]) => {
+      const dbMessages = newMsgs.map(m => {
+        const isUserMsg = m.messageType === MessageType.USER;
+        const msg = m as UserMessage; // Cast for easier access, valid checks below
+
+        return {
+          id: m.content.id,
+          serverId: m.content.id, // Ensure serverId is set for sync deduplication
+          content: m.content.message || (isUserMsg && msg.file?.data ? '📷 Image' : ''),
+          senderId: isUserMsg ? msg.sender.id : 'system',
+          senderName: isUserMsg ? msg.sender.fname : 'System',
+          fileUrl: isUserMsg ? msg.file?.data : undefined,
+          fileType: isUserMsg ? msg.file?.ext : undefined,
+          createdAt: new Date(m.createdAt || Date.now()).getTime(),
+          updatedAt: Date.now(),
+          isSynced: true
+        };
+      });
+
+      console.log(`💾 Batch syncing ${dbMessages.length} messages for room ${roomId}`);
+      asyncStorageDB.syncMessages(roomId, dbMessages).catch(e =>
+        console.error('Failed to batch sync messages', e)
+      );
     });
 
     // 1. Bulk update Open Chat Messages
     Object.entries(messagesByRoom).forEach(([roomId, newMsgs]) => {
       queryClient.setQueryData<GroupMessage[]>(['groups', 'messages', roomId], (oldMessages = []) => {
-        // Filter out duplicates just in case
-        const uniqueNew = newMsgs.filter(n => !oldMessages.find(o => o.content.id === n.content.id));
-        if (uniqueNew.length === 0) return oldMessages;
-        return [...oldMessages, ...uniqueNew];
+        let updatedMessages = [...oldMessages];
+
+        newMsgs.forEach(newMessage => {
+          // FUZZY MATCHING: Check if we have a pending message with same content from me
+          if (newMessage.messageType === MessageType.USER && String((newMessage as UserMessage).sender.id) === String(user?.id)) {
+            const pendingMatch = updatedMessages.find(m =>
+              // Is from me
+              m.messageType === MessageType.USER &&
+              String((m as UserMessage).sender.id) === String(user?.id) &&
+              // Has same content
+              m.content.message.trim() === newMessage.content.message.trim() &&
+              // (RELAXED CHECK) If pending, assume it's the one. If not, check time with wider window
+              (m.isPending || Math.abs(new Date(m.createdAt || Date.now()).getTime() - new Date(newMessage.createdAt || Date.now()).getTime()) < 60000)
+            );
+
+            if (pendingMatch) {
+              console.log('🔄 SocketProvider: Fuzzy match found, replacing', pendingMatch.content.id, 'with', newMessage.content.id);
+              updatedMessages = updatedMessages.map(m =>
+                m.content.id === pendingMatch.content.id ? newMessage : m
+              );
+              return;
+            }
+          }
+
+          // Standard ID check
+          const exists = updatedMessages.find(m => m.content.id === newMessage.content.id);
+          if (exists) {
+            updatedMessages = updatedMessages.map(m =>
+              m.content.id === newMessage.content.id ? newMessage : m
+            );
+          } else {
+            updatedMessages.push(newMessage);
+          }
+        });
+
+        return updatedMessages;
       });
     });
 
