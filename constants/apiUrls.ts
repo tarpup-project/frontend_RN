@@ -39,8 +39,7 @@ class UrlConstants {
   static uploadImageToMessage = (id: string) => `/user/messages/upload/${id}`
   static fetchGroupMessages = (groupID: string) => `/groups/messages/${groupID}`;
   static fetchAllCategories = (campusID?: string, stateID?: string) =>
-    `/groups/categories${
-      campusID !== undefined ? `?campusID=${campusID}` : ""
+    `/groups/categories${campusID !== undefined ? `?campusID=${campusID}` : ""
     }${stateID !== undefined ? `?stateID=${stateID}` : ""}`;
   static markGroupMessageAsRead = (groupID: string) =>
     `/groups/mark/${groupID}`;
@@ -59,8 +58,7 @@ class UrlConstants {
   static fetchMatchDetails = (matchID: string) =>
     `/activities/matches/details/${matchID}`;
   static fetchAllMatches = (campusID?: string, stateID?: string) =>
-    `/activities/matches?b=null${
-      campusID !== undefined ? `&campusID=${campusID}` : ""
+    `/activities/matches?b=null${campusID !== undefined ? `&campusID=${campusID}` : ""
     }${stateID !== undefined ? `&stateID=${stateID}` : ""}`;
   static pendingMatches = `/user/matches/pending`;
   static matchAction = (matchID: string) => `/activities/matches/details/${matchID}`;
@@ -70,10 +68,8 @@ class UrlConstants {
     filterID?: string,
     userID?: string
   ) =>
-    `/activities/requests?b=null${
-      campusID !== undefined ? `&campusID=${campusID}` : ""
-    }${stateID !== undefined ? `&stateID=${stateID}` : ""}${
-      filterID ? `&categoryID=${filterID}` : ""
+    `/activities/requests?b=null${campusID !== undefined ? `&campusID=${campusID}` : ""
+    }${stateID !== undefined ? `&stateID=${stateID}` : ""}${filterID ? `&categoryID=${filterID}` : ""
     }${userID ? `&userID=${userID}` : ""}`;
   static fetchCategoryMatches = (categoryID: string, campusID: string) =>
     `/activities/matches/category/${categoryID}/${campusID}`;
@@ -100,6 +96,8 @@ class UrlConstants {
   static tarpToggleFriend = `/tarps/user/friend`;
   static tarpToggleFollow = `/tarps/user/follow`;
   static tarpNotifications = `/tarps/profile/notification`;
+  static followAction = `/tarps/user/follow/action`;
+  static tarpCheckFriendStatus = (userID: string) => `/tarps/user/friend/${userID}`;
   static tarpStatsPosts = `/tarps/stats/posts`;
   static tarpUserFollowers = `/tarps/user/followers`;
   static tarpFriendsPrivacy = `/tarps/people/friends/privacy`;

@@ -50,6 +50,43 @@ const NotificationItem = ({ notification, isDark, onFriendRequest, onNotificatio
     };
   };
 
+  const [requestStatus, setRequestStatus] = useState<'pending' | 'accepted' | 'declined' | null>(null);
+
+  useEffect(() => {
+    const checkStatus = async () => {
+      const isFriendRequest = notification.type?.toLowerCase() === 'friend_request' ||
+        notification.type?.toLowerCase() === 'new_friend_request';
+
+      if (!isFriendRequest) return;
+
+      const actor = notification.actors?.[0]?.actor;
+      if (!actor?.id) return;
+
+      try {
+        // Check current status
+        const response = await api.get(UrlConstants.tarpCheckFriendStatus(actor.id));
+
+        if (response.data?.status === 'success' && response.data?.data) {
+          const status = response.data.data.status;
+          if (status === 'accepted' || status === 'declined') {
+            setRequestStatus(status);
+          } else {
+            setRequestStatus('pending');
+          }
+        } else {
+          // If no connection found or error, likely pending or no action yet
+          setRequestStatus('pending');
+        }
+      } catch (error) {
+        console.log('Error checking friend status:', error);
+        // Fallback to pending on error to allow retry
+        setRequestStatus('pending');
+      }
+    };
+
+    checkStatus();
+  }, [notification]);
+
   const userInfo = getUserInfo();
   const getNotificationIcon = (type: string) => {
     switch (type?.toLowerCase()) {
@@ -154,29 +191,44 @@ const NotificationItem = ({ notification, isDark, onFriendRequest, onNotificatio
         {/* Friend Request Actions */}
         {(notification.type?.toLowerCase() === 'friend_request' || notification.type?.toLowerCase() === 'new_friend_request') && (
           <View style={styles.friendRequestActions}>
-            <Pressable
-              style={[styles.acceptButton, { backgroundColor: isDark ? "#FFFFFF" : "#0a0a0a" }]}
-              onPress={(e) => {
-                e.stopPropagation(); // Prevent notification click
-                onFriendRequest(notification.id, 'accept');
-              }}
-            >
-              <Text style={[styles.acceptButtonText, { color: isDark ? "#0a0a0a" : "#FFFFFF" }]}>
-                Accept
+            {requestStatus === 'accepted' ? (
+              <Text style={{ color: isDark ? '#4ade80' : '#16a34a', fontSize: 13, fontWeight: '500', marginTop: 4 }}>
+                Request Accepted
               </Text>
-            </Pressable>
+            ) : requestStatus === 'declined' ? (
+              <Text style={{ color: isDark ? '#f87171' : '#dc2626', fontSize: 13, fontWeight: '500', marginTop: 4 }}>
+                Request Declined
+              </Text>
+            ) : requestStatus === 'pending' ? (
+              // Only show buttons if explicitly pending (hides them during loading)
+              <>
+                <Pressable
+                  style={[styles.acceptButton, { backgroundColor: isDark ? "#FFFFFF" : "#0a0a0a" }]}
+                  onPress={(e) => {
+                    e.stopPropagation(); // Prevent notification click
+                    onFriendRequest(notification.id, 'accept');
+                    setRequestStatus('accepted'); // Optimistic update
+                  }}
+                >
+                  <Text style={[styles.acceptButtonText, { color: isDark ? "#0a0a0a" : "#FFFFFF" }]}>
+                    Accept
+                  </Text>
+                </Pressable>
 
-            <Pressable
-              style={[styles.declineButton, { borderColor: isDark ? "#666666" : "#CCCCCC" }]}
-              onPress={(e) => {
-                e.stopPropagation(); // Prevent notification click
-                onFriendRequest(notification.id, 'decline');
-              }}
-            >
-              <Text style={[styles.declineButtonText, { color: isDark ? "#CCCCCC" : "#666666" }]}>
-                Decline
-              </Text>
-            </Pressable>
+                <Pressable
+                  style={[styles.declineButton, { borderColor: isDark ? "#666666" : "#CCCCCC" }]}
+                  onPress={(e) => {
+                    e.stopPropagation(); // Prevent notification click
+                    onFriendRequest(notification.id, 'decline');
+                    setRequestStatus('declined'); // Optimistic update
+                  }}
+                >
+                  <Text style={[styles.declineButtonText, { color: isDark ? "#CCCCCC" : "#666666" }]}>
+                    Decline
+                  </Text>
+                </Pressable>
+              </>
+            ) : null}
           </View>
         )}
       </View>
@@ -591,13 +643,39 @@ const Header = () => {
   // Handle friend request actions
   const handleFriendRequest = async (notificationId: string, action: 'accept' | 'decline') => {
     try {
-      // TODO: Add API call to handle friend request
+      // Find the notification to get the actor ID
+      const notification = notifications.find(n => n.id === notificationId);
+
+      if (!notification) {
+        console.error('Notification not found:', notificationId);
+        return;
+      }
+
+      // Extract actor ID from the first actor in the list
+      const actorId = notification.actors?.[0]?.actor?.id;
+
+      if (!actorId) {
+        console.error('No actor ID found in notification:', notification);
+        toast.error('Cannot process request: User not found');
+        return;
+      }
+
+      console.log(`Processing friend request: ${action} for user ${actorId}`);
+
+      // Call the follow action endpoint
+      await api.post(UrlConstants.followAction, {
+        userID: actorId,
+        action: action
+      });
 
       // Update local state
       setNotifications(prev => prev.filter(notif => notif.id !== notificationId));
       setUnreadCount(prev => Math.max(0, prev - 1));
 
       toast.success(action === 'accept' ? 'Friend request accepted' : 'Friend request declined');
+
+      // Refresh notifications just in case
+      fetchNotifications();
     } catch (error) {
       console.error('Error handling friend request:', error);
       toast.error(`Failed to ${action} friend request`);
