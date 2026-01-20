@@ -66,7 +66,7 @@ export default function MyTarpsScreen() {
   // Combined function to load all data
   const loadAllData = async () => {
     if (isLoading) return;
-    
+
     try {
       setIsLoading(true);
       await Promise.all([
@@ -85,10 +85,10 @@ export default function MyTarpsScreen() {
     try {
       setIsDeletingPost(true);
       await api.delete(`/tarps/posts/${postId}`);
-      
+
       // Remove from local state
       setUserPosts(prev => prev.filter(post => post.id !== postId));
-      
+
       // Update stats
       if (profileStats) {
         setProfileStats(prev => prev ? {
@@ -96,7 +96,7 @@ export default function MyTarpsScreen() {
           posts: prev.posts - 1
         } : null);
       }
-      
+
       toast.success('Post deleted successfully');
       setShowDeleteModal(false);
       setPostToDelete(null);
@@ -115,16 +115,16 @@ export default function MyTarpsScreen() {
 
   const formatLocation = (location: string) => {
     if (!location) return '';
-    
+
     // Remove numbers (zip codes, postal codes, etc.)
     const withoutNumbers = location.replace(/\d+/g, '').trim();
-    
+
     // Split by comma and clean up
     const parts = withoutNumbers.split(',').map(part => part.trim()).filter(part => part.length > 0);
-    
+
     // Take the last two parts (typically state/province and country)
     const relevantParts = parts.slice(-2);
-    
+
     return relevantParts.join(', ');
   };
 
@@ -141,7 +141,7 @@ export default function MyTarpsScreen() {
   return (
     <View style={[styles.container, dynamicStyles.container]}>
       <StatusBar style={isDark ? "light" : "dark"} />
-      
+
       {/* Custom Header */}
       <View style={styles.customHeader}>
         <View style={styles.headerContent}>
@@ -151,15 +151,15 @@ export default function MyTarpsScreen() {
               Manage your campus photo posts
             </Text>
           </View>
-          <Pressable 
-            style={styles.closeButton} 
+          <Pressable
+            style={styles.closeButton}
             onPress={() => nav.back()}
           >
             <Ionicons name="close" size={24} color={dynamicStyles.text.color} />
           </Pressable>
         </View>
       </View>
-      
+
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Loading State */}
         {isLoading ? (
@@ -214,7 +214,7 @@ export default function MyTarpsScreen() {
                           )}
                         </View>
                       )}
-                      
+
                       {/* Post Details */}
                       <View style={styles.postInfo}>
                         <View style={styles.postHeader}>
@@ -232,10 +232,10 @@ export default function MyTarpsScreen() {
                           >
                             <Ionicons name="ellipsis-vertical" size={16} color={dynamicStyles.subtitle.color} />
                           </Pressable>
-                          
+
                           {/* Dropdown Menu - removed from here, now using Modal */}
                         </View>
-                        
+
                         <View style={styles.postMeta}>
                           <Ionicons name="calendar-outline" size={12} color={dynamicStyles.subtitle.color} />
                           <Text style={[styles.postDate, dynamicStyles.subtitle]}>
@@ -245,13 +245,13 @@ export default function MyTarpsScreen() {
                             {moment(post.createdAt || post.created_at).fromNow()}
                           </Text>
                         </View>
-                        
+
                         {post.caption && (
                           <Text style={[styles.postCaption, dynamicStyles.text]} numberOfLines={2}>
                             {post.caption}
                           </Text>
                         )}
-                        
+
                         <View style={styles.postStats}>
                           <Text style={[styles.postStatsText, dynamicStyles.subtitle]}>
                             {post.tarpImgLikes || 0} likes
@@ -262,10 +262,10 @@ export default function MyTarpsScreen() {
                         </View>
                       </View>
                     </View>
-                    
+
                     {/* Action Buttons - Full Width at Bottom */}
                     <View style={styles.actionButtons}>
-                      <Pressable 
+                      <Pressable
                         style={[styles.actionButton, isDark ? styles.viewButtonDark : styles.viewButton]}
                         onPress={() => {
                           try {
@@ -351,9 +351,9 @@ export default function MyTarpsScreen() {
                               }
                               return { urls, ids };
                             };
-                            
+
                             const set = resolveItemImageSet(enhancedPost);
-                            
+
                             // Create enhanced userPosts array with user data
                             const enhancedUserPosts = userPosts.map(p => ({
                               ...p,
@@ -376,7 +376,7 @@ export default function MyTarpsScreen() {
                                 profileImage: user.bgUrl
                               } : null
                             }));
-                            
+
                             nav.push(`/post/${enhancedPost.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(enhancedPost))}&images=${encodeURIComponent(JSON.stringify(set))}&idx=0&serverPosts=${encodeURIComponent(JSON.stringify(enhancedUserPosts))}`);
                           } catch (error) {
                             console.error("Failed to navigate to post:", error);
@@ -387,19 +387,10 @@ export default function MyTarpsScreen() {
                         <Ionicons name="eye" size={16} color={isDark ? "#FFFFFF" : "#007AFF"} />
                         <Text style={isDark ? styles.viewButtonTextDark : styles.viewButtonText}>View</Text>
                       </Pressable>
-                      
-                      <Pressable 
-                        style={[styles.actionButton, isDark ? styles.editButtonDark : styles.editButton]}
-                        onPress={() => {
-                          // Navigate to edit post
-                          nav.push(`/edit-post?postId=${post.id}`);
-                        }}
-                      >
-                        <Ionicons name="create-outline" size={16} color={isDark ? "#FFFFFF" : "#8E8E93"} />
-                        <Text style={isDark ? styles.editButtonTextDark : styles.editButtonText}>Edit</Text>
-                      </Pressable>
-                      
-                      <Pressable 
+
+
+
+                      <Pressable
                         style={styles.deleteIconButton}
                         onPress={() => {
                           setPostToDelete(post);
@@ -432,13 +423,13 @@ export default function MyTarpsScreen() {
         animationType="none"
         onRequestClose={() => setShowDropdownMenu(null)}
       >
-        <Pressable 
+        <Pressable
           style={styles.dropdownModalOverlay}
           onPress={() => setShowDropdownMenu(null)}
         >
           <View style={[
-            styles.dropdownMenuModal, 
-            dynamicStyles.card, 
+            styles.dropdownMenuModal,
+            dynamicStyles.card,
             dynamicStyles.border,
             {
               position: 'absolute',
@@ -446,7 +437,7 @@ export default function MyTarpsScreen() {
               left: dropdownPosition.x,
             }
           ]}>
-            <Pressable 
+            <Pressable
               style={styles.dropdownItem}
               onPress={() => {
                 const post = userPosts.find(p => p.id === showDropdownMenu);
@@ -534,9 +525,9 @@ export default function MyTarpsScreen() {
                       }
                       return { urls, ids };
                     };
-                    
+
                     const set = resolveItemImageSet(enhancedPost);
-                    
+
                     // Create enhanced userPosts array with user data
                     const enhancedUserPosts = userPosts.map(p => ({
                       ...p,
@@ -559,7 +550,7 @@ export default function MyTarpsScreen() {
                         profileImage: user.bgUrl
                       } : null
                     }));
-                    
+
                     nav.push(`/post/${enhancedPost.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(enhancedPost))}&images=${encodeURIComponent(JSON.stringify(set))}&idx=0&serverPosts=${encodeURIComponent(JSON.stringify(enhancedUserPosts))}`);
                   } catch (error) {
                     console.error("Failed to navigate to post:", error);
@@ -572,22 +563,10 @@ export default function MyTarpsScreen() {
               <Ionicons name="eye" size={16} color={dynamicStyles.text.color} />
               <Text style={[styles.dropdownText, dynamicStyles.text]}>View Details</Text>
             </Pressable>
-            
-            <Pressable 
-              style={styles.dropdownItem}
-              onPress={() => {
-                const post = userPosts.find(p => p.id === showDropdownMenu);
-                if (post) {
-                  nav.push(`/edit-post?postId=${post.id}`);
-                }
-                setShowDropdownMenu(null);
-              }}
-            >
-              <Ionicons name="create-outline" size={16} color={dynamicStyles.text.color} />
-              <Text style={[styles.dropdownText, dynamicStyles.text]}>Edit Post</Text>
-            </Pressable>
-            
-            <Pressable 
+
+
+
+            <Pressable
               style={[styles.dropdownItem, { borderBottomWidth: 0 }]}
               onPress={() => {
                 const post = userPosts.find(p => p.id === showDropdownMenu);
@@ -619,7 +598,7 @@ export default function MyTarpsScreen() {
             <Text style={[styles.deleteMessage, dynamicStyles.subtitle]}>
               Are you sure you want to delete this post? This action cannot be undone. All likes and comments will be permanently removed.
             </Text>
-            
+
             <View style={styles.deleteActions}>
               <Pressable
                 style={styles.deleteButton}
@@ -632,7 +611,7 @@ export default function MyTarpsScreen() {
                   <Text style={styles.deleteButtonText}>Delete</Text>
                 )}
               </Pressable>
-              
+
               <Pressable
                 style={[styles.cancelButton, dynamicStyles.border]}
                 onPress={() => setShowDeleteModal(false)}
@@ -664,7 +643,7 @@ export default function MyTarpsScreen() {
                 <Ionicons name="close" size={24} color={dynamicStyles.text.color} />
               </Pressable>
             </View>
-            
+
             {postToPreview ? (
               <ScrollView style={styles.detailsContent} showsVerticalScrollIndicator={false}>
                 {/* Images Scrollable Area */}
@@ -686,7 +665,7 @@ export default function MyTarpsScreen() {
                         />
                       ))}
                     </ScrollView>
-                    
+
                     {/* Image Counter */}
                     {postToPreview.images.length > 1 && (
                       <View style={styles.imageCounter}>
@@ -697,7 +676,7 @@ export default function MyTarpsScreen() {
                     )}
                   </View>
                 )}
-                
+
                 {/* Location */}
                 <View style={styles.detailsLocationRow}>
                   <Ionicons name="location" size={20} color={dynamicStyles.subtitle.color} />
@@ -705,7 +684,7 @@ export default function MyTarpsScreen() {
                     {postToPreview.location || formatLocation(postToPreview.address) || "Unknown location"}
                   </Text>
                 </View>
-                
+
                 {/* Date */}
                 <View style={styles.detailsDateRow}>
                   <Ionicons name="calendar-outline" size={20} color={dynamicStyles.subtitle.color} />
@@ -713,7 +692,7 @@ export default function MyTarpsScreen() {
                     {moment(postToPreview.createdAt || postToPreview.created_at).format('MMM D, YYYY [at] h:mm A')}
                   </Text>
                 </View>
-                
+
                 {/* Caption */}
                 {postToPreview.caption && (
                   <View style={styles.detailsCaptionContainer}>
@@ -722,7 +701,7 @@ export default function MyTarpsScreen() {
                     </Text>
                   </View>
                 )}
-                
+
                 {/* Stats */}
                 <View style={styles.detailsStats}>
                   <View style={styles.detailsStatItem}>

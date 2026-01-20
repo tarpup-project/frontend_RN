@@ -208,10 +208,18 @@ export default function ConnectionsScreen() {
           }) : [];
 
         console.log('Discover users loaded (after filtering):', discoverData.length);
+        console.log('Discover Users Data:', discoverData);
         console.log('Users filtered out (in both follow and friends):',
           Array.isArray(discoverApiData) ? discoverApiData.length - discoverData.length : 0);
         console.log('Discover users with follow status:', discoverData.filter(u => u.isFollowing).length);
+
         console.log('Discover users with friend status:', discoverData.filter(u => u.isFriend).length);
+
+        // Debug logs for Discover logic
+        console.log('--- DISCOVER DEBUGGING ---');
+        console.log('All Friends List:', friendsData);
+        console.log('All Followers List:', followData);
+        console.log('------------------------');
       }
 
       // Update all tabs data

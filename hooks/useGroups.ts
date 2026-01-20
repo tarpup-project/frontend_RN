@@ -214,13 +214,35 @@ export const useGroups = () => {
 
 const fetchGroupDetails = async (groupId: string): Promise<Group> => {
   try {
+    console.log('🔍 Fetching details for group:', groupId);
+    // Try the main details endpoint first (likely for members)
     const response = await api.get<{ data: Group }>(
-      UrlConstants.fetchInviteGroupDetails(groupId)
+      UrlConstants.fetchGroupDetails(groupId)
     );
 
-    return response.data.data;
+    if (response.data?.data) {
+      console.log('✅ Group details fetched successfully');
+      return response.data.data;
+    }
+
+    // If that fails or returns empty, maybe try the invite endpoint? 
+    // For now, let's just return what we have or throw
+    console.warn('⚠️ Group details response empty:', response.data);
+    throw new Error('Group details empty');
   } catch (error) {
-    throw error;
+    console.error('❌ Failed to fetch group details:', error);
+    // Fallback: If the main endpoint fails (e.g. 403 because not member?), try invite details
+    // This allows non-members to see basic info
+    try {
+      console.log('🔄 Trying invite details fallback:', groupId);
+      const fallbackResponse = await api.get<{ data: Group }>(
+        UrlConstants.fetchInviteGroupDetails(groupId)
+      );
+      return fallbackResponse.data.data;
+    } catch (fallbackError) {
+      console.error('❌ Fallback fetch also failed:', fallbackError);
+      throw error;
+    }
   }
 };
 

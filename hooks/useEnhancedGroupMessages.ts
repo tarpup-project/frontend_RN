@@ -282,6 +282,14 @@ export const useEnhancedGroupMessages = ({
     };
   }, [groupId, queryClient, transformCachedMessages]);
 
+  // CRITICAL FIX: Invalidate query when socket reconnects or becomes available
+  useEffect(() => {
+    if (socket && socket.connected) {
+      console.log('🔌 Socket connected, invalidating message cache to trigger fetch...');
+      queryClient.invalidateQueries({ queryKey: ['groups', 'messages', groupId] });
+    }
+  }, [socket, socket?.connected, groupId, queryClient]);
+
   // Enhanced React Query to fetch and cache messages with immediate cache loading
   const { data: messages = [], isLoading, error, isFetching } = useQuery({
     queryKey: ['groups', 'messages', groupId],
