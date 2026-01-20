@@ -5,14 +5,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Modal,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
@@ -44,12 +44,12 @@ export default function NewChatModal({ visible, onClose, onChatCreated }: NewCha
   // Load friends when component mounts (background loading)
   useEffect(() => {
     loadFriends(true); // Show loading for initial load
-    
+
     // Set up periodic refresh every 30 seconds in background
     const interval = setInterval(() => {
       loadFriends(false); // Background refresh without loading state
     }, 30000);
-    
+
     return () => clearInterval(interval);
   }, []);
 
@@ -68,24 +68,22 @@ export default function NewChatModal({ visible, onClose, onChatCreated }: NewCha
       if (showLoading && friends.length === 0) {
         setIsLoading(true);
       }
-      
+
       console.log('Loading friends for new chat...');
-      
-      const response = await api.get('/groups/friends', {
-        params: { query: searchQuery || '' }
-      });
-      
+
+      const response = await api.get(UrlConstants.fetchFriendsPrivacy);
+
       console.log('Friends API Response:', JSON.stringify(response.data, null, 2));
-      
+
       if (response.data?.status === 'success' && Array.isArray(response.data?.data)) {
-        const friendsData = response.data.data.map((friend: any) => ({
-          id: friend.id || friend._id || Math.random().toString(),
-          name: `${friend.fname || ''}${friend.lname ? ` ${friend.lname}` : ''}`.trim() || 'Unknown',
-          username: friend.username || `@${friend.fname?.toLowerCase() || 'user'}`,
-          avatar: friend.bgUrl,
-          isFollowing: friend.isFollowing || false
+        const friendsData = response.data.data.map((item: any) => ({
+          id: item.id,
+          name: `${item.fname || ''} ${item.lname || ''}`.trim() || 'Unknown',
+          username: item.username || `@${(item.fname || '').toLowerCase()}${(item.lname || '').toLowerCase()}`,
+          avatar: item.bgUrl,
+          isFollowing: false // Endpoint doesn't return this, default to false
         }));
-        
+
         setFriends(friendsData);
         console.log('Processed friends for chat:', friendsData.length);
       } else {
@@ -128,16 +126,16 @@ export default function NewChatModal({ visible, onClose, onChatCreated }: NewCha
       if (response.data?.status === 'success') {
         const chatData = response.data.data;
         console.log('✅ Personal chat created successfully:', chatData);
-        
+
         toast.success(`Chat with ${friend.name} created!`);
-        
+
         // Pass the created chat data to parent component
         onChatCreated({
           ...chatData,
           friend: friend,
           chatType: 'personal'
         });
-        
+
         handleClose();
       } else {
         console.error('Failed to create chat:', response.data);
@@ -223,74 +221,74 @@ export default function NewChatModal({ visible, onClose, onChatCreated }: NewCha
                   {searchQuery ? 'Try a different search term' : 'Add some friends to start chatting'}
                 </Text>
               </View>
-          ) : (
-            filteredFriends.map((friend) => (
-              <Pressable
-                key={friend.id}
-                style={[
-                  styles.friendItem, 
-                  { 
-                    backgroundColor: isDark ? "#1A1A1A" : "#F8F9FA",
-                    borderColor: isDark ? "#333333" : "#E0E0E0",
-                    opacity: isCreatingChat ? 0.6 : 1
-                  }
-                ]}
-                onPress={() => handleSelectFriend(friend)}
-                disabled={isCreatingChat}
-              >
-                <View style={styles.friendInfo}>
-                  <View style={[styles.avatar, { backgroundColor: isDark ? "#2A2A2A" : "#E0E0E0" }]}>
-                    {friend.avatar ? (
-                      <ExpoImage
-                        source={{ uri: friend.avatar }}
-                        style={styles.avatarImage}
-                        contentFit="cover"
-                      />
-                    ) : (
-                      <Text style={[styles.avatarText, { color: isDark ? "#FFFFFF" : "#000000" }]}>
-                        {friend.name.charAt(0).toUpperCase()}
+            ) : (
+              filteredFriends.map((friend) => (
+                <Pressable
+                  key={friend.id}
+                  style={[
+                    styles.friendItem,
+                    {
+                      backgroundColor: isDark ? "#1A1A1A" : "#F8F9FA",
+                      borderColor: isDark ? "#333333" : "#E0E0E0",
+                      opacity: isCreatingChat ? 0.6 : 1
+                    }
+                  ]}
+                  onPress={() => handleSelectFriend(friend)}
+                  disabled={isCreatingChat}
+                >
+                  <View style={styles.friendInfo}>
+                    <View style={[styles.avatar, { backgroundColor: isDark ? "#2A2A2A" : "#E0E0E0" }]}>
+                      {friend.avatar ? (
+                        <ExpoImage
+                          source={{ uri: friend.avatar }}
+                          style={styles.avatarImage}
+                          contentFit="cover"
+                        />
+                      ) : (
+                        <Text style={[styles.avatarText, { color: isDark ? "#FFFFFF" : "#000000" }]}>
+                          {friend.name.charAt(0).toUpperCase()}
+                        </Text>
+                      )}
+                    </View>
+                    <View style={styles.friendDetails}>
+                      <Text style={[styles.friendName, { color: isDark ? "#FFFFFF" : "#000000" }]}>
+                        {friend.name}
                       </Text>
-                    )}
-                  </View>
-                  <View style={styles.friendDetails}>
-                    <Text style={[styles.friendName, { color: isDark ? "#FFFFFF" : "#000000" }]}>
-                      {friend.name}
-                    </Text>
-                    <Text style={[styles.friendUsername, { color: isDark ? "#9AA0A6" : "#666666" }]}>
-                      {friend.username}
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.friendActions}>
-                  {friend.isFollowing && (
-                    <View style={[styles.followingBadge, { backgroundColor: isDark ? "#2A2A2A" : "#F0F0F0" }]}>
-                      <Text style={[styles.followingText, { color: isDark ? "#FFFFFF" : "#000000" }]}>
-                        Following
+                      <Text style={[styles.friendUsername, { color: isDark ? "#9AA0A6" : "#666666" }]}>
+                        {friend.username}
                       </Text>
                     </View>
-                  )}
-                  {isCreatingChat ? (
-                    <ActivityIndicator size="small" color={isDark ? "#9AA0A6" : "#666666"} />
-                  ) : (
-                    <Ionicons name="chatbubble-outline" size={24} color={isDark ? "#9AA0A6" : "#666666"} />
-                  )}
-                </View>
-              </Pressable>
-            ))
-          )}
-        </ScrollView>
+                  </View>
+                  <View style={styles.friendActions}>
+                    {friend.isFollowing && (
+                      <View style={[styles.followingBadge, { backgroundColor: isDark ? "#2A2A2A" : "#F0F0F0" }]}>
+                        <Text style={[styles.followingText, { color: isDark ? "#FFFFFF" : "#000000" }]}>
+                          Following
+                        </Text>
+                      </View>
+                    )}
+                    {isCreatingChat ? (
+                      <ActivityIndicator size="small" color={isDark ? "#9AA0A6" : "#666666"} />
+                    ) : (
+                      <Ionicons name="chatbubble-outline" size={24} color={isDark ? "#9AA0A6" : "#666666"} />
+                    )}
+                  </View>
+                </Pressable>
+              ))
+            )}
+          </ScrollView>
 
-        {/* Loading Overlay */}
-        {isCreatingChat && (
-          <View style={styles.loadingOverlay}>
-            <View style={[styles.loadingCard, { backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF" }]}>
-              <ActivityIndicator size="large" color={isDark ? "#FFFFFF" : "#000000"} />
-              <Text style={[styles.loadingCardText, { color: isDark ? "#FFFFFF" : "#000000" }]}>
-                Creating chat...
-              </Text>
+          {/* Loading Overlay */}
+          {isCreatingChat && (
+            <View style={styles.loadingOverlay}>
+              <View style={[styles.loadingCard, { backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF" }]}>
+                <ActivityIndicator size="large" color={isDark ? "#FFFFFF" : "#000000"} />
+                <Text style={[styles.loadingCardText, { color: isDark ? "#FFFFFF" : "#000000" }]}>
+                  Creating chat...
+                </Text>
+              </View>
             </View>
-          </View>
-        )}
+          )}
         </View>
       )}
     </Modal>
