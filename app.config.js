@@ -23,7 +23,11 @@ export default {
         NSLocationWhenInUseUsageDescription:
           "Tarpup needs your location to add photo markers on the map.",
         NSLocationAlwaysAndWhenInUseUsageDescription:
-          "Tarpup uses your location to display accurate map markers."
+          "Tarpup uses your location to display accurate map markers.",
+        UIBackgroundModes: [
+          "remote-notification",
+          "fetch"
+        ]
       },
 
       googleServicesFile:

@@ -1,5 +1,6 @@
 import { asyncStorageDB, isWatermelonAvailable } from '@/database';
 import messaging from '@react-native-firebase/messaging';
+import * as Notifications from 'expo-notifications';
 
 // CRITICAL: This handler must return a promise and resolve it when processing is complete
 export const setupBackgroundMessageHandler = () => {
@@ -49,6 +50,15 @@ export const setupBackgroundMessageHandler = () => {
                 await asyncStorageDB.initialize();
                 await asyncStorageDB.addMessage(String(groupId), message);
                 console.log('✅ Background message saved');
+            }
+
+            // 4. Update App Badge (Increment by 1)
+            try {
+                const currentBadge = await Notifications.getBadgeCountAsync();
+                await Notifications.setBadgeCountAsync(currentBadge + 1);
+                console.log('🔴 Badge incremented to:', currentBadge + 1);
+            } catch (badgeError) {
+                console.error('❌ Failed to update badge:', badgeError);
             }
 
         } catch (error) {

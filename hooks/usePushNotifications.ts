@@ -41,7 +41,7 @@ export function usePushNotifications() {
       setupForegroundHandlers();
       setupNotificationTapHandler();
       handlersInitializedRef.current = true;
-    } catch (e) {}
+    } catch (e) { }
   }, []);
 
   const initializeNotifications = async () => {
@@ -118,6 +118,11 @@ export function usePushNotifications() {
             },
             trigger: null, // null = show immediately on both platforms
           });
+
+          // Increment badge for foreground notification
+          const currentBadge = await Notifications.getBadgeCountAsync();
+          await Notifications.setBadgeCountAsync(currentBadge + 1);
+
           console.log('✅ Foreground notification scheduled');
         } catch (err) {
           console.error('❌ Foreground local notification error:', err);
@@ -126,6 +131,9 @@ export function usePushNotifications() {
     );
   };
 
+  /* -------------------------------------------------------------------------- */
+  /*                        NOTIFICATION TAP HANDLER                             */
+  /* -------------------------------------------------------------------------- */
   /* -------------------------------------------------------------------------- */
   /*                        NOTIFICATION TAP HANDLER                             */
   /* -------------------------------------------------------------------------- */
@@ -139,13 +147,33 @@ export function usePushNotifications() {
 
         const data = response.notification.request.content.data;
 
-        if (data?.type === 'group' && data?.groupId) {
-          router.push(`/(tabs)/group-chat/${data.groupId}` as any);
+        // Create a normalized ID from either groupID or groupId
+        const targetGroupId = data?.groupID || data?.groupId;
+
+        if (targetGroupId) {
+          // Navigate to group chat if we have an ID
+          // Construct minimal data for immediate display using notification title
+          const title = response.notification.request.content.title;
+          const minimalGroupData = {
+            id: targetGroupId,
+            name: title || "Group Chat",
+            members: [],
+          };
+
+          router.push({
+            pathname: `/group-chat/${targetGroupId}` as any,
+            params: {
+              groupData: JSON.stringify(minimalGroupData)
+            }
+          });
+        } else if (data?.type === 'group' && data?.groupId) {
+          router.push(`/group-chat/${data.groupId}` as any);
         } else if (data?.type === 'message' && data?.chatId) {
           router.push(`/(app)/messages/${data.chatId}` as any);
         } else if (data?.screen) {
           router.push(data.screen as any);
         } else {
+          // Default to groups list
           router.push('/(tabs)/groups' as any);
         }
       });

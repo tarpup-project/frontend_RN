@@ -1,6 +1,7 @@
 import { SocketProvider } from "@/contexts/SocketProvider";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import { WatermelonProvider } from "@/contexts/WatermelonProvider";
+import { useAppBadge } from "@/hooks/useAppBadge";
 import { useAppUpdate } from "@/hooks/useAppUpdate";
 import { useDeepLinking } from "@/hooks/useDeepLinking";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -36,6 +37,9 @@ function RootLayoutContent() {
 
   // ✅ HANDLE DEEP LINKING FOR REFERRALS
   useDeepLinking();
+
+  // ✅ HANDLE APP BADGE COUNTS
+  useAppBadge();
 
   const { isDark } = useTheme();
   const {
