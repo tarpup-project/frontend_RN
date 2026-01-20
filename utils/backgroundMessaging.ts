@@ -56,9 +56,9 @@ export const setupBackgroundMessageHandler = () => {
             try {
                 const currentBadge = await Notifications.getBadgeCountAsync();
                 await Notifications.setBadgeCountAsync(currentBadge + 1);
-                console.log('🔴 Badge incremented to:', currentBadge + 1);
+                console.log('🔴 [Background] Badge incremented to:', currentBadge + 1);
             } catch (badgeError) {
-                console.error('❌ Failed to update badge:', badgeError);
+                console.error('❌ [Background] Failed to update badge:', badgeError);
             }
 
         } catch (error) {
