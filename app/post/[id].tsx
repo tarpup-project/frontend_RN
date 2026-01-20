@@ -79,7 +79,7 @@ export default function PostPreviewScreen() {
     svImagesLength.value = currentImages.length;
   }, [currentImageIndex, currentImages.length]);
   const [following, setFollowing] = useState(false);
-  const [friendStatus, setFriendStatus] = useState<"not_friends" | "pending" | "friends">("not_friends");
+  const [friendStatus, setFriendStatus] = useState<"not_friends" | "pending" | "friends">("friends");
   const [commentCount, setCommentCount] = useState(0);
   const [buttonsVisible, setButtonsVisible] = useState(true);
   const buttonsOpacity = useRef(new Animated.Value(1)).current;
@@ -94,12 +94,12 @@ export default function PostPreviewScreen() {
       if ((global as any).markPostsAsViewed) {
         (global as any).markPostsAsViewed([postId]);
       }
-      
+
       const knownPostsData = await AsyncStorage.getItem('knownPosts');
       if (knownPostsData) {
         const knownPostsArray = JSON.parse(knownPostsData);
         const knownPostsMap = new Map(knownPostsArray);
-        
+
         // The post should already be in known posts, just log that it's been viewed
         if (knownPostsMap.has(postId)) {
           console.log('Post marked as viewed:', postId);
@@ -117,7 +117,7 @@ export default function PostPreviewScreen() {
       if ((global as any).markPostsAsViewed) {
         (global as any).markPostsAsViewed(postIds);
       }
-      
+
       console.log('Multiple posts marked as viewed:', postIds);
     } catch (error) {
       console.error('Error marking multiple posts as viewed:', error);
@@ -184,7 +184,7 @@ export default function PostPreviewScreen() {
       clearTimeout(pressTimeoutRef.current);
       pressTimeoutRef.current = null;
     }
-    
+
     // If buttons are hidden (meaning it was a hold), show them back
     if (!buttonsVisible) {
       showButtons();
@@ -194,12 +194,12 @@ export default function PostPreviewScreen() {
   // Function to fetch user stats
   const fetchUserStats = async () => {
     if (isLoadingUserStats) return;
-    
+
     try {
       setIsLoadingUserStats(true);
       const response = await api.get('/user/stats');
       console.log('User stats response:', JSON.stringify(response, null, 2));
-      
+
       if (response.data?.status === 'success' && response.data?.data) {
         setUserStats(response.data.data);
       } else {
@@ -219,15 +219,15 @@ export default function PostPreviewScreen() {
       const rawAllItems = typeof params.allItems === "string" ? params.allItems : undefined;
       const rawServerPosts = typeof params.serverPosts === "string" ? params.serverPosts : undefined;
       const openCommentsParam = params.openComments === "true";
-      
+
       const parsedItem = rawItem ? JSON.parse(decodeURIComponent(rawItem)) : null;
       const parsedImages = rawImages ? JSON.parse(decodeURIComponent(rawImages)) : null;
       const parsedAllItems = rawAllItems ? JSON.parse(decodeURIComponent(rawAllItems)) : [];
       const parsedServerPosts = rawServerPosts ? JSON.parse(decodeURIComponent(rawServerPosts)) : [];
-      
+
       const urls: string[] = Array.isArray(parsedImages?.urls) ? parsedImages.urls.filter((u: any) => typeof u === "string") : [];
       const ids: (string | null)[] = Array.isArray(parsedImages?.ids) ? parsedImages.ids.map((x: any) => (x != null ? String(x) : null)) : [];
-      
+
       console.log("Post initialization debug:", {
         parsedImages,
         urls: urls.length,
@@ -236,82 +236,83 @@ export default function PostPreviewScreen() {
         parsedItemImages: parsedItem?.images?.map((img: any) => ({ id: img.id, url: img.url?.substring(0, 50) })),
         extractedImageId: parsedItem ? extractImageId(parsedItem) : null
       });
-      
+
       setCurrentPostItem(parsedItem);
       setCurrentImages(urls.length > 0 ? urls : parsedItem ? [extractImageUrl(parsedItem) as string].filter(Boolean) : []);
       setCurrentImageIds(ids.length > 0 ? ids : parsedItem ? [extractImageId(parsedItem)] : []);
       setAllPostItems(parsedAllItems.length > 0 ? parsedAllItems : [parsedItem].filter(Boolean));
       setServerPosts(parsedServerPosts);
-      
+
       // Get pre-loaded global posts from tarps screen (no loading needed!)
       const globalPostsList = (global as any).getGlobalPosts ? (global as any).getGlobalPosts() : [];
       console.log("📋 Using pre-loaded global posts:", globalPostsList.length);
-      
+
       // Mark current post as viewed and set up all available posts
       if (parsedItem?.id) {
         // Mark post as viewed to remove red border
         markPostAsViewed(parsedItem.id);
-        
+
         // If this is a stacked post with multiple items, mark all as viewed
         if (parsedAllItems.length > 1) {
           const allPostIds = parsedAllItems.map((item: any) => item.id).filter(Boolean);
           markMultiplePostsAsViewed(allPostIds);
         }
-        
+
         setViewedPosts(new Set([parsedItem.id]));
-        
+
         // Combine server posts and global posts, remove duplicates
         const allPosts = [
-          ...(Array.isArray(parsedServerPosts) ? parsedServerPosts : []), 
+          ...(Array.isArray(parsedServerPosts) ? parsedServerPosts : []),
           ...(Array.isArray(globalPostsList) ? globalPostsList : [])
         ]
           .flatMap((post: any) => post.items || [post])
-          .filter((item: any, index: any, arr: any) => 
+          .filter((item: any, index: any, arr: any) =>
             item.id && arr.findIndex((p: any) => p.id === item.id) === index
           );
-        
+
         setAllAvailablePosts(allPosts);
-        
+
         // Find current post index in the combined list
         const currentIndex = allPosts.findIndex((post: any) => post.id === parsedItem.id);
         setCurrentPostIndex(currentIndex >= 0 ? currentIndex : 0);
-        
-        console.log("All posts setup:", { 
+
+        console.log("All posts setup:", {
           totalPosts: allPosts.length,
           currentIndex: currentIndex >= 0 ? currentIndex : 0,
           currentPostId: parsedItem.id,
           globalPostsFromTarps: globalPostsList.length
         });
       }
-      
-      console.log("Post screen initialized:", { 
-        hasAllItems: parsedAllItems.length > 0, 
+
+      console.log("Post screen initialized:", {
+        hasAllItems: parsedAllItems.length > 0,
         allItemsCount: parsedAllItems.length,
         imagesCount: urls.length,
         isStackedPost: parsedAllItems.length > 1,
         serverPostsCount: parsedServerPosts.length,
         usingPreLoadedGlobalPosts: true
       });
-      
+
       const idx = typeof params.idx === "string" ? Number(params.idx) : 0;
       setCurrentImageIndex(isNaN(idx) ? 0 : Math.max(0, Math.min(urls.length - 1, idx)));
-      
+
       if (parsedItem) {
         setLiked(extractLiked(parsedItem));
         setLikeCount(extractLikeCount(parsedItem));
         setFollowing(extractFollowing(parsedItem));
-        setFriendStatus(typeof parsedItem?.isFriend === "string" ? parsedItem.isFriend : "not_friends");
+        // Force hidden initially, ignore params
+        setFriendStatus("friends");
         setCommentCount(
           typeof parsedItem?.commentsCount === "number"
             ? parsedItem.commentsCount
             : Array.isArray(parsedItem?.comments)
-            ? parsedItem.comments.length
-            : Array.isArray(parsedItem?.images) && typeof parsedItem.images[0]?.comments === "number"
-            ? parsedItem.images[0].comments
-            : 0
+              ? parsedItem.comments.length
+              : Array.isArray(parsedItem?.images) && typeof parsedItem.images[0]?.comments === "number"
+                ? parsedItem.images[0].comments
+                : 0
         );
       }
-      
+
       // Auto-open comments if requested
       if (openCommentsParam) {
         setTimeout(() => {
@@ -323,6 +324,42 @@ export default function PostPreviewScreen() {
       router.back();
     }
   }, [params.item, params.images, params.allItems, params.idx, params.openComments, params.serverPosts]);
+
+  // Check friend status on load
+  useEffect(() => {
+    const checkFriendStatus = async () => {
+      const activeItem = getCurrentPostItem();
+      const uid =
+        activeItem?.userID ??
+        activeItem?.creator?.id ??
+        activeItem?.owner?.id ??
+        activeItem?.user?.id ??
+        activeItem?.createdBy?.id ??
+        activeItem?.author?.id;
+
+      if (!uid || uid === user?.id) return;
+
+      try {
+        const response = await api.get(UrlConstants.tarpCheckFriendStatus(String(uid)));
+        if (response.data?.status === 'success' && response.data?.data) {
+          const status = response.data.data.status;
+          if (status === 'accepted') {
+            setFriendStatus('friends');
+          } else if (status === 'pending') {
+            setFriendStatus('pending');
+          } else {
+            setFriendStatus('not_friends');
+          }
+        }
+      } catch (error) {
+        console.log('Error checking friend status:', error);
+      }
+    };
+
+    if (currentPostItem) {
+      checkFriendStatus();
+    }
+  }, [currentPostItem, user?.id]);
 
   // Blinking arrow effect
   useEffect(() => {
@@ -391,20 +428,20 @@ export default function PostPreviewScreen() {
         return String(image.id);
       }
     }
-    
+
     // Fallback to other possible image ID fields (less likely to be correct)
     const candidates: any[] = [
-      item?.imageId, 
-      item?.imageID, 
-      item?.postImageID, 
+      item?.imageId,
+      item?.imageID,
+      item?.postImageID,
       item?.postImageId,
       Array.isArray(item?.files) ? item.files[0]?.id : null,
       Array.isArray(item?.medias) ? item.medias[0]?.id : null,
     ];
-    
+
     const v = candidates.find((x) => typeof x === "string" || typeof x === "number");
     const result = v != null ? String(v) : null;
-    
+
     console.log("extractImageId debug:", {
       hasImages: Array.isArray(item?.images),
       imagesLength: item?.images?.length,
@@ -415,25 +452,25 @@ export default function PostPreviewScreen() {
       result,
       postId: item?.id
     });
-    
+
     // Only use post ID as absolute last resort and log a warning
     if (!result && item?.id) {
       console.warn("⚠️ Using post ID as image ID - this will likely cause a 500 error:", item.id);
       return String(item.id);
     }
-    
+
     return result;
   };
 
   const getCurrentImageId = (): string | null => {
     // Get the current post item (handles stacked posts)
     const activeItem = getCurrentPostItem();
-    
+
     if (!activeItem) {
       console.log("No active item found");
       return null;
     }
-    
+
     // If the post has images array, get the image ID based on current index
     if (activeItem.images && Array.isArray(activeItem.images) && activeItem.images.length > 0) {
       // Use currentImageIndex to get the specific image being viewed
@@ -448,17 +485,17 @@ export default function PostPreviewScreen() {
         return String(currentImage.id);
       }
     }
-    
+
     // Fallback: try to get from currentImageIds array (from URL params)
     const id = currentImageIds[currentImageIndex];
     if (id && id !== activeItem.id) {
       console.log("Using image ID from currentImageIds:", id);
       return id;
     }
-    
+
     // Last resort: use extractImageId function
     const fallbackId = extractImageId(activeItem);
-    
+
     console.log("getCurrentImageId debug:", {
       currentImageIndex,
       activeItemId: activeItem.id,
@@ -467,7 +504,7 @@ export default function PostPreviewScreen() {
       fallbackId,
       warning: fallbackId === activeItem.id ? "Using post ID as image ID - this will likely fail" : null
     });
-    
+
     return fallbackId;
   };
 
@@ -483,28 +520,28 @@ export default function PostPreviewScreen() {
       item?.creator?.locationName ??
       item?.creator?.location ??
       "";
-    
+
     const locationString = typeof v === "string" && v.length > 0 ? v : "Location";
-    
+
     // Format location to show only state and country
     if (locationString === "Location") return locationString;
-    
+
     // Split by comma and get the last two parts (state, country)
     const parts = locationString.split(',').map(part => part.trim());
-    
+
     if (parts.length >= 2) {
       // Get the last two parts and remove any numbers (zip codes)
       let state = parts[parts.length - 2].replace(/\d+/g, '').trim();
       const country = parts[parts.length - 1].replace(/\d+/g, '').trim();
-      
+
       // If state is empty after removing numbers, try the part before it
       if (!state && parts.length >= 3) {
         state = parts[parts.length - 3].replace(/\d+/g, '').trim();
       }
-      
+
       return state && country ? `${state}, ${country}` : locationString;
     }
-    
+
     // If less than 2 parts, return as is (but remove numbers)
     return locationString.replace(/\d+/g, '').trim();
   };
@@ -522,7 +559,7 @@ export default function PostPreviewScreen() {
         return currentImage.hasLiked;
       }
     }
-    
+
     // Fallback to other methods
     const v =
       item?.likedByMe ??
@@ -531,14 +568,14 @@ export default function PostPreviewScreen() {
       item?.liked ??
       item?.owner?.likedByMe;
     if (typeof v === "boolean") return v;
-    
+
     if (Array.isArray(item?.images) && item.images[0] && typeof item.images[0]?.hasLiked === "boolean") {
       return item.images[0].hasLiked;
     }
     if (Array.isArray(item?.likes) && user?.id) return !!item.likes.find((u: any) => String(u?.id) === String(user.id));
     return false;
   };
-  
+
   const extractLikeCount = (item: any): number => {
     // First try to get from current image's _count data
     if (item?.images && Array.isArray(item.images) && currentImageIndex < item.images.length) {
@@ -552,7 +589,7 @@ export default function PostPreviewScreen() {
         return currentImage.likes;
       }
     }
-    
+
     // Fallback to other methods
     const cands = [
       Array.isArray(item?.images) && item.images[0] && typeof item.images[0]?.likes === "number" ? item.images[0].likes : undefined,
@@ -579,17 +616,17 @@ export default function PostPreviewScreen() {
     console.log("Syncing image meta for index:", idx, "allItems count:", allPostItems.length);
     const activeItem = getCurrentPostItem();
     if (!activeItem) return;
-    
+
     console.log("Active item:", { id: activeItem.id, caption: activeItem.caption?.substring(0, 50) });
-    
+
     // Update the current post item to the one corresponding to this image
     setCurrentPostItem(activeItem);
-    
+
     // Mark this post as viewed when navigating to it
     if (activeItem?.id) {
       markPostAsViewed(activeItem.id);
     }
-    
+
     // Get the specific image data for the current index
     let currentImageData = null;
     if (activeItem.images && Array.isArray(activeItem.images) && idx < activeItem.images.length) {
@@ -601,19 +638,19 @@ export default function PostPreviewScreen() {
         comments: currentImageData._count?.tarpImgComments || currentImageData.comments || 0
       });
     }
-    
+
     // Use image-specific data if available, otherwise fall back to item-level data
     const likedVal = currentImageData?.hasLiked ?? extractLiked(activeItem);
     const likeCountVal = currentImageData?._count?.tarpImgLikes ?? currentImageData?.likes ?? extractLikeCount(activeItem);
-    const commentCountVal = currentImageData?._count?.tarpImgComments ?? currentImageData?.comments ?? 
+    const commentCountVal = currentImageData?._count?.tarpImgComments ?? currentImageData?.comments ??
       (Array.isArray(activeItem.comments) ? activeItem.comments.length : 0);
-    
+
     console.log("Setting like state:", {
       liked: !!likedVal,
       likeCount: typeof likeCountVal === "number" ? likeCountVal : 0,
       commentCount: typeof commentCountVal === "number" ? commentCountVal : 0
     });
-    
+
     setLiked(!!likedVal);
     setLikeCount(typeof likeCountVal === "number" ? likeCountVal : 0);
     setCommentCount(typeof commentCountVal === "number" ? commentCountVal : 0);
@@ -622,7 +659,7 @@ export default function PostPreviewScreen() {
   const toggleLike = async (action: "like" | "unlike") => {
     const activeItem = getCurrentPostItem();
     const imageID = getCurrentImageId();
-    
+
     console.log("toggleLike debug:", {
       action,
       imageID,
@@ -635,48 +672,48 @@ export default function PostPreviewScreen() {
       extractedLiked: extractLiked(activeItem),
       extractedLikeCount: extractLikeCount(activeItem)
     });
-    
+
     if (!imageID) {
       console.error("No imageID found for like action");
       toast.error("Unable to find image to like");
       return;
     }
-    
+
     // Optimistic UI update
     const newLiked = action === "like";
     const newLikeCount = action === "like" ? likeCount + 1 : Math.max(0, likeCount - 1);
-    
+
     setLiked(newLiked);
     setLikeCount(newLikeCount);
-    
+
     try {
       console.log("Making like API call:", { imageID, action });
-      
+
       // Server expects simple action values without extra quotes
       const serverAction = action;
-      
+
       const payload = {
         imageID: imageID,
         action: serverAction
       };
-      
+
       console.log("Request payload with simple action:", JSON.stringify(payload));
       console.log("Request URL:", UrlConstants.tarpLikePost);
       console.log("Current auth token exists:", !!(await getAccessToken()));
-      
+
       const response = await api.post(UrlConstants.tarpLikePost, payload);
-      
+
       console.log("Like API success:", response.data);
-      
+
       // Update the underlying data structures to persist the change
       const updateItemLikeData = (item: any) => {
         if (!item) return item;
-        
+
         // Update the specific image in the images array if it exists
         if (item.images && Array.isArray(item.images) && currentImageIndex < item.images.length) {
           const updatedImages = [...item.images];
           const currentImage = { ...updatedImages[currentImageIndex] };
-          
+
           // Update the image's like data
           currentImage.hasLiked = newLiked;
           if (currentImage._count) {
@@ -685,9 +722,9 @@ export default function PostPreviewScreen() {
             currentImage._count = { tarpImgLikes: newLikeCount };
           }
           currentImage.likes = newLikeCount;
-          
+
           updatedImages[currentImageIndex] = currentImage;
-          
+
           return {
             ...item,
             images: updatedImages,
@@ -712,13 +749,13 @@ export default function PostPreviewScreen() {
           };
         }
       };
-      
+
       // Update currentPostItem
       if (currentPostItem) {
         const updatedCurrentItem = updateItemLikeData(currentPostItem);
         setCurrentPostItem(updatedCurrentItem);
       }
-      
+
       // Update allPostItems
       if (allPostItems.length > 0) {
         const updatedAllItems = allPostItems.map((item, index) => {
@@ -729,7 +766,7 @@ export default function PostPreviewScreen() {
         });
         setAllPostItems(updatedAllItems);
       }
-      
+
       // Update allAvailablePosts to persist across navigation
       setAllAvailablePosts(prev => prev.map(post => {
         if (post.id === activeItem?.id) {
@@ -737,23 +774,23 @@ export default function PostPreviewScreen() {
         }
         return post;
       }));
-      
+
       console.log("Updated underlying data structures with new like state:", {
         newLiked,
         newLikeCount,
         activeItemId: activeItem?.id
       });
-      
+
       toast.success(action === "like" ? "Liked" : "Unliked");
     } catch (error: any) {
       console.error("Like API error:", error);
       console.error("Error response:", error.response?.data);
       console.error("Error status:", error.response?.status);
-      
+
       // Revert optimistic update on error
       setLiked(!newLiked);
       setLikeCount(action === "like" ? likeCount : likeCount + 1);
-      
+
       if (error.response?.status === 401) {
         toast.error("Authentication error. Please log in again.");
       } else if (error.response?.status === 403) {
@@ -815,24 +852,24 @@ export default function PostPreviewScreen() {
       // Swipe up - go to next unviewed post
       let foundUnviewed = false;
       let newIndex = currentPostIndex;
-      
+
       // Look for next unviewed post
       for (let i = 1; i <= allAvailablePosts.length; i++) {
         const candidateIndex = (currentPostIndex + i) % allAvailablePosts.length;
         const candidate = allAvailablePosts[candidateIndex];
-        
+
         if (candidate && !viewedPosts.has(candidate.id)) {
           newIndex = candidateIndex;
           foundUnviewed = true;
           break;
         }
       }
-      
+
       if (!foundUnviewed) {
         toast.success("🎉 You've seen all the posts! Great exploring!");
         return;
       }
-      
+
       const targetPost = allAvailablePosts[newIndex];
       if (targetPost) {
         updateCurrentPost(targetPost, newIndex, 'next');
@@ -840,20 +877,20 @@ export default function PostPreviewScreen() {
         console.error("Target post not found at index:", newIndex);
         toast.error("Post not found");
       }
-      
+
     } else {
       // Swipe down - go to previous post (allow reviewing viewed posts)
       // Ensure currentPostIndex is within bounds after potential array modifications
       const safeCurrentIndex = Math.min(currentPostIndex, allAvailablePosts.length - 1);
       const newIndex = safeCurrentIndex === 0 ? allAvailablePosts.length - 1 : safeCurrentIndex - 1;
       const targetPost = allAvailablePosts[newIndex];
-      
+
       if (!targetPost) {
         console.error("Previous post not found at index:", newIndex, "Array length:", allAvailablePosts.length);
         toast.error("Post not found");
         return;
       }
-      
+
       updateCurrentPost(targetPost, newIndex, 'previous');
     }
   };
@@ -862,34 +899,35 @@ export default function PostPreviewScreen() {
     // Mark as viewed
     setViewedPosts(prev => new Set([...prev, targetPost.id]));
     setCurrentPostIndex(newIndex);
-    
+
     // Update current post data
     setCurrentPostItem(targetPost);
     const imageUrl = extractImageUrl(targetPost);
     const imageId = extractImageId(targetPost);
-    
+
     setCurrentImages(imageUrl ? [imageUrl] : []);
     setCurrentImageIds(imageId ? [imageId] : []);
     setCurrentImageIndex(0);
     setAllPostItems([targetPost]);
-    
+
     // Update post metadata
     setLiked(extractLiked(targetPost));
     setLikeCount(extractLikeCount(targetPost));
     setFollowing(extractFollowing(targetPost));
-    setFriendStatus(typeof targetPost?.isFriend === "string" ? targetPost.isFriend : "not_friends");
+    // Force hidden when swiping, ignore pre-loaded data
+    setFriendStatus("friends");
     setCommentCount(
       typeof targetPost?.commentsCount === "number"
         ? targetPost.commentsCount
         : Array.isArray(targetPost?.comments)
-        ? targetPost.comments.length
-        : 0
+          ? targetPost.comments.length
+          : 0
     );
-    
+
     const unviewedCount = allAvailablePosts.filter(p => !viewedPosts.has(p.id) && p.id !== targetPost.id).length;
-    
-    console.log(`Navigated ${direction}:`, { 
-      postId: targetPost.id, 
+
+    console.log(`Navigated ${direction}:`, {
+      postId: targetPost.id,
       newIndex,
       totalPosts: allAvailablePosts.length,
       viewedCount: viewedPosts.size + 1,
@@ -907,9 +945,9 @@ export default function PostPreviewScreen() {
     .onEnd((event) => {
       const swipeThreshold = 100; // Minimum swipe distance
       const velocityThreshold = 500; // Minimum swipe velocity
-      
+
       const isHorizontal = Math.abs(event.translationX) > Math.abs(event.translationY);
-      
+
       if (isHorizontal) {
         // Horizontal swipe should ONLY navigate between images in the same post
         // The ScrollView handles this automatically, so we don't need to do anything here
@@ -925,7 +963,7 @@ export default function PostPreviewScreen() {
           runOnJS(navigateToPost)('previous');
         }
       }
-      
+
       // Reset animation
       translateY.value = withSpring(0);
     });
@@ -939,32 +977,32 @@ export default function PostPreviewScreen() {
   const sendComment = async () => {
     const imageID = getCurrentImageId();
     const msg = commentText.trim();
-    
+
     // Prevent double submissions
     if (!imageID || msg.length === 0 || isSendingComment) return;
-    
+
     const activeItem = getCurrentPostItem();
-    
+
     // Optimistic UI update
     const newCommentCount = commentCount + 1;
     setCommentCount(newCommentCount);
-    
+
     try {
       setIsSendingComment(true);
       const body = { message: msg, ...(replyingToID ? { replyingToID } : {}) };
       await api.post(UrlConstants.tarpPostComments(imageID), body);
       setCommentText("");
       setReplyingToID(null);
-      
+
       // Update the underlying data structures to persist the change
       const updateItemCommentData = (item: any) => {
         if (!item) return item;
-        
+
         // Update the specific image in the images array if it exists
         if (item.images && Array.isArray(item.images) && currentImageIndex < item.images.length) {
           const updatedImages = [...item.images];
           const currentImage = { ...updatedImages[currentImageIndex] };
-          
+
           // Update the image's comment data
           if (currentImage._count) {
             currentImage._count = { ...currentImage._count, tarpImgComments: newCommentCount };
@@ -972,9 +1010,9 @@ export default function PostPreviewScreen() {
             currentImage._count = { tarpImgComments: newCommentCount };
           }
           currentImage.comments = newCommentCount;
-          
+
           updatedImages[currentImageIndex] = currentImage;
-          
+
           return {
             ...item,
             images: updatedImages,
@@ -991,13 +1029,13 @@ export default function PostPreviewScreen() {
           };
         }
       };
-      
+
       // Update currentPostItem
       if (currentPostItem) {
         const updatedCurrentItem = updateItemCommentData(currentPostItem);
         setCurrentPostItem(updatedCurrentItem);
       }
-      
+
       // Update allPostItems
       if (allPostItems.length > 0) {
         const updatedAllItems = allPostItems.map((item, index) => {
@@ -1008,7 +1046,7 @@ export default function PostPreviewScreen() {
         });
         setAllPostItems(updatedAllItems);
       }
-      
+
       // Update allAvailablePosts to persist across navigation
       setAllAvailablePosts(prev => prev.map(post => {
         if (post.id === activeItem?.id) {
@@ -1016,43 +1054,43 @@ export default function PostPreviewScreen() {
         }
         return post;
       }));
-      
+
       console.log("Updated underlying data structures with new comment count:", {
         newCommentCount,
         activeItemId: activeItem?.id,
         imageID
       });
-      
+
       // Refresh comments to get the actual server data
       try {
         setIsLoadingComments(true);
         const res = await api.get(UrlConstants.tarpPostComments(imageID));
         const list = (res as any)?.data?.data ?? (res as any)?.data?.comments ?? (res as any)?.data;
         setComments(Array.isArray(list) ? list : []);
-        
+
         // Update comment count with actual count from server (in case of discrepancy)
         if (Array.isArray(list)) {
           const actualCommentCount = list.length;
           setCommentCount(actualCommentCount);
-          
+
           // Update data structures with actual count if different
           if (actualCommentCount !== newCommentCount) {
             const updateWithActualCount = (item: any) => {
               if (!item) return item;
-              
+
               if (item.images && Array.isArray(item.images) && currentImageIndex < item.images.length) {
                 const updatedImages = [...item.images];
                 const currentImage = { ...updatedImages[currentImageIndex] };
-                
+
                 if (currentImage._count) {
                   currentImage._count = { ...currentImage._count, tarpImgComments: actualCommentCount };
                 } else {
                   currentImage._count = { tarpImgComments: actualCommentCount };
                 }
                 currentImage.comments = actualCommentCount;
-                
+
                 updatedImages[currentImageIndex] = currentImage;
-                
+
                 return {
                   ...item,
                   images: updatedImages,
@@ -1065,12 +1103,12 @@ export default function PostPreviewScreen() {
                 };
               }
             };
-            
+
             // Update all data structures with actual count
             if (currentPostItem) {
               setCurrentPostItem(updateWithActualCount(currentPostItem));
             }
-            
+
             if (allPostItems.length > 0) {
               setAllPostItems(prev => prev.map((item, index) => {
                 if (index === currentImageIndex || item.id === activeItem?.id) {
@@ -1079,7 +1117,7 @@ export default function PostPreviewScreen() {
                 return item;
               }));
             }
-            
+
             setAllAvailablePosts(prev => prev.map(post => {
               if (post.id === activeItem?.id) {
                 return updateWithActualCount(post);
@@ -1094,7 +1132,7 @@ export default function PostPreviewScreen() {
       toast.success("Comment posted");
     } catch (error) {
       console.error("Failed to post comment:", error);
-      
+
       // Revert the optimistic update on error
       setCommentCount(prev => Math.max(0, prev - 1));
       toast.error("Failed to post comment");
@@ -1110,22 +1148,22 @@ export default function PostPreviewScreen() {
     try {
       setIsReporting(true);
       setShowOptionsDropdown(false);
-      
+
       console.log("Reporting post with ID:", postId);
-      
+
       const response = await api.post(UrlConstants.tarpReportPost(postId));
-      
+
       console.log("Report response:", response.data);
       toast.success("Post reported successfully");
-      
+
       // Store current index before filtering
       const currentIndex = currentPostIndex;
-      
+
       // Update global state to banish this post forever
       if ((global as any).handleReportedPost) {
         (global as any).handleReportedPost(postId);
       }
-      
+
       // Remove reported post from available posts array
       setAllAvailablePosts(prev => {
         const filtered = prev.filter(post => post.id !== postId);
@@ -1134,38 +1172,38 @@ export default function PostPreviewScreen() {
           newCount: filtered.length,
           removedPostId: postId
         });
-        
+
         if (filtered.length === 0) {
           router.back();
         } else {
-           // Update current post index and item after filtering
-           setTimeout(() => {
-             const newIndex = currentIndex >= filtered.length ? Math.max(0, filtered.length - 1) : currentIndex;
-             const nextPost = filtered[newIndex];
-             
-             if (nextPost) {
-               updateCurrentPost(nextPost, newIndex, 'next');
-             }
-             
-             console.log("Updated current post after report:", { currentIndex, newIndex, arrayLength: filtered.length });
-           }, 0);
+          // Update current post index and item after filtering
+          setTimeout(() => {
+            const newIndex = currentIndex >= filtered.length ? Math.max(0, filtered.length - 1) : currentIndex;
+            const nextPost = filtered[newIndex];
+
+            if (nextPost) {
+              updateCurrentPost(nextPost, newIndex, 'next');
+            }
+
+            console.log("Updated current post after report:", { currentIndex, newIndex, arrayLength: filtered.length });
+          }, 0);
         }
-        
+
         return filtered;
       });
-      
+
     } catch (error: any) {
       console.error("Failed to report post:", error);
       console.error("Error response:", error.response?.data);
       console.error("Error status:", error.response?.status);
-      
+
       if (error.response?.status === 401) {
         toast.error("Please log in to report posts");
       } else if (error.response?.status === 404) {
         toast.error("Post not found or endpoint unavailable");
       } else if (error.response?.status === 409) {
         toast.error("Post already reported");
-        
+
         // Update global state to banish this post forever
         if ((global as any).handleReportedPost) {
           (global as any).handleReportedPost(postId);
@@ -1174,7 +1212,7 @@ export default function PostPreviewScreen() {
         // Even if already reported, remove from available posts
         setAllAvailablePosts(prev => {
           const filtered = prev.filter(post => post.id !== postId);
-          
+
           if (filtered.length === 0) {
             router.back();
           } else {
@@ -1258,7 +1296,7 @@ export default function PostPreviewScreen() {
       const avatarUrl = getAvatarUrl(c);
       const initial = (displayName?.[0] ?? "U").toUpperCase();
       const timeString = c?.createdAt ? moment(c.createdAt).fromNow() : "";
-      
+
       return {
         ...c,
         displayName,
@@ -1274,7 +1312,7 @@ export default function PostPreviewScreen() {
       const avatarUrl = getAvatarUrl(r);
       const initial = (displayName?.[0] ?? "U").toUpperCase();
       const timeString = r?.createdAt ? moment(r.createdAt).fromNow() : "";
-      
+
       return {
         ...r,
         displayName,
@@ -1299,7 +1337,7 @@ export default function PostPreviewScreen() {
     const flatData: any[] = [];
     tree.forEach(({ node: comment, replies }) => {
       flatData.push(processComment(comment));
-      
+
       // Add inline replies from comment object
       const inlineReplies = Array.isArray((comment as any)?.replies) ? (comment as any).replies : [];
       const mergedReplies = [...replies, ...inlineReplies].filter(Boolean);
@@ -1308,7 +1346,7 @@ export default function PostPreviewScreen() {
         if (!cid || !acc.find((x) => getCommentId(x) === cid)) acc.push(cur);
         return acc;
       }, []);
-      
+
       uniqReplies.forEach((reply) => {
         flatData.push(processReply(reply));
       });
@@ -1320,7 +1358,7 @@ export default function PostPreviewScreen() {
   // Memoized comment row component
   const CommentRow = useCallback(({ item }: { item: any }) => {
     const isReply = item.type === 'reply';
-    
+
     return (
       <View style={{ gap: 6, marginLeft: isReply ? 32 : 0 }}>
         <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
@@ -1367,8 +1405,8 @@ export default function PostPreviewScreen() {
       <StatusBar style="light" />
       <GestureDetector gesture={panGesture}>
         <Animated.View style={[{ flex: 1 }, animatedStyle]}>
-          <Pressable 
-            style={{ flex: 1 }} 
+          <Pressable
+            style={{ flex: 1 }}
             onPressIn={handlePressIn}
             onPressOut={handlePressOut}
             onPress={() => {
@@ -1403,196 +1441,196 @@ export default function PostPreviewScreen() {
                 )
               )}
 
-            <LinearGradient
-              colors={["rgba(0,0,0,0.8)", "rgba(0,0,0,0.6)", "rgba(0,0,0,0.3)", "transparent"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-              style={styles.gradientTop}
-            />
-            <LinearGradient
-              colors={["transparent", "rgba(0,0,0,0.35)", "rgba(0,0,0,0.6)"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-              style={styles.gradientBottom}
-            />
+              <LinearGradient
+                colors={["rgba(0,0,0,0.8)", "rgba(0,0,0,0.6)", "rgba(0,0,0,0.3)", "transparent"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={styles.gradientTop}
+              />
+              <LinearGradient
+                colors={["transparent", "rgba(0,0,0,0.35)", "rgba(0,0,0,0.6)"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={styles.gradientBottom}
+              />
 
-            <Animated.View 
-              style={[
-                styles.previewHeader, 
-                { 
-                  paddingTop: insets.top + 10,
-                  opacity: buttonsOpacity,
-                  transform: [{ scale: buttonsScale }]
-                }
-              ]}
-            >
-              <Pressable style={styles.headerIcon} onPress={(e) => { e.stopPropagation(); router.back(); }}>
-                <Ionicons name="chevron-back" size={20} color="#FFFFFF" />
-              </Pressable>
-              <View style={styles.headerCenter}>
-                <Text style={styles.headerTitle}>{getCurrentPostItem() ? extractLocationName(getCurrentPostItem()) : "Location"}</Text>
-                <Text style={styles.headerSub}>{currentImageIndex + 1} / {Math.max(1, currentImages.length || 1)}</Text>
-              </View>
-              <Pressable 
-                style={styles.headerIcon} 
-                onPress={(e) => { 
-                  e.stopPropagation(); 
-                  setShowOptionsDropdown(!showOptionsDropdown); 
-                }}
-              >
-                <Ionicons name="ellipsis-vertical" size={18} color="#FFFFFF" />
-              </Pressable>
-              
-              {/* Options Dropdown */}
-              {showOptionsDropdown && (
-                <View style={[styles.optionsDropdown, isDark ? styles.optionsDropdownDark : styles.optionsDropdownLight]}>
-                  <Pressable 
-                    style={styles.optionItem}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      reportPost();
-                    }}
-                    disabled={isReporting}
-                  >
-                    <Ionicons name="flag-outline" size={16} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
-                    <Text style={[styles.optionText, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
-                      {isReporting ? "Reporting..." : "Report"}
-                    </Text>
-                    {isReporting && (
-                      <ActivityIndicator size="small" color={isDark ? "#FFFFFF" : "#0a0a0a"} />
-                    )}
-                  </Pressable>
-                </View>
-              )}
-            </Animated.View>
-            
-            {/* Blinking arrow for navigation hint */}
-            {allAvailablePosts.length > 1 && (
-              <Animated.View 
+              <Animated.View
                 style={[
-                  styles.blinkingArrow,
+                  styles.previewHeader,
                   {
+                    paddingTop: insets.top + 10,
                     opacity: buttonsOpacity,
                     transform: [{ scale: buttonsScale }]
                   }
                 ]}
               >
-                {arrowVisible && (
-                  <Ionicons 
-                    name="chevron-up" 
-                    size={24} 
-                    color="#FFFFFF" 
-                    style={{
-                      textShadowColor: "rgba(0,0,0,0.75)",
-                      textShadowOffset: { width: 0, height: 1 },
-                      textShadowRadius: 3,
-                    }}
-                  />
-                )}
-              </Animated.View>
-            )}
-            
-            <Animated.View 
-              style={[
-                styles.previewTopRow,
-                {
-                  opacity: buttonsOpacity,
-                  transform: [{ scale: buttonsScale }]
-                }
-              ]}
-            >
-              <Pressable 
-                style={styles.userRow}
-                onPress={(e) => {
-                  e.stopPropagation();
-                  setShowProfileModal(true);
-                  fetchUserStats();
-                }}
-              >
-                {getCurrentPostItem()?.creator && extractImageUrl(getCurrentPostItem().creator) ? (
-                  <ExpoImage source={{ uri: extractImageUrl(getCurrentPostItem().creator) as string }} style={styles.userAvatar} contentFit="cover" />
-                ) : getCurrentPostItem()?.owner && extractImageUrl(getCurrentPostItem().owner) ? (
-                  <ExpoImage source={{ uri: extractImageUrl(getCurrentPostItem().owner) as string }} style={styles.userAvatar} contentFit="cover" />
-                ) : (
-                  <View style={[styles.userAvatar, { alignItems: "center", justifyContent: "center" }]}>
-                    <Text style={{ color: "#FFFFFF", fontWeight: "700" }}>
-                      {(getCurrentPostItem()?.creator?.fname?.[0] || getCurrentPostItem()?.owner?.fname?.[0] || getCurrentPostItem()?.author?.name?.[0] || "U")?.toUpperCase()}
-                    </Text>
+                <Pressable style={styles.headerIcon} onPress={(e) => { e.stopPropagation(); router.back(); }}>
+                  <Ionicons name="chevron-back" size={20} color="#FFFFFF" />
+                </Pressable>
+                <View style={styles.headerCenter}>
+                  <Text style={styles.headerTitle}>{getCurrentPostItem() ? extractLocationName(getCurrentPostItem()) : "Location"}</Text>
+                  <Text style={styles.headerSub}>{currentImageIndex + 1} / {Math.max(1, currentImages.length || 1)}</Text>
+                </View>
+                <Pressable
+                  style={styles.headerIcon}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    setShowOptionsDropdown(!showOptionsDropdown);
+                  }}
+                >
+                  <Ionicons name="ellipsis-vertical" size={18} color="#FFFFFF" />
+                </Pressable>
+
+                {/* Options Dropdown */}
+                {showOptionsDropdown && (
+                  <View style={[styles.optionsDropdown, isDark ? styles.optionsDropdownDark : styles.optionsDropdownLight]}>
+                    <Pressable
+                      style={styles.optionItem}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        reportPost();
+                      }}
+                      disabled={isReporting}
+                    >
+                      <Ionicons name="flag-outline" size={16} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
+                      <Text style={[styles.optionText, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
+                        {isReporting ? "Reporting..." : "Report"}
+                      </Text>
+                      {isReporting && (
+                        <ActivityIndicator size="small" color={isDark ? "#FFFFFF" : "#0a0a0a"} />
+                      )}
+                    </Pressable>
                   </View>
                 )}
-                <View style={styles.userInfo}>
-                  <Text style={styles.userName} numberOfLines={1} ellipsizeMode="tail">
-                    {getCurrentPostItem()?.creator
-                      ? `${getCurrentPostItem().creator.fname || ""} ${getCurrentPostItem().creator.lname || ""}`.trim() || (getCurrentPostItem().creator.name as string)
-                      : (getCurrentPostItem()?.owner?.fname || (getCurrentPostItem()?.author?.name as string) || "User")}
-                  </Text>
-                  <Text style={styles.userTime}>
-                    {getCurrentPostItem()?.createdAt ? moment(getCurrentPostItem().createdAt).fromNow() : ""}
-                  </Text>
-                </View>
-              </Pressable>
-              <View style={styles.actionRow}>
-                {/* Hide friend/follow buttons when viewing own posts from notifications */}
-                {getCurrentPostItem()?.creator?.id !== user?.id && getCurrentPostItem()?.owner?.id !== user?.id && (
-                  <>
-                    {friendStatus !== "pending" && (
-                      <Pressable
-                        style={styles.friendBtn}
-                        onPress={(e) => { e.stopPropagation(); toggleFriend(friendStatus === "friends" ? "unfriend" : "friend"); }}
-                      >
-                        <Text style={styles.friendText}>{friendStatus === "friends" ? "Unfriend" : "Friend"}</Text>
-                      </Pressable>
-                    )}
-                    {!following && (
-                      <Pressable style={styles.followBtn} onPress={(e) => { e.stopPropagation(); toggleFollow("follow"); }}>
-                        <Text style={styles.followText}>Follow</Text>
-                      </Pressable>
-                    )}
-                  </>
-                )}
-              </View>
-            </Animated.View>
+              </Animated.View>
 
-            <Animated.View 
-              style={[
-                styles.rightRail,
-                {
-                  opacity: buttonsOpacity,
-                  transform: [{ scale: buttonsScale }]
-                }
-              ]}
-            >
-              <Pressable style={styles.railCircle} onPress={(e) => { e.stopPropagation(); toggleLike(liked ? "unlike" : "like"); }}>
-                <Ionicons name={liked ? "heart" : "heart-outline"} size={20} color={liked ? "#FF3B30" : "#FFFFFF"} />
-              </Pressable>
-              <Text style={styles.railCount}>{likeCount}</Text>
-              <Pressable style={styles.railCircle} onPress={(e) => { e.stopPropagation(); setCommentsOpen(true); }}>
-                <Ionicons name="chatbubble-outline" size={18} color="#FFFFFF" />
-              </Pressable>
-              <Text style={styles.railCount}>{commentCount}</Text>
-              <Pressable style={styles.railCircle} onPress={(e) => { e.stopPropagation(); toast.success("Share coming soon"); }}>
-                <Ionicons name="share-social-outline" size={18} color="#FFFFFF" />
-              </Pressable>
-            </Animated.View>
+              {/* Blinking arrow for navigation hint */}
+              {allAvailablePosts.length > 1 && (
+                <Animated.View
+                  style={[
+                    styles.blinkingArrow,
+                    {
+                      opacity: buttonsOpacity,
+                      transform: [{ scale: buttonsScale }]
+                    }
+                  ]}
+                >
+                  {arrowVisible && (
+                    <Ionicons
+                      name="chevron-up"
+                      size={24}
+                      color="#FFFFFF"
+                      style={{
+                        textShadowColor: "rgba(0,0,0,0.75)",
+                        textShadowOffset: { width: 0, height: 1 },
+                        textShadowRadius: 3,
+                      }}
+                    />
+                  )}
+                </Animated.View>
+              )}
 
-            {getCurrentPostItem()?.caption ? (
-              <Animated.View 
+              <Animated.View
                 style={[
-                  styles.captionBox,
+                  styles.previewTopRow,
                   {
                     opacity: buttonsOpacity,
                     transform: [{ scale: buttonsScale }]
                   }
                 ]}
               >
-                {/* <Text style={styles.captionUser}>
+                <Pressable
+                  style={styles.userRow}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    setShowProfileModal(true);
+                    fetchUserStats();
+                  }}
+                >
+                  {getCurrentPostItem()?.creator && extractImageUrl(getCurrentPostItem().creator) ? (
+                    <ExpoImage source={{ uri: extractImageUrl(getCurrentPostItem().creator) as string }} style={styles.userAvatar} contentFit="cover" />
+                  ) : getCurrentPostItem()?.owner && extractImageUrl(getCurrentPostItem().owner) ? (
+                    <ExpoImage source={{ uri: extractImageUrl(getCurrentPostItem().owner) as string }} style={styles.userAvatar} contentFit="cover" />
+                  ) : (
+                    <View style={[styles.userAvatar, { alignItems: "center", justifyContent: "center" }]}>
+                      <Text style={{ color: "#FFFFFF", fontWeight: "700" }}>
+                        {(getCurrentPostItem()?.creator?.fname?.[0] || getCurrentPostItem()?.owner?.fname?.[0] || getCurrentPostItem()?.author?.name?.[0] || "U")?.toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
+                  <View style={styles.userInfo}>
+                    <Text style={styles.userName} numberOfLines={1} ellipsizeMode="tail">
+                      {getCurrentPostItem()?.creator
+                        ? `${getCurrentPostItem().creator.fname || ""} ${getCurrentPostItem().creator.lname || ""}`.trim() || (getCurrentPostItem().creator.name as string)
+                        : (getCurrentPostItem()?.owner?.fname || (getCurrentPostItem()?.author?.name as string) || "User")}
+                    </Text>
+                    <Text style={styles.userTime}>
+                      {getCurrentPostItem()?.createdAt ? moment(getCurrentPostItem().createdAt).fromNow() : ""}
+                    </Text>
+                  </View>
+                </Pressable>
+                <View style={styles.actionRow}>
+                  {/* Hide friend/follow buttons when viewing own posts from notifications */}
+                  {getCurrentPostItem()?.creator?.id !== user?.id && getCurrentPostItem()?.owner?.id !== user?.id && (
+                    <>
+                      {friendStatus === "not_friends" && (
+                        <Pressable
+                          style={styles.friendBtn}
+                          onPress={(e) => { e.stopPropagation(); toggleFriend("friend"); }}
+                        >
+                          <Text style={styles.friendText}>Friend</Text>
+                        </Pressable>
+                      )}
+                      {!following && (
+                        <Pressable style={styles.followBtn} onPress={(e) => { e.stopPropagation(); toggleFollow("follow"); }}>
+                          <Text style={styles.followText}>Follow</Text>
+                        </Pressable>
+                      )}
+                    </>
+                  )}
+                </View>
+              </Animated.View>
+
+              <Animated.View
+                style={[
+                  styles.rightRail,
+                  {
+                    opacity: buttonsOpacity,
+                    transform: [{ scale: buttonsScale }]
+                  }
+                ]}
+              >
+                <Pressable style={styles.railCircle} onPress={(e) => { e.stopPropagation(); toggleLike(liked ? "unlike" : "like"); }}>
+                  <Ionicons name={liked ? "heart" : "heart-outline"} size={20} color={liked ? "#FF3B30" : "#FFFFFF"} />
+                </Pressable>
+                <Text style={styles.railCount}>{likeCount}</Text>
+                <Pressable style={styles.railCircle} onPress={(e) => { e.stopPropagation(); setCommentsOpen(true); }}>
+                  <Ionicons name="chatbubble-outline" size={18} color="#FFFFFF" />
+                </Pressable>
+                <Text style={styles.railCount}>{commentCount}</Text>
+                <Pressable style={styles.railCircle} onPress={(e) => { e.stopPropagation(); toast.success("Share coming soon"); }}>
+                  <Ionicons name="share-social-outline" size={18} color="#FFFFFF" />
+                </Pressable>
+              </Animated.View>
+
+              {getCurrentPostItem()?.caption ? (
+                <Animated.View
+                  style={[
+                    styles.captionBox,
+                    {
+                      opacity: buttonsOpacity,
+                      transform: [{ scale: buttonsScale }]
+                    }
+                  ]}
+                >
+                  {/* <Text style={styles.captionUser}>
                   {getCurrentPostItem()?.creator
                     ? `${getCurrentPostItem().creator.fname || ""} ${getCurrentPostItem().creator.lname || ""}`.trim() || (getCurrentPostItem().creator.name as string)
                     : (getCurrentPostItem()?.owner?.fname || (getCurrentPostItem()?.author?.name as string) || "User")}
                 </Text> */}
-                <Text style={styles.captionText}>{getCurrentPostItem().caption}</Text>
-              </Animated.View>
-            ) : null}
+                  <Text style={styles.captionText}>{getCurrentPostItem().caption}</Text>
+                </Animated.View>
+              ) : null}
             </View>
           </Pressable>
         </Animated.View>
@@ -1606,15 +1644,15 @@ export default function PostPreviewScreen() {
         onRequestClose={() => setCommentsOpen(false)}
       >
         <View style={styles.modalOverlay}>
-        <View
-          style={[
-            styles.shareSheet,
-            {
-              height: Dimensions.get("window").height * 0.75,
-            },
-            isDark ? styles.sheetDark : styles.sheetLight
-          ]}
-        >
+          <View
+            style={[
+              styles.shareSheet,
+              {
+                height: Dimensions.get("window").height * 0.75,
+              },
+              isDark ? styles.sheetDark : styles.sheetLight
+            ]}
+          >
             <KeyboardAvoidingView
               style={{ flex: 1 }}
               behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -1631,7 +1669,7 @@ export default function PostPreviewScreen() {
                   <Ionicons name="close" size={20} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
                 </Pressable>
               </View>
-              
+
               <FlatList
                 ref={commentsScrollRef}
                 data={commentTree}
@@ -1650,8 +1688,8 @@ export default function PostPreviewScreen() {
                 }
               />
               <View style={[
-                styles.inputContainer, 
-                { 
+                styles.inputContainer,
+                {
                   paddingBottom: insets.bottom,
                   borderTopColor: isDark ? "#333" : "#E0E0E0",
                   backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF"
@@ -1678,7 +1716,7 @@ export default function PostPreviewScreen() {
                   />
                   <Pressable
                     style={[
-                      styles.chatSendBtn, 
+                      styles.chatSendBtn,
                       isDark ? styles.chatSendDark : styles.chatSendLight,
                       isSendingComment && { opacity: 0.6 }
                     ]}
@@ -1694,7 +1732,7 @@ export default function PostPreviewScreen() {
                 </View>
               </View>
             </KeyboardAvoidingView>
-        </View>
+          </View>
         </View>
       </Modal>
 
@@ -1716,8 +1754,8 @@ export default function PostPreviewScreen() {
               <Text style={[styles.profileModalTitle, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
                 User Profile
               </Text>
-              <Pressable 
-                style={styles.profileCloseButton} 
+              <Pressable
+                style={styles.profileCloseButton}
                 onPress={() => {
                   setShowProfileModal(false);
                   setUserStats(null); // Reset stats when closing
@@ -1732,16 +1770,16 @@ export default function PostPreviewScreen() {
               {/* Avatar */}
               <View style={styles.profileAvatarContainer}>
                 {getCurrentPostItem()?.creator && extractImageUrl(getCurrentPostItem().creator) ? (
-                  <ExpoImage 
-                    source={{ uri: extractImageUrl(getCurrentPostItem().creator) as string }} 
-                    style={styles.profileAvatar} 
-                    contentFit="cover" 
+                  <ExpoImage
+                    source={{ uri: extractImageUrl(getCurrentPostItem().creator) as string }}
+                    style={styles.profileAvatar}
+                    contentFit="cover"
                   />
                 ) : getCurrentPostItem()?.owner && extractImageUrl(getCurrentPostItem().owner) ? (
-                  <ExpoImage 
-                    source={{ uri: extractImageUrl(getCurrentPostItem().owner) as string }} 
-                    style={styles.profileAvatar} 
-                    contentFit="cover" 
+                  <ExpoImage
+                    source={{ uri: extractImageUrl(getCurrentPostItem().owner) as string }}
+                    style={styles.profileAvatar}
+                    contentFit="cover"
                   />
                 ) : (
                   <View style={[styles.profileAvatar, { alignItems: "center", justifyContent: "center", backgroundColor: "#888" }]}>
@@ -1859,13 +1897,13 @@ const styles = StyleSheet.create({
   captionBox: { position: "absolute", left: 0, right: 0, bottom: 24, alignItems: "center", paddingHorizontal: 16 },
   captionUser: { color: "#FFFFFF", fontSize: 13, fontWeight: "700", marginBottom: 4, textShadowColor: "rgba(0,0,0,0.75)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
   captionText: { color: "#FFFFFF", fontSize: 14, fontWeight: "600", textAlign: "center", textShadowColor: "rgba(0,0,0,0.75)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
-  shareSheet: { 
+  shareSheet: {
     width: "100%",
-    borderTopLeftRadius: 18, 
-    borderTopRightRadius: 18, 
-    overflow: "hidden", 
-    borderWidth: 1, 
-    backgroundColor: "#FFFFFF" 
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    overflow: "hidden",
+    borderWidth: 1,
+    backgroundColor: "#FFFFFF"
   },
   sheetDark: { backgroundColor: "#0a0a0a", borderColor: "#333333" },
   sheetLight: { backgroundColor: "#FFFFFF", borderColor: "#E0E0E0" },

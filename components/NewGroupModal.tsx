@@ -5,14 +5,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Modal,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
@@ -47,12 +47,12 @@ export default function NewGroupModal({ visible, onClose, onGroupCreated }: NewG
   // Load friends when component mounts (background loading)
   useEffect(() => {
     loadFriends(true); // Show loading for initial load
-    
+
     // Set up periodic refresh every 30 seconds in background
     const interval = setInterval(() => {
       loadFriends(false); // Background refresh without loading state
     }, 30000);
-    
+
     return () => clearInterval(interval);
   }, []);
 
@@ -71,24 +71,22 @@ export default function NewGroupModal({ visible, onClose, onGroupCreated }: NewG
       if (showLoading && friends.length === 0) {
         setIsLoading(true);
       }
-      
+
       console.log('Loading friends for new group...');
-      
-      const response = await api.get('/groups/friends', {
-        params: { query: searchQuery || '' }
-      });
-      
+
+      const response = await api.get(UrlConstants.fetchFriendsPrivacy);
+
       console.log('Friends API Response:', JSON.stringify(response.data, null, 2));
-      
+
       if (response.data?.status === 'success' && Array.isArray(response.data?.data)) {
-        const friendsData = response.data.data.map((friend: any) => ({
-          id: friend.id || friend._id || Math.random().toString(),
-          name: `${friend.fname || ''}${friend.lname ? ` ${friend.lname}` : ''}`.trim() || 'Unknown',
-          username: friend.username || `@${friend.fname?.toLowerCase() || 'user'}`,
-          avatar: friend.bgUrl,
-          isFollowing: friend.isFollowing || false
+        const friendsData = response.data.data.map((item: any) => ({
+          id: item.id,
+          name: `${item.fname || ''} ${item.lname || ''}`.trim() || 'Unknown',
+          username: item.username || `@${(item.fname || '').toLowerCase()}${(item.lname || '').toLowerCase()}`,
+          avatar: item.bgUrl,
+          isFollowing: false // Endpoint doesn't return this, default to false
         }));
-        
+
         setFriends(friendsData);
         console.log('Processed friends for group:', friendsData.length);
       } else {
@@ -151,16 +149,16 @@ export default function NewGroupModal({ visible, onClose, onGroupCreated }: NewG
       if (response.data?.status === 'success') {
         const groupData = response.data.data;
         console.log('✅ Group created successfully:', groupData);
-        
+
         toast.success(`Group "${groupName || 'New Group'}" created!`);
-        
+
         // Pass the created group data to parent component
         onGroupCreated({
           ...groupData,
           selectedFriends: Array.from(selectedFriends),
           chatType: 'group'
         });
-        
+
         handleClose();
       } else {
         console.error('Failed to create group:', response.data);
@@ -224,174 +222,174 @@ export default function NewGroupModal({ visible, onClose, onGroupCreated }: NewG
               style={[
                 styles.groupNameInput,
                 {
-                backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
-                borderColor: isDark ? "#333333" : "#E0E0E0",
-                color: isDark ? "#FFFFFF" : "#000000"
-              }
-            ]}
-            placeholder="e.g., Study Group, Weekend Squad..."
-            placeholderTextColor={isDark ? "#666666" : "#999999"}
-            value={groupName}
-            onChangeText={setGroupName}
-            autoCapitalize="words"
-          />
-        </View>
-
-        {/* Search Bar */}
-        <View style={[styles.searchContainer, { backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5" }]}>
-          <Ionicons name="search" size={20} color={isDark ? "#9AA0A6" : "#666666"} />
-          <TextInput
-            style={[styles.searchInput, { color: isDark ? "#FFFFFF" : "#000000" }]}
-            placeholder="Search friends..."
-            placeholderTextColor={isDark ? "#9AA0A6" : "#666666"}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCapitalize="none"
-          />
-        </View>
-
-        {/* Friends List */}
-        <ScrollView style={styles.friendsList} showsVerticalScrollIndicator={false}>
-          {isLoading && friends.length === 0 ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={isDark ? "#FFFFFF" : "#000000"} />
-              <Text style={[styles.loadingText, { color: isDark ? "#9AA0A6" : "#666666" }]}>
-                Loading friends...
-              </Text>
-            </View>
-          ) : filteredFriends.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Ionicons name="people-outline" size={48} color={isDark ? "#666666" : "#999999"} />
-              <Text style={[styles.emptyText, { color: isDark ? "#666666" : "#999999" }]}>
-                {searchQuery ? 'No friends found' : 'No friends available'}
-              </Text>
-              <Text style={[styles.emptySubtext, { color: isDark ? "#666666" : "#999999" }]}>
-                {searchQuery ? 'Try a different search term' : 'Add some friends to create groups'}
-              </Text>
-            </View>
-          ) : (
-            filteredFriends.map((friend) => {
-              const isSelected = selectedFriends.has(friend.id);
-              return (
-                <Pressable
-                  key={friend.id}
-                  style={[
-                    styles.friendItem,
-                    {
-                      backgroundColor: isDark ? "#1A1A1A" : "#F8F9FA",
-                      borderColor: isDark ? "#333333" : "#E0E0E0",
-                      opacity: isCreatingGroup ? 0.6 : 1
-                    }
-                  ]}
-                  onPress={() => toggleFriendSelection(friend.id)}
-                  disabled={isCreatingGroup}
-                >
-                  <View style={styles.friendInfo}>
-                    <View style={[styles.avatar, { backgroundColor: isDark ? "#2A2A2A" : "#E0E0E0" }]}>
-                      {friend.avatar ? (
-                        <ExpoImage
-                          source={{ uri: friend.avatar }}
-                          style={styles.avatarImage}
-                          contentFit="cover"
-                        />
-                      ) : (
-                        <Text style={[styles.avatarText, { color: isDark ? "#FFFFFF" : "#000000" }]}>
-                          {friend.name.charAt(0).toUpperCase()}
-                        </Text>
-                      )}
-                    </View>
-                    <View style={styles.friendDetails}>
-                      <Text style={[styles.friendName, { color: isDark ? "#FFFFFF" : "#000000" }]}>
-                        {friend.name}
-                      </Text>
-                      <Text style={[styles.friendUsername, { color: isDark ? "#9AA0A6" : "#666666" }]}>
-                        {friend.username}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.friendActions}>
-                    <View
-                      style={[
-                        styles.checkbox,
-                        {
-                          backgroundColor: isSelected ? (isDark ? "#FFFFFF" : "#000000") : "transparent",
-                          borderColor: isSelected ? (isDark ? "#FFFFFF" : "#000000") : (isDark ? "#666666" : "#CCCCCC")
-                        }
-                      ]}
-                    >
-                      {isSelected && (
-                        <Ionicons name="checkmark" size={16} color={isDark ? "#000000" : "#FFFFFF"} />
-                      )}
-                    </View>
-                  </View>
-                </Pressable>
-              );
-            })
-          )}
-        </ScrollView>
-
-        {/* Bottom Actions */}
-        <View style={[styles.bottomActions, { borderTopColor: isDark ? "#333333" : "#E0E0E0" }]}>
-          <Pressable
-            style={[
-              styles.actionButton,
-              styles.cancelButton,
-              { borderColor: isDark ? "#666666" : "#CCCCCC" }
-            ]}
-            onPress={handleClose}
-            disabled={isCreatingGroup}
-          >
-            <Text style={[styles.cancelButtonText, { color: isDark ? "#FFFFFF" : "#000000" }]}>
-              Cancel
-            </Text>
-          </Pressable>
-
-          <Pressable
-            style={[
-              styles.actionButton,
-              styles.createButton,
-              {
-                backgroundColor: selectedCount > 0 ? (isDark ? "#FFFFFF" : "#000000") : (isDark ? "#333333" : "#E0E0E0"),
-                opacity: isCreatingGroup ? 0.7 : 1
-              }
-            ]}
-            onPress={createGroup}
-            disabled={selectedCount === 0 || isCreatingGroup}
-          >
-            {isCreatingGroup ? (
-              <>
-                <ActivityIndicator size="small" color={selectedCount > 0 ? (isDark ? "#000000" : "#FFFFFF") : "#FFFFFF"} />
-                <Text style={[styles.createButtonText, { 
-                  marginLeft: 8,
-                  color: selectedCount > 0 ? (isDark ? "#000000" : "#FFFFFF") : "#FFFFFF"
-                }]}>
-                  Creating...
-                </Text>
-              </>
-            ) : (
-              <>
-                <Ionicons name="people" size={16} color={selectedCount > 0 ? (isDark ? "#000000" : "#FFFFFF") : "#FFFFFF"} />
-                <Text style={[styles.createButtonText, { 
-                  color: selectedCount > 0 ? (isDark ? "#000000" : "#FFFFFF") : "#FFFFFF" 
-                }]}>
-                  Create Group {selectedCount > 0 && `(${selectedCount})`}
-                </Text>
-              </>
-            )}
-          </Pressable>
-        </View>
-
-        {/* Loading Overlay */}
-        {isCreatingGroup && (
-          <View style={styles.loadingOverlay}>
-            <View style={[styles.loadingCard, { backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF" }]}>
-              <ActivityIndicator size="large" color={isDark ? "#FFFFFF" : "#000000"} />
-              <Text style={[styles.loadingCardText, { color: isDark ? "#FFFFFF" : "#000000" }]}>
-                Creating group...
-              </Text>
-            </View>
+                  backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
+                  borderColor: isDark ? "#333333" : "#E0E0E0",
+                  color: isDark ? "#FFFFFF" : "#000000"
+                }
+              ]}
+              placeholder="e.g., Study Group, Weekend Squad..."
+              placeholderTextColor={isDark ? "#666666" : "#999999"}
+              value={groupName}
+              onChangeText={setGroupName}
+              autoCapitalize="words"
+            />
           </View>
-        )}
+
+          {/* Search Bar */}
+          <View style={[styles.searchContainer, { backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5" }]}>
+            <Ionicons name="search" size={20} color={isDark ? "#9AA0A6" : "#666666"} />
+            <TextInput
+              style={[styles.searchInput, { color: isDark ? "#FFFFFF" : "#000000" }]}
+              placeholder="Search friends..."
+              placeholderTextColor={isDark ? "#9AA0A6" : "#666666"}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
+            />
+          </View>
+
+          {/* Friends List */}
+          <ScrollView style={styles.friendsList} showsVerticalScrollIndicator={false}>
+            {isLoading && friends.length === 0 ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={isDark ? "#FFFFFF" : "#000000"} />
+                <Text style={[styles.loadingText, { color: isDark ? "#9AA0A6" : "#666666" }]}>
+                  Loading friends...
+                </Text>
+              </View>
+            ) : filteredFriends.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Ionicons name="people-outline" size={48} color={isDark ? "#666666" : "#999999"} />
+                <Text style={[styles.emptyText, { color: isDark ? "#666666" : "#999999" }]}>
+                  {searchQuery ? 'No friends found' : 'No friends available'}
+                </Text>
+                <Text style={[styles.emptySubtext, { color: isDark ? "#666666" : "#999999" }]}>
+                  {searchQuery ? 'Try a different search term' : 'Add some friends to create groups'}
+                </Text>
+              </View>
+            ) : (
+              filteredFriends.map((friend) => {
+                const isSelected = selectedFriends.has(friend.id);
+                return (
+                  <Pressable
+                    key={friend.id}
+                    style={[
+                      styles.friendItem,
+                      {
+                        backgroundColor: isDark ? "#1A1A1A" : "#F8F9FA",
+                        borderColor: isDark ? "#333333" : "#E0E0E0",
+                        opacity: isCreatingGroup ? 0.6 : 1
+                      }
+                    ]}
+                    onPress={() => toggleFriendSelection(friend.id)}
+                    disabled={isCreatingGroup}
+                  >
+                    <View style={styles.friendInfo}>
+                      <View style={[styles.avatar, { backgroundColor: isDark ? "#2A2A2A" : "#E0E0E0" }]}>
+                        {friend.avatar ? (
+                          <ExpoImage
+                            source={{ uri: friend.avatar }}
+                            style={styles.avatarImage}
+                            contentFit="cover"
+                          />
+                        ) : (
+                          <Text style={[styles.avatarText, { color: isDark ? "#FFFFFF" : "#000000" }]}>
+                            {friend.name.charAt(0).toUpperCase()}
+                          </Text>
+                        )}
+                      </View>
+                      <View style={styles.friendDetails}>
+                        <Text style={[styles.friendName, { color: isDark ? "#FFFFFF" : "#000000" }]}>
+                          {friend.name}
+                        </Text>
+                        <Text style={[styles.friendUsername, { color: isDark ? "#9AA0A6" : "#666666" }]}>
+                          {friend.username}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={styles.friendActions}>
+                      <View
+                        style={[
+                          styles.checkbox,
+                          {
+                            backgroundColor: isSelected ? (isDark ? "#FFFFFF" : "#000000") : "transparent",
+                            borderColor: isSelected ? (isDark ? "#FFFFFF" : "#000000") : (isDark ? "#666666" : "#CCCCCC")
+                          }
+                        ]}
+                      >
+                        {isSelected && (
+                          <Ionicons name="checkmark" size={16} color={isDark ? "#000000" : "#FFFFFF"} />
+                        )}
+                      </View>
+                    </View>
+                  </Pressable>
+                );
+              })
+            )}
+          </ScrollView>
+
+          {/* Bottom Actions */}
+          <View style={[styles.bottomActions, { borderTopColor: isDark ? "#333333" : "#E0E0E0" }]}>
+            <Pressable
+              style={[
+                styles.actionButton,
+                styles.cancelButton,
+                { borderColor: isDark ? "#666666" : "#CCCCCC" }
+              ]}
+              onPress={handleClose}
+              disabled={isCreatingGroup}
+            >
+              <Text style={[styles.cancelButtonText, { color: isDark ? "#FFFFFF" : "#000000" }]}>
+                Cancel
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={[
+                styles.actionButton,
+                styles.createButton,
+                {
+                  backgroundColor: selectedCount > 0 ? (isDark ? "#FFFFFF" : "#000000") : (isDark ? "#333333" : "#E0E0E0"),
+                  opacity: isCreatingGroup ? 0.7 : 1
+                }
+              ]}
+              onPress={createGroup}
+              disabled={selectedCount === 0 || isCreatingGroup}
+            >
+              {isCreatingGroup ? (
+                <>
+                  <ActivityIndicator size="small" color={selectedCount > 0 ? (isDark ? "#000000" : "#FFFFFF") : "#FFFFFF"} />
+                  <Text style={[styles.createButtonText, {
+                    marginLeft: 8,
+                    color: selectedCount > 0 ? (isDark ? "#000000" : "#FFFFFF") : "#FFFFFF"
+                  }]}>
+                    Creating...
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="people" size={16} color={selectedCount > 0 ? (isDark ? "#000000" : "#FFFFFF") : "#FFFFFF"} />
+                  <Text style={[styles.createButtonText, {
+                    color: selectedCount > 0 ? (isDark ? "#000000" : "#FFFFFF") : "#FFFFFF"
+                  }]}>
+                    Create Group {selectedCount > 0 && `(${selectedCount})`}
+                  </Text>
+                </>
+              )}
+            </Pressable>
+          </View>
+
+          {/* Loading Overlay */}
+          {isCreatingGroup && (
+            <View style={styles.loadingOverlay}>
+              <View style={[styles.loadingCard, { backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF" }]}>
+                <ActivityIndicator size="large" color={isDark ? "#FFFFFF" : "#000000"} />
+                <Text style={[styles.loadingCardText, { color: isDark ? "#FFFFFF" : "#000000" }]}>
+                  Creating group...
+                </Text>
+              </View>
+            </View>
+          )}
         </View>
       )}
     </Modal>

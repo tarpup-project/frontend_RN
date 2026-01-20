@@ -7,15 +7,15 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Dimensions,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    Text,
-    TextInput,
-    View
+  ActivityIndicator,
+  Dimensions,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
@@ -63,21 +63,21 @@ export default function LocationPrivacyScreen() {
     try {
       setIsLoading(true);
       console.log('Loading friends from privacy endpoint...');
-      
+
       const response = await api.get(UrlConstants.fetchFriendsPrivacy);
-      
+
       console.log('Friends Privacy API Response:', JSON.stringify(response, null, 2));
-      
+
       if (response.data?.status === 'success' && Array.isArray(response.data?.data)) {
-        const friendsData = response.data.data.map((friendship: any) => ({
-          id: friendship.friend?.id || friendship.friendID || Math.random().toString(),
-          name: `${friendship.friend?.fname || ''}${friendship.friend?.lname ? ` ${friendship.friend.lname}` : ''}`.trim() || 'Unknown',
-          username: friendship.friend?.username,
-          avatar: friendship.friend?.bgUrl,
-          canSeeLocation: friendship.locationVisible ?? true,
-          friendshipId: friendship.id // Store the friendship record ID for updates
+        const friendsData = response.data.data.map((item: any) => ({
+          id: item.id,
+          name: `${item.fname || ''} ${item.lname || ''}`.trim() || 'Unknown',
+          username: item.username || `@${(item.fname || '').toLowerCase()}${(item.lname || '').toLowerCase()}`,
+          avatar: item.bgUrl,
+          canSeeLocation: item.locationVisible ?? true,
+          friendshipId: item.id // Keep mostly for tracking, even if structure flat
         }));
-        
+
         setFriends(friendsData);
         console.log('Processed friends with privacy settings:', friendsData);
         console.log('Friends loaded:', friendsData.length);
@@ -114,16 +114,16 @@ export default function LocationPrivacyScreen() {
 
   const toggleFriendVisibility = async (friendId: string) => {
     if (processingFriends.has(friendId)) return; // Prevent double-clicks
-    
+
     const friend = friends.find(f => f.id === friendId);
     if (!friend) return;
 
     const newVisibility = !friend.canSeeLocation;
-    
+
     try {
       setProcessingFriends(prev => new Set(prev).add(friendId));
       console.log(`Toggling location privacy for friend ${friendId} to ${newVisibility ? 'visible' : 'invisible'}`);
-      
+
       const response = await api.post(UrlConstants.friendLocationPrivacy, {
         userID: friendId,
         action: newVisibility // Boolean: true or false
@@ -133,12 +133,12 @@ export default function LocationPrivacyScreen() {
 
       if (response.data?.status === 'success') {
         // Update local state only after successful API call
-        setFriends(prev => prev.map(f => 
-          f.id === friendId 
+        setFriends(prev => prev.map(f =>
+          f.id === friendId
             ? { ...f, canSeeLocation: newVisibility }
             : f
         ));
-        
+
         toast.success(`${friend.name} can ${newVisibility ? 'now' : 'no longer'} see your location`);
         console.log(`Successfully updated location privacy for ${friend.name}`);
       } else {
@@ -160,11 +160,11 @@ export default function LocationPrivacyScreen() {
 
   const showAll = async () => {
     if (bulkProcessing) return;
-    
+
     try {
       setBulkProcessing(true);
       console.log('Setting all friends to visible');
-      
+
       // Update all friends to visible
       const updatePromises = friends.map(async (friend) => {
         if (!friend.canSeeLocation) { // Only update if currently hidden
@@ -173,7 +173,7 @@ export default function LocationPrivacyScreen() {
               userID: friend.id,
               action: true // Boolean true for visible
             });
-            
+
             console.log(`Updated ${friend.name} to visible:`, response.data?.status === 'success');
             return { friendId: friend.id, success: response.data?.status === 'success' };
           } catch (error) {
@@ -186,7 +186,7 @@ export default function LocationPrivacyScreen() {
 
       const results = await Promise.all(updatePromises);
       const successCount = results.filter(r => r.success).length;
-      
+
       if (successCount === friends.length) {
         setFriends(prev => prev.map(friend => ({ ...friend, canSeeLocation: true })));
         toast.success('All friends can now see your location');
@@ -203,11 +203,11 @@ export default function LocationPrivacyScreen() {
 
   const hideAll = async () => {
     if (bulkProcessing) return;
-    
+
     try {
       setBulkProcessing(true);
       console.log('Setting all friends to hidden');
-      
+
       // Update all friends to hidden
       const updatePromises = friends.map(async (friend) => {
         if (friend.canSeeLocation) { // Only update if currently visible
@@ -216,7 +216,7 @@ export default function LocationPrivacyScreen() {
               userID: friend.id,
               action: false // Boolean false for invisible
             });
-            
+
             console.log(`Updated ${friend.name} to hidden:`, response.data?.status === 'success');
             return { friendId: friend.id, success: response.data?.status === 'success' };
           } catch (error) {
@@ -229,7 +229,7 @@ export default function LocationPrivacyScreen() {
 
       const results = await Promise.all(updatePromises);
       const successCount = results.filter(r => r.success).length;
-      
+
       if (successCount === friends.length) {
         setFriends(prev => prev.map(friend => ({ ...friend, canSeeLocation: false })));
         toast.success('All friends are now hidden from your location');
@@ -248,13 +248,13 @@ export default function LocationPrivacyScreen() {
     try {
       setIsSaving(true);
       console.log('Saving privacy settings and refreshing friends list...');
-      
+
       // Refresh the friends list to get the latest privacy settings from server
       await loadFriends();
-      
+
       toast.success('Privacy settings saved and refreshed');
       console.log('Privacy settings saved successfully');
-      
+
       // Navigate back after successful save and refresh
       router.back();
     } catch (error) {
@@ -272,7 +272,7 @@ export default function LocationPrivacyScreen() {
   return (
     <View style={[styles.container, { backgroundColor: isDark ? "#000000" : "#FFFFFF" }]}>
       <StatusBar style={isDark ? "light" : "dark"} />
-      
+
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <View style={styles.headerLeft}>
@@ -287,8 +287,8 @@ export default function LocationPrivacyScreen() {
           </View>
         </View>
         <View style={styles.headerActions}>
-          <Pressable 
-            style={[styles.refreshButton, { opacity: isLoading ? 0.6 : 1 }]} 
+          <Pressable
+            style={[styles.refreshButton, { opacity: isLoading ? 0.6 : 1 }]}
             onPress={refreshFriendsList}
             disabled={isLoading}
           >
@@ -315,12 +315,12 @@ export default function LocationPrivacyScreen() {
           </Text>
         </View>
         <View style={styles.actionButtons}>
-          <Pressable 
+          <Pressable
             style={[
-              styles.actionBtn, 
+              styles.actionBtn,
               { backgroundColor: isDark ? "#2A2A2A" : "#F5F5F5" },
               bulkProcessing && { opacity: 0.6 }
-            ]} 
+            ]}
             onPress={showAll}
             disabled={bulkProcessing}
           >
@@ -328,12 +328,12 @@ export default function LocationPrivacyScreen() {
               {bulkProcessing ? "..." : "Show All"}
             </Text>
           </Pressable>
-          <Pressable 
+          <Pressable
             style={[
-              styles.actionBtn, 
+              styles.actionBtn,
               { backgroundColor: isDark ? "#2A2A2A" : "#F5F5F5" },
               bulkProcessing && { opacity: 0.6 }
-            ]} 
+            ]}
             onPress={hideAll}
             disabled={bulkProcessing}
           >
@@ -394,10 +394,10 @@ export default function LocationPrivacyScreen() {
                     {friend.name}
                   </Text>
                   <View style={styles.statusContainer}>
-                    <Ionicons 
-                      name={friend.canSeeLocation ? "eye-outline" : "eye-off-outline"} 
-                      size={14} 
-                      color={friend.canSeeLocation ? "#4CAF50" : "#9AA0A6"} 
+                    <Ionicons
+                      name={friend.canSeeLocation ? "eye-outline" : "eye-off-outline"}
+                      size={14}
+                      color={friend.canSeeLocation ? "#4CAF50" : "#9AA0A6"}
                     />
                     <Text style={[styles.statusText, { color: friend.canSeeLocation ? "#4CAF50" : "#9AA0A6" }]}>
                       {friend.canSeeLocation ? "Can see location" : "Cannot see location"}
@@ -435,11 +435,11 @@ export default function LocationPrivacyScreen() {
           <Pressable style={[styles.cancelButton, { borderColor: isDark ? "#333" : "#E0E0E0" }]} onPress={handleBack}>
             <Text style={[styles.cancelButtonText, { color: isDark ? "#FFFFFF" : "#000000" }]}>Cancel</Text>
           </Pressable>
-          <Pressable 
+          <Pressable
             style={[
               styles.saveButton,
               (isSaving || isLoading) && { opacity: 0.6 }
-            ]} 
+            ]}
             onPress={handleSave}
             disabled={isSaving || isLoading}
           >

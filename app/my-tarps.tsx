@@ -48,7 +48,7 @@ export default function MyTarpsScreen() {
       setProfileStats(response.data.data);
     } catch (error) {
       console.error('Error fetching profile stats:', error);
-      toast.error('Failed to load profile stats');
+      // Suppressed toast error as requested
     }
   };
 
@@ -56,10 +56,15 @@ export default function MyTarpsScreen() {
   const fetchUserPosts = async () => {
     try {
       const response = await api.get('/tarps/stats/posts');
-      setUserPosts(response.data.data || []);
+      const posts = response.data.data || [];
+      setUserPosts(posts);
+
+      if (posts.length === 0) {
+        toast('No Current Posts');
+      }
     } catch (error) {
       console.error('Error fetching user posts:', error);
-      toast.error('Failed to load posts');
+      // Suppressed toast error as requested
     }
   };
 

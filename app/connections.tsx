@@ -51,18 +51,9 @@ interface FollowerData {
 
 interface FriendData {
   id: string;
-  status: string;
-  userID: string;
-  friendID: string;
-  locationVisible: boolean;
-  createdAt: string;
-  updatedAt: string;
-  friend: {
-    id: string;
-    fname: string;
-    lname: string;
-    bgUrl?: string;
-  };
+  fname: string;
+  lname: string;
+  bgUrl?: string;
 }
 
 export default function ConnectionsScreen() {
@@ -115,17 +106,16 @@ export default function ConnectionsScreen() {
         const friendsApiData: FriendData[] = friendsRes.value.data.data || [];
 
         friendsData = friendsApiData
-          .filter((item: FriendData) => item.status === 'accepted') // Only accepted friends
           .map((item: FriendData) => ({
-            id: item.friend.id,
-            fname: item.friend.fname,
-            lname: item.friend.lname,
-            username: `@${item.friend.fname.toLowerCase()}${item.friend.lname.toLowerCase()}`,
-            bgUrl: item.friend.bgUrl,
+            id: item.id,
+            fname: item.fname || '',
+            lname: item.lname || '',
+            username: `@${(item.fname || '').toLowerCase()}${(item.lname || '').toLowerCase()}`,
+            bgUrl: item.bgUrl,
             isFollowing: false,
             isFriend: true,
             friendStatus: 'friends' as const,
-            status: item.status,
+            status: 'accepted',
             followersCount: 0,
             followingCount: 0
           }));
@@ -267,8 +257,7 @@ export default function ConnectionsScreen() {
           const friendsResponse = await api.get(UrlConstants.tarpFriendsPrivacy);
           if (friendsResponse.data?.status === 'success' && friendsResponse.data?.data) {
             const friendsApiData: FriendData[] = friendsResponse.data.data;
-            const acceptedFriends = friendsApiData.filter((item: FriendData) => item.status === 'accepted');
-            friendIds = new Set(acceptedFriends.map(friend => friend.friend.id));
+            friendIds = new Set(friendsApiData.map(friend => friend.id));
           }
         } catch (error) {
           console.error('Error fetching friends for cross-reference:', error);
@@ -322,17 +311,16 @@ export default function ConnectionsScreen() {
                 const friendsData: FriendData[] = friendsResponse.data.data;
 
                 userData = friendsData
-                  .filter((item: FriendData) => item.status === 'accepted')
                   .map((item: FriendData) => ({
-                    id: item.friend.id,
-                    fname: item.friend.fname,
-                    lname: item.friend.lname,
-                    username: `@${item.friend.fname.toLowerCase()}${item.friend.lname.toLowerCase()}`,
-                    bgUrl: item.friend.bgUrl,
+                    id: item.id,
+                    fname: item.fname || '',
+                    lname: item.lname || '',
+                    username: `@${(item.fname || '').toLowerCase()}${(item.lname || '').toLowerCase()}`,
+                    bgUrl: item.bgUrl,
                     isFollowing: false,
                     isFriend: true,
                     friendStatus: 'friends' as const,
-                    status: item.status,
+                    status: 'accepted',
                     followersCount: 0,
                     followingCount: 0
                   }));
