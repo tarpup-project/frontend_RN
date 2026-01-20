@@ -1,40 +1,41 @@
 import * as Notifications from 'expo-notifications';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { AppState } from 'react-native';
+import { useUnifiedGroups } from './useUnifiedGroups';
 
 /**
  * Hook to manage the application icon badge count.
  * syncs the badge count with the total number of unread messages across all groups.
  */
 export function useAppBadge() {
+    const { uiGroups } = useUnifiedGroups();
+
+    // Calculate total unread count
+    const unreadTotal = useMemo(() => {
+        return (uiGroups || []).reduce((sum: number, g: any) => sum + (Number(g.unreadCount || 0)), 0);
+    }, [uiGroups]);
+
     useEffect(() => {
-        // Only run on iOS for now
-
-        const resetBadge = async () => {
+        const updateBadge = async () => {
             try {
-                // When user opens the app, we reset the notification-based badge count
-                // logically assuming they are now "handling" the notifications.
-                // If the user wants persistent unread counts on badge even after opening,
-                // that conflicts with "count push notifications". 
-                // Push notification badges usually clear when you open the app (e.g. WhatsApp, Messages behavior).
-
-                await Notifications.setBadgeCountAsync(0);
-                console.log('0️⃣ App badge reset to 0 on foreground');
+                console.log(`🔴 Syncing app badge to unread count: ${unreadTotal}`);
+                await Notifications.setBadgeCountAsync(unreadTotal);
             } catch (error) {
-                console.error('Failed to reset app badge:', error);
+                console.error('Failed to set app badge:', error);
             }
         };
 
-        resetBadge();
+        updateBadge();
 
+        // Also sync when app comes to foreground to ensure consistency
         const subscription = AppState.addEventListener('change', nextAppState => {
             if (nextAppState === 'active') {
-                resetBadge();
+                updateBadge();
             }
         });
 
         return () => {
             subscription.remove();
         };
-    }, []); // Run once and on mount/foreground, no dependency on groups anymore
+    }, [unreadTotal]);
 }
