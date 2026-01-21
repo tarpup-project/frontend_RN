@@ -40,6 +40,7 @@ export default function MyTarpsScreen() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showDropdownMenu, setShowDropdownMenu] = useState<string | null>(null);
   const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0 });
+  const [previewedPosts, setPreviewedPosts] = useState<Set<string>>(new Set());
 
   // Function to fetch profile stats
   const fetchProfileStats = async () => {
@@ -205,7 +206,26 @@ export default function MyTarpsScreen() {
                     <View style={styles.postContent}>
                       {/* Post Image */}
                       {post.images && post.images.length > 0 && (
-                        <View style={styles.postImageContainer}>
+                        <Pressable
+                          style={[
+                            styles.postImageContainer,
+                            previewedPosts.has(post.id) && {
+                              borderWidth: 2,
+                              borderColor: 'red',
+                              borderRadius: 14, // slightly larger than image radius
+                              padding: 2
+                            }
+                          ]}
+                          onPress={() => {
+                            setPostToPreview(post);
+                            setShowPostPreview(true);
+                            setPreviewedPosts(prev => {
+                              const next = new Set(prev);
+                              next.add(post.id);
+                              return next;
+                            });
+                          }}
+                        >
                           <ExpoImage
                             source={{ uri: post.images[0].url || post.images[0] }}
                             style={styles.postMainImage}
@@ -217,7 +237,7 @@ export default function MyTarpsScreen() {
                               <Text style={styles.imageCountText}>{post.images.length}</Text>
                             </View>
                           )}
-                        </View>
+                        </Pressable>
                       )}
 
                       {/* Post Details */}
