@@ -86,6 +86,8 @@ export default function PostPreviewScreen() {
   const buttonsScale = useRef(new Animated.Value(1)).current;
   const [showOptionsDropdown, setShowOptionsDropdown] = useState(false);
   const [isReporting, setIsReporting] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeletingPost, setIsDeletingPost] = useState(false);
 
   // Function to mark post as viewed (remove red border)
   const markPostAsViewed = async (postId: string) => {
@@ -141,6 +143,31 @@ export default function PostPreviewScreen() {
     ]).start(() => {
       setButtonsVisible(false);
     });
+  };
+
+  // Function to delete post
+  const deletePost = async () => {
+    const activeItem = getCurrentPostItem();
+    if (!activeItem?.id) return;
+
+    try {
+      setIsDeletingPost(true);
+      await api.delete(`/tarps/posts/${activeItem.id}`);
+
+      // Call global function if it exists to update other screens
+      if ((global as any).refreshTarps) {
+        (global as any).refreshTarps();
+      }
+
+      toast.success('Post deleted successfully');
+      setShowDeleteModal(false);
+      router.back();
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      toast.error('Failed to delete post');
+    } finally {
+      setIsDeletingPost(false);
+    }
   };
 
   const showButtons = () => {
@@ -1431,13 +1458,13 @@ export default function PostPreviewScreen() {
                 >
                   {currentImages.map((uri, i) => (
                     <View key={`${uri}-${i}`} style={{ width: Dimensions.get("window").width, height: Dimensions.get("window").height }}>
-                      <ExpoImage source={{ uri }} style={styles.previewImage} contentFit="cover" />
+                      <ExpoImage source={{ uri }} style={styles.previewImage} contentFit="contain" />
                     </View>
                   ))}
                 </ScrollView>
               ) : (
                 getCurrentPostItem() && (
-                  <ExpoImage source={{ uri: extractImageUrl(getCurrentPostItem()) as string }} style={styles.previewImage} contentFit="cover" />
+                  <ExpoImage source={{ uri: extractImageUrl(getCurrentPostItem()) as string }} style={styles.previewImage} contentFit="contain" />
                 )
               )}
 
@@ -1484,22 +1511,43 @@ export default function PostPreviewScreen() {
                 {/* Options Dropdown */}
                 {showOptionsDropdown && (
                   <View style={[styles.optionsDropdown, isDark ? styles.optionsDropdownDark : styles.optionsDropdownLight]}>
-                    <Pressable
-                      style={styles.optionItem}
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        reportPost();
-                      }}
-                      disabled={isReporting}
-                    >
-                      <Ionicons name="flag-outline" size={16} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
-                      <Text style={[styles.optionText, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
-                        {isReporting ? "Reporting..." : "Report"}
-                      </Text>
-                      {isReporting && (
-                        <ActivityIndicator size="small" color={isDark ? "#FFFFFF" : "#0a0a0a"} />
-                      )}
-                    </Pressable>
+                    {((getCurrentPostItem()?.userID ??
+                      getCurrentPostItem()?.creator?.id ??
+                      getCurrentPostItem()?.owner?.id ??
+                      getCurrentPostItem()?.user?.id ??
+                      getCurrentPostItem()?.createdBy?.id ??
+                      getCurrentPostItem()?.author?.id) === user?.id) ? (
+                      <Pressable
+                        style={styles.optionItem}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          setShowDeleteModal(true);
+                          setShowOptionsDropdown(false);
+                        }}
+                      >
+                        <Ionicons name="trash-outline" size={16} color="#FF3B30" />
+                        <Text style={[styles.optionText, { color: "#FF3B30" }]}>
+                          Delete Post
+                        </Text>
+                      </Pressable>
+                    ) : (
+                      <Pressable
+                        style={styles.optionItem}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          reportPost();
+                        }}
+                        disabled={isReporting}
+                      >
+                        <Ionicons name="flag-outline" size={16} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
+                        <Text style={[styles.optionText, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
+                          {isReporting ? "Reporting..." : "Report"}
+                        </Text>
+                        {isReporting && (
+                          <ActivityIndicator size="small" color={isDark ? "#FFFFFF" : "#0a0a0a"} />
+                        )}
+                      </Pressable>
+                    )}
                   </View>
                 )}
               </Animated.View>
@@ -1830,25 +1878,33 @@ export default function PostPreviewScreen() {
               )}
 
               {/* Action Buttons */}
-              <View style={styles.profileActions}>
-                <Pressable
-                  style={[styles.profileActionButton, styles.addFriendButton]}
-                  onPress={() => toggleFriend(friendStatus === "friends" ? "unfriend" : "friend")}
-                  disabled={friendStatus === "pending"}
-                >
-                  <Ionicons name="heart-outline" size={16} color="#FFFFFF" />
-                  <Text style={styles.addFriendText}>
-                    {friendStatus === "pending" ? "Pending" : friendStatus === "friends" ? "Unfriend" : "Add Friend"}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.profileActionButton, styles.followButton]}
-                  onPress={() => toggleFollow(following ? "unfollow" : "follow")}
-                >
-                  <Ionicons name="person-add-outline" size={16} color="#0a0a0a" />
-                  <Text style={styles.profileFollowText}>{following ? "Unfollow" : "Follow"}</Text>
-                </Pressable>
-              </View>
+              {/* Action Buttons */}
+              {(getCurrentPostItem()?.userID ??
+                getCurrentPostItem()?.creator?.id ??
+                getCurrentPostItem()?.owner?.id ??
+                getCurrentPostItem()?.user?.id ??
+                getCurrentPostItem()?.createdBy?.id ??
+                getCurrentPostItem()?.author?.id) !== user?.id && (
+                  <View style={styles.profileActions}>
+                    <Pressable
+                      style={[styles.profileActionButton, styles.addFriendButton]}
+                      onPress={() => toggleFriend(friendStatus === "friends" ? "unfriend" : "friend")}
+                      disabled={friendStatus === "pending"}
+                    >
+                      <Ionicons name="heart-outline" size={16} color="#FFFFFF" />
+                      <Text style={styles.addFriendText}>
+                        {friendStatus === "pending" ? "Pending" : friendStatus === "friends" ? "Unfriend" : "Add Friend"}
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      style={[styles.profileActionButton, styles.followButton]}
+                      onPress={() => toggleFollow(following ? "unfollow" : "follow")}
+                    >
+                      <Ionicons name="person-add-outline" size={16} color="#0a0a0a" />
+                      <Text style={styles.profileFollowText}>{following ? "Unfollow" : "Follow"}</Text>
+                    </Pressable>
+                  </View>
+                )}
             </View>
 
             {/* Recent Activity */}
@@ -1859,6 +1915,44 @@ export default function PostPreviewScreen() {
               <Text style={[styles.recentActivityText, { color: isDark ? "#9AA0A6" : "#666" }]}>
                 Last posted {getCurrentPostItem()?.createdAt ? moment(getCurrentPostItem().createdAt).fromNow() : "recently"} at {extractLocationName(getCurrentPostItem())}
               </Text>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showDeleteModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowDeleteModal(false)}
+      >
+        <View style={styles.centeredModalOverlay}>
+          <View style={[styles.deleteModal, isDark ? styles.deleteModalDark : styles.deleteModalLight]}>
+            <Text style={[styles.deleteTitle, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>Delete Post</Text>
+            <Text style={[styles.deleteMessage, { color: isDark ? "#9AA0A6" : "#666" }]}>
+              Are you sure you want to delete this post? This action cannot be undone. All likes and comments will be permanently removed.
+            </Text>
+
+            <View style={styles.deleteActions}>
+              <Pressable
+                style={styles.deleteButton}
+                onPress={deletePost}
+                disabled={isDeletingPost}
+              >
+                {isDeletingPost ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.deleteButtonText}>Delete</Text>
+                )}
+              </Pressable>
+
+              <Pressable
+                style={[styles.cancelButton, { borderColor: isDark ? "#333333" : "#E0E0E0" }]}
+                onPress={() => setShowDeleteModal(false)}
+                disabled={isDeletingPost}
+              >
+                <Text style={[styles.cancelText, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>Cancel</Text>
+              </Pressable>
             </View>
           </View>
         </View>
@@ -1934,6 +2028,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end",
+  },
+  centeredModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   blinkingArrow: {
     position: "absolute",
@@ -2090,9 +2190,7 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
-    shadowRadius: 4,
     elevation: 5,
-    zIndex: 1000,
   },
   optionsDropdownDark: {
     backgroundColor: "#1A1A1A",
@@ -2113,5 +2211,60 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
     flex: 1,
+  },
+  deleteModal: {
+    width: "85%",
+    maxWidth: 320,
+    borderRadius: 16,
+    padding: 20,
+    alignItems: "center",
+  },
+  deleteModalDark: {
+    backgroundColor: "#1A1A1A",
+  },
+  deleteModalLight: {
+    backgroundColor: "#FFFFFF",
+  },
+  deleteTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 12,
+  },
+  deleteMessage: {
+    fontSize: 14,
+    textAlign: "center",
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  deleteActions: {
+    flexDirection: "row",
+    gap: 12,
+    width: "100%",
+  },
+  deleteButton: {
+    flex: 1,
+    backgroundColor: "#FF3B30",
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  deleteButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cancelText: {
+    fontSize: 14,
+    fontWeight: "600",
   },
 });
