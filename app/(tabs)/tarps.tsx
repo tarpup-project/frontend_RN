@@ -1647,6 +1647,12 @@ export default function TarpsScreen() {
                         const primaryItem = p.items[0];
                         const combinedSet = { urls: allUrls, ids: allIds };
 
+                        // Mark all posts in the stack as viewed immediately
+                        if (allIds.length > 0) {
+                          const validIds = allIds.filter((id): id is string => id !== null);
+                          markPostsAsViewed(validIds);
+                        }
+
                         nav.push(`/post/${primaryItem.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(primaryItem))}&images=${encodeURIComponent(JSON.stringify(combinedSet))}&allItems=${encodeURIComponent(JSON.stringify(allItems))}&idx=0&serverPosts=${encodeURIComponent(JSON.stringify(serverPosts))}`);
                       } catch (error) {
                         console.error("Failed to navigate to stacked posts:", error);
@@ -1725,6 +1731,10 @@ export default function TarpsScreen() {
                         return { urls, ids };
                       };
                       const set = resolveItemImageSet(item);
+                      // Mark single post as viewed immediately
+                      if (item.id) {
+                        markPostsAsViewed([item.id]);
+                      }
                       nav.push(`/post/${item.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(item))}&images=${encodeURIComponent(JSON.stringify(set))}&idx=0&serverPosts=${encodeURIComponent(JSON.stringify(serverPosts))}`);
                     } catch (error) {
                       console.error("Failed to navigate to post:", error);
@@ -1900,6 +1910,12 @@ export default function TarpsScreen() {
                           const primaryItem = p.items[0];
                           const combinedSet = { urls: allUrls, ids: allIds };
 
+                          // Mark all posts in the stack as viewed immediately
+                          if (allIds.length > 0) {
+                            const validIds = allIds.filter((id): id is string => id !== null);
+                            markPostsAsViewed(validIds);
+                          }
+
                           console.log("Combined set created:", { totalImages: allUrls.length, totalItems: allItems.length });
                           nav.push(`/post/${primaryItem.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(primaryItem))}&images=${encodeURIComponent(JSON.stringify(combinedSet))}&allItems=${encodeURIComponent(JSON.stringify(allItems))}&idx=0&serverPosts=${encodeURIComponent(JSON.stringify(serverPosts))}`);
                         } catch (error) {
@@ -1977,6 +1993,10 @@ export default function TarpsScreen() {
                           return { urls, ids };
                         };
                         const set = resolveItemImageSet(item);
+                        // Mark single post as viewed immediately
+                        if (item.id) {
+                          markPostsAsViewed([item.id]);
+                        }
                         nav.push(`/post/${item.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(item))}&images=${encodeURIComponent(JSON.stringify(set))}&idx=0&serverPosts=${encodeURIComponent(JSON.stringify(serverPosts))}`);
                       } catch (error) {
                         console.error("Failed to navigate to post:", error);
