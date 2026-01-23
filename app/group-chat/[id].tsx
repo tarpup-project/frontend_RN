@@ -21,15 +21,15 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  AppState,
-  Keyboard,
-  KeyboardAvoidingView, Linking, Platform,
-  Pressable,
-  StyleSheet,
-  View
+    ActivityIndicator,
+    Alert,
+    Animated,
+    AppState,
+    Keyboard,
+    KeyboardAvoidingView, Linking, Platform,
+    Pressable,
+    StyleSheet,
+    View
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
@@ -219,9 +219,8 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
         retryConnection();
         markAsRead();
         refetchNotifications();
-      } else if (nextState === "background") {
-        router.back();
       }
+      // Removed automatic navigation back when app goes to background
     });
 
     return () => {
@@ -488,6 +487,11 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
         isSending={isSending}
         isComplete={finalGroupDetails?.isComplete || passedGroupData?.isComplete || false}
       />
+
+      {/* Loading Overlay - Covers entire screen including header */}
+      {isLoading && displayedMessages.length === 0 && (
+        <View style={styles.loadingOverlay} pointerEvents="auto" />
+      )}
     </KeyboardAvoidingView>
   );
 };
@@ -538,6 +542,15 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     zIndex: 999,
+  },
+  loadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "transparent",
+    zIndex: 1000,
   },
 });
 
