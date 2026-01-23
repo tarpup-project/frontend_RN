@@ -1491,8 +1491,12 @@ export default function PostPreviewScreen() {
                   }
                 ]}
               >
-                <Pressable style={styles.headerIcon} onPress={(e) => { e.stopPropagation(); router.back(); }}>
-                  <Ionicons name="chevron-back" size={20} color="#FFFFFF" />
+                <Pressable
+                  style={styles.headerIcon}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  onPress={(e) => { e.stopPropagation(); router.back(); }}
+                >
+                  <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
                 </Pressable>
                 <View style={styles.headerCenter}>
                   <Text style={styles.headerTitle}>{getCurrentPostItem() ? extractLocationName(getCurrentPostItem()) : "Location"}</Text>
@@ -1989,7 +1993,7 @@ const styles = StyleSheet.create({
   gradientTop: { position: "absolute", left: 0, right: 0, top: 0, height: 220 },
   gradientBottom: { position: "absolute", left: 0, right: 0, bottom: 0, height: 180 },
   previewHeader: { position: "absolute", top: 0, left: 12, right: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  headerIcon: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.35)" },
+  headerIcon: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.35)" },
   headerCenter: { position: "absolute", left: 0, right: 0, top: 58, alignItems: "center", justifyContent: "center", gap: 4 },
   headerTitle: { color: "#FFFFFF", fontSize: 14, fontWeight: "700", width: "70%", textAlign: "center" },
   headerSub: { color: "#FFFFFF", fontSize: 11 },
