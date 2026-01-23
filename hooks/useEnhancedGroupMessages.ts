@@ -11,13 +11,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import {
-  AlertMessage,
-  Group,
-  GroupMessage,
-  MessageFile,
-  MessageType,
-  SendMessagePayload,
-  UserMessage
+    AlertMessage,
+    Group,
+    GroupMessage,
+    MessageFile,
+    MessageType,
+    SendMessagePayload,
+    UserMessage
 } from '../types/groups';
 import { SocketEvents } from '../types/socket';
 import { groupsKeys } from './useGroups';
@@ -754,6 +754,34 @@ export const useEnhancedGroupMessages = ({
               isSynced: false,
               createdAt: Date.now(),
               updatedAt: Date.now(),
+            });
+
+            // Update groups list cache optimistically
+            queryClient.setQueriesData({ queryKey: groupsKeys.lists() }, (oldGroups: any[] | undefined) => {
+              if (!oldGroups) return oldGroups;
+              return oldGroups.map(g => {
+                if (g.id === groupId || g.serverId === groupId) {
+                  const newMessageObj = {
+                    content: message.trim(),
+                    sender: { fname: user.fname, id: user.id },
+                    senderId: user.id,
+                    senderName: user.fname,
+                    fileUrl: file?.data,
+                    fileType: file?.ext,
+                    createdAt: new Date().toISOString()
+                  };
+                  
+                  return {
+                    ...g,
+                    lastMessageAt: new Date().toISOString(),
+                    lastMessage: newMessageObj,
+                    updatedAt: new Date().toISOString(),
+                    // Update messages array if it exists to ensure UI picks up the latest message
+                    messages: g.messages && Array.isArray(g.messages) ? [...g.messages, newMessageObj] : g.messages
+                  };
+                }
+                return g;
+              });
             });
           }
         } catch (error) {
