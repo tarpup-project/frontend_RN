@@ -74,7 +74,7 @@ export default function LocationPrivacyScreen() {
           name: `${item.fname || ''} ${item.lname || ''}`.trim() || 'Unknown',
           username: item.username || `@${(item.fname || '').toLowerCase()}${(item.lname || '').toLowerCase()}`,
           avatar: item.bgUrl,
-          canSeeLocation: item.locationVisible ?? true,
+          canSeeLocation: item.isLocationVisible ?? true,
           friendshipId: item.id // Keep mostly for tracking, even if structure flat
         }));
 

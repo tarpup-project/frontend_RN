@@ -11,14 +11,14 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import moment from "moment";
 import React, { useEffect, useState } from "react";
 import {
-    Image,
-    Modal,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    Share,
-    StyleSheet,
-    View,
+  Image,
+  Modal,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Share,
+  StyleSheet,
+  View,
 } from "react-native";
 import { toast } from "sonner-native";
 
@@ -62,7 +62,7 @@ const UserProfile = () => {
   const { universities, isLoading: isLoadingUniversities } = useCampus();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  
+
   const { data: profileData, isLoading, error, refetch } = useUserProfile(id!);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [copyLoading, setCopyLoading] = useState(false);
@@ -76,10 +76,10 @@ const UserProfile = () => {
       return;
     }
 
-    const foundUniversity = universities.find(university => 
+    const foundUniversity = universities.find(university =>
       university.id === profileData.userDetails.university?.id
     );
-    
+
     if (foundUniversity) {
       setUniversityName(foundUniversity.name);
     } else {

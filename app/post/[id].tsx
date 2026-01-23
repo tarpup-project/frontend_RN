@@ -1849,19 +1849,40 @@ export default function PostPreviewScreen() {
               <View style={styles.profileStats}>
                 <View style={styles.profileStat}>
                   <Text style={[styles.profileStatNumber, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
-                    {isLoadingUserStats ? "..." : userStats?.posts || 0}
+                    {((getCurrentPostItem()?.userID ??
+                      getCurrentPostItem()?.creator?.id ??
+                      getCurrentPostItem()?.owner?.id ??
+                      getCurrentPostItem()?.user?.id ??
+                      getCurrentPostItem()?.createdBy?.id ??
+                      getCurrentPostItem()?.author?.id) === user?.id)
+                      ? (isLoadingUserStats ? "..." : userStats?.posts || 0)
+                      : "__"}
                   </Text>
                   <Text style={[styles.profileStatLabel, { color: isDark ? "#9AA0A6" : "#666" }]}>Posts</Text>
                 </View>
                 <View style={styles.profileStat}>
                   <Text style={[styles.profileStatNumber, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
-                    {isLoadingUserStats ? "..." : userStats?.followers || 0}
+                    {((getCurrentPostItem()?.userID ??
+                      getCurrentPostItem()?.creator?.id ??
+                      getCurrentPostItem()?.owner?.id ??
+                      getCurrentPostItem()?.user?.id ??
+                      getCurrentPostItem()?.createdBy?.id ??
+                      getCurrentPostItem()?.author?.id) === user?.id)
+                      ? (isLoadingUserStats ? "..." : userStats?.followers || 0)
+                      : "__"}
                   </Text>
                   <Text style={[styles.profileStatLabel, { color: isDark ? "#9AA0A6" : "#666" }]}>Followers</Text>
                 </View>
                 <View style={styles.profileStat}>
                   <Text style={[styles.profileStatNumber, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
-                    {isLoadingUserStats ? "..." : userStats?.followings || 0}
+                    {((getCurrentPostItem()?.userID ??
+                      getCurrentPostItem()?.creator?.id ??
+                      getCurrentPostItem()?.owner?.id ??
+                      getCurrentPostItem()?.user?.id ??
+                      getCurrentPostItem()?.createdBy?.id ??
+                      getCurrentPostItem()?.author?.id) === user?.id)
+                      ? (isLoadingUserStats ? "..." : userStats?.followings || 0)
+                      : "__"}
                   </Text>
                   <Text style={[styles.profileStatLabel, { color: isDark ? "#9AA0A6" : "#666" }]}>Following</Text>
                 </View>
