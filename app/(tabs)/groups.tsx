@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useCampus } from "@/hooks/useCampus";
+import { useFriends } from "@/hooks/useFriends";
 import { useImagePreloader } from "@/hooks/useImagePreloader";
 import { useUnifiedGroups } from "@/hooks/useUnifiedGroups";
 import { useAuthStore } from "@/state/authStore";
@@ -117,8 +118,8 @@ const Groups = () => {
   // Preload profile pictures for better performance
   useImagePreloader(groups || []);
 
-  // Note: NewChatModal and NewGroupModal automatically preload friends data
-  // in the background when this component mounts, ensuring instant modal opening
+  // Preload friends data in background for instant modal opening
+  useFriends();
 
   const handleManualRefresh = async () => {
     setIsManualRefreshing(true);

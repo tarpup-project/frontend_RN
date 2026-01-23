@@ -1,29 +1,22 @@
 import { api } from "@/api/client";
 import { UrlConstants } from "@/constants/apiUrls";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useFilteredFriends } from "@/hooks/useFriends";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    ActivityIndicator,
+    Modal,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
-
-interface Friend {
-  id: string;
-  name: string;
-  username?: string;
-  avatar?: string;
-  isFollowing?: boolean;
-}
 
 interface NewGroupModalProps {
   visible: boolean;
@@ -36,81 +29,13 @@ export default function NewGroupModal({ visible, onClose, onGroupCreated }: NewG
   const insets = useSafeAreaInsets();
 
   // State
-  const [friends, setFriends] = useState<Friend[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [groupName, setGroupName] = useState("");
   const [selectedFriends, setSelectedFriends] = useState<Set<string>>(new Set());
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
 
-  // Load friends when modal opens or search query changes
-  // Load friends when component mounts (background loading)
-  useEffect(() => {
-    loadFriends(true); // Show loading for initial load
-
-    // Set up periodic refresh every 30 seconds in background
-    const interval = setInterval(() => {
-      loadFriends(false); // Background refresh without loading state
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // Only trigger search filtering when modal is visible and search query changes
-  useEffect(() => {
-    if (visible && searchQuery) {
-      // Filter existing friends instead of making new API call
-      // This is handled by filteredFriends computed property
-    }
-  }, [visible, searchQuery]);
-
-  // Load friends from API with background loading support
-  const loadFriends = async (showLoading = false) => {
-    try {
-      // Only show loading state for initial load or when explicitly requested
-      if (showLoading && friends.length === 0) {
-        setIsLoading(true);
-      }
-
-      console.log('Loading friends for new group...');
-
-      const response = await api.get(UrlConstants.fetchFriendsPrivacy);
-
-      console.log('Friends API Response:', JSON.stringify(response.data, null, 2));
-
-      if (response.data?.status === 'success' && Array.isArray(response.data?.data)) {
-        const friendsData = response.data.data.map((item: any) => ({
-          id: item.id,
-          name: `${item.fname || ''} ${item.lname || ''}`.trim() || 'Unknown',
-          username: item.username || `@${(item.fname || '').toLowerCase()}${(item.lname || '').toLowerCase()}`,
-          avatar: item.bgUrl,
-          isFollowing: false // Endpoint doesn't return this, default to false
-        }));
-
-        setFriends(friendsData);
-        console.log('Processed friends for group:', friendsData.length);
-      } else {
-        console.log('No friends data found');
-        setFriends([]);
-      }
-    } catch (error: any) {
-      console.error('Error loading friends:', error);
-      // Don't clear existing friends on background refresh errors
-      if (friends.length === 0) {
-        setFriends([]);
-      }
-    } finally {
-      if (showLoading) {
-        setIsLoading(false);
-      }
-    }
-  };
-
-  // Filter friends based on search query
-  const filteredFriends = friends.filter(friend =>
-    friend.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (friend.username && friend.username.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  // Use optimized friends hook
+  const { friends: filteredFriends, isLoading, hasData } = useFilteredFriends(searchQuery);
 
   const toggleFriendSelection = (friendId: string) => {
     setSelectedFriends(prev => {
@@ -178,8 +103,6 @@ export default function NewGroupModal({ visible, onClose, onGroupCreated }: NewG
     setSearchQuery("");
     setGroupName("");
     setSelectedFriends(new Set());
-    // Don't clear friends data - keep it cached for next time
-    // setFriends([]);
     onClose();
   };
 
@@ -250,7 +173,7 @@ export default function NewGroupModal({ visible, onClose, onGroupCreated }: NewG
 
           {/* Friends List */}
           <ScrollView style={styles.friendsList} showsVerticalScrollIndicator={false}>
-            {isLoading && friends.length === 0 ? (
+            {isLoading && !hasData ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={isDark ? "#FFFFFF" : "#000000"} />
                 <Text style={[styles.loadingText, { color: isDark ? "#9AA0A6" : "#666666" }]}>
