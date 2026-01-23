@@ -190,20 +190,16 @@ export const GroupOptionsDropdown = ({
     return false;
   };
 
-  // Determine if this is a 1-on-1 chat or group chat
-  // Use the same name detection logic to determine chat type
+  // Determine if this is a personal chat (hide mark as completed for all personal chats)
   const isPersonalChat = (() => {
     const memberCount = (detailedGroupData?.members?.length || groupDetails.members?.length || 0);
     
-    // If 2 or fewer members AND the name looks like a person's name, it's a personal chat
+    // If there are 2 or fewer people, it's a personal chat (1-on-1 or just me)
     if (memberCount <= 2) {
-      const data = detailedGroupData || groupDetails;
-      if (data?.name && isPersonName(data.name)) {
-        return true;
-      }
+      return true;
     }
     
-    // Otherwise, it's a group chat
+    // Otherwise, it's a group
     return false;
   })();
   
@@ -211,12 +207,21 @@ export const GroupOptionsDropdown = ({
 
   // Check if user is admin when dropdown is shown or detailed data changes
   useEffect(() => {
-    if (showDropdown && !isPersonalChat) {
-      // Only check admin status for group chats, not personal chats
-      const data = detailedGroupData || groupDetails;
-      
+    const data = detailedGroupData || groupDetails;
+    const groupName = data?.name;
+    const nameIsPerson = isPersonName(groupName);
+    
+    // Check admin if it's a group chat OR if it's a personal chat with a non-person name (e.g. "Buying Shoe")
+    const shouldCheckAdmin = !isPersonalChat || !nameIsPerson;
+
+    if (showDropdown && shouldCheckAdmin) {
       if (data) {
-        // Check if current user is admin - rely on backend data
+        console.log('🔍 Checking admin status for group:', data.name);
+        console.log('🔍 Current user ID:', user?.id);
+        console.log('🔍 Group isAdmin flag:', data.isAdmin);
+        console.log('🔍 Group members:', data.members);
+        
+        // Check if current user is admin - rely on backend data first
         let isAdmin = data.isAdmin || false;
         
         // Fallback: If isAdmin is false, check if user is the first member
@@ -226,15 +231,32 @@ export const GroupOptionsDropdown = ({
           // Handle case where member might be an ID string or an object with ID
           const firstMemberId = typeof firstMember === 'string' ? firstMember : firstMember.id;
           
+          console.log('🔍 First member ID:', firstMemberId);
+          
           if (firstMemberId === user.id) {
             isAdmin = true;
+            console.log('✅ User is admin (first member)');
           }
         }
         
+        // Additional fallback: Check if user ID matches any member with admin role
+        if (!isAdmin && user?.id && data.members && Array.isArray(data.members)) {
+          const userMember = data.members.find((member: any) => {
+            const memberId = typeof member === 'string' ? member : member.id;
+            return memberId === user.id;
+          });
+          
+          if (userMember && typeof userMember === 'object' && userMember.isAdmin) {
+            isAdmin = true;
+            console.log('✅ User is admin (member role)');
+          }
+        }
+        
+        console.log('🔍 Final admin status:', isAdmin);
         setIsUserAdmin(isAdmin);
       }
-    } else if (isPersonalChat) {
-      // Personal chats don't have admin concept
+    } else if (showDropdown) {
+      // Personal chats (with person names) don't have admin concept
       setIsUserAdmin(false);
     }
   }, [showDropdown, detailedGroupData, groupDetails, user?.id, isPersonalChat]);
@@ -380,7 +402,29 @@ export const GroupOptionsDropdown = ({
             </Pressable>
           )}
 
-          {!isPersonalChat && isUserAdmin && !detailedGroupData?.isComplete && (
+          {(() => {
+            // Only show for groups where user is admin
+            // Also show for personal chats (<=2 members) if the name is NOT a person's name AND there are multiple bgUrls
+            const groupName = detailedGroupData?.name || groupDetails.name;
+            const nameIsPerson = isPersonName(groupName);
+            
+            const members = detailedGroupData?.members || groupDetails.members || [];
+            const bgUrlCount = members.filter((m: any) => m.bgUrl).length;
+
+            const shouldShow = (!detailedGroupData?.isComplete) && isUserAdmin && (
+              !isPersonalChat || (!nameIsPerson && bgUrlCount > 1)
+            );
+
+            console.log('🔍 Mark as Completed visibility check:', {
+              isPersonalChat,
+              nameIsPerson,
+              bgUrlCount,
+              isUserAdmin,
+              isComplete: detailedGroupData?.isComplete,
+              shouldShow
+            });
+            return shouldShow;
+          })() && (
             <Pressable
               style={styles.dropdownItem}
               onPress={() => {
