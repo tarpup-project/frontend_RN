@@ -224,6 +224,41 @@ export class AsyncStorageDB {
 
       messages.push(newMessage);
       await this.saveMessages(groupId, messages);
+
+      // Update group's last message in db_groups for instant list update
+      const groups = await this.getGroups();
+      const groupIndex = groups.findIndex(g => g.id === groupId || g.serverId === groupId);
+      
+      if (groupIndex !== -1) {
+        const newMessageObj = {
+          content: newMessage.content,
+          sender: { 
+            fname: newMessage.senderName, 
+            id: newMessage.senderId 
+          },
+          senderId: newMessage.senderId,
+          senderName: newMessage.senderName,
+          fileUrl: newMessage.fileUrl,
+          fileType: newMessage.fileType,
+          createdAt: new Date(newMessage.createdAt).toISOString()
+        };
+
+        const currentGroup = groups[groupIndex];
+        const updatedGroup = {
+          ...currentGroup,
+          lastMessageAt: new Date(newMessage.createdAt).toISOString(),
+          lastMessage: newMessageObj,
+          updatedAt: new Date().toISOString(),
+          // Update messages array if it exists
+          messages: currentGroup.messages && Array.isArray(currentGroup.messages) 
+            ? [...currentGroup.messages, newMessageObj] 
+            : currentGroup.messages
+        };
+        
+        groups[groupIndex] = updatedGroup;
+        await this.saveGroups(groups);
+        console.log('🔄 Updated last message for group:', groupId);
+      }
     } catch (error) {
       console.error('❌ Failed to add message to group:', groupId, error);
       // Don't throw - just log the error to prevent app crashes
