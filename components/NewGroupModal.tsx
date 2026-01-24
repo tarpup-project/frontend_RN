@@ -6,17 +6,19 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    Modal,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
+
+import { CreatingChatLoader } from "./CreatingChatLoader";
 
 interface NewGroupModalProps {
   visible: boolean;
@@ -304,14 +306,7 @@ export default function NewGroupModal({ visible, onClose, onGroupCreated }: NewG
 
           {/* Loading Overlay */}
           {isCreatingGroup && (
-            <View style={styles.loadingOverlay}>
-              <View style={[styles.loadingCard, { backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF" }]}>
-                <ActivityIndicator size="large" color={isDark ? "#FFFFFF" : "#000000"} />
-                <Text style={[styles.loadingCardText, { color: isDark ? "#FFFFFF" : "#000000" }]}>
-                  Creating group...
-                </Text>
-              </View>
-            </View>
+            <CreatingChatLoader name={groupName || 'New Group'} />
           )}
         </View>
       )}
