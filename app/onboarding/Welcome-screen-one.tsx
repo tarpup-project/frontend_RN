@@ -31,20 +31,20 @@ const WelcomeScreenOne = () => {
 
   return (
     <SafeAreaView style={[styles.container, dynamicStyles.container]}>
-        <Pressable
-          style={styles.skipButton}
-          onPress={() => router.push("/(tabs)")}
-        >
-          <Text style={[styles.skipText, dynamicStyles.skipText]}>Skip</Text>
-        </Pressable>
+      <Pressable
+        style={styles.skipButton}
+        onPress={() => router.push("/(tabs)")}
+      >
+        <Text style={[styles.skipText, dynamicStyles.skipText]}>Skip</Text>
+      </Pressable>
 
       <View style={styles.content}>
         <View style={styles.logoContainer}>
           <Image
             source={
               isDark
-                ? require("@/assets/images/tarpup-dark.png")
-                : require("@/assets/images/tarpup-light.png")
+                ? require("@/assets/images/tarpup-darkk.png")
+                : require("@/assets/images/tarpup-lightt.png")
             }
             style={styles.logo}
             resizeMode="contain"
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-end",
     paddingVertical: Platform.OS === "ios" ? 10 : 8,
     paddingHorizontal: 20,
-    minHeight: 44, 
+    minHeight: 44,
     minWidth: 60,
   },
   skipText: {
