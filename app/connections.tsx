@@ -2,6 +2,7 @@ import { api } from "@/api/client";
 import { Text } from "@/components/Themedtext";
 import { UrlConstants } from "@/constants/apiUrls";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useFilteredConnections, User } from "@/hooks/useConnections";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import { useRouter } from "expo-router";
@@ -20,42 +21,6 @@ import { toast } from "sonner-native";
 
 type TabType = 'follow' | 'friends' | 'discover';
 
-interface User {
-  id: string;
-  fname: string;
-  lname: string;
-  username?: string;
-  bgUrl?: string;
-  followersCount?: number;
-  followingCount?: number;
-  isFollowing?: boolean;
-  isFriend?: boolean;
-  friendStatus?: 'friends' | 'pending' | 'not_friends';
-  status?: string; // For friends API
-  followerID?: string; // For unfollow action in follow tab
-}
-
-interface FollowerData {
-  id?: string;
-  userID?: string;
-  followerID?: string;
-  createdAt?: string;
-  updatedAt?: string;
-  follower: {
-    id: string;
-    fname: string;
-    lname: string;
-    bgUrl?: string;
-  };
-}
-
-interface FriendData {
-  id: string;
-  fname: string;
-  lname: string;
-  bgUrl?: string;
-}
-
 export default function ConnectionsScreen() {
   const { isDark } = useTheme();
   const router = useRouter();
@@ -63,340 +28,37 @@ export default function ConnectionsScreen() {
 
   const [activeTab, setActiveTab] = useState<TabType>('follow');
   const [searchQuery, setSearchQuery] = useState('');
-  const [users, setUsers] = useState<User[]>([]);
-  const [allTabsData, setAllTabsData] = useState<{
-    follow: User[];
-    friends: User[];
-    discover: User[];
-  }>({
-    follow: [],
-    friends: [],
-    discover: []
-  });
-  const [isLoading, setIsLoading] = useState(false);
-  const [followCounts, setFollowCounts] = useState({ follow: 0, friends: 0, discover: 0 });
 
-  // Load all tabs data on initial load
+  // Use the cached connections data
+  const { 
+    users, 
+    counts, 
+    isLoading, 
+    hasError, 
+    refetchAll, 
+    refetchTab 
+  } = useFilteredConnections(activeTab, searchQuery);
+
+  // Preload all connections data on mount for instant tab switching
   useEffect(() => {
-    loadAllTabsData();
+    console.log('📱 Connections screen mounted - data will be cached for instant access');
+    console.log('📊 Current counts:', counts);
+    console.log('📋 Current users for', activeTab, ':', users.length);
   }, []);
 
-  // Update displayed users when active tab changes
+  // Log when tab changes to show instant switching
   useEffect(() => {
-    setUsers(allTabsData[activeTab]);
-  }, [activeTab, allTabsData]);
+    console.log('🔄 Tab changed to:', activeTab);
+    console.log('📋 Users loaded instantly:', users.length);
+  }, [activeTab]);
 
-  const loadAllTabsData = async () => {
-    setIsLoading(true);
-    try {
-      // Load data for all tabs simultaneously
-      const [followersRes, friendsRes, discoverRes] = await Promise.allSettled([
-        api.get(UrlConstants.tarpUserFollowers),
-        api.get(UrlConstants.tarpFriendsPrivacy),
-        api.get(UrlConstants.groupsFriends())
-      ]);
-
-      let followData: User[] = [];
-      let friendsData: User[] = [];
-      let discoverData: User[] = [];
-
-      // Process friends data first to get friend IDs
-      let friendIds: Set<string> = new Set();
-      if (friendsRes.status === 'fulfilled' && friendsRes.value.data?.status === 'success') {
-        const friendsApiData: FriendData[] = friendsRes.value.data.data || [];
-
-        friendsData = friendsApiData
-          .map((item: FriendData) => ({
-            id: item.id,
-            fname: item.fname || '',
-            lname: item.lname || '',
-            username: `@${(item.fname || '').toLowerCase()}${(item.lname || '').toLowerCase()}`,
-            bgUrl: item.bgUrl,
-            isFollowing: false,
-            isFriend: true,
-            friendStatus: 'friends' as const,
-            status: 'accepted',
-            followersCount: 0,
-            followingCount: 0
-          }));
-
-        // Create a set of friend IDs for quick lookup
-        friendIds = new Set(friendsData.map(friend => friend.id));
-
-        console.log('Friends loaded:', friendsData.length);
-      }
-
-      // Process followers data and check if they are also friends
-      if (followersRes.status === 'fulfilled' && followersRes.value.data?.status === 'success') {
-        const followersApiData: FollowerData[] = followersRes.value.data.data || [];
-
-        // Remove duplicates by follower.id and map to User interface
-        const uniqueFollowers = followersApiData.reduce((acc: FollowerData[], current) => {
-          const exists = acc.find(item => item.follower.id === current.follower.id);
-          if (!exists) {
-            acc.push(current);
-          }
-          return acc;
-        }, []);
-
-        followData = uniqueFollowers.map((item: FollowerData) => {
-          const isAlsoFriend = friendIds.has(item.follower.id);
-          return {
-            id: item.follower.id,
-            fname: item.follower.fname,
-            lname: item.follower.lname,
-            username: `@${item.follower.fname.toLowerCase()}${item.follower.lname.toLowerCase()}`,
-            bgUrl: item.follower.bgUrl,
-            isFollowing: true,
-            isFriend: isAlsoFriend, // Mark as friend if they exist in friends list
-            friendStatus: isAlsoFriend ? 'friends' as const : 'not_friends' as const,
-            followersCount: 0,
-            followingCount: 0,
-            followerID: item.follower.id // Store followerID for unfollow action
-          };
-        });
-
-        console.log('Followers loaded:', followData.length);
-        console.log('Followers who are also friends:', followData.filter(f => f.isFriend).length);
-      }
-
-      // Process discover data and filter out users who are in both follow and friends
-      if (discoverRes.status === 'fulfilled' && discoverRes.value.data?.status === 'success') {
-        const discoverApiData = discoverRes.value.data.data;
-
-        // Create sets of user IDs from follow and friends for filtering and status checking
-        const followIds = new Set(followData.map(user => user.id));
-        const friendsOnlyIds = new Set(friendsData.map(user => user.id));
-
-        discoverData = Array.isArray(discoverApiData) ? discoverApiData
-          .map((item: any) => {
-            const userId = item.id || item.user?.id;
-            const isInFollow = followIds.has(userId);
-            const isInFriends = friendsOnlyIds.has(userId);
-
-            return {
-              id: userId,
-              fname: item.fname || item.user?.fname || 'User',
-              lname: item.lname || item.user?.lname || '',
-              username: item.username || `@${(item.fname || item.user?.fname || 'user').toLowerCase()}`,
-              bgUrl: item.bgUrl || item.user?.bgUrl,
-              isFollowing: isInFollow, // True if user is in follow tab
-              isFriend: isInFriends, // True if user is in friends tab
-              friendStatus: isInFriends ? 'friends' as const : 'not_friends' as const,
-              followersCount: 0,
-              followingCount: 0
-            };
-          })
-          .filter((user: User) => {
-            const isInFollow = user.isFollowing;
-            const isInFriends = user.isFriend;
-
-            // Only show in discover if:
-            // - Not in both follow and friends tabs
-            // - Can be in follow only, friends only, or neither
-            return !(isInFollow && isInFriends);
-          }) : [];
-
-        console.log('Discover users loaded (after filtering):', discoverData.length);
-        console.log('Discover Users Data:', discoverData);
-        console.log('Users filtered out (in both follow and friends):',
-          Array.isArray(discoverApiData) ? discoverApiData.length - discoverData.length : 0);
-        console.log('Discover users with follow status:', discoverData.filter(u => u.isFollowing).length);
-
-        console.log('Discover users with friend status:', discoverData.filter(u => u.isFriend).length);
-
-        // Debug logs for Discover logic
-        console.log('--- DISCOVER DEBUGGING ---');
-        console.log('All Friends List:', friendsData);
-        console.log('All Followers List:', followData);
-        console.log('------------------------');
-      }
-
-      // Update all tabs data
-      const newAllTabsData = {
-        follow: followData,
-        friends: friendsData,
-        discover: discoverData
-      };
-
-      setAllTabsData(newAllTabsData);
-
-      // Set initial users to active tab
-      setUsers(newAllTabsData[activeTab]);
-
-      // Update counts
-      setFollowCounts({
-        follow: followData.length,
-        friends: friendsData.length,
-        discover: discoverData.length
-      });
-
-      console.log('All tabs data loaded:', {
-        follow: followData.length,
-        friends: friendsData.length,
-        discover: discoverData.length
-      });
-
-    } catch (error) {
-      console.error('Error loading all tabs data:', error);
+  // Handle errors
+  useEffect(() => {
+    if (hasError) {
+      console.error('❌ Error loading connections data:', hasError);
       toast.error('Failed to load connections');
-    } finally {
-      setIsLoading(false);
     }
-  };
-
-  const refreshTabData = async (tabToRefresh?: TabType) => {
-    // Refresh specific tab or all tabs after user actions
-    const tabsToRefresh = tabToRefresh ? [tabToRefresh] : ['follow', 'friends', 'discover'];
-
-    try {
-      // If refreshing follow tab, we need friends data for cross-referencing
-      let friendIds: Set<string> = new Set();
-      if (tabsToRefresh.includes('follow')) {
-        try {
-          const friendsResponse = await api.get(UrlConstants.tarpFriendsPrivacy);
-          if (friendsResponse.data?.status === 'success' && friendsResponse.data?.data) {
-            const friendsApiData: FriendData[] = friendsResponse.data.data;
-            friendIds = new Set(friendsApiData.map(friend => friend.id));
-          }
-        } catch (error) {
-          console.error('Error fetching friends for cross-reference:', error);
-        }
-      }
-
-      for (const tab of tabsToRefresh) {
-        let userData: User[] = [];
-
-        switch (tab) {
-          case 'follow':
-            try {
-              const followersResponse = await api.get(UrlConstants.tarpUserFollowers);
-              if (followersResponse.data?.status === 'success' && followersResponse.data?.data) {
-                const followersData: FollowerData[] = followersResponse.data.data;
-
-                const uniqueFollowers = followersData.reduce((acc: FollowerData[], current) => {
-                  const exists = acc.find(item => item.follower.id === current.follower.id);
-                  if (!exists) {
-                    acc.push(current);
-                  }
-                  return acc;
-                }, []);
-
-                userData = uniqueFollowers.map((item: FollowerData) => {
-                  const isAlsoFriend = friendIds.has(item.follower.id);
-                  return {
-                    id: item.follower.id,
-                    fname: item.follower.fname,
-                    lname: item.follower.lname,
-                    username: `@${item.follower.fname.toLowerCase()}${item.follower.lname.toLowerCase()}`,
-                    bgUrl: item.follower.bgUrl,
-                    isFollowing: true,
-                    isFriend: isAlsoFriend, // Mark as friend if they exist in friends list
-                    friendStatus: isAlsoFriend ? 'friends' as const : 'not_friends' as const,
-                    followersCount: 0,
-                    followingCount: 0,
-                    followerID: item.follower.id // Store followerID for unfollow action
-                  };
-                });
-              }
-            } catch (error) {
-              console.error('Error refreshing followers:', error);
-            }
-            break;
-
-          case 'friends':
-            try {
-              const friendsResponse = await api.get(UrlConstants.tarpFriendsPrivacy);
-              if (friendsResponse.data?.status === 'success' && friendsResponse.data?.data) {
-                const friendsData: FriendData[] = friendsResponse.data.data;
-
-                userData = friendsData
-                  .map((item: FriendData) => ({
-                    id: item.id,
-                    fname: item.fname || '',
-                    lname: item.lname || '',
-                    username: `@${(item.fname || '').toLowerCase()}${(item.lname || '').toLowerCase()}`,
-                    bgUrl: item.bgUrl,
-                    isFollowing: false,
-                    isFriend: true,
-                    friendStatus: 'friends' as const,
-                    status: 'accepted',
-                    followersCount: 0,
-                    followingCount: 0
-                  }));
-              }
-            } catch (error) {
-              console.error('Error refreshing friends:', error);
-            }
-            break;
-
-          case 'discover':
-            try {
-              const discoverResponse = await api.get(UrlConstants.groupsFriends());
-              if (discoverResponse.data?.status === 'success' && discoverResponse.data?.data) {
-                const discoverApiData = discoverResponse.data.data;
-
-                // Get current follow and friends data for filtering and status checking
-                const currentFollowData = allTabsData.follow || [];
-                const currentFriendsData = allTabsData.friends || [];
-
-                const followIds = new Set(currentFollowData.map(user => user.id));
-                const friendsIds = new Set(currentFriendsData.map(user => user.id));
-
-                userData = Array.isArray(discoverApiData) ? discoverApiData
-                  .map((item: any) => {
-                    const userId = item.id || item.user?.id;
-                    const isInFollow = followIds.has(userId);
-                    const isInFriends = friendsIds.has(userId);
-
-                    return {
-                      id: userId,
-                      fname: item.fname || item.user?.fname || 'User',
-                      lname: item.lname || item.user?.lname || '',
-                      username: item.username || `@${(item.fname || item.user?.fname || 'user').toLowerCase()}`,
-                      bgUrl: item.bgUrl || item.user?.bgUrl,
-                      isFollowing: isInFollow, // True if user is in follow tab
-                      isFriend: isInFriends, // True if user is in friends tab
-                      friendStatus: isInFriends ? 'friends' as const : 'not_friends' as const,
-                      followersCount: 0,
-                      followingCount: 0
-                    };
-                  })
-                  .filter((user: User) => {
-                    const isInFollow = user.isFollowing;
-                    const isInFriends = user.isFriend;
-
-                    // Only show in discover if not in both follow and friends tabs
-                    return !(isInFollow && isInFriends);
-                  }) : [];
-              }
-            } catch (error) {
-              console.error('Error refreshing discover users:', error);
-            }
-            break;
-        }
-
-        // Update the specific tab data
-        setAllTabsData(prev => ({
-          ...prev,
-          [tab]: userData
-        }));
-
-        // Update counts
-        setFollowCounts(prev => ({
-          ...prev,
-          [tab]: userData.length
-        }));
-
-        // If this is the active tab, update displayed users
-        if (tab === activeTab) {
-          setUsers(userData);
-        }
-      }
-    } catch (error) {
-      console.error('Error refreshing tab data:', error);
-    }
-  };
+  }, [hasError]);
 
   const handleFriendAction = async (userId: string, action: 'friend' | 'unfriend') => {
     try {
@@ -414,53 +76,18 @@ export default function ConnectionsScreen() {
 
       console.log(`Successfully ${actualAction === 'friend' ? 'added' : 'removed'} friend:`, userId);
 
-      // Update local state immediately for better UX
-      if (activeTab === 'friends' && actualAction === 'unfriend') {
-        // Remove from list immediately
-        setAllTabsData(prev => ({
-          ...prev,
-          [activeTab]: prev[activeTab].filter(user => user.id !== userId)
-        }));
-
-        setUsers(prev => prev.filter(user => user.id !== userId));
-
-        // Update count
-        setFollowCounts(prev => ({
-          ...prev,
-          friends: Math.max(0, prev.friends - 1)
-        }));
-      } else {
-        // Just update status for other tabs or add action
-        const updateUserInTab = (tabData: User[]) =>
-          tabData.map(user =>
-            user.id === userId
-              ? {
-                ...user,
-                isFriend: actualAction === 'friend',
-                friendStatus: (actualAction === 'friend' ? 'friends' : 'not_friends') as 'friends' | 'not_friends' | 'pending'
-              }
-              : user
-          );
-
-        setAllTabsData(prev => ({
-          ...prev,
-          [activeTab]: updateUserInTab(prev[activeTab])
-        }));
-
-        setUsers(prev => updateUserInTab(prev));
-      }
-
       toast.success(actualAction === 'friend' ? 'Friend added' : 'Friend removed');
 
       // Refresh affected tabs after a short delay to ensure consistency
       setTimeout(() => {
-        // If we just removed a friend, we might want to refresh discover/follow to update their status there too
         if (actualAction === 'unfriend') {
-          refreshTabData('follow');
-          refreshTabData('discover');
-          // No need to refresh friends tab if we just removed them, unless we want to be 100% sure
+          refetchTab('follow');
+          refetchTab('discover');
+          refetchTab('friends'); // Refresh to remove from friends list
         } else {
-          refreshTabData('friends');
+          refetchTab('friends');
+          refetchTab('follow'); // Update friend status in follow tab
+          refetchTab('discover'); // Update friend status in discover tab
         }
       }, 500);
     } catch (error) {
@@ -493,48 +120,16 @@ export default function ConnectionsScreen() {
 
       console.log(`Successfully ${actualAction === 'follow' ? 'followed' : 'unfollowed'} user:`, apiUserId);
 
-      // Update local state immediately for better UX
-      if (activeTab === 'follow' && actualAction === 'unfollow') {
-        // Remove from list immediately
-        setAllTabsData(prev => ({
-          ...prev,
-          [activeTab]: prev[activeTab].filter(user => user.id !== userId)
-        }));
-
-        setUsers(prev => prev.filter(user => user.id !== userId));
-
-        // Update count
-        setFollowCounts(prev => ({
-          ...prev,
-          follow: Math.max(0, prev.follow - 1)
-        }));
-      } else {
-        // Just update status
-        const updateUserInTab = (tabData: User[]) =>
-          tabData.map(user =>
-            user.id === userId
-              ? { ...user, isFollowing: actualAction === 'follow' }
-              : user
-          );
-
-        setAllTabsData(prev => ({
-          ...prev,
-          [activeTab]: updateUserInTab(prev[activeTab])
-        }));
-
-        setUsers(prev => updateUserInTab(prev));
-      }
-
       toast.success(actualAction === 'follow' ? 'Following' : 'Unfollowed');
 
       // Refresh affected tabs after a short delay
       setTimeout(() => {
-        // If we just unfollowed, we might want to refresh discover to update status
         if (actualAction === 'unfollow') {
-          refreshTabData('discover');
-          // No need to refresh follow tab if we just removed them
+          refetchTab('discover'); // Update status in discover
+          refetchTab('follow'); // Remove from follow list
         } else {
-          refreshTabData('follow');
+          refetchTab('follow'); // Add to follow list
+          refetchTab('discover'); // Update status in discover
         }
       }, 500);
     } catch (error) {
@@ -606,12 +201,15 @@ export default function ConnectionsScreen() {
                   styles.actionButton,
                   item.isFriend
                     ? [styles.friendsButton, { backgroundColor: isDark ? "#FFFFFF" : "#0a0a0a" }]
-                    : [styles.friendButton, { borderColor: isDark ? "#666666" : "#CCCCCC" }]
+                    : (item.friendStatus === 'pending'
+                      ? [styles.friendButton, { borderColor: isDark ? "#666666" : "#CCCCCC", opacity: 0.7 }]
+                      : [styles.friendButton, { borderColor: isDark ? "#666666" : "#CCCCCC" }])
                 ]}
+                disabled={item.friendStatus === 'pending'}
                 onPress={() => handleFriendAction(item.id, item.isFriend ? 'unfriend' : 'friend')}
               >
                 <Ionicons
-                  name="heart"
+                  name={item.friendStatus === 'pending' ? "time-outline" : "heart"}
                   size={14}
                   color={item.isFriend ? (isDark ? "#0a0a0a" : "#FFFFFF") : (isDark ? "#CCCCCC" : "#666666")}
                 />
@@ -619,7 +217,7 @@ export default function ConnectionsScreen() {
                   styles.actionButtonText,
                   { color: item.isFriend ? (isDark ? "#0a0a0a" : "#FFFFFF") : (isDark ? "#CCCCCC" : "#666666") }
                 ]}>
-                  {item.isFriend ? 'Friends' : 'Friend'}
+                  {item.friendStatus === 'pending' ? 'Pending' : (item.isFriend ? 'Friends' : 'Friend')}
                 </Text>
               </Pressable>
 
@@ -643,13 +241,6 @@ export default function ConnectionsScreen() {
       </View>
     );
   };
-
-  const filteredUsers = users.filter(user => {
-    if (!searchQuery) return true;
-    const fullName = `${user.fname} ${user.lname}`.toLowerCase();
-    const username = user.username?.toLowerCase() || '';
-    return fullName.includes(searchQuery.toLowerCase()) || username.includes(searchQuery.toLowerCase());
-  });
 
   return (
     <View style={[styles.container, { backgroundColor: isDark ? "#0a0a0a" : "#F8F9FA" }]}>
@@ -714,7 +305,7 @@ export default function ConnectionsScreen() {
                 styles.tabBadgeText,
                 { color: activeTab === 'follow' ? "#FFFFFF" : (isDark ? "#9AA0A6" : "#666666") }
               ]}>
-                {followCounts.follow}
+                {counts.follow}
               </Text>
             </View>
           </Pressable>
@@ -745,7 +336,7 @@ export default function ConnectionsScreen() {
                 styles.tabBadgeText,
                 { color: activeTab === 'friends' ? "#FFFFFF" : (isDark ? "#9AA0A6" : "#666666") }
               ]}>
-                {followCounts.friends}
+                {counts.friends}
               </Text>
             </View>
           </Pressable>
@@ -776,7 +367,7 @@ export default function ConnectionsScreen() {
                 styles.tabBadgeText,
                 { color: activeTab === 'discover' ? "#FFFFFF" : (isDark ? "#9AA0A6" : "#666666") }
               ]}>
-                {followCounts.discover}
+                {counts.discover}
               </Text>
             </View>
           </Pressable>
@@ -794,7 +385,7 @@ export default function ConnectionsScreen() {
           </View>
         ) : (
           <FlatList
-            data={filteredUsers}
+            data={users}
             renderItem={renderUserItem}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContainer}

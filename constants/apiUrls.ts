@@ -100,6 +100,7 @@ class UrlConstants {
   static tarpCheckFriendStatus = (userID: string) => `/tarps/user/friend/${userID}`;
   static tarpStatsPosts = `/tarps/stats/posts`;
   static tarpUserFollowers = `/tarps/user/followers`;
+  static tarpUserPendingRequests = `/tarps/user/follow/requests`;
   static tarpFriendsPrivacy = `/tarps/people/friends/privacy`;
   static groupsFriends = (query?: string) => `/groups/friends${query ? `?query=${query}` : ''}`;
 

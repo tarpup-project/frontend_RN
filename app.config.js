@@ -4,7 +4,7 @@ export default {
     slug: "Tarpup",
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/images/tarpup-light.png",
+    icon: "./assets/images/tarpup-lightt.png",
     scheme: "rnfrontend",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
@@ -40,9 +40,9 @@ export default {
     android: {
       adaptiveIcon: {
         backgroundColor: "#FFFFFF",
-        foregroundImage: "./assets/images/tarpup-light.png",
-        backgroundImage: "./assets/images/tarpup-light.png",
-        monochromeImage: "./assets/images/tarpup-light.png"
+        foregroundImage: "./assets/images/tarpup-lightt.png",
+        backgroundImage: "./assets/images/tarpup-lightt.png",
+        monochromeImage: "./assets/images/tarpup-lightt.png"
       },
       backgroundColor: "#0a0a0a",
       edgeToEdgeEnabled: true,
@@ -64,12 +64,12 @@ export default {
       [
         "expo-splash-screen",
         {
-          image: "./assets/images/tarpup-light.png",
+          image: "./assets/images/tarpup-lightt.png",
           imageWidth: 200,
           resizeMode: "contain",
           backgroundColor: "#0a0a0a",
           dark: {
-            image: "./assets/images/tarpup-dark.png",
+            image: "./assets/images/tarpup-darkk.png",
             backgroundColor: "#0a0a0a"
           }
         }
