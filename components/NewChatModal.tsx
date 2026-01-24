@@ -6,17 +6,19 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    Modal,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
+
+import { CreatingChatLoader } from "./CreatingChatLoader";
 
 interface NewChatModalProps {
   visible: boolean;
@@ -31,12 +33,14 @@ export default function NewChatModal({ visible, onClose, onChatCreated }: NewCha
   // State
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreatingChat, setIsCreatingChat] = useState(false);
+  const [creatingChatName, setCreatingChatName] = useState("");
 
   // Use optimized friends hook
   const { friends: filteredFriends, isLoading, hasData } = useFilteredFriends(searchQuery);
 
   const createPersonalChat = async (friend: Friend) => {
     try {
+      setCreatingChatName(friend.name);
       setIsCreatingChat(true);
       console.log('Creating personal chat with:', friend);
 
@@ -204,14 +208,7 @@ export default function NewChatModal({ visible, onClose, onChatCreated }: NewCha
 
           {/* Loading Overlay */}
           {isCreatingChat && (
-            <View style={styles.loadingOverlay}>
-              <View style={[styles.loadingCard, { backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF" }]}>
-                <ActivityIndicator size="large" color={isDark ? "#FFFFFF" : "#000000"} />
-                <Text style={[styles.loadingCardText, { color: isDark ? "#FFFFFF" : "#000000" }]}>
-                  Creating chat...
-                </Text>
-              </View>
-            </View>
+            <CreatingChatLoader name={creatingChatName} />
           )}
         </View>
       )}
