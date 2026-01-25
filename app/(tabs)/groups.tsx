@@ -8,6 +8,7 @@ import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useCampus } from "@/hooks/useCampus";
 import { useFriends } from "@/hooks/useFriends";
+import { useGroupMessagePreloader } from "@/hooks/useGroupMessagePreloader";
 import { useImagePreloader } from "@/hooks/useImagePreloader";
 import { useUnifiedGroups } from "@/hooks/useUnifiedGroups";
 import { useAuthStore } from "@/state/authStore";
@@ -120,6 +121,9 @@ const Groups = () => {
 
   // Preload friends data in background for instant modal opening
   useFriends();
+
+  // Preload group messages for instant chat loading
+  useGroupMessagePreloader((groups || []).map(group => group.id).filter(Boolean));
 
   const handleManualRefresh = async () => {
     setIsManualRefreshing(true);

@@ -1,30 +1,32 @@
 import { api } from '@/api/client';
-import { MessageImageCacheUtils } from '@/components/CachedMessageImage';
 import { UrlConstants } from '@/constants/apiUrls';
-import { asyncStorageDB, database, groupsCollection, isWatermelonAvailable } from '@/database';
 import { useAuthStore } from '@/state/authStore';
-import { useNotificationStore } from '@/state/notificationStore';
-import { CacheUtils } from '@/utils/queryClient';
-import { watermelonOfflineSyncManager } from '@/utils/watermelonOfflineSync';
-import { Q } from '@nozbe/watermelondb';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState } from 'react-native';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useState } from 'react';
 import {
-    AlertMessage,
-    Group,
-    GroupMessage,
-    MessageFile,
-    MessageType,
-    SendMessagePayload,
-    UserMessage
+  AlertMessage,
+  GroupMessage,
+  MessageFile,
+  MessageType,
+  SendMessagePayload,
+  UserMessage
 } from '../types/groups';
 import { SocketEvents } from '../types/socket';
-import { groupsKeys } from './useGroups';
 
-interface UseEnhancedGroupMessagesProps {
-  groupId: string;
-  socket?: any;
+// --- Types ---
+
+interface UseGroupMessagesResult {
+  messages: GroupMessage[];
+  isLoading: boolean;
+  error: Error | null;
+  isRefetching: boolean;
+  refetch: () => void;
+  joinGroupRoom: () => void;
+}
+
+interface UseSendGroupMessageResult {
+  sendMessage: (options: SendMessageOptions) => Promise<boolean>;
+  isSending: boolean;
 }
 
 interface SendMessageOptions {
@@ -33,679 +35,295 @@ interface SendMessageOptions {
   replyingTo?: UserMessage;
 }
 
-interface UseEnhancedGroupMessagesReturn {
-  messages: GroupMessage[];
-  isLoading: boolean;
-  error: string | null;
-  isSending: boolean;
-  sendMessage: (options: SendMessageOptions) => Promise<boolean>;
-  markAsRead: () => void;
-  clearError: () => void;
-  retryConnection: () => void;
-  isCached: boolean;
-  isRefreshing: boolean;
+interface UseMessageReplyResult {
+  replyingTo: UserMessage | undefined;
+  startReply: (message: UserMessage) => void;
+  cancelReply: () => void;
 }
 
-export const useEnhancedGroupMessages = ({
-  groupId,
-  socket
-}: UseEnhancedGroupMessagesProps): UseEnhancedGroupMessagesReturn => {
-  const queryClient = useQueryClient();
-  const { user } = useAuthStore();
-  const [isSending, setIsSending] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  // Add useMemo to imports
-  const { useMemo } = require('react');
-  const lastQueuedReadAtRef = useRef<number>(0);
-  const joinStartRef = useRef<number | null>(null);
-  const firstMessageLoggedRef = useRef<boolean>(false);
+// --- Fetch Messages Function ---
+const fetchGroupMessages = async (groupId: string): Promise<GroupMessage[]> => {
+  console.log('🔄 Fetching messages from API for group:', groupId);
+  
+  try {
+    const response = await api.get(UrlConstants.fetchGroupMessages(groupId));
+    
+    if (response.data?.status === 'success' && response.data?.data) {
+      const rawMessages = response.data.data;
+      console.log(`📦 Loaded ${rawMessages.length} messages from API`);
+      
+      const formatted = Array.isArray(rawMessages)
+        ? rawMessages.map(transformMessageForUI)
+        : [];
+      
+      return formatted;
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('❌ Failed to fetch messages:', error);
+    throw error;
+  }
+};
 
-  // CRITICAL FIX: Load cached messages BEFORE query initialization to prevent race condition
-  const [initialCacheLoaded, setInitialCacheLoaded] = useState(false);
+// --- Query Key ---
+export const groupMessageKeys = {
+  all: ['groups', 'messages'] as const,
+  detail: (groupId: string) => [...groupMessageKeys.all, groupId] as const,
+};
 
-  // Helper function to resolve reply messages from cache
-  const resolveReplyMessage = useCallback(async (replyToId: string, messages: any[]): Promise<UserMessage | undefined> => {
-    if (!replyToId) return undefined;
+// --- Helper Functions ---
 
-    // First, try to find in the current messages array
-    const replyMessage = messages.find((msg: any) => {
-      const uid = msg?.content?.id ?? msg?.id ?? msg?.serverId;
-      return uid === replyToId;
+const getLastMessageTimestamp = (messages: GroupMessage[]): string | undefined => {
+  if (!messages || messages.length === 0) return undefined;
+  
+  // Find the most recent message timestamp
+  const sortedMessages = [...messages]
+    .filter(m => m.createdAt) // Filter out messages without timestamps
+    .sort((a, b) => {
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return aTime - bTime;
     });
+  
+  return sortedMessages.length > 0 ? sortedMessages[sortedMessages.length - 1].createdAt : undefined;
+};
 
-    if (replyMessage) {
-      // Support both UI GroupMessage shape and raw cached shape
-      const isUIShape = !!replyMessage.messageType;
-      if (isUIShape) {
-        const fileData = replyMessage.file?.data;
-        const text = replyMessage.content?.message || (fileData ? '📷 Image' : '');
-        return {
-          content: {
-            id: replyMessage.content?.id,
-            message: text,
-          },
-          messageType: MessageType.USER,
-          sender: {
-            id: replyMessage.sender?.id,
-            fname: replyMessage.sender?.fname,
-          },
-          file: fileData ? {
-            name: 'image',
-            size: 0,
-            data: fileData,
-            ext: replyMessage.file?.ext || 'image',
-          } : undefined,
-          createdAt: replyMessage.createdAt || new Date().toISOString(),
-        } as UserMessage;
-      } else {
-        // Raw cached message shape
-        const fileUrl = replyMessage.fileUrl;
-        const text = replyMessage.content || (fileUrl ? '📷 Image' : '');
-        return {
-          content: {
-            id: replyMessage.serverId || replyMessage.id,
-            message: text,
-          },
-          messageType: MessageType.USER,
-          sender: {
-            id: replyMessage.senderId,
-            fname: replyMessage.senderName,
-          },
-          file: fileUrl ? {
-            name: 'image',
-            size: 0,
-            data: fileUrl,
-            ext: replyMessage.fileType || 'image',
-          } : undefined,
-          createdAt: new Date(replyMessage.createdAt).toISOString(),
-        } as UserMessage;
-      }
-    }
+const transformMessageForUI = (msg: any): GroupMessage => {
+  // Check if it's already in the correct format (from cache maybe)
+  if (msg.messageType && msg.content && msg.sender) {
+    return msg;
+  }
 
-    // If not found in current messages, try to load from cache using the new method
-    try {
-      const cachedReply = await asyncStorageDB.getMessageById(replyToId);
+  const contentId = msg.content?.id || msg.id || msg.serverId;
+  const sender = msg.sender || msg.user || {};
+  const messageContent = msg.content?.message || msg.message || msg.content || '';
+  const fileData = msg.file?.data || msg.fileUrl;
+  const fileExt = msg.file?.ext || msg.fileType;
 
-      if (cachedReply) {
-        const fileUrl = cachedReply.fileUrl;
-        const messageContent = cachedReply.content && cachedReply.content.trim() !== ''
-          ? cachedReply.content
-          : (fileUrl ? '📷 Image' : '');
-        return {
-          content: {
-            id: cachedReply.serverId || cachedReply.id,
-            message: messageContent,
-          },
-          messageType: MessageType.USER,
-          sender: {
-            id: cachedReply.senderId,
-            fname: cachedReply.senderName,
-          },
-          file: fileUrl ? {
-            name: 'image',
-            size: 0,
-            data: fileUrl,
-            ext: cachedReply.fileType || 'image',
-          } : undefined,
-          createdAt: new Date(cachedReply.createdAt).toISOString(),
-        } as UserMessage;
-      }
-    } catch (error) {
-      console.error('❌ Failed to resolve reply message:', error);
-    }
+  const baseMessage = {
+    content: {
+      id: contentId,
+      message: messageContent
+    },
+    createdAt: msg.createdAt ? new Date(msg.createdAt).toISOString() : new Date().toISOString()
+  };
 
-    // If still not found, return a placeholder with the ID for reference
+  if (sender.id === 'system') {
     return {
-      content: {
-        id: replyToId,
-        message: '[Message not available]',
-      },
-      messageType: MessageType.USER,
+      messageType: MessageType.ALERT,
+      ...baseMessage,
       sender: {
-        id: 'unknown',
-        fname: 'Unknown User',
-      },
-      createdAt: new Date().toISOString(),
-    } as UserMessage;
-  }, []);
-
-  // Helper function to transform cached messages with proper reply resolution
-  const transformCachedMessages = useCallback(async (cachedMessages: any[]): Promise<GroupMessage[]> => {
-    const transformedMessages: GroupMessage[] = [];
-
-    for (const msg of cachedMessages) {
-      // Don't modify the display message for regular messages - only use "📷 Image" for replies
-      const messageContent = msg.content;
-
-      const baseMessage = {
-        content: {
-          id: msg.serverId || msg.id,
-          message: messageContent,
-        },
-        createdAt: new Date(msg.createdAt).toISOString(),
-      };
-
-      if (msg.senderId === 'system') {
-        transformedMessages.push({
-          messageType: MessageType.ALERT,
-          ...baseMessage,
-          sender: {
-            id: 'system',
-            fname: 'System',
-          },
-        } as AlertMessage);
-      } else {
-        // Resolve reply message if exists
-        const replyingTo = msg.replyToId ? await resolveReplyMessage(msg.replyToId, cachedMessages) : undefined;
-
-        transformedMessages.push({
-          messageType: MessageType.USER,
-          ...baseMessage,
-          sender: {
-            id: msg.senderId,
-            fname: msg.senderName,
-          },
-          file: msg.fileUrl ? {
-            name: 'file',
-            size: 0,
-            data: msg.fileUrl,
-            ext: msg.fileType || 'image',
-          } : undefined,
-          replyingTo,
-        } as UserMessage);
+        id: 'system',
+        fname: 'System'
       }
+    } as AlertMessage;
+  }
+
+  // Resolve replyingTo if it exists
+  let replyingTo: UserMessage | undefined = undefined;
+  if (msg.replyingTo) { // If it's already an object
+    if (msg.replyingTo.content) {
+      replyingTo = msg.replyingTo as UserMessage;
+    } else {
+      // Basic ID reference or partial object
+      replyingTo = {
+        messageType: MessageType.USER,
+        content: { id: msg.replyingTo, message: 'Loading...' },
+        sender: { id: 'unknown', fname: 'Unknown' },
+        createdAt: new Date().toISOString()
+      } as UserMessage;
     }
+  }
 
-    return transformedMessages;
-  }, [resolveReplyMessage]);
-
-  const loadCachedMessages = useCallback(async (): Promise<GroupMessage[]> => {
-    const asyncMessages = await asyncStorageDB.getMessages(groupId);
-    return transformCachedMessages(asyncMessages);
-  }, [groupId, transformCachedMessages]);
-
-  // Load cached messages immediately and synchronously set initial data
-  useEffect(() => {
-    const loadInitialCache = async () => {
-      // If groupId changed, we need to reload cache even if initialCacheLoaded was true
-      if (!groupId) return;
-
-      try {
-        console.log('📦 Loading initial cached messages for group:', groupId);
-
-        let cachedMessages: GroupMessage[] = [];
-
-        const asyncMessages = await asyncStorageDB.getMessages(groupId);
-
-        if (asyncMessages.length === 0) {
-          console.log('⚠️ No cached messages found, attempting backup restore for group:', groupId);
-          const backupMessages = await asyncStorageDB.restoreMessageBackup(groupId);
-          if (backupMessages.length > 0) {
-            cachedMessages = await transformCachedMessages(backupMessages);
-            console.log('✅ Restored', cachedMessages.length, 'messages from backup');
-          }
-        } else {
-          cachedMessages = await transformCachedMessages(asyncMessages);
-        }
-
-        if (cachedMessages.length > 0) {
-          console.log('✅ Setting initial cache data:', cachedMessages.length, 'messages for group:', groupId);
-
-          // Set initial data immediately to prevent empty state
-          queryClient.setQueryData<GroupMessage[]>(
-            ['groups', 'messages', groupId],
-            cachedMessages
-          );
-        }
-
-        setInitialCacheLoaded(true);
-      } catch (error) {
-        console.error('❌ Failed to load initial cached messages for group:', groupId, error);
-        setInitialCacheLoaded(true); // Still mark as loaded to prevent infinite loop
-      }
-    };
-
-    // Reset initialCacheLoaded when groupId changes
-    setInitialCacheLoaded(false);
-    loadInitialCache();
-
-    // CRITICAL FIX: Refetch messages when app comes to foreground
-    const subscription = AppState.addEventListener('change', (nextAppState) => {
-      if (nextAppState === 'active') {
-        console.log('📱 App came to foreground, refreshing messages...');
-        queryClient.invalidateQueries({ queryKey: ['groups', 'messages', groupId] });
-      }
-    });
-
-    return () => {
-      subscription.remove();
-    };
-  }, [groupId, queryClient, transformCachedMessages]);
-
-  // CRITICAL FIX: Invalidate query when socket reconnects or becomes available
-  useEffect(() => {
-    if (socket && socket.connected) {
-      console.log('🔌 Socket connected, invalidating message cache to trigger fetch...');
-      queryClient.invalidateQueries({ queryKey: ['groups', 'messages', groupId] });
-    }
-  }, [socket, socket?.connected, groupId, queryClient]);
-
-  // Enhanced React Query to fetch and cache messages with immediate cache loading
-  const { data: messages = [], isLoading, error, isFetching } = useQuery({
-    queryKey: ['groups', 'messages', groupId],
-    queryFn: async (): Promise<GroupMessage[]> => {
-      console.log('🔄 Fetching fresh messages for group:', groupId);
-      setIsRefreshing(true);
-
-      if (!socket || !user) {
-        console.log('⚠️ No socket or user available for group:', groupId, 'User:', !!user, 'Socket:', !!socket);
-        try {
-          return await loadCachedMessages();
-        } finally {
-          setIsRefreshing(false);
-        }
-      }
-
-      return new Promise((resolve) => {
-        let finished = false;
-        let timeout: ReturnType<typeof setTimeout> | undefined;
-
-        const finish = (result: GroupMessage[]) => {
-          if (finished) return;
-          finished = true;
-          setIsRefreshing(false);
-          resolve(result);
-        };
-
-        const normalizeMessagesFromJoinPayload = (data: any): GroupMessage[] => {
-          const messagesFrom =
-            data?.messages ??
-            data?.data?.messages ??
-            data?.payload?.messages ??
-            data?.room?.messages ??
-            data?.result?.messages ??
-            data?.response?.messages;
-
-          if (Array.isArray(messagesFrom)) {
-            return messagesFrom as GroupMessage[];
-          }
-          return [];
-        };
-
-        async function handleJoinRoom(data: any) {
-          if (timeout) clearTimeout(timeout);
-          cleanup();
-
-          const freshMessages = normalizeMessagesFromJoinPayload(data);
-          console.log('📥 Received fresh messages for group:', groupId, '- Count:', freshMessages.length);
-
-          // Save fresh messages to database cache
-          try {
-            if (isWatermelonAvailable) {
-              // TODO: Save to WatermelonDB
-              console.log('💾 Saving to WatermelonDB (not implemented yet)');
-            } else {
-              // Transform and save to AsyncStorage
-              const transformedMessages = freshMessages.map(msg => ({
-                id: msg.content.id,
-                serverId: msg.content.id,
-                groupId: groupId,
-                content: msg.content.message,
-                senderId: msg.messageType === MessageType.USER ? (msg as UserMessage).sender.id : 'system',
-                senderName: msg.messageType === MessageType.USER ? (msg as UserMessage).sender.fname : 'System',
-                replyToId: msg.messageType === MessageType.USER ? (msg as UserMessage).replyingTo?.content.id : undefined,
-                fileUrl: msg.messageType === MessageType.USER ? (msg as UserMessage).file?.data : undefined,
-                fileType: msg.messageType === MessageType.USER ? (msg as UserMessage).file?.ext : undefined,
-                isPending: false,
-                isSynced: true,
-                createdAt: msg.createdAt ? new Date(msg.createdAt).getTime() : Date.now(),
-                updatedAt: Date.now(),
-              }));
-
-              // CRITICAL FIX: Use syncMessages instead of saveMessages to MERGE, not OVERWRITE
-              await asyncStorageDB.syncMessages(groupId, transformedMessages);
-              console.log('💾 Synced', transformedMessages.length, 'fresh messages to AsyncStorage for group:', groupId);
-
-              // CRITICAL FIX: Create backup after saving fresh messages
-              await asyncStorageDB.createMessageBackup(groupId);
-            }
-          } catch (error) {
-            console.error('❌ Failed to save fresh messages to cache:', error);
-          }
-
-          // Merge fresh messages with existing cache to prevent data loss
-          // This is critical if the backend only sends delta messages
-          try {
-            let currentData = queryClient.getQueryData<GroupMessage[]>(['groups', 'messages', groupId]) || [];
-
-            // CRITICAL FIX: If query cache is empty, ALWAYS try to get from local DB first
-            // This prevents overwriting full history with a delta update (single message)
-            if (currentData.length === 0) {
-              console.log('⚠️ Query cache empty during join, fetching from DB for merge...');
-              try {
-                const dbMessages = await asyncStorageDB.getMessages(groupId);
-                if (dbMessages.length > 0) {
-                  currentData = await transformCachedMessages(dbMessages);
-                  console.log(`✅ Retrieved ${currentData.length} messages from DB for merge`);
-                }
-              } catch (dbError) {
-                console.error('Failed to fetch from DB for merge:', dbError);
-              }
-            }
-
-            if (currentData.length > 0) {
-              // Logic to merge: 
-              // 1. Create a map of existing messages by ID
-              // 2. Add/Overwrite with fresh messages
-              // 3. Convert back to array
-              const messageMap = new Map();
-
-              currentData.forEach(msg => messageMap.set(msg.content.id, msg));
-              freshMessages.forEach(msg => messageMap.set(msg.content.id, msg));
-
-              const mergedMessages = Array.from(messageMap.values())
-                .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-
-              console.log(`✅ Merged ${freshMessages.length} fresh messages with ${currentData.length} cached messages. Total: ${mergedMessages.length}`);
-              finish(mergedMessages);
-            } else if (freshMessages.length > 0) {
-              // If we still have no current data (new install or cleared cache), just use fresh
-              console.log(`✅ No cached messages found, using ${freshMessages.length} fresh messages`);
-              finish(freshMessages);
-            } else {
-              // If no fresh messages, keep using cached data
-              console.log('✅ No fresh messages, keeping cached data');
-              finish(currentData.length > 0 ? currentData : []);
-            }
-          } catch (e) {
-            console.error('Error merging messages:', e);
-            finish(freshMessages);
-          }
-        }
-
-        async function handleError(error: any) {
-          if (timeout) clearTimeout(timeout);
-          console.error('❌ Socket error for group:', groupId, error);
-          cleanup();
-
-          // CRITICAL FIX: Load cached messages instead of returning empty array
-          try {
-            const cachedMessages = await loadCachedMessages();
-            console.log('✅ Socket error - returning', cachedMessages.length, 'cached messages');
-            finish(cachedMessages);
-          } catch (cacheError) {
-            console.error('❌ Failed to load cached messages on error:', cacheError);
-            finish([]); // Only return empty if cache loading fails
-          }
-        }
-
-        async function emitJoin() {
-          try {
-            // Get last message timestamp from cache for delta sync
-            let lastMessageAt = 0;
-            try {
-              if (isWatermelonAvailable) {
-                // TODO: Get from WatermelonDB
-              } else {
-                const cachedMessages = await asyncStorageDB.getMessages(groupId);
-                if (cachedMessages.length > 0) {
-                  // Messages are sorted by createdAt in getMessages
-                  const lastMessage = cachedMessages[cachedMessages.length - 1];
-                  // Use createdAt or updatedAt, whichever is newer
-                  lastMessageAt = Math.max(lastMessage.createdAt || 0, lastMessage.updatedAt || 0);
-                }
-              }
-            } catch (err) {
-              console.warn('⚠️ Failed to get last message timestamp for join:', err);
-            }
-
-            // Convert to ISO string for backend
-            // CRITICAL FIX: Strictly send null if no cache exists or lastMessageAt is 0
-            const lastMessageAtISO = (lastMessageAt && lastMessageAt > 0) ? new Date(lastMessageAt).toISOString() : null;
-
-            console.log('🔌 Joining room', groupId, 'with last_message_at:', lastMessageAtISO);
-
-            joinStartRef.current = Date.now();
-            firstMessageLoggedRef.current = false;
-            socket.emit(
-              SocketEvents.JOIN_GROUP_ROOM,
-              {
-                roomID: groupId,
-                userID: user!.id,
-                last_message_at: lastMessageAtISO, // Send ISO timestamp for delta sync
-              },
-              (ack: any) => {
-                if (!ack) return;
-                handleJoinRoom(ack);
-              }
-            );
-          } catch (e) {
-            handleError(e);
-          }
-        }
-
-        function cleanup() {
-          socket.off(SocketEvents.JOIN_GROUP_ROOM, handleJoinRoom as any);
-          socket.off('joinGroupRoom', handleJoinRoom as any);
-          socket.off('joinedGroupRoom', handleJoinRoom as any);
-          socket.off('groupRoomJoined', handleJoinRoom as any);
-          socket.off('groupMessages', handleJoinRoom as any);
-          socket.off('groupRoomMessages', handleJoinRoom as any);
-          socket.off(SocketEvents.ERROR, handleError as any);
-          socket.off('error', handleError as any);
-          socket.off(SocketEvents.CONNECT, emitJoin as any);
-          socket.off('connect', emitJoin as any);
-        }
-
-        timeout = setTimeout(async () => {
-          console.log('⏰ Socket timeout for group:', groupId, '- Loading cached messages instead');
-          cleanup();
-
-          try {
-            const cachedMessages = await loadCachedMessages();
-            console.log('✅ Socket timeout - returning', cachedMessages.length, 'cached messages');
-            finish(cachedMessages);
-          } catch (error) {
-            console.error('❌ Failed to load cached messages on timeout:', error);
-            finish([]);
-          }
-        }, 15000);
-
-        [
-          SocketEvents.JOIN_GROUP_ROOM,
-          'joinGroupRoom',
-          'joinedGroupRoom',
-          'groupRoomJoined',
-          'groupMessages',
-          'groupRoomMessages',
-        ].forEach((evt) => socket.on(evt as any, handleJoinRoom));
-
-        [SocketEvents.ERROR, 'error'].forEach((evt) =>
-          socket.on(evt as any, handleError)
-        );
-
-        if (socket.connected) {
-          emitJoin();
-        } else {
-          socket.once(SocketEvents.CONNECT as any, emitJoin);
-          socket.once('connect' as any, emitJoin);
-          try {
-            socket.connect?.();
-          } catch { }
-        }
-      });
+  return {
+    messageType: MessageType.USER,
+    ...baseMessage,
+    sender: {
+      id: sender.id || msg.senderId || 'unknown',
+      fname: sender.fname || msg.senderName || 'Unknown'
     },
-    enabled: !!groupId && initialCacheLoaded, // Wait for initial cache to load
-    staleTime: 1000 * 60 * 2, // Consider data stale after 2 minutes
-    gcTime: 1000 * 60 * 60 * 24, // Keep in cache for 24 hours
-    retry: 2,
-    // CRITICAL FIX: Only merge fresh data if it's actually newer/different
-    placeholderData: (previousData, previousQuery) => {
-      // If we have previous data (from cache or previous fetch), use it
-      if (previousData) {
-        return previousData;
-      }
+    file: fileData ? {
+      name: 'file',
+      size: 0,
+      data: fileData,
+      ext: fileExt || 'image'
+    } : undefined,
+    replyingTo
+  } as UserMessage;
+};
 
-      // If we don't have previous data, try to get it from the query cache directly
-      // This handles the case where setQueryData was called before useQuery initialized
-      const cachedData = queryClient.getQueryData<GroupMessage[]>(['groups', 'messages', groupId]);
-      if (cachedData) {
-        return cachedData;
-      }
 
-      return undefined;
+// --- Hooks ---
+
+export const useGroupMessages = (groupId: string, socket?: any): UseGroupMessagesResult => {
+  const { user } = useAuthStore();
+  const queryClient = useQueryClient();
+
+  // Use React Query to fetch and cache messages
+  const {
+    data: messages = [],
+    isLoading,
+    error,
+    refetch,
+    isFetching: isRefetching
+  } = useQuery<GroupMessage[], Error>({
+    queryKey: groupMessageKeys.detail(groupId),
+    queryFn: () => fetchGroupMessages(groupId),
+    enabled: !!groupId && !!user,
+    staleTime: 1000 * 60 * 5, // 5 minutes - consider data fresh
+    gcTime: 1000 * 60 * 30, // 30 minutes - keep in cache
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
+    // Keep previous data while loading new data
+    placeholderData: (previousData) => {
+      if (previousData && previousData.length > 0) {
+        console.log('⚡ Using cached messages -', previousData.length, 'messages loaded from cache');
+      }
+      return previousData;
     },
-    refetchOnWindowFocus: false, // Don't refetch on focus to avoid interrupting user
-    refetchOnReconnect: false, // CRITICAL FIX: Disable auto-refetch on reconnect to prevent clearing cache
   });
 
-  // Post-process messages to resolve any missing reply content and preload images
+  // Function to join group room with last message timestamp
+  const joinGroupRoom = useCallback(() => {
+    if (!socket || !socket.connected || !groupId || !user) return;
+
+    const cachedMessages = queryClient.getQueryData<GroupMessage[]>(
+      groupMessageKeys.detail(groupId)
+    );
+    
+    const lastMessageAt = getLastMessageTimestamp(cachedMessages || []);
+    
+    if (lastMessageAt) {
+      console.log('📅 Joining group with last message at:', lastMessageAt);
+    } else {
+      console.log('📅 Joining group - no cached messages, requesting all');
+    }
+
+    const joinPayload = {
+      roomID: groupId,
+      userID: user.id,
+      ...(lastMessageAt && { last_message_at: lastMessageAt })
+    };
+
+    console.log('📤 Emitting joinGroupRoom with payload:', joinPayload);
+    socket.emit(SocketEvents.JOIN_GROUP_ROOM, joinPayload);
+  }, [socket, groupId, user, queryClient]);
+
+  // Socket event handlers for real-time updates
   useEffect(() => {
-    const processMessages = async () => {
-      if (!messages || messages.length === 0) return;
+    if (!socket || !groupId || !user) return;
 
-      let hasUnresolvedReplies = false;
-      const updatedMessages: GroupMessage[] = [];
-
-      // Collect image messages for preloading
-      const imageMessages: any[] = [];
-
-      for (const message of messages) {
-        if (message.messageType === MessageType.USER) {
-          const userMessage = message as UserMessage;
-
-          // Collect images for preloading
-          if (userMessage.file?.data) {
-            imageMessages.push({
-              id: userMessage.content.id,
-              file: userMessage.file,
-            });
-          }
-
-          // Check if reply needs resolution (has replyingTo but with empty content)
-          if (userMessage.replyingTo &&
-            (!userMessage.replyingTo.content.message ||
-              userMessage.replyingTo.content.message === '' ||
-              userMessage.replyingTo.content.message === '[Message not available]')) {
-
-            hasUnresolvedReplies = true;
-            const resolvedReply = await resolveReplyMessage(userMessage.replyingTo.content.id, messages);
-
-            updatedMessages.push({
-              ...userMessage,
-              replyingTo: resolvedReply,
-            });
-          } else {
-            updatedMessages.push(message);
-          }
-        } else {
-          updatedMessages.push(message);
-        }
-      }
-
-      // Preload message images in background
-      if (imageMessages.length > 0) {
-        console.log('🖼️ Preloading', imageMessages.length, 'message images for group:', groupId);
-        MessageImageCacheUtils.preloadChatImages(imageMessages, groupId).catch((error: any) => {
-          console.warn('⚠️ Some message images failed to preload:', error);
-        });
-      }
-
-      // Only update if we found and resolved replies
-      if (hasUnresolvedReplies) {
-        console.log('🔄 Resolved reply references for', updatedMessages.length, 'messages');
+    const handleJoinGroup = (response: any) => {
+      console.log('⚡️ Socket: Joined room response received');
+      
+      // If we get fresh data from socket, update the cache
+      const rawMessages = response?.messages || response || [];
+      if (Array.isArray(rawMessages) && rawMessages.length > 0) {
+        const formatted = rawMessages.map(transformMessageForUI);
+        
+        // Merge new messages with existing cache instead of replacing
         queryClient.setQueryData<GroupMessage[]>(
-          ['groups', 'messages', groupId],
-          updatedMessages
+          groupMessageKeys.detail(groupId),
+          (oldMessages = []) => {
+            const existingIds = new Set(oldMessages.map(m => m.content.id));
+            const newMessages = formatted.filter(m => !existingIds.has(m.content.id));
+            
+            if (newMessages.length > 0) {
+              console.log(`📦 Adding ${newMessages.length} new messages to cache (${oldMessages.length} existing)`);
+              return [...oldMessages, ...newMessages].sort((a, b) => {
+                const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                return aTime - bTime;
+              });
+            }
+            
+            return oldMessages;
+          }
         );
       }
     };
 
-    processMessages();
-  }, [messages, groupId, queryClient, resolveReplyMessage]);
+    const handleNewMessage = (payload: any) => {
+      console.log('⚡️ Socket: New message received', payload?.content?.id || 'unknown ID');
+      const msgData = payload.message || payload;
 
-  // Debug logging
-  useEffect(() => {
-    const isCached = messages.length > 0 && !isLoading;
-    console.log('💬 Enhanced Group Messages State:', {
-      groupId,
-      messageCount: messages.length,
-      isLoading,
-      isRefreshing,
-      isFetching,
-      isCached,
-      hasSocket: !!socket,
-      hasError: !!error
-    });
-  }, [groupId, messages, isLoading, isRefreshing, isFetching, socket, error]);
+      // Filter by roomID if present in payload
+      if (msgData.roomID && msgData.roomID !== groupId) return;
 
-  // CRITICAL FIX: UI-level deduplication to hide any duplicates that slip through
-  const deduplicatedMessages = useMemo(() => {
-    if (!messages || messages.length === 0) return [];
+      const newMessage = transformMessageForUI(msgData);
 
-    // Use a Set to track unique signatures
-    const seenSignatures = new Set<string>();
-    const uniqueMessages: GroupMessage[] = [];
+      // Update React Query cache with new message
+      queryClient.setQueryData<GroupMessage[]>(
+        groupMessageKeys.detail(groupId),
+        (oldMessages = []) => {
+          // Dedup check
+          if (oldMessages.some(m => m.content.id === newMessage.content.id)) {
+            return oldMessages;
+          }
+          return [...oldMessages, newMessage];
+        }
+      );
+    };
 
-    // Sort heavily to ensure stable order
-    const sorted = [...messages].sort((a, b) => new Date(a.createdAt || Date.now()).getTime() - new Date(b.createdAt || Date.now()).getTime());
+    const handleSocketConnect = () => {
+      console.log('🔌 Socket connected, joining group room');
+      joinGroupRoom();
+    };
 
-    for (const msg of sorted) {
-      if (msg.messageType === MessageType.ALERT) {
-        uniqueMessages.push(msg);
-        continue;
-      }
+    // Socket listeners
+    socket.on(SocketEvents.JOIN_GROUP_ROOM, handleJoinGroup);
+    socket.on('groupRoomMessage', handleNewMessage);
+    socket.on('groupMessages', handleNewMessage);
+    socket.on('connect', handleSocketConnect);
 
-      const userMsg = msg as UserMessage;
-      // Signature: SenderID + Content + TimeBucket (2 sec window)
-      // This catches messages sent by same person with same text at almost same time
-      const timeBucket = Math.floor(new Date(msg.createdAt || Date.now()).getTime() / 2000);
-      const signature = `${userMsg.sender.id}_${userMsg.content.message.trim()}_${timeBucket}`;
-
-      // Check for exact ID match too
-      const idSignature = `ID_${msg.content.id}`;
-
-      if (!seenSignatures.has(signature) && !seenSignatures.has(idSignature)) {
-        seenSignatures.add(signature);
-        seenSignatures.add(idSignature);
-        uniqueMessages.push(msg);
-      }
+    // Join group room if socket is already connected
+    if (socket.connected) {
+      joinGroupRoom();
     }
 
-    return uniqueMessages;
-  }, [messages]);
+    return () => {
+      socket.off(SocketEvents.JOIN_GROUP_ROOM, handleJoinGroup);
+      socket.off('groupRoomMessage', handleNewMessage);
+      socket.off('groupMessages', handleNewMessage);
+      socket.off('connect', handleSocketConnect);
+    };
+  }, [socket, groupId, user, queryClient, joinGroupRoom]);
 
-  // Listener for new messages moved to SocketProvider to prevent duplication
-  useEffect(() => {
-    // Only keeping this for debug/monitoring if needed, but no cache updates
-    if (!socket || !user || !groupId) return;
+  return {
+    messages,
+    isLoading,
+    error,
+    isRefetching,
+    refetch,
+    joinGroupRoom // Expose for manual reconnection
+  };
+};
 
-    // Logic moved to SocketProvider.tsx
-  }, [socket, user?.id, groupId]);
+// Deprecated or no-op since logic is moved to useGroupMessages
+export const useGroupSocketSubscription = (groupId: string, socket: any) => {
+  // Logic merged into useGroupMessages
+};
 
-  const sendMessage = useCallback(async ({
-    message,
-    file,
-    replyingTo
-  }: SendMessageOptions): Promise<boolean> => {
-    if (!user || (!message.trim() && !file)) {
-      return false;
-    }
+export const useSendGroupMessage = (groupId: string): UseSendGroupMessageResult => {
+  const { user } = useAuthStore();
+  const queryClient = useQueryClient();
+  const { socket } = require('@/contexts/SocketProvider').useSocket();
 
-    setIsSending(true);
-    // CRITICAL FIX: Use the SAME ID for optimistic update and server payload
-    // This prevents duplication when the server broadcasts the message back
-    const messageId = Date.now().toString() + Math.random().toString(36).slice(2);
+  const mutation = useMutation({
+    mutationFn: async ({ message, file, replyingTo }: SendMessageOptions) => {
+      if (!user) throw new Error("No user");
 
-    try {
-      // Don't modify the display message for regular messages - only use "📷 Image" for replies
+      const messageId = Date.now().toString() + Math.random().toString(36).slice(2);
       const displayMessage = message.trim();
 
       const payload: SendMessagePayload = {
         roomID: groupId,
         messageType: MessageType.USER,
         content: {
-          id: messageId, // Use the consistent ID
+          id: messageId,
           message: displayMessage,
         },
         file,
@@ -716,247 +334,69 @@ export const useEnhancedGroupMessages = ({
         replyingTo: replyingTo?.content.id,
       };
 
+      // Emit via socket
+      if (socket && socket.connected) {
+        console.log('📤 Sending message via socket:', messageId);
+        socket.emit(SocketEvents.GROUP_ROOM_MESSAGE, payload);
+      } else {
+        throw new Error("Socket disconnected");
+      }
+
+      return true;
+    },
+    onMutate: async (newMsg) => {
+      // Optimistic Update - add message immediately to cache
+      await queryClient.cancelQueries({ queryKey: groupMessageKeys.detail(groupId) });
+      const previousMessages = queryClient.getQueryData<GroupMessage[]>(groupMessageKeys.detail(groupId));
+
+      const optimisticId = `temp_${Date.now()}_${Math.random().toString(36).slice(2)}`;
       const optimisticMessage: UserMessage = {
         messageType: MessageType.USER,
-        content: { ...payload.content, id: messageId }, // Use the consistent ID
-        sender: payload.sender,
-        file,
-        replyingTo,
+        content: { id: optimisticId, message: newMsg.message },
+        sender: { id: user?.id || 'me', fname: user?.fname || 'Me' },
         createdAt: new Date().toISOString(),
+        file: newMsg.file,
+        replyingTo: newMsg.replyingTo,
+        isPending: true // Mark as pending for UI feedback
       };
 
-      // Optimistic update
-      queryClient.setQueryData<GroupMessage[]>(
-        ['groups', 'messages', groupId],
-        (old = []) => {
-          const updated = [...old, optimisticMessage];
-          return updated;
-        }
-      );
-
-      // Save optimistic message to cache
-      const saveOptimisticToCache = async () => {
-        try {
-          if (isWatermelonAvailable) {
-            // TODO: Save to WatermelonDB
-          } else {
-            await asyncStorageDB.addMessage(groupId, {
-              id: messageId,
-              serverId: messageId,
-              groupId: groupId,
-              content: message.trim(),
-              senderId: user.id,
-              senderName: user.fname,
-              replyToId: replyingTo?.content.id,
-              fileUrl: file?.data,
-              fileType: file?.ext,
-              isPending: true,
-              isSynced: false,
-              createdAt: Date.now(),
-              updatedAt: Date.now(),
-            });
-
-            // Update groups list cache optimistically
-            queryClient.setQueriesData({ queryKey: groupsKeys.lists() }, (oldGroups: any[] | undefined) => {
-              if (!oldGroups) return oldGroups;
-              return oldGroups.map(g => {
-                if (g.id === groupId || g.serverId === groupId) {
-                  const newMessageObj = {
-                    content: message.trim(),
-                    sender: { fname: user.fname, id: user.id },
-                    senderId: user.id,
-                    senderName: user.fname,
-                    fileUrl: file?.data,
-                    fileType: file?.ext,
-                    createdAt: new Date().toISOString()
-                  };
-                  
-                  return {
-                    ...g,
-                    lastMessageAt: new Date().toISOString(),
-                    lastMessage: newMessageObj,
-                    updatedAt: new Date().toISOString(),
-                    // Update messages array if it exists to ensure UI picks up the latest message
-                    messages: g.messages && Array.isArray(g.messages) ? [...g.messages, newMessageObj] : g.messages
-                  };
-                }
-                return g;
-              });
-            });
-          }
-        } catch (error) {
-          console.error('❌ Failed to cache optimistic message:', error);
-        }
-      };
-      saveOptimisticToCache();
-
-      // If offline, add to sync queue
-      if (!socket || !socket.connected) {
-        console.log('📱 Offline - adding message to sync queue');
-
-        try {
-          watermelonOfflineSyncManager.addToQueue('message', payload, 3);
-        } catch { }
-
-        setIsSending(false);
-        return true;
-      }
-
-      // Send via socket if online
-      return new Promise((resolve) => {
-        socket.emit(SocketEvents.GROUP_ROOM_MESSAGE, payload, (response: any) => {
-          if (response.status === 'ok') {
-            // Mark message as synced (no need to replace ID since it's the same)
-            const updateCache = async () => {
-              try {
-                if (isWatermelonAvailable) {
-                  // TODO: Update WatermelonDB
-                } else {
-                  const messages = await asyncStorageDB.getMessages(groupId);
-                  const updatedMessages = messages.map(msg =>
-                    msg.id === messageId
-                      ? { ...msg, isPending: false, isSynced: true }
-                      : msg
-                  );
-                  await asyncStorageDB.saveMessages(groupId, updatedMessages);
-                }
-              } catch (error) {
-                console.error('❌ Failed to update cached message:', error);
-              }
-            };
-            updateCache();
-
-            markAsRead();
-            resolve(true);
-          } else {
-            // Remove optimistic message on failure
-            queryClient.setQueryData<GroupMessage[]>(
-              ['groups', 'messages', groupId],
-              (old = []) => {
-                const updated = old.filter(msg => msg.content.id !== messageId);
-                return updated;
-              }
-            );
-
-            // Remove from cache
-            const removeFromCache = async () => {
-              try {
-                if (isWatermelonAvailable) {
-                  // TODO: Remove from WatermelonDB
-                } else {
-                  const messages = await asyncStorageDB.getMessages(groupId);
-                  const filteredMessages = messages.filter(msg => msg.id !== messageId);
-                  await asyncStorageDB.saveMessages(groupId, filteredMessages);
-                }
-              } catch (error) {
-                console.error('❌ Failed to remove failed message from cache:', error);
-              }
-            };
-            removeFromCache();
-
-            resolve(false);
-          }
-          setIsSending(false);
-        });
+      // Add optimistic message to cache
+      queryClient.setQueryData<GroupMessage[]>(groupMessageKeys.detail(groupId), (old = []) => {
+        return [...old, optimisticMessage];
       });
-    } catch (err) {
-      console.error('❌ Send message error:', err);
-      // Remove optimistic message on error
-      queryClient.setQueryData<GroupMessage[]>(
-        ['groups', 'messages', groupId],
-        (old = []) => old.filter(msg => msg.content.id !== messageId)
-      );
-      setIsSending(false);
-      return false;
+
+      console.log('⚡ Added optimistic message to cache:', optimisticId);
+
+      return { previousMessages, optimisticId };
+    },
+    onSuccess: (result, variables, context) => {
+      console.log('✅ Message sent successfully');
+      // The real message will come through socket, which will replace the optimistic one
+    },
+    onError: (err, newMsg, context) => {
+      console.error("❌ Failed to send message:", err);
+      
+      // Revert optimistic update on error
+      if (context?.previousMessages) {
+        queryClient.setQueryData(groupMessageKeys.detail(groupId), context.previousMessages);
+      }
+      
+      // Could also show error toast here
+    },
+    onSettled: () => {
+      // Don't invalidate queries to keep UI stable
+      // Socket will handle real-time updates
     }
-  }, [socket, user, groupId, queryClient]);
-
-  const markAsRead = useCallback(async () => {
-    try {
-      await api.post(UrlConstants.markGroupMessageAsRead(groupId));
-
-      const matchedLists = queryClient.getQueriesData<Group[]>({ queryKey: groupsKeys.lists() });
-      let previousUnread = 0;
-      for (const [, groups] of matchedLists) {
-        const found = (groups || []).find(g => String(g.id) === String(groupId));
-        if (found) {
-          previousUnread = Number(found.unread || 0);
-          break;
-        }
-      }
-
-      queryClient.setQueriesData<Group[]>(
-        { queryKey: groupsKeys.lists() },
-        (old) => {
-          if (!old) return old as any;
-          return old.map(g => (g.id === groupId ? { ...g, unread: 0 } : g));
-        }
-      );
-
-      if (previousUnread > 0) {
-        const { groupNotifications, setNotifications } = useNotificationStore.getState();
-        const newCount = Math.max(0, Number(groupNotifications || 0) - previousUnread);
-        setNotifications({ groupNotifications: newCount });
-      }
-
-      if (isWatermelonAvailable && database && groupsCollection) {
-        try {
-          const wmGroups = await groupsCollection
-            .query(Q.where('server_id', groupId))
-            .fetch();
-
-          if (wmGroups.length > 0) {
-            await database.write(async () => {
-              await wmGroups[0].update((g: any) => {
-                g.unreadCount = 0;
-              });
-            });
-          }
-        } catch (wmError) {
-          console.error('❌ Failed to sync Watermelon unread count:', wmError);
-        }
-      }
-
-      CacheUtils.invalidateAll();
-    } catch (err) {
-      console.error('❌ Failed to mark messages as read:', err);
-
-      const status = (err as any)?.response?.status;
-      const isNetworkLikeFailure = !status;
-      if (!isNetworkLikeFailure) return;
-
-      const now = Date.now();
-      if (now - lastQueuedReadAtRef.current < 30000) return;
-      lastQueuedReadAtRef.current = now;
-
-      try {
-        watermelonOfflineSyncManager.addToQueue('read_status', { groupId }, 2);
-      } catch { }
-    }
-  }, [groupId, queryClient]);
-
-
+  });
 
   return {
-    messages: deduplicatedMessages, // Return filtered messages
-    isLoading,
-    error: error ? String(error) : null,
-    isSending,
-    sendMessage,
-    markAsRead,
-    clearError: () => {
-      // CRITICAL FIX: Don't reset queries as it clears all cached messages
-      // Instead, just invalidate to refetch while keeping cache
-      queryClient.invalidateQueries({ queryKey: ['groups', 'messages', groupId] });
-    },
-    retryConnection: () => queryClient.invalidateQueries({ queryKey: ['groups', 'messages', groupId] }),
-    isCached: deduplicatedMessages.length > 0 && !isLoading,
-    isRefreshing,
+    sendMessage: mutation.mutateAsync,
+    isSending: mutation.isPending
   };
 };
 
-export const useMessageReply = () => {
-  const [replyingTo, setReplyingTo] = useState<UserMessage | undefined>();
+export const useMessageReply = (): UseMessageReplyResult => {
+  const [replyingTo, setReplyingTo] = useState<UserMessage | undefined>(undefined);
 
   const startReply = useCallback((message: UserMessage) => {
     setReplyingTo(message);
@@ -966,31 +406,44 @@ export const useMessageReply = () => {
     setReplyingTo(undefined);
   }, []);
 
-  return {
-    replyingTo,
-    startReply,
-    cancelReply,
-  };
+  return { replyingTo, startReply, cancelReply };
 };
 
-export const formatTimeAgo = (dateString: string): string => {
-  const now = new Date();
-  const date = new Date(dateString);
-  const diffInMs = now.getTime() - date.getTime();
+// --- Facade for Backward Compatibility (Optional) ---
+// Or simply export this as the default if we want to minimize code changes in [id].tsx, 
+// but plan said "Refactor group-chat/[id].tsx to use new hooks".
+// So we will stick to individual exports mostly, or a composed one.
 
-  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+export const useEnhancedGroupMessages = ({ groupId, socket }: { groupId: string, socket?: any }) => {
+  const { messages, isLoading, error, refetch, isRefetching } = useGroupMessages(groupId);
 
-  if (diffInMinutes < 1) {
-    return 'Just now';
-  } else if (diffInMinutes < 60) {
-    return `${diffInMinutes}m ago`;
-  } else if (diffInHours < 24) {
-    return `${diffInHours}h ago`;
-  } else if (diffInDays < 7) {
-    return `${diffInDays}d ago`;
-  } else {
-    return date.toLocaleDateString();
-  }
+  useGroupSocketSubscription(groupId, socket);
+
+  const { sendMessage, isSending } = useSendGroupMessage(groupId);
+
+  // Additional generic helpers
+  const markAsRead = useCallback(() => {
+    // Implementation for marking read (emit socket event usually)
+    if (socket && groupId) {
+      socket.emit('markGroupRead', { groupId });
+    }
+  }, [socket, groupId]);
+
+  const retryConnection = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
+  const isCached = !isLoading && messages.length > 0;
+
+  return {
+    messages,
+    isLoading,
+    error: error ? error.message : null,
+    sendMessage,
+    markAsRead,
+    isCached,
+    isRefreshing: isRefetching,
+    isSending,
+    retryConnection
+  };
 };

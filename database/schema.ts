@@ -42,6 +42,7 @@ export const schema = appSchema({
         { name: 'temp_id', type: 'string', isOptional: true },
         { name: 'is_pending', type: 'boolean' },
         { name: 'is_synced', type: 'boolean' },
+        { name: 'last_message_at', type: 'number', isOptional: true },
         { name: 'message_id', type: 'string', isIndexed: true },
         { name: 'deleted_at', type: 'number', isOptional: true },
         { name: 'created_at', type: 'number' },
