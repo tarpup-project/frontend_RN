@@ -12,7 +12,7 @@ export const useWatermelonGroups = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
+
   const { selectedUniversity } = useCampus();
   const { isAuthenticated, isHydrated } = useAuthStore();
 
@@ -59,7 +59,7 @@ export const useWatermelonGroups = () => {
       await fetchFromServer();
     } catch (err: any) {
       console.error('❌ Load groups error:', err);
-      
+
       // If we have cached data, show it with the error
       const cachedGroups = await groupsCollection
         .query(
@@ -67,7 +67,7 @@ export const useWatermelonGroups = () => {
           Q.sortBy('created_at', Q.desc)
         )
         .fetch();
-        
+
       if (cachedGroups.length > 0) {
         console.log('⚡ Network failed, using cached groups data -', cachedGroups.length, 'groups');
         setGroups(cachedGroups);
@@ -85,7 +85,7 @@ export const useWatermelonGroups = () => {
 
     try {
       console.log('🔄 Fetching groups from server...');
-      
+
       const response = await api.get(
         UrlConstants.fetchAllGroups(selectedUniversity?.id)
       );
@@ -121,10 +121,10 @@ export const useWatermelonGroups = () => {
                 g.membersCount = serverGroup.members?.length || 0;
                 g.unreadCount = serverGroup.unread || 0;
                 g.score = serverGroup.score || 0;
-                g.lastMessageAt = serverGroup.lastMessageAt 
+                g.lastMessageAt = serverGroup.lastMessageAt
                   ? new Date(serverGroup.lastMessageAt).getTime()
                   : undefined;
-                
+
                 // Update last message info
                 if (serverGroup.messages && serverGroup.messages.length > 0) {
                   const lastMessage = serverGroup.messages[serverGroup.messages.length - 1];
@@ -132,7 +132,7 @@ export const useWatermelonGroups = () => {
                   g.lastMessageSender = lastMessage.sender?.fname || lastMessage.senderName;
                   g.lastMessageSenderId = lastMessage.sender?.id || lastMessage.senderId;
                 }
-                
+
                 g.isSynced = true;
               })
             );
@@ -149,10 +149,10 @@ export const useWatermelonGroups = () => {
                 g.membersCount = serverGroup.members?.length || 0;
                 g.unreadCount = serverGroup.unread || 0;
                 g.score = serverGroup.score || 0;
-                g.lastMessageAt = serverGroup.lastMessageAt 
+                g.lastMessageAt = serverGroup.lastMessageAt
                   ? new Date(serverGroup.lastMessageAt).getTime()
                   : undefined;
-                
+
                 // Set last message info
                 if (serverGroup.messages && serverGroup.messages.length > 0) {
                   const lastMessage = serverGroup.messages[serverGroup.messages.length - 1];
@@ -160,7 +160,7 @@ export const useWatermelonGroups = () => {
                   g.lastMessageSender = lastMessage.sender?.fname || lastMessage.senderName;
                   g.lastMessageSenderId = lastMessage.sender?.id || lastMessage.senderId;
                 }
-                
+
                 g.isSynced = true;
               })
             );
@@ -257,7 +257,31 @@ export const useWatermelonGroups = () => {
     refresh,
     markAsRead,
     // Transform groups to UI format
-    uiGroups: groups.map(group => group.toUIFormat()),
+    uiGroups: groups.map(group => {
+      const ui = group.toUIFormat();
+
+      // Client-side unread logic
+      const { getLastRead } = require('@/state/readReceiptsStore').useReadReceiptsStore.getState();
+      const lastReadTime = getLastRead(group.serverId || group.id);
+      const { user } = useAuthStore.getState();
+
+      let unread = ui.unreadCount;
+
+      // If last message is from me, assume viewed
+      if (group.lastMessageSenderId && user?.id && group.lastMessageSenderId === user.id) {
+        unread = 0;
+      }
+
+      // If last message is older than when I last read it, assume viewed
+      if (group.lastMessageAt && group.lastMessageAt <= lastReadTime) {
+        unread = 0;
+      }
+
+      return {
+        ...ui,
+        unreadCount: unread
+      };
+    }),
     // Additional cache info
     isCached: groups.length > 0 && !isRefreshing,
     hasData: groups.length > 0,

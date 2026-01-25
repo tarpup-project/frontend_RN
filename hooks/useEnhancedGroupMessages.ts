@@ -44,21 +44,21 @@ interface UseMessageReplyResult {
 // --- Fetch Messages Function ---
 const fetchGroupMessages = async (groupId: string): Promise<GroupMessage[]> => {
   console.log('🔄 Fetching messages from API for group:', groupId);
-  
+
   try {
     const response = await api.get(UrlConstants.fetchGroupMessages(groupId));
-    
+
     if (response.data?.status === 'success' && response.data?.data) {
       const rawMessages = response.data.data;
       console.log(`📦 Loaded ${rawMessages.length} messages from API`);
-      
+
       const formatted = Array.isArray(rawMessages)
         ? rawMessages.map(transformMessageForUI)
         : [];
-      
+
       return formatted;
     }
-    
+
     return [];
   } catch (error) {
     console.error('❌ Failed to fetch messages:', error);
@@ -76,7 +76,7 @@ export const groupMessageKeys = {
 
 const getLastMessageTimestamp = (messages: GroupMessage[]): string | undefined => {
   if (!messages || messages.length === 0) return undefined;
-  
+
   // Find the most recent message timestamp
   const sortedMessages = [...messages]
     .filter(m => m.createdAt) // Filter out messages without timestamps
@@ -85,7 +85,7 @@ const getLastMessageTimestamp = (messages: GroupMessage[]): string | undefined =
       const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
       return aTime - bTime;
     });
-  
+
   return sortedMessages.length > 0 ? sortedMessages[sortedMessages.length - 1].createdAt : undefined;
 };
 
@@ -193,9 +193,9 @@ export const useGroupMessages = (groupId: string, socket?: any): UseGroupMessage
     const cachedMessages = queryClient.getQueryData<GroupMessage[]>(
       groupMessageKeys.detail(groupId)
     );
-    
+
     const lastMessageAt = getLastMessageTimestamp(cachedMessages || []);
-    
+
     if (lastMessageAt) {
       console.log('📅 Joining group with last message at:', lastMessageAt);
     } else {
@@ -218,19 +218,19 @@ export const useGroupMessages = (groupId: string, socket?: any): UseGroupMessage
 
     const handleJoinGroup = (response: any) => {
       console.log('⚡️ Socket: Joined room response received');
-      
+
       // If we get fresh data from socket, update the cache
       const rawMessages = response?.messages || response || [];
       if (Array.isArray(rawMessages) && rawMessages.length > 0) {
         const formatted = rawMessages.map(transformMessageForUI);
-        
+
         // Merge new messages with existing cache instead of replacing
         queryClient.setQueryData<GroupMessage[]>(
           groupMessageKeys.detail(groupId),
           (oldMessages = []) => {
             const existingIds = new Set(oldMessages.map(m => m.content.id));
             const newMessages = formatted.filter(m => !existingIds.has(m.content.id));
-            
+
             if (newMessages.length > 0) {
               console.log(`📦 Adding ${newMessages.length} new messages to cache (${oldMessages.length} existing)`);
               return [...oldMessages, ...newMessages].sort((a, b) => {
@@ -239,7 +239,7 @@ export const useGroupMessages = (groupId: string, socket?: any): UseGroupMessage
                 return aTime - bTime;
               });
             }
-            
+
             return oldMessages;
           }
         );
@@ -312,6 +312,10 @@ export const useSendGroupMessage = (groupId: string): UseSendGroupMessageResult 
   const queryClient = useQueryClient();
   const { socket } = require('@/contexts/SocketProvider').useSocket();
 
+  // Import hooks and keys needed for optimistic updates
+  const { selectedUniversity } = require('./useCampus').useCampus();
+  const { groupsKeys } = require('./useGroups');
+
   const mutation = useMutation({
     mutationFn: async ({ message, file, replyingTo }: SendMessageOptions) => {
       if (!user) throw new Error("No user");
@@ -345,7 +349,7 @@ export const useSendGroupMessage = (groupId: string): UseSendGroupMessageResult 
       return true;
     },
     onMutate: async (newMsg) => {
-      // Optimistic Update - add message immediately to cache
+      // Optimistic Update 1: Add message to chat detail cache
       await queryClient.cancelQueries({ queryKey: groupMessageKeys.detail(groupId) });
       const previousMessages = queryClient.getQueryData<GroupMessage[]>(groupMessageKeys.detail(groupId));
 
@@ -360,14 +364,77 @@ export const useSendGroupMessage = (groupId: string): UseSendGroupMessageResult 
         isPending: true // Mark as pending for UI feedback
       };
 
-      // Add optimistic message to cache
+      // Add optimistic message to chat cache
       queryClient.setQueryData<GroupMessage[]>(groupMessageKeys.detail(groupId), (old = []) => {
         return [...old, optimisticMessage];
       });
 
+      // Optimistic Update 2: Update groups list (for Last Message display)
+      // We need to update the specific list for the current campus
+      const groupListKey = groupsKeys.list(selectedUniversity?.id);
+      await queryClient.cancelQueries({ queryKey: groupListKey });
+      const previousGroups = queryClient.getQueryData<any[]>(groupListKey);
+
+      if (previousGroups) {
+        queryClient.setQueryData<any[]>(groupListKey, (oldGroups = []) => {
+          const groupIndex = oldGroups.findIndex(g => g.id === groupId);
+          if (groupIndex === -1) return oldGroups;
+
+          const updatedGroup = { ...oldGroups[groupIndex] };
+
+          // Construct optimistic last message
+          const lastMsgInfo = {
+            content: newMsg.message,
+            sender: { id: user?.id, fname: user?.fname },
+            senderId: user?.id,
+            senderName: user?.fname,
+          };
+
+          // Update fields
+          updatedGroup.lastMessageAt = new Date().toISOString();
+          updatedGroup.lastMessage = lastMsgInfo;
+          // Also update rawGroup if it exists (for some UI transformations)
+          if (updatedGroup.rawGroup) {
+            updatedGroup.rawGroup = {
+              ...updatedGroup.rawGroup,
+              lastMessageAt: new Date().toISOString(),
+              messages: [
+                ...(updatedGroup.rawGroup.messages || []),
+                {
+                  id: optimisticId,
+                  content: newMsg.message,
+                  sender: { id: user?.id, fname: user?.fname },
+                  createdAt: new Date().toISOString()
+                }
+              ]
+            };
+          }
+          // If the structure has messages array at top level
+          if (updatedGroup.messages) {
+            updatedGroup.messages = [
+              ...(updatedGroup.messages || []),
+              {
+                id: optimisticId,
+                content: newMsg.message,
+                sender: { id: user?.id, fname: user?.fname },
+                createdAt: new Date().toISOString()
+              }
+            ];
+          }
+
+          // Move to top and update
+          const newGroups = [
+            updatedGroup,
+            ...oldGroups.filter(g => g.id !== groupId)
+          ];
+
+          return newGroups;
+        });
+      }
+
       console.log('⚡ Added optimistic message to cache:', optimisticId);
 
-      return { previousMessages, optimisticId };
+      return { previousMessages, previousGroups, optimisticId, groupListKey };
     },
     onSuccess: (result, variables, context) => {
       console.log('✅ Message sent successfully');
@@ -375,12 +442,15 @@ export const useSendGroupMessage = (groupId: string): UseSendGroupMessageResult 
     },
     onError: (err, newMsg, context) => {
       console.error("❌ Failed to send message:", err);
-      
-      // Revert optimistic update on error
+
+      // Revert optimistic updates on error
       if (context?.previousMessages) {
         queryClient.setQueryData(groupMessageKeys.detail(groupId), context.previousMessages);
       }
-      
+      if (context?.previousGroups && context?.groupListKey) {
+        queryClient.setQueryData(context.groupListKey, context.previousGroups);
+      }
+
       // Could also show error toast here
     },
     onSettled: () => {

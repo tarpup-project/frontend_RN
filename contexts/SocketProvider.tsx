@@ -8,6 +8,7 @@ import { useNotificationStore } from '@/state/notificationStore';
 import { AlertMessage, Group, GroupMessage, MessageType, UserMessage } from '@/types/groups';
 import { SocketEvents, SocketInterface, SocketState } from '@/types/socket';
 import { queryClient } from '@/utils/queryClient';
+import { logUnreadDecision, resetUnreadCount, shouldIncrementUnread } from '@/utils/unreadCounter';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { io, Socket } from 'socket.io-client';
@@ -31,6 +32,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const { incrementNotification, activeGroupId } = useNotificationStore();
   const [connectedAt, setConnectedAt] = useState<number | null>(null);
   const { isConnected, isInternetReachable } = useNetworkStatus();
+  const [previousActiveGroupId, setPreviousActiveGroupId] = useState<string | null>(null);
 
   // Batching buffer
   const messageBuffer = useRef<any[]>([]);
@@ -178,15 +180,38 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         const lastMsgObj = newMsgsForGroup[newMsgsForGroup.length - 1]; // Take the last one
         const isActiveGroup = String(activeGroupId || '') === String(group.id);
 
-        // Count unread: valid user messages not from me
+        // Count unread: only unseen messages (when user is not in the group) from other users
         let unreadIncrement = 0;
-        if (!isActiveGroup) {
-          newMsgsForGroup.forEach(m => {
-            if (m.messageType === MessageType.USER && (m as UserMessage).sender?.id !== user?.id) {
-              unreadIncrement++;
-            }
+        newMsgsForGroup.forEach(m => {
+          const isUserMessage = m.messageType === MessageType.USER;
+          const senderId = isUserMessage ? (m as UserMessage).sender?.id : 'system';
+          const senderName = isUserMessage ? (m as UserMessage).sender?.fname : 'System';
+          
+          const shouldIncrement = shouldIncrementUnread({
+            userId: user?.id || '',
+            activeGroupId,
+            isUserMessage,
+            senderId: senderId || '',
+            groupId: String(group.id)
           });
-        }
+
+          if (shouldIncrement) {
+            unreadIncrement++;
+          }
+
+          // Log the decision for debugging
+          logUnreadDecision(
+            {
+              userId: user?.id || '',
+              activeGroupId,
+              isUserMessage,
+              senderId: senderId || '',
+              groupId: String(group.id)
+            },
+            shouldIncrement,
+            senderName
+          );
+        });
 
         // Update messages array - keep it bounded if needed
         const messages = Array.isArray(group.messages) ? [...group.messages] : [];
@@ -198,12 +223,18 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
           fileUrl: (m as any).file?.data
         }))].slice(-20); // Keep only last 20 for list view to save memory
 
-        return {
+        const updatedGroup = {
           ...group,
           unread: (group.unread || 0) + unreadIncrement,
           messages: updatedMessages,
           lastMessageAt: lastMsgObj.createdAt,
         };
+
+        if (unreadIncrement > 0) {
+          console.log(`📬 Group ${group.id}: unread count ${group.unread || 0} + ${unreadIncrement} = ${updatedGroup.unread}`);
+        }
+
+        return updatedGroup;
       });
     });
 
@@ -391,6 +422,33 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       console.log('🌐 Network lost - socket will handle disconnection');
     }
   }, [isConnected, user, socket]);
+
+  // Handle active group changes - reset unread count when entering a group
+  useEffect(() => {
+    if (activeGroupId !== previousActiveGroupId) {
+      if (activeGroupId) {
+        console.log(`👁️ User entered group ${activeGroupId} - marking as read`);
+        
+        // Reset unread count for the group the user just entered
+        queryClient.setQueriesData<Group[]>({ queryKey: groupsKeys.lists() }, (old) => {
+          if (!old) return old as any;
+          return old.map((group) => {
+            if (String(group.id) === String(activeGroupId)) {
+              resetUnreadCount(String(group.id), group.unread || 0);
+              return { ...group, unread: 0 };
+            }
+            return group;
+          });
+        });
+      }
+      
+      if (previousActiveGroupId) {
+        console.log(`👋 User left group ${previousActiveGroupId}`);
+      }
+      
+      setPreviousActiveGroupId(activeGroupId || null);
+    }
+  }, [activeGroupId, previousActiveGroupId, queryClient]);
 
   // Provide socket context
   const contextValue: SocketInterface = {

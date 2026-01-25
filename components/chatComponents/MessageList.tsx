@@ -1,7 +1,7 @@
 import { MessageType, UserMessage } from "@/types/groups";
 import { timeAgo } from "@/utils/timeUtils";
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
-import { ScrollView, StyleSheet } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 import {
   Gesture,
   GestureDetector,
@@ -17,6 +17,7 @@ interface MessageListProps {
   scrollToMessage: (messageId: string) => void;
   messageRefs: React.MutableRefObject<Map<string, any>>;
   navigateToProfile: (userId: string) => void;
+  isLoadingMore?: boolean;
 }
 
 export const MessageList: React.FC<MessageListProps> = ({
@@ -28,6 +29,7 @@ export const MessageList: React.FC<MessageListProps> = ({
   scrollToMessage,
   messageRefs,
   navigateToProfile,
+  isLoadingMore,
 }) => {
   const scrollViewRef = useRef<ScrollView>(null);
   const nativeScrollGesture = Gesture.Native();
@@ -166,6 +168,12 @@ export const MessageList: React.FC<MessageListProps> = ({
             scrollGesture={nativeScrollGesture}
           />
         ))}
+        {isLoadingMore && (
+          <View style={styles.loadingFooter}>
+            <ActivityIndicator size="small" color="#888" />
+            <Text style={styles.loadingText}>Fetching newer chats...</Text>
+          </View>
+        )}
       </ScrollView>
     </GestureDetector>
   );
@@ -178,5 +186,16 @@ const styles = StyleSheet.create({
   messagesContent: {
     padding: 16,
     gap: 12,
+  },
+  loadingFooter: {
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  loadingText: {
+    fontSize: 12,
+    color: '#888',
   },
 });

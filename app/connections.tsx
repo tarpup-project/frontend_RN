@@ -4,6 +4,7 @@ import { UrlConstants } from "@/constants/apiUrls";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useFilteredConnections, User } from "@/hooks/useConnections";
 import { Ionicons } from "@expo/vector-icons";
+import { useQueryClient } from "@tanstack/react-query";
 import { Image as ExpoImage } from "expo-image";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -25,18 +26,19 @@ export default function ConnectionsScreen() {
   const { isDark } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState<TabType>('follow');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Use the cached connections data
-  const { 
-    users, 
-    counts, 
-    isLoading, 
-    hasError, 
-    refetchAll, 
-    refetchTab 
+  const {
+    users,
+    counts,
+    isLoading,
+    hasError,
+    refetchAll,
+    refetchTab
   } = useFilteredConnections(activeTab, searchQuery);
 
   // Preload all connections data on mount for instant tab switching
@@ -61,6 +63,10 @@ export default function ConnectionsScreen() {
   }, [hasError]);
 
   const handleFriendAction = async (userId: string, action: 'friend' | 'unfriend') => {
+    // Snapshot previous data for rollback
+    const previousPending = queryClient.getQueryData(['connections', 'pending']);
+    const previousFriends = queryClient.getQueryData(['connections', 'friends']);
+
     try {
       // For discover tab, determine action based on current friend status
       let actualAction = action;
@@ -70,6 +76,23 @@ export default function ConnectionsScreen() {
       }
 
       console.log(`${actualAction === 'friend' ? 'Adding' : 'Removing'} friend:`, userId, 'Action:', actualAction);
+
+      // Optimistic Update
+      if (actualAction === 'friend') {
+        // Add to pending
+        queryClient.setQueryData(['connections', 'pending'], (old: string[] = []) => {
+          return [...old, userId];
+        });
+      } else {
+        // Remove from pending
+        queryClient.setQueryData(['connections', 'pending'], (old: string[] = []) => {
+          return old.filter(id => id !== userId);
+        });
+        // Optimistically remove from friends list if unfriending
+        queryClient.setQueryData(['connections', 'friends'], (old: User[] = []) => {
+          return old.filter(u => u.id !== userId);
+        });
+      }
 
       // Use existing friend toggle endpoint
       await api.post(UrlConstants.tarpToggleFriend, { userID: userId, action: actualAction });
@@ -93,6 +116,14 @@ export default function ConnectionsScreen() {
     } catch (error) {
       console.error('Error toggling friend:', error);
       toast.error('Failed to update friend status');
+
+      // Rollback on error
+      if (previousPending) {
+        queryClient.setQueryData(['connections', 'pending'], previousPending);
+      }
+      if (previousFriends) {
+        queryClient.setQueryData(['connections', 'friends'], previousFriends);
+      }
     }
   };
 

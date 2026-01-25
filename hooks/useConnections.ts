@@ -41,9 +41,9 @@ interface FriendData {
 // Fetch followers data
 const fetchFollowers = async (): Promise<User[]> => {
   console.log('🔄 Fetching followers from API...');
-  
+
   const response = await api.get(UrlConstants.tarpUserFollowers);
-  
+
   if (response.data?.status === 'success' && response.data?.data) {
     const followersApiData: FollowerData[] = response.data.data;
 
@@ -73,7 +73,7 @@ const fetchFollowers = async (): Promise<User[]> => {
     console.log('✅ Processed followers:', followData.length);
     return followData;
   }
-  
+
   console.log('⚠️ No followers data found');
   return [];
 };
@@ -81,9 +81,9 @@ const fetchFollowers = async (): Promise<User[]> => {
 // Fetch friends data
 const fetchFriends = async (): Promise<User[]> => {
   console.log('🔄 Fetching friends from API...');
-  
+
   const response = await api.get(UrlConstants.tarpFriendsPrivacy);
-  
+
   if (response.data?.status === 'success' && response.data?.data) {
     const friendsApiData: FriendData[] = response.data.data;
 
@@ -104,7 +104,7 @@ const fetchFriends = async (): Promise<User[]> => {
     console.log('✅ Processed friends:', friendsData.length);
     return friendsData;
   }
-  
+
   console.log('⚠️ No friends data found');
   return [];
 };
@@ -112,9 +112,9 @@ const fetchFriends = async (): Promise<User[]> => {
 // Fetch discover users data
 const fetchDiscoverUsers = async (): Promise<User[]> => {
   console.log('🔄 Fetching discover users from API...');
-  
+
   const response = await api.get(UrlConstants.groupsFriends());
-  
+
   if (response.data?.status === 'success' && response.data?.data) {
     const discoverApiData = response.data.data;
 
@@ -137,25 +137,28 @@ const fetchDiscoverUsers = async (): Promise<User[]> => {
     console.log('✅ Processed discover users:', discoverData.length);
     return discoverData;
   }
-  
+
   console.log('⚠️ No discover users data found');
   return [];
 };
 
 // Fetch pending friend requests
+// Fetch pending friend requests
 const fetchPendingRequests = async (): Promise<string[]> => {
-  console.log('🔄 Fetching pending requests from API...');
-  
-  const response = await api.get(UrlConstants.tarpUserPendingRequests);
-  
+  // Use friendRequests endpoint instead of follow/requests
+  const response = await api.get(UrlConstants.friendRequests);
+
   if (response.data?.status === 'success' && response.data?.data) {
     const pendingData = response.data.data;
-    const pendingIds = pendingData.map((item: any) => item.friendID);
-    
-    console.log('✅ Processed pending requests:', pendingIds.length);
-    return pendingIds;
+    // Extract both IDs to identify the connection partner regardless of direction (initiator vs receiver)
+    // The current user's ID will also be in this list but won't match any other user's ID in the UI list
+    const pendingIds = pendingData.flatMap((item: any) => [item.userID, item.friendID]);
+    const uniquePendingIds = [...new Set(pendingIds)];
+
+    console.log('✅ Processed pending requests:', uniquePendingIds.length);
+    return uniquePendingIds as string[];
   }
-  
+
   console.log('⚠️ No pending requests data found');
   return [];
 };
@@ -254,30 +257,30 @@ export const useConnections = () => {
       const pendingSet = new Set(pendingIds);
       const isAlsoFriend = friendIds.has(user.id);
       const isPending = pendingSet.has(user.id);
-      
+
       return {
         ...user,
         isFriend: isAlsoFriend,
         friendStatus: isAlsoFriend ? 'friends' as const : (isPending ? 'pending' as const : 'not_friends' as const)
       };
     }),
-    
+
     friends: friends, // Friends data is already processed
-    
+
     discover: discoverUsers.filter(user => {
       const followIds = new Set(followers.map(f => f.id));
       const friendIds = new Set(friends.map(f => f.id));
       const pendingSet = new Set(pendingIds);
-      
+
       const isInFollow = followIds.has(user.id);
       const isInFriends = friendIds.has(user.id);
       const isPending = pendingSet.has(user.id);
-      
+
       // Update user status
       user.isFollowing = isInFollow;
       user.isFriend = isInFriends;
       user.friendStatus = isInFriends ? 'friends' : (isPending ? 'pending' : 'not_friends');
-      
+
       // Only show in discover if not in both follow and friends tabs
       return !(isInFollow && isInFriends);
     })
@@ -335,9 +338,9 @@ export const useConnections = () => {
 // Hook for filtering connections based on search query
 export const useFilteredConnections = (activeTab: 'follow' | 'friends' | 'discover', searchQuery: string) => {
   const { data, counts, isLoading, hasError, refetchAll, refetchTab } = useConnections();
-  
+
   const users = data[activeTab] || [];
-  
+
   const filteredUsers = users.filter(user => {
     if (!searchQuery) return true;
     const fullName = `${user.fname} ${user.lname}`.toLowerCase();
