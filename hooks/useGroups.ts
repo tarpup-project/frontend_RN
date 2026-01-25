@@ -1,6 +1,7 @@
 import { api } from '@/api/client';
 import { UrlConstants } from '@/constants/apiUrls';
 import { useAuthStore } from '@/state/authStore';
+import { useReadReceiptsStore } from '@/state/readReceiptsStore';
 import { Group, GroupsResponse } from '@/types/groups';
 import { isRetryableError } from '@/utils/errorUtils';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -57,7 +58,7 @@ const fetchGroups = async (campusId?: string): Promise<Group[]> => {
 
 export const useGroups = () => {
   const { selectedUniversity } = useCampus();
-  const { isAuthenticated, isHydrated } = useAuthStore();
+  const { isAuthenticated, isHydrated, user } = useAuthStore();
   const queryClient = useQueryClient();
 
   const query = useQuery<Group[], Error>({
@@ -142,6 +143,50 @@ export const useGroups = () => {
 
   // Transform groups to UI format (copied from useAsyncStorageGroups)
   const transformToUIFormat = (group: Group) => {
+    // Get last read timestamp from store
+    const { getLastRead } = useReadReceiptsStore.getState();
+    const lastReadTime = getLastRead(group.id);
+    const currentUserId = user?.id;
+
+    // Calculate unread count client-side if we have a local read timestamp
+    // OR if we want to enforce client-side logic always.
+    // However, for fresh state/first load where lastReadTime might be 0, we might default to existing behavior
+    // but the requirement is "only count unseen messages... and not count my own".
+
+    let unreadCount = 0;
+
+    // If we have messages, we can calculate precisely
+    if (group.messages && Array.isArray(group.messages)) {
+      unreadCount = group.messages.filter(msg => {
+        // Must be a message object
+        if (!msg) return false;
+
+        // Check if message is from current user
+        const isFromMe = (msg.sender && msg.sender.id === currentUserId) ||
+          (msg as any).senderId === currentUserId;
+
+        if (isFromMe) return false;
+
+        // Check if message is newer than last read time
+        // Handle various timestamp formats if needed, but assuming ISO string or number
+        const msgTime = (msg as any).createdAt
+          ? new Date((msg as any).createdAt).getTime()
+          : 0;
+
+        return msgTime > lastReadTime;
+      }).length;
+
+      // If we don't have a local timestamp yet (first install/fresh), and unreadCount calculated is 0 
+      // but server says we have unread, we might want to trust server?
+      // BUT user specifically asked for "messages that entered when i was not in the group", 
+      // implying a strict local "seen" state. 
+      // If lastReadTime is 0 (never opened), then ALL messages not from me are unread.
+
+    } else {
+      // Fallback if no messages array (shouldn't happen with correct data fetching)
+      unreadCount = group.unread || 0;
+    }
+
     const getTimeAgo = (timestamp: number | string): string => {
       const time = typeof timestamp === 'string' ? new Date(timestamp).getTime() : timestamp;
       const now = Date.now();
@@ -170,6 +215,7 @@ export const useGroups = () => {
         'shopping-cart': 'cart-outline',
         'games': 'game-controller-outline',
         'gamepad': 'game-controller-outline',
+        'bed': 'bed-outline', // Added bed outline for roommates
       };
 
       return iconMap[categoryIcon || ''] || 'pricetag-outline';
@@ -187,7 +233,7 @@ export const useGroups = () => {
       title: group.name,
       description: group.description,
       members: group.members?.length || 0,
-      unreadCount: group.unread || 0,
+      unreadCount: unreadCount, // Use our calculated count
       matchPercentage: `${group.score || 0}%`,
       activeTime: lastMessageTime
         ? `Active ${getTimeAgo(lastMessageTime)}`
@@ -204,7 +250,7 @@ export const useGroups = () => {
     isRefreshing: query.isRefetching,
     refresh: query.refetch,
     markAsRead,
-    uiGroups: useMemo(() => (query.data || []).map(transformToUIFormat), [query.data]),
+    uiGroups: useMemo(() => (query.data || []).map(transformToUIFormat), [query.data, query.data?.length]), // Re-calc when data changes
     query, // Expose original query object if needed
     // Additional cache info
     isCached: !!query.data && query.isStale,

@@ -104,6 +104,13 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
 
   // Helper functions
   const markAsRead = useCallback(() => {
+    // Mark as read locally
+    if (groupId) {
+      const { markGroupAsRead } = require('@/state/readReceiptsStore').useReadReceiptsStore.getState();
+      markGroupAsRead(groupId);
+    }
+
+    // Also sync with server if online
     if (socket && groupId && user) {
       // Assuming 'markGroupRead' event based on standard patterns
       // If exact event name is different, we might need to adjust
@@ -424,6 +431,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
             scrollToMessage={scrollToMessage}
             messageRefs={messageRefs}
             navigateToProfile={navigateToProfile}
+            isLoadingMore={isRefetching}
           />
         )}
 
