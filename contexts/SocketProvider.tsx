@@ -1,8 +1,8 @@
 import { api } from '@/api/client';
 import { UrlConstants } from '@/constants/apiUrls';
 import { asyncStorageDB } from '@/database';
-import { useGlobalMessageSync } from '@/hooks/useGlobalMessageSync';
 import { groupsKeys } from '@/hooks/useGroups';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useAuthStore } from '@/state/authStore';
 import { useNotificationStore } from '@/state/notificationStore';
 import { AlertMessage, Group, GroupMessage, MessageType, UserMessage } from '@/types/groups';
@@ -30,9 +30,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const { user } = useAuthStore();
   const { incrementNotification, activeGroupId } = useNotificationStore();
   const [connectedAt, setConnectedAt] = useState<number | null>(null);
-
-  // Custom hook for global message sync
-  const { syncAllMessages } = useGlobalMessageSync();
+  const { isConnected, isInternetReachable } = useNetworkStatus();
 
   // Batching buffer
   const messageBuffer = useRef<any[]>([]);
@@ -228,7 +226,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       });
     });
 
-  }, [queryClient, syncAllMessages]);
+  }, [queryClient]);
 
   // Refresh user authentication if socket gets unauthorized
   const refreshUser = async () => {
@@ -275,7 +273,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         });
 
         // Trigger global message sync on connection
-        syncAllMessages();
+        // syncAllMessages(); // DISABLED: Global message sync stopped per user request
       }
     });
 
@@ -363,7 +361,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         }
 
         // Trigger global message sync when returning to app
-        syncAllMessages();
+        // syncAllMessages(); // DISABLED: Global message sync stopped per user request
       }
     });
 
@@ -373,6 +371,26 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       disconnectSocket();
     };
   }, [user?.id]);
+
+  // PRIORITY: Handle network reconnection - socket connection first
+  useEffect(() => {
+    if (isConnected && user) {
+      console.log('🌐 Network back online - prioritizing socket reconnection');
+      
+      // Immediate socket reconnection as first priority
+      if (socket && !socket.connected) {
+        console.log('🔌 Network restored: Reconnecting existing socket');
+        socket.connect();
+      } else if (!socket) {
+        console.log('🔌 Network restored: Creating new socket connection');
+        connectSocket();
+      } else if (socket.connected) {
+        console.log('✅ Socket already connected');
+      }
+    } else if (isConnected === false) {
+      console.log('🌐 Network lost - socket will handle disconnection');
+    }
+  }, [isConnected, user, socket]);
 
   // Provide socket context
   const contextValue: SocketInterface = {

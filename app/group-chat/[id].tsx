@@ -1,23 +1,26 @@
 import { api } from "@/api/client";
-import Header from "@/components/Header";
-import { Text } from "@/components/Themedtext";
 import { ChatHeader } from "@/components/chatComponents/ChatHeader";
 import { GroupInfoModal } from "@/components/chatComponents/GroupInfoModal";
 import { ImageModal } from "@/components/chatComponents/ImageModal";
 import { LinkConfirmModal } from "@/components/chatComponents/LinkConfirmModal";
 import { MessageInput } from "@/components/chatComponents/MessageInput";
 import { MessageList } from "@/components/chatComponents/MessageList";
+import Header from "@/components/Header";
+import { NetworkStatusBanner } from "@/components/NetworkStatusBanner";
+import { Text } from "@/components/Themedtext";
 import { UrlConstants } from "@/constants/apiUrls";
 import { useSocket } from "@/contexts/SocketProvider";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useEnhancedGroupMessages, useMessageReply } from "@/hooks/useEnhancedGroupMessages";
+import { useGroupMessages, useMessageReply, useSendGroupMessage } from "@/hooks/useEnhancedGroupMessages";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { useGroupDetails } from "@/hooks/useGroups";
 import { useNotifications } from "@/hooks/useNotification";
+import { useSocketConnection } from "@/hooks/useSocketConnection";
 import { useAuthStore } from "@/state/authStore";
 import { useNotificationStore } from "@/state/notificationStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
+import { useKeepAwake } from "expo-keep-awake";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -69,11 +72,55 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   } = useGroupDetails(groupId);
   const finalGroupDetails = passedGroupData || groupDetails;
 
-  const { messages, isLoading, error, sendMessage, markAsRead, isCached, isRefreshing, isSending, retryConnection } =
-    useEnhancedGroupMessages({ groupId, socket: socket && user ? socket : undefined });
+
+  const {
+    messages,
+    isLoading,
+    error,
+    refetch,
+    isRefetching,
+    joinGroupRoom
+  } = useGroupMessages(groupId, socket);
+
+  // Log caching behavior
+  useEffect(() => {
+    if (messages.length > 0) {
+      console.log('📱 Group chat loaded with', messages.length, 'cached messages');
+    }
+  }, [messages.length]);
+
+  useEffect(() => {
+    if (!isLoading && messages.length > 0) {
+      console.log('⚡ Messages loaded instantly from cache!');
+    }
+  }, [isLoading, messages.length]);
+
+  // useGroupSocketSubscription(groupId, socket); // Logic merged into useGroupMessages
+
+  const { sendMessage, isSending } = useSendGroupMessage(groupId);
+
+  // Derived state
+  const isCached = !isLoading && messages.length > 0;
+
+  // Helper functions
+  const markAsRead = useCallback(() => {
+    if (socket && groupId && user) {
+      // Assuming 'markGroupRead' event based on standard patterns
+      // If exact event name is different, we might need to adjust
+      socket.emit('markGroupRead', { groupId, userId: user.id });
+    }
+  }, [socket, groupId, user]);
+
+  const retryConnection = useCallback(() => {
+    console.log('🔄 Retrying connection and syncing recent messages');
+    joinGroupRoom(); // This will sync recent messages based on last_message_at
+    refetch(); // Fallback API call if needed
+  }, [joinGroupRoom, refetch]);
+
 
   const { refetchNotifications } = useNotifications();
   const { setActiveGroupId } = useNotificationStore();
+  const { isNetworkConnected, isSocketConnected, isOnline } = useSocketConnection();
 
   const { replyingTo, startReply, cancelReply } = useMessageReply();
   const {
@@ -137,73 +184,12 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     };
   }, [showGroupInfo]);
 
-  // Staggered loading state
-  const [displayedMessages, setDisplayedMessages] = useState<any[]>([]);
-  const messageQueueRef = useRef<any[]>([]);
-  const processingRef = useRef(false);
-
-  useEffect(() => {
-    if (!messages) return;
-
-    // Initial load: Should be instant or quick
-    if (displayedMessages.length === 0 && messages.length > 0) {
-      setDisplayedMessages(messages);
-      return;
-    }
-
-    // 1. Prune messages that no longer exist in the source
-    // This handles cases where IDs change (temp -> server) or messages are deleted/re-synced
-    const sourceIds = new Set(messages.map(m => m.content?.id));
-    const prunedMessages = displayedMessages.filter(m => sourceIds.has(m.content?.id));
-    const hasRemoved = prunedMessages.length !== displayedMessages.length;
-
-    if (hasRemoved) {
-      setDisplayedMessages(prunedMessages);
-    }
-
-    // 2. Identify new messages to add (comparing against what we KEPT, i.e., pruned list)
-    // We use the pruned list as the baseline to avoid re-adding things we just decided to keep
-    const currentIds = new Set(prunedMessages.map(m => m.content?.id));
-    const newMsgs = messages.filter(m => !currentIds.has(m.content?.id));
-
-    if (newMsgs.length > 0) {
-      // Add to queue
-      messageQueueRef.current = [...messageQueueRef.current, ...newMsgs];
-      processQueue();
-    }
-  }, [messages]);
-
-  const processQueue = useCallback(() => {
-    if (processingRef.current) return;
-    if (messageQueueRef.current.length === 0) return;
-
-    processingRef.current = true;
-
-    const processNext = () => {
-      if (messageQueueRef.current.length > 0) {
-        const nextMsg = messageQueueRef.current.shift();
-        setDisplayedMessages(prev => [...prev, nextMsg]);
-
-        // Delay for next message
-        setTimeout(() => {
-          requestAnimationFrame(processNext);
-        }, 300); // 300ms delay between messages
-      } else {
-        processingRef.current = false;
-      }
-    };
-
-    processNext();
-  }, []);
-
-  useEffect(() => {
-    console.log("🖼️ showImageModal state:", showImageModal);
-  }, [showImageModal]);
+  // Keep screen awake while in chat
+  useKeepAwake();
 
   useFocusEffect(
     useCallback(() => {
       setActiveGroupId(groupId);
-
       markAsRead();
       refetchNotifications();
 
@@ -220,13 +206,23 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
         markAsRead();
         refetchNotifications();
       }
-      // Removed automatic navigation back when app goes to background
     });
 
     return () => {
       subscription.remove();
     };
   }, [retryConnection, markAsRead, refetchNotifications]);
+
+  // Reconnect socket when coming online - handled by SocketProvider now
+  // const { isConnected } = useNetworkStatus();
+  // useEffect(() => {
+  //   if (isConnected && socket && !socket.connected) {
+  //     console.log('🌐 Network back online, reconnecting socket...');
+  //     socket.connect();
+  //     retryConnection(); // Refetch messages
+  //   }
+  // }, [isConnected, socket, retryConnection]);
+
 
   useEffect(() => {
     console.log("🔍 showGroupInfo state changed:", showGroupInfo);
@@ -387,6 +383,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
       keyboardVerticalOffset={0}
     >
       <Header />
+      <NetworkStatusBanner />
       {/* Content area - always show group header and messages */}
       <View style={{ flex: 1 }}>
         <ChatHeader
@@ -406,20 +403,20 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
           onLeaveSuccess={() => router.back()}
           navigateToProfile={navigateToProfile}
           isCached={isCached}
-          isRefreshing={isRefreshing}
+          isRefreshing={isRefetching}
           onRefresh={handleRefresh}
         />
 
-        {isLoading && displayedMessages.length === 0 ? (
+        {isLoading && messages.length === 0 ? (
           <View style={[styles.centerContainer, { flex: 1 }]}>
             <ActivityIndicator size="small" color={isDark ? "#FFFFFF" : "#000000"} />
             <Text style={[{ marginTop: 10, color: isDark ? "#888" : "#666" }]}>
-              Getting past messages...
+              Loading messages...
             </Text>
           </View>
         ) : (
           <MessageList
-            messages={displayedMessages}
+            messages={messages}
             userId={user?.id}
             onReply={startReply}
             onImagePress={setShowImageModal}
@@ -488,8 +485,8 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
         isComplete={finalGroupDetails?.isComplete || passedGroupData?.isComplete || false}
       />
 
-      {/* Loading Overlay - Covers entire screen including header */}
-      {(isLoading && displayedMessages.length === 0 || isSending) && (
+      {/* Loading Overlay - Only show when sending messages */}
+      {isSending && (
         <View style={styles.loadingOverlay} pointerEvents="auto" />
       )}
     </KeyboardAvoidingView>
