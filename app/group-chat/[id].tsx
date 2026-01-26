@@ -191,26 +191,50 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     };
   }, [showGroupInfo]);
 
+  // Optimistic update on entry and Mark as Read on API on exit (cleanup)
+  useEffect(() => {
+    // 1. Optimistic Update on Entry
+    // Immediately reduce global notification count
+    const unreadCount = finalGroupDetails?.unread || 0;
+    if (unreadCount > 0) {
+      console.log(`📉 Optimistically reducing global unread count by ${unreadCount}`);
+      // Decrement the global count
+      // We don't have a direct "decrement by N" action, so we use setNotifications
+      const { groupNotifications, setNotifications } = require('@/state/notificationStore').useNotificationStore.getState();
+      const newCount = Math.max(0, groupNotifications - unreadCount);
+      setNotifications({ groupNotifications: newCount });
+    }
+
+    // 2. Mark as Read on Exit (Cleanup)
+    return () => {
+      console.log('👋 Leaving chat, marking as read on server');
+      markAsRead();
+      // Also update local store timestamp to ensure it stays "read" in the list
+      const { markGroupAsRead } = require('@/state/readReceiptsStore').useReadReceiptsStore.getState();
+      if (groupId) {
+        markGroupAsRead(groupId);
+      }
+    };
+  }, [groupId]); // Only run on mount/unmount for this group ID
+
   // Keep screen awake while in chat
   useKeepAwake();
 
   useFocusEffect(
     useCallback(() => {
       setActiveGroupId(groupId);
-      markAsRead();
       refetchNotifications();
 
       return () => {
         setActiveGroupId(null);
       };
-    }, [markAsRead, refetchNotifications, groupId, setActiveGroupId])
+    }, [refetchNotifications, groupId, setActiveGroupId])
   );
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextState) => {
       if (nextState === "active") {
         retryConnection();
-        markAsRead();
         refetchNotifications();
       }
     });
@@ -218,7 +242,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     return () => {
       subscription.remove();
     };
-  }, [retryConnection, markAsRead, refetchNotifications]);
+  }, [retryConnection, refetchNotifications]);
 
   // Reconnect socket when coming online - handled by SocketProvider now
   // const { isConnected } = useNetworkStatus();

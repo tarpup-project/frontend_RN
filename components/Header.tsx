@@ -927,7 +927,7 @@ const Header = () => {
                       Mark all read
                     </Text>
                   </Pressable>
-                  {/* <Pressable
+                  <Pressable
                     style={styles.clearButton}
                     onPress={clearAllNotifications}
                   >
@@ -935,7 +935,7 @@ const Header = () => {
                     <Text style={styles.clearButtonText}>
                       Clear all
                     </Text>
-                  </Pressable> */}
+                  </Pressable>
                 </View>
               )}
 
