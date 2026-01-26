@@ -176,13 +176,26 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
           return group;
         }
 
-        // We have new messages for this group
-        const lastMsgObj = newMsgsForGroup[newMsgsForGroup.length - 1]; // Take the last one
+        // Deduplicate incoming messages by content.id to avoid double counting
+        const dedupIncoming = (() => {
+          const seen = new Set<string>();
+          const out: GroupMessage[] = [];
+          for (const m of newMsgsForGroup) {
+            const id = String(m?.content?.id || '');
+            if (!id || seen.has(id)) continue;
+            seen.add(id);
+            out.push(m);
+          }
+          return out;
+        })();
+
+        // We have new messages for this group (use deduped list)
+        const lastMsgObj = dedupIncoming[dedupIncoming.length - 1]; // Take the last one
         const isActiveGroup = String(activeGroupId || '') === String(group.id);
 
         // Count unread: only unseen messages (when user is not in the group) from other users
         let unreadIncrement = 0;
-        newMsgsForGroup.forEach(m => {
+        dedupIncoming.forEach(m => {
           const isUserMessage = m.messageType === MessageType.USER;
           const senderId = isUserMessage ? (m as UserMessage).sender?.id : 'system';
           const senderName = isUserMessage ? (m as UserMessage).sender?.fname : 'System';
@@ -215,13 +228,26 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
         // Update messages array - keep it bounded if needed
         const messages = Array.isArray(group.messages) ? [...group.messages] : [];
-        const updatedMessages = [...messages, ...newMsgsForGroup.map(m => ({
-          id: m.content.id,
-          content: m.content.message,
-          sender: m.sender,
-          createdAt: m.createdAt,
-          fileUrl: (m as any).file?.data
-        }))].slice(-20); // Keep only last 20 for list view to save memory
+        const combined = [
+          ...messages,
+          ...dedupIncoming.map(m => ({
+            id: m.content.id,
+            content: m.content.message,
+            sender: m.sender,
+            createdAt: m.createdAt,
+            fileUrl: (m as any).file?.data
+          }))
+        ];
+        // Deduplicate combined list by id and keep only last 20
+        const seenCombined = new Set<string>();
+        const dedupCombined: typeof combined = [];
+        for (const msg of combined) {
+          const id = String(msg?.id || '');
+          if (!id || seenCombined.has(id)) continue;
+          seenCombined.add(id);
+          dedupCombined.push(msg);
+        }
+        const updatedMessages = dedupCombined.slice(-20);
 
         const updatedGroup = {
           ...group,

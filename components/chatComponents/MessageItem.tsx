@@ -287,36 +287,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                 </Pressable>
               )}
 
-              {!msg.isMe && (
-                <Pressable
-                  onPress={() => {
-                    if (msg.rawMessage?.sender?.id) {
-                      navigateToProfile(msg.rawMessage.sender.id);
-                    }
-                  }}
-                  style={styles.messageAvatarContainer}
-                >
-                  {typeof msg.avatar === "string" &&
-                    msg.avatar.startsWith("http") ? (
-                    <CachedImage
-                      uri={msg.avatar}
-                      style={styles.messageAvatarImage}
-                      fallbackText={msg.sender[0]}
-                      fallbackColor="#666666"
-                      cacheKey={`avatar_${msg.rawMessage?.sender?.id || msg.sender}_message`}
-                    />
-                  ) : (
-                    <View
-                      style={[
-                        styles.messageAvatar,
-                        { backgroundColor: msg.avatar },
-                      ]}
-                    >
-                      <Text style={styles.avatarText}>{msg.sender[0]}</Text>
-                    </View>
-                  )}
-                </Pressable>
-              )}
+              {/* Avatar removed for cleaner message UI */}
 
               <View style={styles.messageContent}>
                 {!msg.isMe && (
