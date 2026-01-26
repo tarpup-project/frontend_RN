@@ -1,11 +1,12 @@
 import { api } from '@/api/client';
 import { UrlConstants } from '@/constants/apiUrls';
 import { useAuthStore } from '@/state/authStore';
+import { useNotificationStore } from '@/state/notificationStore';
 import { useReadReceiptsStore } from '@/state/readReceiptsStore';
 import { Group, GroupsResponse } from '@/types/groups';
 import { isRetryableError } from '@/utils/errorUtils';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useCampus } from './useCampus';
 
 export const groupsKeys = {
@@ -16,6 +17,45 @@ export const groupsKeys = {
   detail: (id: string) => [...groupsKeys.details(), id] as const,
   messages: () => [...groupsKeys.all, 'messages'] as const,
   messageList: (groupId: string) => [...groupsKeys.messages(), groupId] as const,
+  notifications: () => [...groupsKeys.all, 'notifications'] as const,
+};
+
+// Fetch global notification counts (like the web version)
+const fetchGlobalNotifications = async (): Promise<{
+  groupNotifications: number;
+  personalNotifications: number;
+  chatNotifications: number;
+}> => {
+  try {
+    console.log('🔔 Fetching global notification counts...');
+    
+    const response = await api.get<{
+      data: {
+        groupNotifications: number;
+        personalNotifications: number;
+        chatNotifications: number;
+      }
+    }>(UrlConstants.allNotifications);
+
+    if (response.data?.data) {
+      console.log('✅ Global notifications fetched:', response.data.data);
+      return response.data.data;
+    }
+
+    console.warn('⚠️ Invalid notifications response:', response.data);
+    return {
+      groupNotifications: 0,
+      personalNotifications: 0,
+      chatNotifications: 0,
+    };
+  } catch (error) {
+    console.error('❌ Failed to fetch global notifications:', error);
+    return {
+      groupNotifications: 0,
+      personalNotifications: 0,
+      chatNotifications: 0,
+    };
+  }
 };
 
 const fetchGroups = async (campusId?: string): Promise<Group[]> => {
@@ -39,7 +79,8 @@ const fetchGroups = async (campusId?: string): Promise<Group[]> => {
         id: response.data.data[0].id,
         name: response.data.data[0].name,
         messages: response.data.data[0].messages,
-        lastMessageAt: response.data.data[0].lastMessageAt
+        lastMessageAt: response.data.data[0].lastMessageAt,
+        unread: response.data.data[0].unread
       }, null, 2));
     }
 
@@ -59,13 +100,37 @@ const fetchGroups = async (campusId?: string): Promise<Group[]> => {
 export const useGroups = () => {
   const { selectedUniversity } = useCampus();
   const { isAuthenticated, isHydrated, user } = useAuthStore();
+  const { setNotifications, activeGroupId } = useNotificationStore();
   const queryClient = useQueryClient();
+
+  // Global notifications query (like the web version)
+  const globalNotificationsQuery = useQuery({
+    queryKey: groupsKeys.notifications(),
+    queryFn: fetchGlobalNotifications,
+    enabled: !!(isAuthenticated && isHydrated),
+    staleTime: 1000 * 30, // 30 seconds (frequent updates for notifications)
+    gcTime: 1000 * 60 * 5, // 5 minutes
+    refetchInterval: 30000, // Refresh every 30 seconds (like web version)
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    retry: 2,
+    onSuccess: (data) => {
+      // Update global notification store with fresh counts
+      setNotifications({
+        groupNotifications: data.groupNotifications,
+        personalNotifications: data.personalNotifications,
+        chatNotifications: data.chatNotifications,
+      });
+      console.log('🔔 Global notifications updated:', data);
+    },
+  });
 
   const query = useQuery<Group[], Error>({
     queryKey: groupsKeys.list(selectedUniversity?.id),
     queryFn: () => fetchGroups(selectedUniversity?.id),
     enabled: !!(isAuthenticated && isHydrated), // Only fetch when authenticated and hydrated
-    staleTime: 1000 * 60 * 2, // Consider data stale after 2 minutes
+    staleTime: 1000 * 60 * 1, // Consider data stale after 1 minute (more frequent for unread counts)
     gcTime: 1000 * 60 * 60, // Keep in cache for 1 hour
     retry: (failureCount, error: any) => {
 
@@ -87,7 +152,7 @@ export const useGroups = () => {
       console.log(`⏱️ Retrying in ${delay}ms`);
       return delay;
     },
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: 15000, // Refetch every 15 seconds (like web version)
     refetchIntervalInBackground: false, // Don't refetch in background
     refetchOnWindowFocus: true, // Refetch when app comes back to focus
     refetchOnReconnect: true, // Refetch when network reconnects
@@ -104,6 +169,10 @@ export const useGroups = () => {
     select: (data) => {
       if (data && data.length > 0) {
         console.log('✅ Fresh groups data loaded -', data.length, 'groups');
+        
+        // Calculate total unread count from individual groups
+        const totalUnread = data.reduce((sum, group) => sum + (group.unread || 0), 0);
+        console.log('📊 Total unread from groups:', totalUnread);
       }
       return data;
     },
@@ -111,6 +180,7 @@ export const useGroups = () => {
 
   const markAsReadMutation = useMutation({
     mutationFn: async (groupId: string) => {
+      console.log('📖 Marking group as read:', groupId);
       await api.post(UrlConstants.markGroupMessageAsRead(groupId));
     },
     onMutate: async (groupId) => {
@@ -118,22 +188,40 @@ export const useGroups = () => {
       const previousGroups = queryClient.getQueryData<Group[]>(groupsKeys.list(selectedUniversity?.id));
 
       if (previousGroups) {
+        // Find the group being marked as read
+        const groupToUpdate = previousGroups.find(g => g.id === groupId);
+        const unreadCount = groupToUpdate?.unread || 0;
+
+        // Update the groups data optimistically
         queryClient.setQueryData<Group[]>(groupsKeys.list(selectedUniversity?.id), (old: Group[] | undefined) => {
           if (!old) return [];
           return old.map(group =>
             group.id === groupId ? { ...group, unread: 0 } : group
           );
         });
+
+        // Update global notification count optimistically
+        if (unreadCount > 0) {
+          console.log(`📉 Reducing global group notifications by ${unreadCount}`);
+          setNotifications({
+            groupNotifications: Math.max(0, (globalNotificationsQuery.data?.groupNotifications || 0) - unreadCount)
+          });
+        }
       }
       return { previousGroups };
     },
     onError: (err, groupId, context) => {
+      console.error('❌ Failed to mark group as read:', err);
       if (context?.previousGroups) {
         queryClient.setQueryData(groupsKeys.list(selectedUniversity?.id), context.previousGroups);
       }
+      // Refetch global notifications to restore correct count
+      globalNotificationsQuery.refetch();
     },
     onSettled: () => {
+      // Refresh both groups and global notifications after marking as read
       queryClient.invalidateQueries({ queryKey: groupsKeys.list(selectedUniversity?.id) });
+      globalNotificationsQuery.refetch();
     },
   });
 
@@ -141,51 +229,70 @@ export const useGroups = () => {
     markAsReadMutation.mutate(groupId);
   };
 
+  // Auto-mark as read when entering a group (like web version)
+  useEffect(() => {
+    if (activeGroupId && query.data) {
+      const activeGroup = query.data.find(g => String(g.id) === String(activeGroupId));
+      if (activeGroup && activeGroup.unread && activeGroup.unread > 0) {
+        console.log(`👁️ User entered group ${activeGroupId} with ${activeGroup.unread} unread messages - auto-marking as read`);
+        
+        // Immediately reduce global notification count
+        setNotifications({
+          groupNotifications: Math.max(0, (globalNotificationsQuery.data?.groupNotifications || 0) - activeGroup.unread)
+        });
+        
+        // Mark as read on server (will be handled by the mutation)
+        markAsRead(activeGroupId);
+      }
+    }
+  }, [activeGroupId, query.data]);
+
+  const { lastReadTimestamps } = useReadReceiptsStore();
+
   // Transform groups to UI format (copied from useAsyncStorageGroups)
   const transformToUIFormat = (group: Group) => {
-    // Get last read timestamp from store
-    const { getLastRead } = useReadReceiptsStore.getState();
-    const lastReadTime = getLastRead(group.id);
+    // Get last read timestamp from store - reactive now due to hook usage above
+    const lastReadTime = lastReadTimestamps[group.id] || 0;
     const currentUserId = user?.id;
 
-    // Calculate unread count client-side if we have a local read timestamp
-    // OR if we want to enforce client-side logic always.
-    // However, for fresh state/first load where lastReadTime might be 0, we might default to existing behavior
-    // but the requirement is "only count unseen messages... and not count my own".
+    // Web-Parity Logic:
+    // 1. Primary Source: Server's unread count (this is the authoritative source)
+    let unreadCount = group.unread || 0;
 
-    let unreadCount = 0;
+    // Get the timestamp of the last activity in the group
+    const lastMessageTimestamp = group.lastMessageAt
+      ? new Date(group.lastMessageAt).getTime()
+      : (group.createdAt ? new Date(group.createdAt).getTime() : 0);
 
-    // If we have messages, we can calculate precisely
-    if (group.messages && Array.isArray(group.messages)) {
-      unreadCount = group.messages.filter(msg => {
-        // Must be a message object
-        if (!msg) return false;
-
-        // Check if message is from current user
-        const isFromMe = (msg.sender && msg.sender.id === currentUserId) ||
-          (msg as any).senderId === currentUserId;
-
-        if (isFromMe) return false;
-
-        // Check if message is newer than last read time
-        // Handle various timestamp formats if needed, but assuming ISO string or number
-        const msgTime = (msg as any).createdAt
-          ? new Date((msg as any).createdAt).getTime()
-          : 0;
-
-        return msgTime > lastReadTime;
-      }).length;
-
-      // If we don't have a local timestamp yet (first install/fresh), and unreadCount calculated is 0 
-      // but server says we have unread, we might want to trust server?
-      // BUT user specifically asked for "messages that entered when i was not in the group", 
-      // implying a strict local "seen" state. 
-      // If lastReadTime is 0 (never opened), then ALL messages not from me are unread.
-
-    } else {
-      // Fallback if no messages array (shouldn't happen with correct data fetching)
-      unreadCount = group.unread || 0;
+    // 2. Client-side Override: Visited recently
+    // If we have a local read timestamp that is newer than or equal to the last message,
+    // then we consider the group read locally, overriding the server count.
+    if (lastReadTime >= lastMessageTimestamp && lastMessageTimestamp > 0) {
+      unreadCount = 0;
     }
+
+    // 3. Client-side Override: Last message is mine
+    // If the last message is from the current user, the count should be 0 
+    // (We check this to give instant feedback when user sends a message)
+    if (group.messages && group.messages.length > 0) {
+      const lastMsg = group.messages[group.messages.length - 1];
+      const isFromMe = (lastMsg.sender && lastMsg.sender.id === currentUserId) ||
+        (lastMsg as any).senderId === currentUserId;
+
+      if (isFromMe) {
+        unreadCount = 0;
+      }
+    } else if (group.lastMessageAt && (group as any).lastMessageSenderId === currentUserId) {
+      unreadCount = 0;
+    }
+
+    // 4. Active group override: If user is currently in this group, count should be 0
+    if (String(activeGroupId || '') === String(group.id)) {
+      unreadCount = 0;
+    }
+
+    // Safety check: ensure count is not negative
+    unreadCount = Math.max(0, unreadCount);
 
     const getTimeAgo = (timestamp: number | string): string => {
       const time = typeof timestamp === 'string' ? new Date(timestamp).getTime() : timestamp;
@@ -248,10 +355,15 @@ export const useGroups = () => {
     isLoading: query.isLoading && !query.data, // Only show loading if no cached data
     error: query.error && !query.data ? (query.error as Error).message : null, // Only show error if no cached data
     isRefreshing: query.isRefetching,
-    refresh: query.refetch,
+    refresh: () => {
+      // Refresh both groups and global notifications
+      query.refetch();
+      globalNotificationsQuery.refetch();
+    },
     markAsRead,
-    uiGroups: useMemo(() => (query.data || []).map(transformToUIFormat), [query.data, query.data?.length]), // Re-calc when data changes
+    uiGroups: useMemo(() => (query.data || []).map(transformToUIFormat), [query.data, query.data?.length, lastReadTimestamps, activeGroupId]), // Re-calc when data OR timestamps OR active group changes
     query, // Expose original query object if needed
+    globalNotifications: globalNotificationsQuery.data,
     // Additional cache info
     isCached: !!query.data && query.isStale,
     hasData: !!(query.data && query.data.length > 0),

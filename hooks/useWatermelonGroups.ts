@@ -3,6 +3,7 @@ import { UrlConstants } from '@/constants/apiUrls';
 import { database, groupsCollection, messagesCollection } from '@/database';
 import Group from '@/database/models/Group';
 import { useAuthStore } from '@/state/authStore';
+import { useReadReceiptsStore } from '@/state/readReceiptsStore';
 import { Q } from '@nozbe/watermelondb';
 import { useEffect, useState } from 'react';
 import { useCampus } from './useCampus';
@@ -14,7 +15,8 @@ export const useWatermelonGroups = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { selectedUniversity } = useCampus();
-  const { isAuthenticated, isHydrated } = useAuthStore();
+  const { isAuthenticated, isHydrated, user } = useAuthStore();
+  const { lastReadTimestamps } = useReadReceiptsStore();
 
   // Subscribe to database changes
   useEffect(() => {
@@ -261,19 +263,22 @@ export const useWatermelonGroups = () => {
       const ui = group.toUIFormat();
 
       // Client-side unread logic
-      const { getLastRead } = require('@/state/readReceiptsStore').useReadReceiptsStore.getState();
-      const lastReadTime = getLastRead(group.serverId || group.id);
-      const { user } = useAuthStore.getState();
+      const lastReadTime = lastReadTimestamps[group.serverId || group.id] || 0;
 
-      let unread = ui.unreadCount;
+      // Web-Parity Logic:
+      // 1. Primary Source: Server's unread count (stored in unreadCount in DB)
+      let unread = group.unreadCount || 0;
 
-      // If last message is from me, assume viewed
-      if (group.lastMessageSenderId && user?.id && group.lastMessageSenderId === user.id) {
+      // Get the timestamp of the last activity in the group
+      const lastMessageTimestamp = group.lastMessageAt ? new Date(group.lastMessageAt).getTime() : 0;
+
+      // 2. Client-side Override: Visited recently
+      if (lastReadTime >= lastMessageTimestamp && lastMessageTimestamp > 0) {
         unread = 0;
       }
 
-      // If last message is older than when I last read it, assume viewed
-      if (group.lastMessageAt && group.lastMessageAt <= lastReadTime) {
+      // 3. Client-side Override: Last message is mine
+      if (group.lastMessageSenderId && user?.id && group.lastMessageSenderId === user.id) {
         unread = 0;
       }
 
