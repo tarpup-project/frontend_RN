@@ -96,6 +96,7 @@ class UrlConstants {
   static tarpToggleFriend = `/tarps/user/friend`;
   static tarpToggleFollow = `/tarps/user/follow`;
   static tarpNotifications = `/tarps/profile/notification`;
+  static tarpProfileDetails = (userID: string) => `/tarps/profile/details/${userID}`;
   static followAction = `/tarps/user/follow/action`;
   static tarpCheckFriendStatus = (userID: string) => `/tarps/user/friend/${userID}`;
   static tarpStatsPosts = `/tarps/stats/posts`;

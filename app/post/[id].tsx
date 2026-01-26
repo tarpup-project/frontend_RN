@@ -1,6 +1,7 @@
 import { api } from "@/api/client";
 import { UrlConstants } from "@/constants/apiUrls";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { useAuthStore } from "@/state/authStore";
 import { getAccessToken } from "@/utils/storage";
 import { Ionicons } from "@expo/vector-icons";
@@ -12,18 +13,18 @@ import { StatusBar } from "expo-status-bar";
 import moment from "moment";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Animated,
-  Dimensions,
-  FlatList,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View
+    ActivityIndicator,
+    Animated,
+    Dimensions,
+    FlatList,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    Pressable,
+    StyleSheet,
+    Text,
+    TextInput,
+    View
 } from "react-native";
 import { Gesture, GestureDetector, GestureHandlerRootView, ScrollView } from "react-native-gesture-handler";
 import { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
@@ -88,6 +89,18 @@ export default function PostPreviewScreen() {
   const [isReporting, setIsReporting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeletingPost, setIsDeletingPost] = useState(false);
+  const profileUserId = useMemo(() => {
+    const cand =
+      currentPostItem?.userID ??
+      currentPostItem?.creator?.id ??
+      currentPostItem?.owner?.id ??
+      currentPostItem?.user?.id ??
+      currentPostItem?.createdBy?.id ??
+      currentPostItem?.author?.id;
+    return cand || null;
+  }, [currentPostItem]);
+  const isProfileCurrentUser = useMemo(() => String(profileUserId || "") === String(user?.id || ""), [profileUserId, user?.id]);
+  const { data: otherProfileDetails, isLoading: otherProfileLoading } = useUserProfile(isProfileCurrentUser ? null : profileUserId);
 
   // Function to mark post as viewed (remove red border)
   const markPostAsViewed = async (postId: string) => {
@@ -1596,7 +1609,9 @@ export default function PostPreviewScreen() {
                   onPress={(e) => {
                     e.stopPropagation();
                     setShowProfileModal(true);
-                    fetchUserStats();
+                    if (isProfileCurrentUser) {
+                      fetchUserStats();
+                    }
                   }}
                 >
                   {getCurrentPostItem()?.creator && extractImageUrl(getCurrentPostItem().creator) ? (
@@ -1851,49 +1866,42 @@ export default function PostPreviewScreen() {
 
               {/* Stats */}
               <View style={styles.profileStats}>
+                {isProfileCurrentUser && (
+                  <View style={styles.profileStat}>
+                    <Text style={[styles.profileStatNumber, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
+                      {isLoadingUserStats ? "..." : (userStats?.posts ?? 0)}
+                    </Text>
+                    <Text style={[styles.profileStatLabel, { color: isDark ? "#9AA0A6" : "#666" }]}>Posts</Text>
+                  </View>
+                )}
+                {!isProfileCurrentUser && (
+                  <View style={styles.profileStat}>
+                    <Text style={[styles.profileStatNumber, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
+                      {otherProfileLoading ? "..." : (otherProfileDetails?.friends ?? 0)}
+                    </Text>
+                    <Text style={[styles.profileStatLabel, { color: isDark ? "#9AA0A6" : "#666" }]}>Friends</Text>
+                  </View>
+                )}
                 <View style={styles.profileStat}>
                   <Text style={[styles.profileStatNumber, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
-                    {((getCurrentPostItem()?.userID ??
-                      getCurrentPostItem()?.creator?.id ??
-                      getCurrentPostItem()?.owner?.id ??
-                      getCurrentPostItem()?.user?.id ??
-                      getCurrentPostItem()?.createdBy?.id ??
-                      getCurrentPostItem()?.author?.id) === user?.id)
-                      ? (isLoadingUserStats ? "..." : userStats?.posts || 0)
-                      : "__"}
-                  </Text>
-                  <Text style={[styles.profileStatLabel, { color: isDark ? "#9AA0A6" : "#666" }]}>Posts</Text>
-                </View>
-                <View style={styles.profileStat}>
-                  <Text style={[styles.profileStatNumber, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
-                    {((getCurrentPostItem()?.userID ??
-                      getCurrentPostItem()?.creator?.id ??
-                      getCurrentPostItem()?.owner?.id ??
-                      getCurrentPostItem()?.user?.id ??
-                      getCurrentPostItem()?.createdBy?.id ??
-                      getCurrentPostItem()?.author?.id) === user?.id)
-                      ? (isLoadingUserStats ? "..." : userStats?.followers || 0)
-                      : "__"}
+                    {isProfileCurrentUser
+                      ? (isLoadingUserStats ? "..." : (userStats?.followers ?? 0))
+                      : (otherProfileLoading ? "..." : (otherProfileDetails?.followers ?? 0))}
                   </Text>
                   <Text style={[styles.profileStatLabel, { color: isDark ? "#9AA0A6" : "#666" }]}>Followers</Text>
                 </View>
                 <View style={styles.profileStat}>
                   <Text style={[styles.profileStatNumber, { color: isDark ? "#FFFFFF" : "#0a0a0a" }]}>
-                    {((getCurrentPostItem()?.userID ??
-                      getCurrentPostItem()?.creator?.id ??
-                      getCurrentPostItem()?.owner?.id ??
-                      getCurrentPostItem()?.user?.id ??
-                      getCurrentPostItem()?.createdBy?.id ??
-                      getCurrentPostItem()?.author?.id) === user?.id)
-                      ? (isLoadingUserStats ? "..." : userStats?.followings || 0)
-                      : "__"}
+                    {isProfileCurrentUser
+                      ? (isLoadingUserStats ? "..." : (userStats?.followings ?? 0))
+                      : (otherProfileLoading ? "..." : (otherProfileDetails?.following ?? 0))}
                   </Text>
                   <Text style={[styles.profileStatLabel, { color: isDark ? "#9AA0A6" : "#666" }]}>Following</Text>
                 </View>
               </View>
 
               {/* Loading indicator for stats */}
-              {isLoadingUserStats && (
+              {(isProfileCurrentUser ? isLoadingUserStats : otherProfileLoading) && (
                 <View style={styles.statsLoadingContainer}>
                   <ActivityIndicator size="small" color={isDark ? "#FFFFFF" : "#0a0a0a"} />
                   <Text style={[styles.statsLoadingText, { color: isDark ? "#9AA0A6" : "#666" }]}>

@@ -2,6 +2,7 @@ import { api } from "@/api/client";
 import AuthModal from "@/components/AuthModal";
 import { UrlConstants } from "@/constants/apiUrls";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -120,6 +121,42 @@ export default function TarpsScreen() {
   }, [location, useMapboxGL]);
   const [selectedPerson, setSelectedPerson] = useState<any | null>(null);
   const [personOpen, setPersonOpen] = useState(false);
+  
+  // Fetch profile details for the selected person (only for friends, not current user)
+  const selectedPersonId = selectedPerson?.owner?.id || selectedPerson?.id;
+  const isCurrentUser = selectedPersonId === user?.id;
+  const { 
+    data: profileDetails, 
+    isLoading: profileLoading, 
+    error: profileError 
+  } = useUserProfile(!isCurrentUser ? selectedPersonId : null);
+  
+  // Debug logging for profile data
+  useEffect(() => {
+    if (selectedPersonId && !isCurrentUser) {
+      console.log('👤 Selected person for profile fetch:', {
+        id: selectedPersonId,
+        isCurrentUser,
+        profileLoading,
+        hasProfileData: !!profileDetails,
+        profileError: profileError?.message
+      });
+      
+      if (profileDetails) {
+        console.log('📊 Profile stats loaded:', {
+          friends: profileDetails.friends,
+          followers: profileDetails.followers,
+          following: profileDetails.following,
+          posts: profileDetails.posts // This will be excluded from display
+        });
+      }
+      
+      if (profileError) {
+        console.error('❌ Profile error:', profileError);
+      }
+    }
+  }, [selectedPersonId, isCurrentUser, profileDetails, profileLoading, profileError]);
+  
   const [currentZoomLevel, setCurrentZoomLevel] = useState(0); // Track zoom level for intelligent zooming
   const [zoomHistory, setZoomHistory] = useState<Array<{
     latitude: number;
@@ -1557,9 +1594,6 @@ export default function TarpsScreen() {
     );
   }
 
-  // Check if the selected person is the current user
-  const isCurrentUser = selectedPerson?.owner?.id === user?.id || selectedPerson?.id === user?.id;
-
   return (
     <View style={{ flex: 1 }}>
       <StatusBar style="light" />
@@ -2305,6 +2339,139 @@ export default function TarpsScreen() {
                   </Text>
                 </View>
               ) : null}
+              
+              {/* Debug info - Remove this after testing */}
+              {!isCurrentUser && (
+                <View style={{ 
+                  padding: 8,
+                  backgroundColor: isDark ? "#1a1a1a" : "#f0f0f0",
+                  borderRadius: 8,
+                  marginVertical: 4
+                }}>
+                  <Text style={{ 
+                    fontSize: 10, 
+                    color: isDark ? "#CCCCCC" : "#666666",
+                    fontFamily: 'monospace'
+                  }}>
+                    Debug: ID={selectedPersonId}, Loading={profileLoading ? 'true' : 'false'}, 
+                    HasData={!!profileDetails ? 'true' : 'false'}, 
+                    Error={profileError ? 'true' : 'false'}
+                  </Text>
+                  {profileDetails && (
+                    <Text style={{ 
+                      fontSize: 10, 
+                      color: isDark ? "#CCCCCC" : "#666666",
+                      fontFamily: 'monospace'
+                    }}>
+                      Data: F={profileDetails.friends}, Fo={profileDetails.followers}, Fg={profileDetails.following}
+                    </Text>
+                  )}
+                </View>
+              )}
+              
+              {/* Profile Stats - Only show for friends, not current user */}
+              {!isCurrentUser && profileDetails && (
+                <View style={{ 
+                  flexDirection: "row", 
+                  justifyContent: "space-around", 
+                  paddingVertical: 12,
+                  backgroundColor: isDark ? "#2a2a2a" : "#f8f9fa",
+                  borderRadius: 12,
+                  marginVertical: 8
+                }}>
+                  <View style={{ alignItems: "center" }}>
+                    <Text style={{ 
+                      fontSize: 18, 
+                      fontWeight: "700", 
+                      color: isDark ? "#FFFFFF" : "#0a0a0a" 
+                    }}>
+                      {profileDetails.friends !== undefined ? profileDetails.friends : '0'}
+                    </Text>
+                    <Text style={{ 
+                      fontSize: 12, 
+                      color: isDark ? "#CCCCCC" : "#666666",
+                      marginTop: 2
+                    }}>
+                      Friends
+                    </Text>
+                  </View>
+                  <View style={{ alignItems: "center" }}>
+                    <Text style={{ 
+                      fontSize: 18, 
+                      fontWeight: "700", 
+                      color: isDark ? "#FFFFFF" : "#0a0a0a" 
+                    }}>
+                      {profileDetails.followers !== undefined ? profileDetails.followers : '0'}
+                    </Text>
+                    <Text style={{ 
+                      fontSize: 12, 
+                      color: isDark ? "#CCCCCC" : "#666666",
+                      marginTop: 2
+                    }}>
+                      Followers
+                    </Text>
+                  </View>
+                  <View style={{ alignItems: "center" }}>
+                    <Text style={{ 
+                      fontSize: 18, 
+                      fontWeight: "700", 
+                      color: isDark ? "#FFFFFF" : "#0a0a0a" 
+                    }}>
+                      {profileDetails.following !== undefined ? profileDetails.following : '0'}
+                    </Text>
+                    <Text style={{ 
+                      fontSize: 12, 
+                      color: isDark ? "#CCCCCC" : "#666666",
+                      marginTop: 2
+                    }}>
+                      Following
+                    </Text>
+                  </View>
+                </View>
+              )}
+              
+              {/* Error state for profile stats */}
+              {!isCurrentUser && profileError && (
+                <View style={{ 
+                  flexDirection: "row", 
+                  justifyContent: "center", 
+                  paddingVertical: 12,
+                  backgroundColor: isDark ? "#2a2a2a" : "#f8f9fa",
+                  borderRadius: 12,
+                  marginVertical: 8
+                }}>
+                  <Ionicons name="alert-circle-outline" size={16} color="#EF4444" />
+                  <Text style={{ 
+                    marginLeft: 8,
+                    color: "#EF4444",
+                    fontSize: 14
+                  }}>
+                    Failed to load profile
+                  </Text>
+                </View>
+              )}
+              
+              {/* Loading state for profile stats */}
+              {!isCurrentUser && profileLoading && (
+                <View style={{ 
+                  flexDirection: "row", 
+                  justifyContent: "center", 
+                  paddingVertical: 12,
+                  backgroundColor: isDark ? "#2a2a2a" : "#f8f9fa",
+                  borderRadius: 12,
+                  marginVertical: 8
+                }}>
+                  <ActivityIndicator size="small" color={isDark ? "#FFFFFF" : "#0a0a0a"} />
+                  <Text style={{ 
+                    marginLeft: 8,
+                    color: isDark ? "#CCCCCC" : "#666666",
+                    fontSize: 14
+                  }}>
+                    Loading profile...
+                  </Text>
+                </View>
+              )}
+              
               {selectedPerson?.caption || selectedPerson?.activity ? (
                 <View style={[styles.chip, isDark ? { borderColor: "#333" } : { borderColor: "#e0e0e0" }]}>
                   <Text style={[styles.chipText, { color: isDark ? "#FFF" : "#000" }]}>{selectedPerson?.caption || selectedPerson?.activity}</Text>
