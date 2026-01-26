@@ -66,6 +66,8 @@ export default function ConnectionsScreen() {
     // Snapshot previous data for rollback
     const previousPending = queryClient.getQueryData(['connections', 'pending']);
     const previousFriends = queryClient.getQueryData(['connections', 'friends']);
+    const previousFollowers = queryClient.getQueryData(['connections', 'followers']);
+    const previousDiscover = queryClient.getQueryData(['connections', 'discover']);
 
     try {
       // For discover tab, determine action based on current friend status
@@ -77,17 +79,61 @@ export default function ConnectionsScreen() {
 
       console.log(`${actualAction === 'friend' ? 'Adding' : 'Removing'} friend:`, userId, 'Action:', actualAction);
 
-      // Optimistic Update
+      // Optimistic Update - immediately update UI
       if (actualAction === 'friend') {
+        // Track optimistic pending to prevent flicker until API resolves
+        queryClient.setQueryData(['connections', 'pendingOptimistic'], (old: string[] = []) => {
+          const set = new Set(old);
+          set.add(userId);
+          return Array.from(set);
+        });
+
         // Add to pending
         queryClient.setQueryData(['connections', 'pending'], (old: string[] = []) => {
           return [...old, userId];
+        });
+
+        // Update followers data to show pending status
+        queryClient.setQueryData(['connections', 'followers'], (old: User[] = []) => {
+          return old.map(user =>
+            user.id === userId
+              ? { ...user, friendStatus: 'pending' as const, isFriend: false }
+              : user
+          );
+        });
+
+        // Update discover data to show pending status
+        queryClient.setQueryData(['connections', 'discover'], (old: User[] = []) => {
+          return old.map(user =>
+            user.id === userId
+              ? { ...user, friendStatus: 'pending' as const, isFriend: false }
+              : user
+          );
         });
       } else {
         // Remove from pending
         queryClient.setQueryData(['connections', 'pending'], (old: string[] = []) => {
           return old.filter(id => id !== userId);
         });
+
+        // Update followers data to remove friend status
+        queryClient.setQueryData(['connections', 'followers'], (old: User[] = []) => {
+          return old.map(user =>
+            user.id === userId
+              ? { ...user, friendStatus: 'not_friends' as const, isFriend: false }
+              : user
+          );
+        });
+
+        // Update discover data to remove friend status
+        queryClient.setQueryData(['connections', 'discover'], (old: User[] = []) => {
+          return old.map(user =>
+            user.id === userId
+              ? { ...user, friendStatus: 'not_friends' as const, isFriend: false }
+              : user
+          );
+        });
+
         // Optimistically remove from friends list if unfriending
         queryClient.setQueryData(['connections', 'friends'], (old: User[] = []) => {
           return old.filter(u => u.id !== userId);
@@ -101,6 +147,13 @@ export default function ConnectionsScreen() {
 
       toast.success(actualAction === 'friend' ? 'Friend added' : 'Friend removed');
 
+      // Clear optimistic pending after API resolves, server data will take over
+      if (actualAction === 'friend') {
+        queryClient.setQueryData(['connections', 'pendingOptimistic'], (old: string[] = []) => {
+          return old.filter(id => id !== userId);
+        });
+      }
+
       // Refresh affected tabs after a short delay to ensure consistency
       setTimeout(() => {
         if (actualAction === 'unfriend') {
@@ -108,21 +161,30 @@ export default function ConnectionsScreen() {
           refetchTab('discover');
           refetchTab('friends'); // Refresh to remove from friends list
         } else {
-          refetchTab('friends');
-          refetchTab('follow'); // Update friend status in follow tab
-          refetchTab('discover'); // Update friend status in discover tab
+          refetchTab('friends', true);
+          refetchTab('follow', true); // Update friend status in follow tab, skipping pending
+          refetchTab('discover', true); // Update friend status in discover tab, skipping pending
         }
       }, 500);
     } catch (error) {
       console.error('Error toggling friend:', error);
       toast.error('Failed to update friend status');
 
-      // Rollback on error
+      // Rollback on error - restore all previous data
+      queryClient.setQueryData(['connections', 'pendingOptimistic'], (old: string[] = []) => {
+        return old.filter(id => id !== userId);
+      });
       if (previousPending) {
         queryClient.setQueryData(['connections', 'pending'], previousPending);
       }
       if (previousFriends) {
         queryClient.setQueryData(['connections', 'friends'], previousFriends);
+      }
+      if (previousFollowers) {
+        queryClient.setQueryData(['connections', 'followers'], previousFollowers);
+      }
+      if (previousDiscover) {
+        queryClient.setQueryData(['connections', 'discover'], previousDiscover);
       }
     }
   };
