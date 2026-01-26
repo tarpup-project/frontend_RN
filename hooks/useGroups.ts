@@ -28,7 +28,7 @@ const fetchGlobalNotifications = async (): Promise<{
 }> => {
   try {
     console.log('🔔 Fetching global notification counts...');
-    
+
     const response = await api.get<{
       data: {
         groupNotifications: number;
@@ -115,7 +115,12 @@ export const useGroups = () => {
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
     retry: 2,
-    onSuccess: (data) => {
+  });
+
+  // Sync global notifications with store when data changes
+  useEffect(() => {
+    if (globalNotificationsQuery.data) {
+      const data = globalNotificationsQuery.data;
       // Update global notification store with fresh counts
       setNotifications({
         groupNotifications: data.groupNotifications,
@@ -123,8 +128,8 @@ export const useGroups = () => {
         chatNotifications: data.chatNotifications,
       });
       console.log('🔔 Global notifications updated:', data);
-    },
-  });
+    }
+  }, [globalNotificationsQuery.data, setNotifications]);
 
   const query = useQuery<Group[], Error>({
     queryKey: groupsKeys.list(selectedUniversity?.id),
@@ -169,7 +174,7 @@ export const useGroups = () => {
     select: (data) => {
       if (data && data.length > 0) {
         console.log('✅ Fresh groups data loaded -', data.length, 'groups');
-        
+
         // Calculate total unread count from individual groups
         const totalUnread = data.reduce((sum, group) => sum + (group.unread || 0), 0);
         console.log('📊 Total unread from groups:', totalUnread);
@@ -235,12 +240,12 @@ export const useGroups = () => {
       const activeGroup = query.data.find(g => String(g.id) === String(activeGroupId));
       if (activeGroup && activeGroup.unread && activeGroup.unread > 0) {
         console.log(`👁️ User entered group ${activeGroupId} with ${activeGroup.unread} unread messages - auto-marking as read`);
-        
+
         // Immediately reduce global notification count
         setNotifications({
           groupNotifications: Math.max(0, (globalNotificationsQuery.data?.groupNotifications || 0) - activeGroup.unread)
         });
-        
+
         // Mark as read on server (will be handled by the mutation)
         markAsRead(activeGroupId);
       }

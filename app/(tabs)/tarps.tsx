@@ -13,7 +13,7 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import moment from "moment";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Dimensions, FlatList, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, Dimensions, FlatList, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import uuid from "react-native-uuid";
@@ -121,16 +121,16 @@ export default function TarpsScreen() {
   }, [location, useMapboxGL]);
   const [selectedPerson, setSelectedPerson] = useState<any | null>(null);
   const [personOpen, setPersonOpen] = useState(false);
-  
+
   // Fetch profile details for the selected person (only for friends, not current user)
   const selectedPersonId = selectedPerson?.owner?.id || selectedPerson?.id;
   const isCurrentUser = selectedPersonId === user?.id;
-  const { 
-    data: profileDetails, 
-    isLoading: profileLoading, 
-    error: profileError 
+  const {
+    data: profileDetails,
+    isLoading: profileLoading,
+    error: profileError
   } = useUserProfile(!isCurrentUser ? selectedPersonId : null);
-  
+
   // Debug logging for profile data
   useEffect(() => {
     if (selectedPersonId && !isCurrentUser) {
@@ -141,7 +141,7 @@ export default function TarpsScreen() {
         hasProfileData: !!profileDetails,
         profileError: profileError?.message
       });
-      
+
       if (profileDetails) {
         console.log('📊 Profile stats loaded:', {
           friends: profileDetails.friends,
@@ -150,13 +150,13 @@ export default function TarpsScreen() {
           posts: profileDetails.posts // This will be excluded from display
         });
       }
-      
+
       if (profileError) {
         console.error('❌ Profile error:', profileError);
       }
     }
   }, [selectedPersonId, isCurrentUser, profileDetails, profileLoading, profileError]);
-  
+
   const [currentZoomLevel, setCurrentZoomLevel] = useState(0); // Track zoom level for intelligent zooming
   const [zoomHistory, setZoomHistory] = useState<Array<{
     latitude: number;
@@ -506,6 +506,18 @@ export default function TarpsScreen() {
   useEffect(() => {
     (async () => {
       try {
+        if (!user) {
+          // If not authenticated, default to NYC without asking permissions
+          setHasLocationPermission(false);
+          setLocation({
+            latitude: 40.7128,
+            longitude: -74.0060,
+            latitudeDelta: 120,
+            longitudeDelta: 120,
+          });
+          return;
+        }
+
         const { status } = await Location.requestForegroundPermissionsAsync();
 
         if (status === "granted") {
@@ -1879,6 +1891,11 @@ export default function TarpsScreen() {
                   key={p.id}
                   coordinate={{ latitude: p.latitude, longitude: p.longitude }}
                   onPress={() => {
+                    if (!user) {
+                      setShowAuthModal(true);
+                      return;
+                    }
+
                     if (p.count && p.count > 1 && Array.isArray(p.items)) {
                       // Check if posts are actually stacked (very close together) or just clustered
                       const latDiff = Math.max(...p.items.map((i: any) => Number(i.latitude ?? i.lat ?? p.latitude))) -
@@ -2067,6 +2084,10 @@ export default function TarpsScreen() {
                 key={p.id}
                 coordinate={{ latitude: p.latitude, longitude: p.longitude }}
                 onPress={() => {
+                  if (!user) {
+                    setShowAuthModal(true);
+                    return;
+                  }
                   setSelectedPerson(p);
                   setPersonOpen(true);
                 }}
@@ -2224,6 +2245,10 @@ export default function TarpsScreen() {
             <Pressable
               style={[styles.pillSeg, viewMode === "posts" ? (isDark ? styles.pillSegActiveDark : styles.pillSegActiveLight) : null]}
               onPress={() => {
+                if (!user) {
+                  setShowAuthModal(true);
+                  return;
+                }
                 setViewMode("posts");
                 zoomToWorldView(); // Zoom out to world view level
                 // Load posts after a short delay to allow zoom animation
@@ -2237,6 +2262,10 @@ export default function TarpsScreen() {
             <Pressable
               style={[styles.pillSeg, viewMode === "people" ? (isDark ? styles.pillSegActiveDark : styles.pillSegActiveLight) : null]}
               onPress={() => {
+                if (!user) {
+                  setShowAuthModal(true);
+                  return;
+                }
                 setViewMode("people");
                 zoomToWorldView(); // Zoom out to world view level
                 // Load people after a short delay to allow zoom animation
@@ -2251,12 +2280,28 @@ export default function TarpsScreen() {
 
           {/* Location Permission Indicator */}
           {!hasLocationPermission && (
-            <View style={[styles.locationIndicator, isDark ? styles.locationIndicatorDark : styles.locationIndicatorLight]}>
+            <Pressable
+              style={[styles.locationIndicator, isDark ? styles.locationIndicatorDark : styles.locationIndicatorLight]}
+              onPress={() => {
+                if (!user) {
+                  setShowAuthModal(true);
+                  return;
+                }
+                Alert.alert(
+                  "Enable Location",
+                  "Go to your settings to give location permission.",
+                  [
+                    { text: "Cancel", style: "cancel" },
+                    { text: "Open Settings", onPress: () => Linking.openSettings() }
+                  ]
+                );
+              }}
+            >
               <Ionicons name="location-outline" size={14} color={isDark ? "#FFA500" : "#FF8C00"} />
               <Text style={[styles.locationIndicatorText, { color: isDark ? "#FFA500" : "#FF8C00" }]}>
-                Default Location
+                Enable Location
               </Text>
-            </View>
+            </Pressable>
           )}
         </View>
         <Pressable
@@ -2339,27 +2384,27 @@ export default function TarpsScreen() {
                   </Text>
                 </View>
               ) : null}
-              
+
               {/* Debug info - Remove this after testing */}
               {!isCurrentUser && (
-                <View style={{ 
+                <View style={{
                   padding: 8,
                   backgroundColor: isDark ? "#1a1a1a" : "#f0f0f0",
                   borderRadius: 8,
                   marginVertical: 4
                 }}>
-                  <Text style={{ 
-                    fontSize: 10, 
+                  <Text style={{
+                    fontSize: 10,
                     color: isDark ? "#CCCCCC" : "#666666",
                     fontFamily: 'monospace'
                   }}>
-                    Debug: ID={selectedPersonId}, Loading={profileLoading ? 'true' : 'false'}, 
-                    HasData={!!profileDetails ? 'true' : 'false'}, 
+                    Debug: ID={selectedPersonId}, Loading={profileLoading ? 'true' : 'false'},
+                    HasData={!!profileDetails ? 'true' : 'false'},
                     Error={profileError ? 'true' : 'false'}
                   </Text>
                   {profileDetails && (
-                    <Text style={{ 
-                      fontSize: 10, 
+                    <Text style={{
+                      fontSize: 10,
                       color: isDark ? "#CCCCCC" : "#666666",
                       fontFamily: 'monospace'
                     }}>
@@ -2368,27 +2413,27 @@ export default function TarpsScreen() {
                   )}
                 </View>
               )}
-              
+
               {/* Profile Stats - Only show for friends, not current user */}
               {!isCurrentUser && profileDetails && (
-                <View style={{ 
-                  flexDirection: "row", 
-                  justifyContent: "space-around", 
+                <View style={{
+                  flexDirection: "row",
+                  justifyContent: "space-around",
                   paddingVertical: 12,
                   backgroundColor: isDark ? "#2a2a2a" : "#f8f9fa",
                   borderRadius: 12,
                   marginVertical: 8
                 }}>
                   <View style={{ alignItems: "center" }}>
-                    <Text style={{ 
-                      fontSize: 18, 
-                      fontWeight: "700", 
-                      color: isDark ? "#FFFFFF" : "#0a0a0a" 
+                    <Text style={{
+                      fontSize: 18,
+                      fontWeight: "700",
+                      color: isDark ? "#FFFFFF" : "#0a0a0a"
                     }}>
                       {profileDetails.friends !== undefined ? profileDetails.friends : '0'}
                     </Text>
-                    <Text style={{ 
-                      fontSize: 12, 
+                    <Text style={{
+                      fontSize: 12,
                       color: isDark ? "#CCCCCC" : "#666666",
                       marginTop: 2
                     }}>
@@ -2396,15 +2441,15 @@ export default function TarpsScreen() {
                     </Text>
                   </View>
                   <View style={{ alignItems: "center" }}>
-                    <Text style={{ 
-                      fontSize: 18, 
-                      fontWeight: "700", 
-                      color: isDark ? "#FFFFFF" : "#0a0a0a" 
+                    <Text style={{
+                      fontSize: 18,
+                      fontWeight: "700",
+                      color: isDark ? "#FFFFFF" : "#0a0a0a"
                     }}>
                       {profileDetails.followers !== undefined ? profileDetails.followers : '0'}
                     </Text>
-                    <Text style={{ 
-                      fontSize: 12, 
+                    <Text style={{
+                      fontSize: 12,
                       color: isDark ? "#CCCCCC" : "#666666",
                       marginTop: 2
                     }}>
@@ -2412,15 +2457,15 @@ export default function TarpsScreen() {
                     </Text>
                   </View>
                   <View style={{ alignItems: "center" }}>
-                    <Text style={{ 
-                      fontSize: 18, 
-                      fontWeight: "700", 
-                      color: isDark ? "#FFFFFF" : "#0a0a0a" 
+                    <Text style={{
+                      fontSize: 18,
+                      fontWeight: "700",
+                      color: isDark ? "#FFFFFF" : "#0a0a0a"
                     }}>
                       {profileDetails.following !== undefined ? profileDetails.following : '0'}
                     </Text>
-                    <Text style={{ 
-                      fontSize: 12, 
+                    <Text style={{
+                      fontSize: 12,
                       color: isDark ? "#CCCCCC" : "#666666",
                       marginTop: 2
                     }}>
@@ -2429,19 +2474,19 @@ export default function TarpsScreen() {
                   </View>
                 </View>
               )}
-              
+
               {/* Error state for profile stats */}
               {!isCurrentUser && profileError && (
-                <View style={{ 
-                  flexDirection: "row", 
-                  justifyContent: "center", 
+                <View style={{
+                  flexDirection: "row",
+                  justifyContent: "center",
                   paddingVertical: 12,
                   backgroundColor: isDark ? "#2a2a2a" : "#f8f9fa",
                   borderRadius: 12,
                   marginVertical: 8
                 }}>
                   <Ionicons name="alert-circle-outline" size={16} color="#EF4444" />
-                  <Text style={{ 
+                  <Text style={{
                     marginLeft: 8,
                     color: "#EF4444",
                     fontSize: 14
@@ -2450,19 +2495,19 @@ export default function TarpsScreen() {
                   </Text>
                 </View>
               )}
-              
+
               {/* Loading state for profile stats */}
               {!isCurrentUser && profileLoading && (
-                <View style={{ 
-                  flexDirection: "row", 
-                  justifyContent: "center", 
+                <View style={{
+                  flexDirection: "row",
+                  justifyContent: "center",
                   paddingVertical: 12,
                   backgroundColor: isDark ? "#2a2a2a" : "#f8f9fa",
                   borderRadius: 12,
                   marginVertical: 8
                 }}>
                   <ActivityIndicator size="small" color={isDark ? "#FFFFFF" : "#0a0a0a"} />
-                  <Text style={{ 
+                  <Text style={{
                     marginLeft: 8,
                     color: isDark ? "#CCCCCC" : "#666666",
                     fontSize: 14
@@ -2471,7 +2516,7 @@ export default function TarpsScreen() {
                   </Text>
                 </View>
               )}
-              
+
               {selectedPerson?.caption || selectedPerson?.activity ? (
                 <View style={[styles.chip, isDark ? { borderColor: "#333" } : { borderColor: "#e0e0e0" }]}>
                   <Text style={[styles.chipText, { color: isDark ? "#FFF" : "#000" }]}>{selectedPerson?.caption || selectedPerson?.activity}</Text>
