@@ -1,16 +1,21 @@
 import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useSocketConnection } from "@/hooks/useSocketConnection";
+import { useNetworkStore } from "@/state/networkStore";
 import { StyleSheet, View } from "react-native";
 
 export const NetworkStatusBanner = () => {
   const { isNetworkConnected, isSocketConnected, isOnline, isReconnecting } = useSocketConnection();
+  const { isApiConnectionError, apiErrorMessage } = useNetworkStore();
   const { isDark } = useTheme();
 
-  // Don't show banner if everything is working
-  if (isOnline) return null;
+  // Don't show banner if everything is working and no API error
+  if (isOnline && !isApiConnectionError) return null;
 
   const getStatusMessage = () => {
+    if (isApiConnectionError) {
+      return apiErrorMessage || "Bad network connection";
+    }
     if (!isNetworkConnected) {
       return "No internet connection";
     }
@@ -24,8 +29,9 @@ export const NetworkStatusBanner = () => {
   };
 
   const getStatusColor = () => {
-    if (!isNetworkConnected) {
-      return "#FF3B30"; // Red for no network
+    // Red for critical errors (no net or api failure)
+    if (!isNetworkConnected || isApiConnectionError) {
+      return "#FF3B30";
     }
     if (isReconnecting) {
       return "#FF9500"; // Orange for reconnecting

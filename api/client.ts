@@ -32,7 +32,7 @@
 //     const expiryTime = decoded.exp * 1000;
 //     const now = Date.now();
 //     const bufferTime = bufferMinutes * 60 * 1000;
-    
+
 //     return (expiryTime - now) < bufferTime;
 //   } catch {
 //     return true;
@@ -56,10 +56,10 @@
 //     if (config.url?.includes('/refresh')) {
 //       return config;
 //     }
-    
+
 //     const accessToken = await getAccessToken();
 //     const refreshToken = await getRefreshToken();
-    
+
 //     if (accessToken && refreshToken && shouldRefreshToken(accessToken, 5)) {
 //       try {
 //         console.log('🔄 Proactively refreshing token...');
@@ -70,7 +70,7 @@
 //             headers: { Authorization: `Bearer ${refreshToken}` }
 //           }
 //         );
-        
+
 //         if (refreshResponse.data?.data?.authTokens) {
 //           await saveAccessToken(refreshResponse.data.data.authTokens.accessToken);
 //           await saveSocketToken(refreshResponse.data.data.authTokens.socketToken);
@@ -81,7 +81,7 @@
 //         console.log('❌ Proactive refresh failed, using current token', error);
 //       }
 //     }
-    
+
 //     if (accessToken) {
 //       config.headers.Authorization = `Bearer ${accessToken}`;
 //     }
@@ -94,7 +94,7 @@
 //   (response) => response,
 //   async (error: AxiosError) => {
 //     const originalRequest = error.config as ExtendedAxiosRequestConfig;
-    
+
 //     if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
 //       if (isRefreshing) {
 //         return new Promise(function (resolve, reject) {
@@ -109,11 +109,11 @@
 
 //       try {
 //         const refreshToken = await getRefreshToken();
-  
+
 //         if (!refreshToken) {
 //           throw new Error('No refresh token available');
 //         }
-      
+
 //         const refreshResponse = await api.post(
 //           UrlConstants.refreshToken,
 //           {},
@@ -123,26 +123,26 @@
 //             }
 //           }
 //         );
-      
+
 //         if (refreshResponse.data?.data?.authTokens) {
 //           await saveAccessToken(refreshResponse.data.data.authTokens.accessToken);
 //           await saveSocketToken(refreshResponse.data.data.authTokens.socketToken);
 //         }
-        
+
 //         processQueue(null);
 //         return api(originalRequest);     
 //       } catch (err) {
 //         processQueue(err, null);
-        
+
 //         await clearUserData();
 //         useAuthStore.getState().setUser(undefined);
-        
+
 //         return Promise.reject(err);
 //       } finally {
 //         isRefreshing = false;
 //       }
 //     }
-    
+
 //     return Promise.reject(error);
 //   }
 // );
@@ -154,6 +154,7 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import { UrlConstants } from '../constants/apiUrls';
 import { useAuthStore } from '../state/authStore';
+import { useNetworkStore } from '../state/networkStore';
 import { clearUserData, getAccessToken, getRefreshToken, saveAccessToken, saveSocketToken } from '../utils/storage';
 
 interface TokenPayload {
@@ -212,19 +213,25 @@ api.interceptors.request.use(
     }
 
     const accessToken = await getAccessToken();
-    
+
     // Add access token to request if available
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
-    
+
     return config;
   },
   (error) => Promise.reject(error)
 );
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Clear any previous network error on successful response
+    if (useNetworkStore.getState().isApiConnectionError) {
+      useNetworkStore.getState().setApiConnectionError(false);
+    }
+    return response;
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config as ExtendedAxiosRequestConfig;
 
@@ -252,7 +259,7 @@ api.interceptors.response.use(
 
       try {
         console.log('🔄 Attempting token refresh due to 401...');
-        
+
         const refreshToken = await getRefreshToken();
 
         if (!refreshToken) {
@@ -272,7 +279,7 @@ api.interceptors.response.use(
           await saveAccessToken(refreshResponse.data.data.authTokens.accessToken);
           await saveSocketToken(refreshResponse.data.data.authTokens.socketToken);
           console.log('✅ Token refresh successful, retrying original request');
-          
+
           processQueue(null);
           return api(originalRequest);
         } else {
@@ -297,10 +304,13 @@ api.interceptors.response.use(
       }
     }
 
-    // Handle network errors
-    if (!error.response) {
+    // Handle network errors (timeout, no response, etc)
+    if (!error.response || error.code === 'ECONNABORTED') {
       console.log('🌐 Network error detected:', error.message);
       error.code = 'NETWORK_ERROR';
+
+      // Trigger global network error state
+      useNetworkStore.getState().setApiConnectionError(true, 'Bad network connection');
     }
 
     return Promise.reject(error);

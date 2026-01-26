@@ -18,6 +18,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Toaster } from "sonner-native";
 
+import { NetworkStatusBanner } from "@/components/NetworkStatusBanner";
 import { setupBackgroundMessageHandler } from "@/utils/backgroundMessaging";
 
 // Register background handler immediately
@@ -119,6 +120,8 @@ function RootLayoutContent() {
         backgroundColor={isDark ? "#0a0a0a" : "#FFFFFF"}
         translucent={false}
       />
+
+      <NetworkStatusBanner />
 
       <Stack
         screenOptions={{
