@@ -11,7 +11,7 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import moment from "moment";
 import { useEffect, useRef, useState } from "react";
-import { Animated, Dimensions, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Animated, Dimensions, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
 
@@ -257,6 +257,7 @@ const Header = () => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeTab, setActiveTab] = useState<'all' | 'unread'>('all');
+  const [isClearing, setIsClearing] = useState(false);
 
 
 
@@ -361,14 +362,16 @@ const Header = () => {
   // Clear all notifications
   const clearAllNotifications = async () => {
     try {
+      setIsClearing(true);
+      await api.delete(UrlConstants.tarpNotifications);
       setNotifications([]);
       setUnreadCount(0);
-
-      // TODO: Add API call to clear all notifications on server
       toast.success('All notifications cleared');
     } catch (error) {
       console.error('Error clearing notifications:', error);
       toast.error('Failed to clear notifications');
+    } finally {
+      setIsClearing(false);
     }
   };
 
@@ -930,11 +933,18 @@ const Header = () => {
                   <Pressable
                     style={styles.clearButton}
                     onPress={clearAllNotifications}
+                    disabled={isClearing}
                   >
-                    <Ionicons name="trash-outline" size={16} color="#EF4444" />
-                    <Text style={styles.clearButtonText}>
-                      Clear all
-                    </Text>
+                    {isClearing ? (
+                      <ActivityIndicator size="small" color="#EF4444" />
+                    ) : (
+                      <>
+                        <Ionicons name="trash-outline" size={16} color="#EF4444" />
+                        <Text style={styles.clearButtonText}>
+                          Clear all
+                        </Text>
+                      </>
+                    )}
                   </Pressable>
                 </View>
               )}
