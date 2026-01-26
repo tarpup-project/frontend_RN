@@ -2,9 +2,9 @@ import { api } from "@/api/client";
 import { UrlConstants } from "@/constants/apiUrls";
 import { useAuthStore } from "@/state/authStore";
 import { useNotificationStore } from "@/state/notificationStore";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { AppState } from "react-native";
-import { useQueryClient } from "@tanstack/react-query";
 import { groupsKeys } from "./useGroups";
 
 interface NotificationResponse {
@@ -47,7 +47,7 @@ export const useNotifications = () => {
       }
     } catch (error: any) {
       console.error("Failed to fetch notifications:", error);
-      
+
       // Don't reset notifications on rate limit errors
       if (error.response?.status !== 429) {
         setNotifications({
@@ -81,7 +81,7 @@ export const useNotifications = () => {
 
     // Enable automatic notification polling every 30 seconds for more responsive counters
     console.log('🔄 Starting automatic notification polling');
-    
+
     const interval = setInterval(() => {
       console.log('📊 Fetching notifications automatically');
       fetchNotifications();
