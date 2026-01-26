@@ -143,13 +143,55 @@ const fetchDiscoverUsers = async (): Promise<User[]> => {
 };
 
 // Fetch pending friend requests
+// Fetch real friend status for a specific user
+const fetchRealFriendStatus = async (userId: string): Promise<'friends' | 'pending' | 'not_friends'> => {
+  try {
+    console.log(`🔍 Checking real friend status for user: ${userId}`);
+    const response = await api.get(UrlConstants.tarpCheckFriendStatus(userId));
+    
+    if (response.data?.status === 'success' && response.data?.data) {
+      const status = response.data.data.status;
+      console.log(`✅ Real friend status for ${userId}: ${status}`);
+      return status === 'accepted' ? 'friends' : status === 'pending' ? 'pending' : 'not_friends';
+    }
+    
+    console.log(`❌ No friend relationship found for ${userId}`);
+    return 'not_friends';
+  } catch (error) {
+    console.error(`❌ Failed to fetch friend status for ${userId}:`, error);
+    return 'not_friends';
+  }
+};
+
+// Fetch real friend statuses for multiple users
+const fetchRealFriendStatuses = async (userIds: string[]): Promise<Record<string, 'friends' | 'pending' | 'not_friends'>> => {
+  console.log(`🔍 Fetching real friend statuses for ${userIds.length} users`);
+  
+  const statusPromises = userIds.map(async (userId) => {
+    const status = await fetchRealFriendStatus(userId);
+    return { userId, status };
+  });
+  
+  const results = await Promise.all(statusPromises);
+  
+  const statusMap: Record<string, 'friends' | 'pending' | 'not_friends'> = {};
+  results.forEach(({ userId, status }) => {
+    statusMap[userId] = status;
+  });
+  
+  console.log(`✅ Real friend statuses fetched:`, statusMap);
+  return statusMap;
+};
+
 // Fetch pending friend requests
 const fetchPendingRequests = async (): Promise<string[]> => {
-  // Use friendRequests endpoint instead of follow/requests
-  const response = await api.get(UrlConstants.friendRequests);
-
+  console.log('🔄 Fetching pending requests from API...');
+  
+  const response = await api.get(UrlConstants.tarpUserPendingRequests);
+  
   if (response.data?.status === 'success' && response.data?.data) {
     const pendingData = response.data.data;
+    
     // Extract both IDs to identify the connection partner regardless of direction (initiator vs receiver)
     // The current user's ID will also be in this list but won't match any other user's ID in the UI list
     const pendingIds = pendingData.flatMap((item: any) => [item.userID, item.friendID]);
@@ -163,7 +205,6 @@ const fetchPendingRequests = async (): Promise<string[]> => {
   return [];
 };
 
-// Hook for followers
 export const useFollowers = () => {
   return useQuery<User[], Error>({
     queryKey: ['connections', 'followers'],
@@ -243,6 +284,27 @@ export const usePendingRequests = () => {
   });
 };
 
+// Hook for real-time friend status checking
+export const useRealFriendStatuses = (userIds: string[]) => {
+  return useQuery<Record<string, 'friends' | 'pending' | 'not_friends'>, Error>({
+    queryKey: ['connections', 'realFriendStatuses', userIds.sort().join(',')],
+    queryFn: () => fetchRealFriendStatuses(userIds),
+    enabled: userIds.length > 0,
+    staleTime: 1000 * 60 * 2, // 2 minutes - more frequent updates for friend status
+    gcTime: 1000 * 60 * 10, // 10 minutes
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
+    placeholderData: (previousData) => {
+      if (previousData && Object.keys(previousData).length > 0) {
+        console.log('⚡ Using cached real friend statuses -', Object.keys(previousData).length, 'statuses loaded from cache');
+      }
+      return previousData;
+    },
+  });
+};
+
 // Main hook that combines all data with cross-referencing
 export const useConnections = () => {
   const { data: followers = [], isLoading: followersLoading, error: followersError, refetch: refetchFollowers } = useFollowers();
@@ -250,18 +312,31 @@ export const useConnections = () => {
   const { data: discoverUsers = [], isLoading: discoverLoading, error: discoverError, refetch: refetchDiscover } = useDiscoverUsers();
   const { data: pendingIds = [], isLoading: pendingLoading, error: pendingError, refetch: refetchPending } = usePendingRequests();
 
-  // Cross-reference data to update friend and follow statuses
+  // Get all user IDs for real friend status checking
+  const allUserIds = [...new Set([
+    ...followers.map(u => u.id),
+    ...discoverUsers.map(u => u.id)
+  ])];
+
+  // Fetch real friend statuses for all users
+  const { data: realFriendStatuses = {}, isLoading: realStatusLoading } = useRealFriendStatuses(allUserIds);
+
+  // Cross-reference data to update friend and follow statuses with real API data
   const processedData = {
     follow: followers.map(user => {
       const friendIds = new Set(friends.map(f => f.id));
       const pendingSet = new Set(pendingIds);
       const isAlsoFriend = friendIds.has(user.id);
       const isPending = pendingSet.has(user.id);
+      
+      // Use real friend status if available, otherwise fall back to processed status
+      const realStatus = realFriendStatuses[user.id];
+      const finalFriendStatus = realStatus || (isAlsoFriend ? 'friends' as const : (isPending ? 'pending' as const : 'not_friends' as const));
 
       return {
         ...user,
-        isFriend: isAlsoFriend,
-        friendStatus: isAlsoFriend ? 'friends' as const : (isPending ? 'pending' as const : 'not_friends' as const)
+        isFriend: finalFriendStatus === 'friends',
+        friendStatus: finalFriendStatus
       };
     }),
 
@@ -275,18 +350,44 @@ export const useConnections = () => {
       const isInFollow = followIds.has(user.id);
       const isInFriends = friendIds.has(user.id);
       const isPending = pendingSet.has(user.id);
+      
+      // Use real friend status if available
+      const realStatus = realFriendStatuses[user.id];
+      const finalFriendStatus = realStatus || (isInFriends ? 'friends' : (isPending ? 'pending' : 'not_friends'));
 
-      // Update user status
+      // Update user status with real data
       user.isFollowing = isInFollow;
-      user.isFriend = isInFriends;
-      user.friendStatus = isInFriends ? 'friends' : (isPending ? 'pending' : 'not_friends');
+      user.isFriend = finalFriendStatus === 'friends';
+      user.friendStatus = finalFriendStatus;
 
       // Only show in discover if not in both follow and friends tabs
       return !(isInFollow && isInFriends);
     })
   };
 
-  const isLoading = followersLoading || friendsLoading || discoverLoading || pendingLoading;
+  // Console log everyone in discover tab with real friend status
+  console.log('🔍 DISCOVER TAB USERS (with real friend status):');
+  console.log('='.repeat(60));
+  processedData.discover.forEach((user, index) => {
+    const realStatus = realFriendStatuses[user.id];
+    const hasRealStatus = realStatus !== undefined;
+    
+    console.log(`${index + 1}. ${user.fname} ${user.lname} (@${user.username || 'no-username'})`);
+    console.log(`   ID: ${user.id}`);
+    console.log(`   Following: ${user.isFollowing ? '✅' : '❌'}`);
+    console.log(`   Friend: ${user.isFriend ? '✅' : '❌'}`);
+    console.log(`   Friend Status: ${user.friendStatus} ${hasRealStatus ? '(✅ Real API)' : '(📋 Cached)'}`);
+    console.log(`   Avatar: ${user.bgUrl ? '🖼️ Yes' : '❌ No'}`);
+    if (hasRealStatus) {
+      console.log(`   🔍 Real API Status: ${realStatus}`);
+    }
+    console.log('   ---');
+  });
+  console.log(`📊 Total discover users: ${processedData.discover.length}`);
+  console.log(`🔍 Real statuses fetched: ${Object.keys(realFriendStatuses).length}/${allUserIds.length}`);
+  console.log('='.repeat(60));
+
+  const isLoading = followersLoading || friendsLoading || discoverLoading || pendingLoading || realStatusLoading;
   const hasError = followersError || friendsError || discoverError || pendingError;
 
   const refetchAll = () => {
