@@ -2,7 +2,7 @@ export default {
   expo: {
     name: "Tarpup",
     slug: "Tarpup",
-    version: "1.0.0",
+    version: "1.0.2",
     orientation: "portrait",
     icon: "./assets/images/tarpup-lightt.png",
     scheme: "rnfrontend",
@@ -115,7 +115,7 @@ export default {
       }
     },
 
-    runtimeVersion: "1.0.1",
+    runtimeVersion: "1.0.2",
 
     owner: "expo_travor"
   }
