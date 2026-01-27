@@ -102,6 +102,29 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   // Derived state
   const isCached = !isLoading && messages.length > 0;
 
+  const uniqueMessages = useMemo(() => {
+    const seenIds = new Set<string>();
+    const seenComposite = new Set<string>();
+    const out: typeof messages = [];
+    for (const msg of messages) {
+      const id = msg?.content?.id;
+      if (id && seenIds.has(id)) {
+        continue;
+      }
+      const text = String(msg?.content?.message || '').trim().toLowerCase();
+      const timeMs = msg?.createdAt ? new Date(msg.createdAt).getTime() : NaN;
+      const seconds = isNaN(timeMs) ? null : Math.floor(timeMs / 1000);
+      const composite = seconds !== null ? `${text}|${seconds}` : null;
+      if (composite && seenComposite.has(composite)) {
+        continue;
+      }
+      if (id) seenIds.add(id);
+      if (composite) seenComposite.add(composite);
+      out.push(msg);
+    }
+    return out;
+  }, [messages]);
+
   // Helper functions
   const markAsRead = useCallback(() => {
     // Mark as read locally
