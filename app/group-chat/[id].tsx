@@ -5,6 +5,7 @@ import { ImageModal } from "@/components/chatComponents/ImageModal";
 import { LinkConfirmModal } from "@/components/chatComponents/LinkConfirmModal";
 import { MessageInput } from "@/components/chatComponents/MessageInput";
 import { MessageList } from "@/components/chatComponents/MessageList";
+import { CreatingChatLoader } from "@/components/CreatingChatLoader";
 import Header from "@/components/Header";
 import { NetworkStatusBanner } from "@/components/NetworkStatusBanner";
 import { Text } from "@/components/Themedtext";
@@ -24,15 +25,14 @@ import { useKeepAwake } from "expo-keep-awake";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  AppState,
-  Keyboard,
-  KeyboardAvoidingView, Linking, Platform,
-  Pressable,
-  StyleSheet,
-  View
+    Alert,
+    Animated,
+    AppState,
+    Keyboard,
+    KeyboardAvoidingView, Linking, Platform,
+    Pressable,
+    StyleSheet,
+    View
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
@@ -103,25 +103,41 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   const isCached = !isLoading && messages.length > 0;
 
   const uniqueMessages = useMemo(() => {
-    const seenIds = new Set<string>();
-    const seenComposite = new Set<string>();
-    const out: typeof messages = [];
+    // 1) Dedup by id, keep latest
+    const byId = new Map<string, any>();
     for (const msg of messages) {
-      const id = msg?.content?.id;
-      if (id && seenIds.has(id)) {
-        continue;
+      const id = String(msg?.content?.id || '');
+      if (!id) continue;
+      const prev = byId.get(id);
+      const curTime = msg?.createdAt ? new Date(msg.createdAt).getTime() : 0;
+      const prevTime = prev?.createdAt ? new Date(prev.createdAt).getTime() : 0;
+      if (!prev || curTime >= prevTime) {
+        byId.set(id, msg);
       }
-      const text = String(msg?.content?.message || '').trim().toLowerCase();
-      const timeMs = msg?.createdAt ? new Date(msg.createdAt).getTime() : NaN;
-      const seconds = isNaN(timeMs) ? null : Math.floor(timeMs / 1000);
-      const composite = seconds !== null ? `${text}|${seconds}` : null;
-      if (composite && seenComposite.has(composite)) {
-        continue;
-      }
-      if (id) seenIds.add(id);
-      if (composite) seenComposite.add(composite);
-      out.push(msg);
     }
+    const idDeduped = Array.from(byId.values());
+
+    // 2) Dedup by composite key, keep latest
+    const byComposite = new Map<string, any>();
+    for (const msg of idDeduped) {
+      const senderId = msg?.messageType === 'user' ? String(msg?.sender?.id || '') : 'system';
+      const text = String(msg?.content?.message || '').trim().toLowerCase();
+      const ms = msg?.createdAt ? new Date(msg.createdAt).getTime() : 0;
+      const bucket = Math.floor(ms / 5000);
+      const key = `${senderId}|${text}|${bucket}`;
+      const prev = byComposite.get(key);
+      const prevTime = prev?.createdAt ? new Date(prev.createdAt).getTime() : 0;
+      if (!prev || ms >= prevTime) {
+        byComposite.set(key, msg);
+      }
+    }
+
+    const out = Array.from(byComposite.values());
+    out.sort((a, b) => {
+      const aTime = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return aTime - bTime;
+    });
     return out;
   }, [messages]);
 
@@ -462,15 +478,16 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
         />
 
         {isLoading && messages.length === 0 ? (
-          <View style={[styles.centerContainer, { flex: 1 }]}>
-            <ActivityIndicator size="small" color={isDark ? "#FFFFFF" : "#000000"} />
-            <Text style={[{ marginTop: 10, color: isDark ? "#888" : "#666" }]}>
-              Loading messages...
-            </Text>
-          </View>
+          <CreatingChatLoader
+            name={finalGroupDetails?.name || passedGroupData?.name || "Group Chat"}
+            titleText=""
+            prefixText="Your chat with "
+            suffixText=" is getting prepared..."
+            showTitle={false}
+          />
         ) : (
           <MessageList
-            messages={messages}
+            messages={uniqueMessages}
             userId={user?.id}
             onReply={startReply}
             onImagePress={setShowImageModal}
@@ -478,7 +495,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
             scrollToMessage={scrollToMessage}
             messageRefs={messageRefs}
             navigateToProfile={navigateToProfile}
-            isLoadingMore={isRefetching}
+            isLoadingMore={false}
           />
         )}
 

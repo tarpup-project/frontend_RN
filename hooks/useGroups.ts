@@ -110,7 +110,7 @@ export const useGroups = () => {
     enabled: !!(isAuthenticated && isHydrated),
     staleTime: 1000 * 30, // 30 seconds (frequent updates for notifications)
     gcTime: 1000 * 60 * 5, // 5 minutes
-    refetchInterval: 30000, // Refresh every 30 seconds (like web version)
+    refetchInterval: 50000, // Refresh every 30 seconds (like web version)
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
@@ -157,7 +157,7 @@ export const useGroups = () => {
       console.log(`⏱️ Retrying in ${delay}ms`);
       return delay;
     },
-    refetchInterval: 15000, // Refetch every 15 seconds (like web version)
+    refetchInterval: 40000, // Refetch every 15 seconds (like web version)
     refetchIntervalInBackground: false, // Don't refetch in background
     refetchOnWindowFocus: true, // Refetch when app comes back to focus
     refetchOnReconnect: true, // Refetch when network reconnects

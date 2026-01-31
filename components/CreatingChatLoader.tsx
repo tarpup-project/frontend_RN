@@ -4,15 +4,19 @@ import { Animated, StyleSheet, Text, View } from 'react-native';
 
 interface CreatingChatLoaderProps {
     name: string;
+    titleText?: string;
+    prefixText?: string;
+    suffixText?: string;
+    showTitle?: boolean;
 }
 
-export const CreatingChatLoader: React.FC<CreatingChatLoaderProps> = ({ name }) => {
+export const CreatingChatLoader: React.FC<CreatingChatLoaderProps> = ({ name, titleText, prefixText, suffixText, showTitle = true }) => {
     const { isDark } = useTheme();
 
     // Text segments
-    const titleText = "Hurray! 🥳";
-    const prefix = "Your chat with ";
-    const suffix = " is being created...";
+    const resolvedTitle = typeof titleText === 'string' ? titleText : "Hurray! 🥳";
+    const prefix = typeof prefixText === 'string' ? prefixText : "Your chat with ";
+    const suffix = typeof suffixText === 'string' ? suffixText : " is being created...";
 
     // State for typing animation
     const [displayedTitle, setDisplayedTitle] = useState("");
@@ -22,7 +26,7 @@ export const CreatingChatLoader: React.FC<CreatingChatLoaderProps> = ({ name }) 
     const [isTypingDone, setIsTypingDone] = useState(false);
 
     const cursorOpacity = useRef(new Animated.Value(1)).current;
-    const timeouts = useRef<NodeJS.Timeout[]>([]);
+    const timeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
 
     // Blinking cursor animation
     useEffect(() => {
@@ -71,7 +75,9 @@ export const CreatingChatLoader: React.FC<CreatingChatLoaderProps> = ({ name }) 
         };
 
         // 1. Type Title
-        scheduleTyping(titleText, setDisplayedTitle);
+        if (showTitle && resolvedTitle) {
+            scheduleTyping(resolvedTitle, setDisplayedTitle);
+        }
 
         // Pause a bit after title
         currentDelay += commaPause;
@@ -94,15 +100,17 @@ export const CreatingChatLoader: React.FC<CreatingChatLoaderProps> = ({ name }) 
         return () => {
             timeouts.current.forEach(clearTimeout);
         };
-    }, [name]);
+    }, [name, resolvedTitle, prefix, suffix, showTitle]);
 
     return (
         <View style={[styles.container, { backgroundColor: isDark ? "#000000" : "#FFFFFF" }]}>
             <View style={styles.content}>
                 <View style={styles.textContainer}>
-                    <Text style={[styles.title, { color: isDark ? "#FFFFFF" : "#000000" }]}>
-                        {displayedTitle}
-                    </Text>
+                    {showTitle && resolvedTitle ? (
+                        <Text style={[styles.title, { color: isDark ? "#FFFFFF" : "#000000" }]}>
+                            {displayedTitle}
+                        </Text>
+                    ) : null}
 
                     <Text style={[styles.subtitle, { color: isDark ? "#9AA0A6" : "#666666" }]}>
                         {displayedPrefix}

@@ -216,6 +216,54 @@ export const useGroupMessages = (groupId: string, socket?: any): UseGroupMessage
   useEffect(() => {
     if (!socket || !groupId || !user) return;
 
+    const dedupAndSort = (merged: GroupMessage[]): GroupMessage[] => {
+      // 1) Dedup by content.id, keep the latest by createdAt
+      const byId = new Map<string, GroupMessage>();
+      for (const m of merged) {
+        const id = String(m?.content?.id || '');
+        if (!id) continue;
+        const prev = byId.get(id);
+        if (!prev) {
+          byId.set(id, m);
+        } else {
+          const prevTime = prev.createdAt ? new Date(prev.createdAt).getTime() : 0;
+          const curTime = m.createdAt ? new Date(m.createdAt).getTime() : 0;
+          if (curTime >= prevTime) {
+            byId.set(id, m);
+          }
+        }
+      }
+      const idDeduped = Array.from(byId.values());
+
+      // 2) Dedup by composite key (senderId|text|bucket), keep the latest
+      const byComposite = new Map<string, GroupMessage>();
+      for (const m of idDeduped) {
+        const isUser = m.messageType === MessageType.USER;
+        const senderId = isUser ? (m as UserMessage).sender.id : 'system';
+        const text = String(m?.content?.message || '').trim().toLowerCase();
+        const ms = m.createdAt ? new Date(m.createdAt).getTime() : 0;
+        const bucket = Math.floor(ms / 5000);
+        const composite = `${senderId}|${text}|${bucket}`;
+        const prev = byComposite.get(composite);
+        if (!prev) {
+          byComposite.set(composite, m);
+        } else {
+          const prevTime = prev.createdAt ? new Date(prev.createdAt).getTime() : 0;
+          if (ms >= prevTime) {
+            byComposite.set(composite, m);
+          }
+        }
+      }
+
+      const out = Array.from(byComposite.values());
+      out.sort((a, b) => {
+        const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return aTime - bTime;
+      });
+      return out;
+    };
+
     const handleJoinGroup = (response: any) => {
       console.log('⚡️ Socket: Joined room response received');
 
@@ -224,23 +272,12 @@ export const useGroupMessages = (groupId: string, socket?: any): UseGroupMessage
       if (Array.isArray(rawMessages) && rawMessages.length > 0) {
         const formatted = rawMessages.map(transformMessageForUI);
 
-        // Merge new messages with existing cache instead of replacing
+        // Merge new messages with existing cache and deduplicate
         queryClient.setQueryData<GroupMessage[]>(
           groupMessageKeys.detail(groupId),
           (oldMessages = []) => {
-            const existingIds = new Set(oldMessages.map(m => m.content.id));
-            const newMessages = formatted.filter(m => !existingIds.has(m.content.id));
-
-            if (newMessages.length > 0) {
-              console.log(`📦 Adding ${newMessages.length} new messages to cache (${oldMessages.length} existing)`);
-              return [...oldMessages, ...newMessages].sort((a, b) => {
-                const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-                const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-                return aTime - bTime;
-              });
-            }
-
-            return oldMessages;
+            const merged = [...oldMessages, ...formatted];
+            return dedupAndSort(merged);
           }
         );
       }
@@ -259,11 +296,31 @@ export const useGroupMessages = (groupId: string, socket?: any): UseGroupMessage
       queryClient.setQueryData<GroupMessage[]>(
         groupMessageKeys.detail(groupId),
         (oldMessages = []) => {
-          // Dedup check
-          if (oldMessages.some(m => m.content.id === newMessage.content.id)) {
-            return oldMessages;
+          const isUserMsg =
+            newMessage.messageType === MessageType.USER &&
+            String((newMessage as UserMessage).sender.id) === String(user?.id);
+
+          if (isUserMsg) {
+            const pendingMatch = oldMessages.find(m =>
+              m.messageType === MessageType.USER &&
+              String((m as UserMessage).sender.id) === String(user?.id) &&
+              (m as UserMessage).content.message.trim() === (newMessage as UserMessage).content.message.trim() &&
+              ((m as any).isPending ||
+                Math.abs(
+                  new Date(m.createdAt || Date.now()).getTime() -
+                  new Date(newMessage.createdAt || Date.now()).getTime()
+                ) < 60000)
+            );
+            if (pendingMatch) {
+              const replaced = oldMessages.map(m =>
+                m.content.id === pendingMatch.content.id ? newMessage : m
+              );
+              return dedupAndSort(replaced);
+            }
           }
-          return [...oldMessages, newMessage];
+
+          const merged = [...oldMessages, newMessage];
+          return dedupAndSort(merged);
         }
       );
     };
