@@ -165,12 +165,13 @@ interface TokenPayload {
 
 interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
+  _timeoutRetry?: boolean;
 }
 
 const api = axios.create({
   baseURL: UrlConstants.baseUrl,
   withCredentials: true,
-  timeout: 30000,
+  timeout: 95000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -305,12 +306,21 @@ api.interceptors.response.use(
     }
 
     // Handle network errors (timeout, no response, etc)
-    if (!error.response || error.code === 'ECONNABORTED') {
+    if (!error.response || error.code === 'ECONNABORTED' || (error.message && error.message.includes('timeout'))) {
       console.log('🌐 Network error detected:', error.message);
       error.code = 'NETWORK_ERROR';
 
       // Trigger global network error state
       useNetworkStore.getState().setApiConnectionError(true, 'Bad network connection');
+
+      // Single automatic retry for timeout errors with extended timeout
+      const originalRequest = error.config as ExtendedAxiosRequestConfig;
+      if (originalRequest && !originalRequest._timeoutRetry) {
+        originalRequest._timeoutRetry = true;
+        const extendedTimeout = Math.max(originalRequest.timeout || 0, 90000);
+        console.log(`⏱️ Retrying request once with extended timeout=${extendedTimeout}ms`);
+        return api({ ...originalRequest, timeout: extendedTimeout });
+      }
     }
 
     return Promise.reject(error);

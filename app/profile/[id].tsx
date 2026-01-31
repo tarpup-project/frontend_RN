@@ -9,16 +9,16 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import moment from "moment";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-  Image,
-  Modal,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  Share,
-  StyleSheet,
-  View,
+    Image,
+    Modal,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    Share,
+    StyleSheet,
+    View,
 } from "react-native";
 import { toast } from "sonner-native";
 
@@ -64,6 +64,8 @@ const UserProfile = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const { data: profileData, isLoading, error, refetch } = useUserProfile(id!);
+  const user = useMemo(() => (profileData as any)?.userDetails || profileData || {}, [profileData]);
+  const stats = useMemo(() => (profileData as any)?.stats || {}, [profileData]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [copyLoading, setCopyLoading] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
@@ -71,21 +73,21 @@ const UserProfile = () => {
 
   // University name resolution logic
   useEffect(() => {
-    if (!profileData?.userDetails?.university?.id || !universities || universities.length === 0) {
-      setUniversityName(profileData?.userDetails?.university?.name || 'University');
+    const university = user?.university;
+
+    if (!university?.id || !universities || universities.length === 0) {
+      setUniversityName(university?.name || 'University');
       return;
     }
 
-    const foundUniversity = universities.find(university =>
-      university.id === profileData.userDetails.university?.id
-    );
+    const foundUniversity = universities.find(u => u.id === university.id);
 
     if (foundUniversity) {
       setUniversityName(foundUniversity.name);
     } else {
-      setUniversityName(profileData?.userDetails?.university?.name || 'University');
+      setUniversityName(university?.name || 'University');
     }
-  }, [profileData?.userDetails?.university, universities]);
+  }, [user, universities]);
 
   const dynamicStyles = {
     container: {
@@ -136,8 +138,8 @@ const UserProfile = () => {
   const handleShareProfile = async () => {
     try {
       await Share.share({
-        message: `Check out ${profileData?.userDetails?.fname}'s profile on TarpAI Connect!\n\n${profileLink}`,
-        title: `${profileData?.userDetails?.fname}'s Profile`,
+        message: `Check out ${user?.fname}'s profile on TarpAI Connect!\n\n${profileLink}`,
+        title: `${user?.fname}'s Profile`,
         url: profileLink,
       });
     } catch (error) {
@@ -227,8 +229,6 @@ const UserProfile = () => {
     );
   }
 
-  const user = profileData.userDetails;
-  const stats = profileData.stats;
   const isOwnProfile = currentUser?.id === user.id;
 
   return (
@@ -369,7 +369,7 @@ const UserProfile = () => {
               Interests
             </Text>
             <View style={styles.interestsGrid}>
-              {stats.interests.map((interest, index) => (
+              {stats.interests.map((interest: string, index: number) => (
                 <View
                   key={index}
                   style={[styles.interestChip, dynamicStyles.button]}

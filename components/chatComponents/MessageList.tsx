@@ -103,16 +103,19 @@ export const MessageList: React.FC<MessageListProps> = ({
 
   const hasInitialScrolled = useRef(false);
   const isScrolling = useRef(false);
+  const shouldAutoScroll = useRef(false);
+
+  // Track message updates to trigger scroll
+  useEffect(() => {
+    if (messages.length > 0) {
+      shouldAutoScroll.current = true;
+    }
+  }, [messages]);
 
   const smoothScrollToBottom = useCallback((animated = true) => {
     if (isScrolling.current) return;
-
-    // Use native method for smoother/standard behavior
     scrollViewRef.current?.scrollToEnd({ animated });
   }, []);
-
-  // Removed the basic useEffect that called scrollToEnd
-  // Scrolling is now handled in onContentSizeChange
 
   useEffect(() => {
     const currentMessageIds = new Set(messages.map(msg => msg.content.id));
@@ -138,13 +141,22 @@ export const MessageList: React.FC<MessageListProps> = ({
           // Layout references removed
         }}
         onContentSizeChange={() => {
-          // Auto-scroll ONLY on initial load
-          if (messages.length > 0 && !hasInitialScrolled.current) {
-            hasInitialScrolled.current = true;
-            // Use a small delay to ensure layout is stable
-            setTimeout(() => {
-              smoothScrollToBottom(false); // Immediate scroll for first load
-            }, 100);
+          // Check if we need to auto-scroll (due to new messages or initial load)
+          if (messages.length > 0) {
+            // Initial load
+            if (!hasInitialScrolled.current) {
+              hasInitialScrolled.current = true;
+              // Small timeout to ensure layout is ready
+              setTimeout(() => {
+                smoothScrollToBottom(false);
+              }, 50);
+              shouldAutoScroll.current = false;
+            } 
+            // New messages arrived
+            else if (shouldAutoScroll.current) {
+              smoothScrollToBottom(true);
+              shouldAutoScroll.current = false;
+            }
           }
         }}
         onScroll={() => {
