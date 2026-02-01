@@ -25,14 +25,14 @@ import { useKeepAwake } from "expo-keep-awake";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    Alert,
-    Animated,
-    AppState,
-    Keyboard,
-    KeyboardAvoidingView, Linking, Platform,
-    Pressable,
-    StyleSheet,
-    View
+  Alert,
+  Animated,
+  AppState,
+  Keyboard,
+  KeyboardAvoidingView, Linking, Platform,
+  Pressable,
+  StyleSheet,
+  View
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
@@ -404,6 +404,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
 
   const navigateToProfile = useCallback(
     (userId: string) => {
+      console.log("Navigating to profile with details:", userId);
       router.push(`/profile/${userId}` as any);
     },
     [router]

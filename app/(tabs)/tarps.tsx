@@ -2570,15 +2570,15 @@ export default function TarpsScreen() {
                     <View style={{ marginTop: 12, maxHeight: 200, width: '100%' }}>
                       <ScrollView nestedScrollEnabled={true} style={{ width: '100%' }}>
                         {locationViewers.length === 0 ? (
-                          <View style={{ padding: 10, alignItems: 'center' }}>
+                          <View key="empty-viewers" style={{ padding: 10, alignItems: 'center' }}>
                             <Text style={{ color: isDark ? "#9AA0A6" : "#666", fontSize: 14 }}>
                               No one can see your location right now
                             </Text>
                           </View>
                         ) : (
-                          locationViewers.map((viewer) => (
+                          locationViewers.map((viewer, index) => (
                             <View
-                              key={viewer.id}
+                              key={`${viewer.id || 'viewer'}-${index}`}
                               style={{
                                 flexDirection: 'row',
                                 alignItems: 'center',
