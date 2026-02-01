@@ -5,12 +5,12 @@ import { GroupMember } from "@/types/groups";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
-    Animated,
-    Image,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    View,
+  Animated,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
 } from "react-native";
 
 interface GroupInfoModalProps {
@@ -46,9 +46,9 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
   // Function to detect if a name looks like a person's name
   const isPersonName = (name: string): boolean => {
     if (!name) return false;
-    
+
     const normalizedName = name.trim().toLowerCase();
-    
+
     // Common patterns that indicate it's NOT a person's name
     const nonPersonPatterns = [
       /roommate/i,
@@ -117,17 +117,17 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
       /hist\s*\d+/i, // HIST101, HIST 101, etc.
       /\d{3,}/i, // Any 3+ digit numbers (course codes)
     ];
-    
+
     // Check if name matches any non-person patterns
     const matchesNonPersonPattern = nonPersonPatterns.some(pattern => pattern.test(normalizedName));
-    
+
     if (matchesNonPersonPattern) {
       return false;
     }
-    
+
     // Additional checks for person names
     const words = normalizedName.split(/\s+/);
-    
+
     // If it's 1-2 words and doesn't match non-person patterns, likely a person
     if (words.length <= 2) {
       // Check if it contains common first names or looks like a name
@@ -151,30 +151,30 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
         'nick', 'rick', 'steve', 'dave', 'pete', 'tony', 'andy', 'jeff', 'bill',
         'will', 'rob', 'ron', 'don', 'ken', 'ray', 'lee', 'jay', 'guy', 'art'
       ];
-      
+
       const firstWord = words[0];
       if (commonFirstNames.includes(firstWord)) {
         return true;
       }
-      
+
       // Check if it looks like a name (starts with capital, reasonable length)
       if (firstWord.length >= 2 && firstWord.length <= 15 && /^[a-z]+$/.test(firstWord)) {
         return true;
       }
     }
-    
+
     return false;
   };
 
   // Determine if this is a personal chat based on member count AND name pattern
   const isPersonalChat = (() => {
     const memberCount = (groupDetails.members || []).length;
-    
+
     // If 2 or fewer members AND the name looks like a person's name, it's a personal chat
     if (memberCount <= 2 && groupDetails.name && isPersonName(groupDetails.name)) {
       return true;
     }
-    
+
     // Otherwise, it's a group chat
     return false;
   })();
@@ -199,7 +199,7 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
 
   return (
     <>
-      <Pressable 
+      <Pressable
         style={styles.modalOverlay}
         onPress={onClose}
       />
@@ -210,7 +210,7 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
           dynamicStyles.modal,
           {
             top: iconPosition.y + 70,
-            right: 20, 
+            right: 20,
             opacity: fadeAnim,
             transform: [
               { translateX: slideAnim },
@@ -238,7 +238,7 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
                 {groupDetails.name}
               </Text>
               <View style={styles.compatibilityBadge}>
-              <Ionicons name="star" size={16} color="#FFD700" />
+                <Ionicons name="star" size={16} color="#FFD700" />
                 <Text
                   style={[
                     styles.compatibilityText,
@@ -257,74 +257,75 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
 
           <View style={styles.groupInfoSection}>
             <View style={styles.membersHeader}>
-            <Ionicons name="people" size={18} color={dynamicStyles.text.color} />
+              <Ionicons name="people" size={18} color={dynamicStyles.text.color} />
               <Text style={[styles.groupInfoLabel, dynamicStyles.text]}>
                 Members ({groupDetails.members.length})
               </Text>
             </View>
 
             <ScrollView style={styles.membersScrollContainer}>
-            {groupDetails.members.map(
-              (member: GroupMember, index: number) => {
-                const colors = [
-                  "#FF6B9D",
-                  "#4A90E2",
-                  "#9C27B0",
-                  "#00D084",
-                  "#FFB347",
-                ];
-                
-                // Show admin label only for the first member (traditional admin) in non-personal chats
-                // Backend should provide proper admin status in the future
-                const shouldShowAdmin = !isPersonalChat && index === 0;
-                
-                return (
-                  <Pressable
-                    key={member.id}
-                    style={styles.memberItem}
-                    onPress={() => {
-                      onClose();
-                      navigateToProfile(member.id);
-                    }}
-                  >
-                    <View
-                      style={[
-                        styles.memberAvatar,
-                        {
-                          backgroundColor: member.bgUrl
-                            ? "transparent"
-                            : colors[index % colors.length],
-                        },
-                      ]}
+              {groupDetails.members.map(
+                (member: GroupMember, index: number) => {
+                  const colors = [
+                    "#FF6B9D",
+                    "#4A90E2",
+                    "#9C27B0",
+                    "#00D084",
+                    "#FFB347",
+                  ];
+
+                  // Show admin label only for the first member (traditional admin) in non-personal chats
+                  // Backend should provide proper admin status in the future
+                  const shouldShowAdmin = !isPersonalChat && index === 0;
+
+                  return (
+                    <Pressable
+                      key={member.id}
+                      style={styles.memberItem}
+                      onPress={() => {
+                        console.log("Member clicked:", member);
+                        onClose();
+                        navigateToProfile(member.id);
+                      }}
                     >
-                      {member.bgUrl ? (
-                        <Image
-                          source={{ uri: member.bgUrl }}
-                          style={styles.memberAvatarImage}
-                        />
-                      ) : (
-                        <Text style={styles.memberAvatarText}>
-                          {member.fname[0]}
+                      <View
+                        style={[
+                          styles.memberAvatar,
+                          {
+                            backgroundColor: member.bgUrl
+                              ? "transparent"
+                              : colors[index % colors.length],
+                          },
+                        ]}
+                      >
+                        {member.bgUrl ? (
+                          <Image
+                            source={{ uri: member.bgUrl }}
+                            style={styles.memberAvatarImage}
+                          />
+                        ) : (
+                          <Text style={styles.memberAvatarText}>
+                            {member.fname[0]}
+                          </Text>
+                        )}
+                      </View>
+                      <View style={styles.memberInfo}>
+                        <Text style={[styles.memberName, dynamicStyles.text]}>
+                          {member.fname}
+                          {member.id === user?.id && " (You)"}
                         </Text>
-                      )}
-                    </View>
-                    <View style={styles.memberInfo}>
-                      <Text style={[styles.memberName, dynamicStyles.text]}>
-                        {member.fname}
-                        {member.id === user?.id && " (You)"}
-                      </Text>
-                      {shouldShowAdmin && (
-                        <Text
-                          style={[styles.memberRole, dynamicStyles.subtitle]}
-                        >
-                          Admin
-                        </Text>
-                      )}
-                    </View>
-                  </Pressable>
-                );
-              }
-            )}
+                        {shouldShowAdmin && (
+                          <Text
+                            style={[styles.memberRole, dynamicStyles.subtitle]}
+                          >
+                            Admin
+                          </Text>
+                        )}
+                      </View>
+                    </Pressable>
+                  );
+                }
+              )}
             </ScrollView>
           </View>
         </ScrollView>
@@ -341,13 +342,13 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     zIndex: 999,
-    backgroundColor: "transparent", 
+    backgroundColor: "transparent",
   },
   groupInfoSlideModal: {
     position: "absolute",
-    width: 280, 
+    width: 280,
     height: 550,
-    maxHeight: 600, 
+    maxHeight: 600,
     borderRadius: 12,
     borderWidth: 1,
     zIndex: 1000,
@@ -359,10 +360,10 @@ const styles = StyleSheet.create({
   },
   groupInfoContent: {
     flex: 1,
-    padding: 16, 
+    padding: 16,
   },
   groupInfoSection: {
-    marginBottom: 16, 
+    marginBottom: 16,
   },
   groupInfoTop: {
     alignItems: "center",
@@ -403,7 +404,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   membersScrollContainer: {
-    maxHeight: 300, 
+    maxHeight: 300,
   },
   groupInfoLabel: {
     fontSize: 12,

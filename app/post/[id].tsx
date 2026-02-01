@@ -13,18 +13,18 @@ import { StatusBar } from "expo-status-bar";
 import moment from "moment";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Animated,
-    Dimensions,
-    FlatList,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    Pressable,
-    StyleSheet,
-    Text,
-    TextInput,
-    View
+  ActivityIndicator,
+  Animated,
+  Dimensions,
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
 } from "react-native";
 import { Gesture, GestureDetector, GestureHandlerRootView, ScrollView } from "react-native-gesture-handler";
 import { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
@@ -451,6 +451,44 @@ export default function PostPreviewScreen() {
     if (!raw) return null;
     if (/^https?:\/\//i.test(raw)) return raw;
     return `${UrlConstants.baseUrl}${raw.startsWith("/") ? "" : "/"}${raw}`;
+  };
+
+  const extractAllImageUrls = (item: any): string[] => {
+    if (!item || typeof item !== "object") return [];
+
+    // If explicit images array exists and has content
+    if (Array.isArray(item.images) && item.images.length > 0) {
+      return item.images
+        .map((img: any) => {
+          if (typeof img === "string") return img;
+          return img?.url || img?.imageUrl || img?.image || img?.photoUrl || null;
+        })
+        .filter((url: any) => typeof url === "string" && url.length > 0)
+        .map((url: string) => {
+          if (/^https?:\/\//i.test(url)) return url;
+          return `${UrlConstants.baseUrl}${url.startsWith("/") ? "" : "/"}${url}`;
+        });
+    }
+
+    // Fallback to single image extraction if no array or array is empty
+    const singleUrl = extractImageUrl(item);
+    return singleUrl ? [singleUrl] : [];
+  };
+
+  const extractAllImageIds = (item: any): (string | null)[] => {
+    if (!item || typeof item !== "object") return [];
+
+    // If explicit images array exists and has content
+    if (Array.isArray(item.images) && item.images.length > 0) {
+      return item.images.map((img: any) => {
+        const id = img?.id ?? img?._id ?? img?.imageId ?? img?.imageID;
+        return id != null ? String(id) : null;
+      });
+    }
+
+    // Fallback to single image ID extraction
+    const singleId = extractImageId(item);
+    return singleId ? [singleId] : [];
   };
 
   const extractImageId = (item: any): string | null => {
@@ -941,12 +979,17 @@ export default function PostPreviewScreen() {
     setCurrentPostIndex(newIndex);
 
     // Update current post data
+    // Update current post data
     setCurrentPostItem(targetPost);
-    const imageUrl = extractImageUrl(targetPost);
-    const imageId = extractImageId(targetPost);
 
-    setCurrentImages(imageUrl ? [imageUrl] : []);
-    setCurrentImageIds(imageId ? [imageId] : []);
+    // Extract all available images for the target post
+    const allImageUrls = extractAllImageUrls(targetPost);
+    const allImageIds = extractAllImageIds(targetPost);
+
+    console.log(`Navigating to post ${targetPost.id} with ${allImageUrls.length} images`);
+
+    setCurrentImages(allImageUrls);
+    setCurrentImageIds(allImageIds);
     setCurrentImageIndex(0);
     setAllPostItems([targetPost]);
 

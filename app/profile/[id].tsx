@@ -3,22 +3,22 @@ import { Skeleton } from "@/components/Skeleton";
 import { Text } from "@/components/Themedtext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useCampus } from "@/hooks/useCampus";
-import { useUserProfile } from "@/hooks/useUserProfile";
+import { useFullUserProfile } from "@/hooks/useFullUserProfile";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import moment from "moment";
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
-    Image,
-    Modal,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    Share,
-    StyleSheet,
-    View,
+  Image,
+  Modal,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Share,
+  StyleSheet,
+  View,
 } from "react-native";
 import { toast } from "sonner-native";
 
@@ -63,9 +63,9 @@ const UserProfile = () => {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const { data: profileData, isLoading, error, refetch } = useUserProfile(id!);
-  const user = useMemo(() => (profileData as any)?.userDetails || profileData || {}, [profileData]);
-  const stats = useMemo(() => (profileData as any)?.stats || {}, [profileData]);
+  const { data: profileData, isLoading, error, refetch } = useFullUserProfile(id!);
+  const user = profileData?.userDetails || {} as any;
+  const stats = profileData?.stats || {} as any;
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [copyLoading, setCopyLoading] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
