@@ -137,46 +137,79 @@ export function usePushNotifications() {
   /* -------------------------------------------------------------------------- */
   /*                        NOTIFICATION TAP HANDLER                             */
   /* -------------------------------------------------------------------------- */
-  const setupNotificationTapHandler = () => {
-    responseListener.current =
-      Notifications.addNotificationResponseReceivedListener(response => {
-        console.log(
-          '👆 Notification tapped:',
-          response.notification.request.content
-        );
+  const handleNotificationResponse = (response: Notifications.NotificationResponse) => {
+    console.log(
+      '👆 Notification tapped (handling):',
+      JSON.stringify(response.notification.request.content, null, 2)
+    );
 
-        const data = response.notification.request.content.data;
+    const data = response.notification.request.content.data;
+    
+    // Create a normalized ID from either groupID or groupId
+    const targetGroupId = data?.groupID || data?.groupId;
 
-        // Create a normalized ID from either groupID or groupId
-        const targetGroupId = data?.groupID || data?.groupId;
+    console.log('🎯 Extracted Target Group ID:', targetGroupId);
 
-        if (targetGroupId) {
-          // Navigate to group chat if we have an ID
-          // Construct minimal data for immediate display using notification title
-          const title = response.notification.request.content.title;
-          const minimalGroupData = {
-            id: targetGroupId,
-            name: title || "Group Chat",
-            members: [],
-          };
+    // Small delay to ensure navigation is ready
+    setTimeout(() => {
+      if (targetGroupId) {
+        // Navigate to group chat if we have an ID
+        // Construct minimal data for immediate display using notification title
+        const title = response.notification.request.content.title;
+        const minimalGroupData = {
+          id: targetGroupId,
+          name: title || "Group Chat",
+          members: [],
+        };
 
+        console.log('🚀 Attempting navigation to group chat:', targetGroupId);
+        
+        try {
+          // Use the explicit dynamic route syntax for better stability
           router.push({
-            pathname: `/group-chat/${targetGroupId}` as any,
+            pathname: "/group-chat/[id]",
             params: {
+              id: targetGroupId,
               groupData: JSON.stringify(minimalGroupData)
             }
-          });
-        } else if (data?.type === 'group' && data?.groupId) {
-          router.push(`/group-chat/${data.groupId}` as any);
-        } else if (data?.type === 'message' && data?.chatId) {
-          router.push(`/(app)/messages/${data.chatId}` as any);
-        } else if (data?.screen) {
-          router.push(data.screen as any);
-        } else {
-          // Default to groups list
-          router.push('/(tabs)/groups' as any);
+          } as any);
+          console.log('✅ Navigation push called');
+        } catch (error) {
+          console.error('❌ Navigation failed:', error);
+          // Fallback to string path
+          router.push(`/group-chat/${targetGroupId}` as any);
         }
-      });
+      } else if (data?.type === 'group' && data?.groupId) {
+        console.log('🚀 Navigating via type=group');
+        router.push(`/group-chat/${data.groupId}` as any);
+      } else if (data?.type === 'message' && data?.chatId) {
+        console.log('🚀 Navigating via type=message');
+        router.push(`/(app)/messages/${data.chatId}` as any);
+      } else if (data?.screen) {
+        console.log('🚀 Navigating via screen param:', data.screen);
+        router.push(data.screen as any);
+      } else {
+        console.log('⚠️ No specific target found, defaulting to groups list');
+        // Default to groups list
+        router.push('/(tabs)/groups' as any);
+      }
+    }, 1000); // Increased delay to 1000ms to ensure app is fully ready from background
+  };
+
+  const setupNotificationTapHandler = () => {
+    if (responseListener.current) return;
+
+    // Check for initial notification (Cold start)
+    Notifications.getLastNotificationResponseAsync().then(response => {
+      if (response) {
+        console.log('🚀 Found initial notification response');
+        handleNotificationResponse(response);
+      }
+    });
+
+    // Listen for interactions while app is running
+    responseListener.current =
+      Notifications.addNotificationResponseReceivedListener(handleNotificationResponse);
   };
 
   /* -------------------------------------------------------------------------- */
