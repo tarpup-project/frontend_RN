@@ -4,14 +4,17 @@ import { useAuthStore } from '@/state/authStore';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useState } from 'react';
 import {
-    AlertMessage,
-    GroupMessage,
-    MessageFile,
-    MessageType,
-    SendMessagePayload,
-    UserMessage
+  AlertMessage,
+  Group,
+  GroupMessage,
+  MessageFile,
+  MessageType,
+  SendMessagePayload,
+  UserMessage
 } from '../types/groups';
 import { SocketEvents } from '../types/socket';
+import { useCampus } from './useCampus';
+import { groupsKeys } from './useGroups';
 
 // --- Types ---
 
@@ -175,6 +178,44 @@ const transformMessageForUI = (msg: any): GroupMessage => {
 export const useGroupMessages = (groupId: string, socket?: any): UseGroupMessagesResult => {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
+  const { selectedUniversity } = useCampus();
+
+  // Helper to update groups list cache
+  const updateGroupCache = useCallback((latestMessage: GroupMessage) => {
+    if (!selectedUniversity?.id) return;
+
+    queryClient.setQueryData<Group[]>(groupsKeys.list(selectedUniversity.id), (oldGroups) => {
+      if (!oldGroups) return oldGroups;
+
+      return oldGroups.map(group => {
+        if (group.id === groupId) {
+          // Convert GroupMessage to the format expected by groups list
+          const simpleMessage = {
+             id: latestMessage.content.id,
+             content: latestMessage.content.message,
+             sender: latestMessage.messageType === 'user' ? (latestMessage as UserMessage).sender : { fname: 'System', id: 'system' },
+             // Add a fallback for lastMessageAt if createdAt is missing
+             createdAt: latestMessage.createdAt || new Date().toISOString(),
+          };
+
+          const msgTime = latestMessage.createdAt ? new Date(latestMessage.createdAt).getTime() : Date.now();
+          const groupTime = group.lastMessageAt ? new Date(group.lastMessageAt).getTime() : 0;
+          
+          // Only update if the message is newer or equal
+          if (msgTime >= groupTime) {
+             const newMessages = group.messages ? [...group.messages, simpleMessage] : [simpleMessage];
+             
+             return {
+               ...group,
+               lastMessageAt: latestMessage.createdAt || new Date().toISOString(),
+               messages: newMessages
+             };
+          }
+        }
+        return group;
+      });
+    });
+  }, [groupId, queryClient, selectedUniversity?.id]);
 
   // Use React Query to fetch and cache messages
   const {
@@ -201,6 +242,19 @@ export const useGroupMessages = (groupId: string, socket?: any): UseGroupMessage
       return previousData;
     },
   });
+
+  // Sync latest message to groups list when messages are loaded or updated
+  useEffect(() => {
+    if (messages && messages.length > 0) {
+      const sorted = [...messages].filter(m => m.createdAt).sort((a, b) => {
+         return new Date(a.createdAt!).getTime() - new Date(b.createdAt!).getTime();
+      });
+      if (sorted.length > 0) {
+        const latest = sorted[sorted.length - 1];
+        updateGroupCache(latest);
+      }
+    }
+  }, [messages, updateGroupCache]);
 
   // Function to join group room with last message timestamp
   const joinGroupRoom = useCallback(() => {
@@ -296,6 +350,18 @@ export const useGroupMessages = (groupId: string, socket?: any): UseGroupMessage
             return dedupAndSort(merged);
           }
         );
+        
+        // Update groups list with latest message
+        if (formatted.length > 0) {
+           // Sort formatted messages to ensure we get the latest
+           const sorted = [...formatted].sort((a, b) => {
+             const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+             const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+             return aTime - bTime;
+           });
+           const latest = sorted[sorted.length - 1];
+           updateGroupCache(latest);
+        }
       }
     };
 
@@ -307,6 +373,9 @@ export const useGroupMessages = (groupId: string, socket?: any): UseGroupMessage
       if (msgData.roomID && msgData.roomID !== groupId) return;
 
       const newMessage = transformMessageForUI(msgData);
+
+      // Update groups list with latest message
+      updateGroupCache(newMessage);
 
       // Update React Query cache with new message
       queryClient.setQueryData<GroupMessage[]>(

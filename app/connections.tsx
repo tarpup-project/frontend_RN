@@ -114,6 +114,23 @@ export default function ConnectionsScreen() {
               : user
           );
         });
+        
+        // Optimistically add to friends list (for immediate tab switch effect)
+        // This ensures if they are also followed, they disappear from Discover immediately
+        queryClient.setQueryData(['connections', 'friends'], (old: User[] = []) => {
+          const user = users.find(u => u.id === userId);
+          if (!user) return old;
+          
+          // Don't add if already exists
+          if (old.find(u => u.id === userId)) return old;
+
+          return [...old, { 
+            ...user, 
+            isFriend: true, 
+            friendStatus: 'friends' as const 
+          }];
+        });
+
       } else {
         // Remove from pending
         queryClient.setQueryData(['connections', 'pending'], (old: string[] = []) => {
@@ -194,6 +211,10 @@ export default function ConnectionsScreen() {
   };
 
   const handleFollowAction = async (userId: string, action: 'follow' | 'unfollow') => {
+    // Snapshot previous data for rollback
+    const previousFollowers = queryClient.getQueryData(['connections', 'followers']);
+    const previousDiscover = queryClient.getQueryData(['connections', 'discover']);
+
     try {
       // Find the user to get the correct ID for the API call and determine action
       const user = users.find(u => u.id === userId);
@@ -212,6 +233,41 @@ export default function ConnectionsScreen() {
 
       console.log(`${actualAction === 'follow' ? 'Following' : 'Unfollowing'} user:`, apiUserId, 'Action:', actualAction);
 
+      // Optimistic Update - immediately update UI
+      if (actualAction === 'follow') {
+        // Add to followers list immediately
+        queryClient.setQueryData(['connections', 'followers'], (old: User[] = []) => {
+          // If already in list, don't add
+          if (old.find(u => u.id === userId)) return old;
+          
+          if (!user) return old;
+          return [...old, { ...user, isFollowing: true }];
+        });
+
+        // Update discover list to reflect following status
+        queryClient.setQueryData(['connections', 'discover'], (old: User[] = []) => {
+          return old.map(u => 
+            u.id === userId 
+              ? { ...u, isFollowing: true } 
+              : u
+          );
+        });
+      } else {
+        // Remove from followers list immediately
+        queryClient.setQueryData(['connections', 'followers'], (old: User[] = []) => {
+          return old.filter(u => u.id !== userId);
+        });
+
+        // Update discover list to reflect unfollow status
+        queryClient.setQueryData(['connections', 'discover'], (old: User[] = []) => {
+          return old.map(u => 
+            u.id === userId 
+              ? { ...u, isFollowing: false } 
+              : u
+          );
+        });
+      }
+
       // Use existing follow toggle endpoint
       await api.post(UrlConstants.tarpToggleFollow, { userID: apiUserId, action: actualAction });
 
@@ -219,7 +275,7 @@ export default function ConnectionsScreen() {
 
       toast.success(actualAction === 'follow' ? 'Following' : 'Unfollowed');
 
-      // Refresh affected tabs after a short delay
+      // Refresh affected tabs after a short delay to ensure consistency with server
       setTimeout(() => {
         if (actualAction === 'unfollow') {
           refetchTab('discover'); // Update status in discover
@@ -232,6 +288,14 @@ export default function ConnectionsScreen() {
     } catch (error) {
       console.error('Error toggling follow:', error);
       toast.error('Failed to update follow status');
+
+      // Rollback on error
+      if (previousFollowers) {
+        queryClient.setQueryData(['connections', 'followers'], previousFollowers);
+      }
+      if (previousDiscover) {
+        queryClient.setQueryData(['connections', 'discover'], previousDiscover);
+      }
     }
   };
 
