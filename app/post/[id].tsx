@@ -917,6 +917,102 @@ export default function PostPreviewScreen() {
       toast.error("Failed to toggle friend");
     }
   };
+  const refreshMetrics = useCallback(async () => {
+    const activeItem = getCurrentPostItem();
+    const imageID = getCurrentImageId();
+    if (!activeItem || !imageID) return;
+    try {
+      const resComments = await api.get(UrlConstants.tarpPostComments(imageID));
+      const list = (resComments as any)?.data?.data ?? (resComments as any)?.data?.comments ?? (resComments as any)?.data;
+      const actualCommentCount = Array.isArray(list) ? list.length : commentCount;
+      if (typeof actualCommentCount === "number") {
+        setCommentCount(actualCommentCount);
+        const updateItemCommentCount = (item: any) => {
+          if (!item) return item;
+          if (item.images && Array.isArray(item.images) && currentImageIndex < item.images.length) {
+            const updatedImages = [...item.images];
+            const currentImage = { ...updatedImages[currentImageIndex] };
+            if (currentImage._count) {
+              currentImage._count = { ...currentImage._count, tarpImgComments: actualCommentCount };
+            } else {
+              currentImage._count = { tarpImgComments: actualCommentCount };
+            }
+            currentImage.comments = actualCommentCount;
+            updatedImages[currentImageIndex] = currentImage;
+            return { ...item, images: updatedImages, commentsCount: actualCommentCount };
+          } else {
+            return { ...item, commentsCount: actualCommentCount };
+          }
+        };
+        if (currentPostItem) {
+          setCurrentPostItem(updateItemCommentCount(currentPostItem));
+        }
+        if (allPostItems.length > 0) {
+          setAllPostItems(allPostItems.map((it, idx) => (idx === currentImageIndex || it.id === activeItem.id ? updateItemCommentCount(it) : it)));
+        }
+        setAllAvailablePosts(prev => prev.map(p => (p.id === activeItem.id ? updateItemCommentCount(p) : p)));
+        if ((global as any).updatePostMetrics) {
+          (global as any).updatePostMetrics({ postId: activeItem.id, imageId: imageID, commentCount: actualCommentCount });
+        }
+      }
+    } catch {}
+    try {
+      const resStats = await api.get(UrlConstants.tarpStatsPosts);
+      const all = (resStats as any)?.data?.data ?? [];
+      let likeForImage: number | null = null;
+      let likeForItem: number | null = null;
+      const target = Array.isArray(all) ? all.find((p: any) => String(p.id) === String(activeItem.id)) : null;
+      if (target && Array.isArray(target.images)) {
+        const img = target.images.find((im: any) => String(im?.id) === String(imageID));
+        if (img) {
+          likeForImage = typeof img?._count?.tarpImgLikes === "number" ? img._count.tarpImgLikes : typeof img?.likes === "number" ? img.likes : null;
+        }
+      }
+      if (likeForImage == null && target) {
+        likeForItem = typeof target?.tarpImgLikes === "number" ? target.tarpImgLikes : typeof target?.likesCount === "number" ? target.likesCount : null;
+      }
+      const actualLikeCount = likeForImage != null ? likeForImage : likeForItem != null ? likeForItem : likeCount;
+      if (typeof actualLikeCount === "number") {
+        setLikeCount(actualLikeCount);
+        const updateItemLikeCount = (item: any) => {
+          if (!item) return item;
+          if (item.images && Array.isArray(item.images) && currentImageIndex < item.images.length) {
+            const updatedImages = [...item.images];
+            const currentImage = { ...updatedImages[currentImageIndex] };
+            if (currentImage._count) {
+              currentImage._count = { ...currentImage._count, tarpImgLikes: actualLikeCount };
+            } else {
+              currentImage._count = { tarpImgLikes: actualLikeCount };
+            }
+            currentImage.likes = actualLikeCount;
+            updatedImages[currentImageIndex] = currentImage;
+            return { ...item, images: updatedImages, likesCount: actualLikeCount, numLikes: actualLikeCount };
+          } else {
+            return { ...item, likesCount: actualLikeCount, numLikes: actualLikeCount };
+          }
+        };
+        if (currentPostItem) {
+          setCurrentPostItem(updateItemLikeCount(currentPostItem));
+        }
+        if (allPostItems.length > 0) {
+          setAllPostItems(allPostItems.map((it, idx) => (idx === currentImageIndex || it.id === activeItem.id ? updateItemLikeCount(it) : it)));
+        }
+        setAllAvailablePosts(prev => prev.map(p => (p.id === activeItem.id ? updateItemLikeCount(p) : p)));
+        if ((global as any).updatePostMetrics) {
+          (global as any).updatePostMetrics({ postId: activeItem.id, imageId: imageID, likeCount: actualLikeCount });
+        }
+      }
+    } catch {}
+  }, [currentPostItem, currentImageIndex, likeCount, commentCount]);
+  useEffect(() => {
+    if (!currentPostItem) return;
+    const id = setInterval(() => {
+      refreshMetrics();
+    }, 5000);
+    return () => {
+      clearInterval(id);
+    };
+  }, [currentPostItem?.id, currentImageIndex, refreshMetrics]);
   const toggleFollow = async (action: "follow" | "unfollow") => {
     const activeItem = getCurrentPostItem();
     const uid =
