@@ -60,7 +60,7 @@
     <key>NSLocationAlwaysUsageDescription</key>
     <string>Allow Tarpup to use your location. Strictly based on your request, Tarpup will help you share your location on the map with friends you choose, within the timeline you picked while sharing the location</string>
     <key>NSLocationWhenInUseUsageDescription</key>
-    <string>Tarpup needs your location to add photo markers on the map.</string>
+    <string>Allow Tarpup to use your location. Strictly based on your request, Tarpup will help you share your location on the map with friends you choose, within the timeline you picked while sharing the location</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your microphone</string>
     <key>NSPhotoLibraryAddUsageDescription</key>
