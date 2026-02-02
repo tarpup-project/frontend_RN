@@ -6,7 +6,7 @@ import { useReadReceiptsStore } from '@/state/readReceiptsStore';
 import { Group, GroupsResponse } from '@/types/groups';
 import { isRetryableError } from '@/utils/errorUtils';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { useCampus } from './useCampus';
 
 export const groupsKeys = {
@@ -366,17 +366,8 @@ export const useGroups = () => {
       globalNotificationsQuery.refetch();
     },
     markAsRead,
-    uiGroups: useMemo(() => {
-      if (query.data) {
-        console.log('🔄 Recalculating uiGroups from query data. Groups count:', query.data.length);
-        if (query.data.length > 0) {
-          const firstGroup = query.data[0];
-          const lastMsg = firstGroup.messages?.[firstGroup.messages.length - 1];
-          console.log('🔍 First group last message in hook:', lastMsg?.content);
-        }
-      }
-      return (query.data || []).map(transformToUIFormat);
-    }, [query.data, query.data?.length, lastReadTimestamps, activeGroupId]), // Re-calc when data OR timestamps OR active group changes
+    // Reactivity fix: Calculate directly on every render to ensure latest data
+    uiGroups: (query.data || []).map(transformToUIFormat),
     query, // Expose original query object if needed
     globalNotifications: globalNotificationsQuery.data,
     // Additional cache info
