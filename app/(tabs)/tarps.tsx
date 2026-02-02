@@ -420,6 +420,107 @@ export default function TarpsScreen() {
   useEffect(() => {
     (global as any).markPostsAsViewed = markPostsAsViewed;
     (global as any).handleReportedPost = handleReportedPost;
+    (global as any).updatePostMetrics = (update: {
+      postId?: string;
+      imageId?: string;
+      likeCount?: number;
+      commentCount?: number;
+      liked?: boolean;
+    }) => {
+      const applyUpdate = (list: any[]) => {
+        return list.map(cluster => {
+          if (cluster.items && Array.isArray(cluster.items)) {
+            const updatedItems = cluster.items.map((item: any) => {
+              const matchesPost =
+                (update.postId && String(item.id) === String(update.postId)) ||
+                (update.imageId && String(item.id) === String(update.imageId)) ||
+                (update.imageId && Array.isArray(item.images) && item.images.some((img: any) => String(img?.id) === String(update.imageId)));
+
+              if (!matchesPost) return item;
+
+              const nextItem = { ...item };
+
+              if (typeof update.likeCount === 'number') {
+                nextItem.likes = update.likeCount;
+                nextItem.likesCount = update.likeCount;
+                nextItem.numLikes = update.likeCount;
+                if (!nextItem._count) nextItem._count = {};
+                nextItem._count.tarpImgLikes = update.likeCount;
+              }
+              if (typeof update.commentCount === 'number') {
+                nextItem.comments = update.commentCount;
+                nextItem.commentsCount = update.commentCount;
+                if (!nextItem._count) nextItem._count = {};
+                nextItem._count.tarpImgComments = update.commentCount;
+              }
+              if (typeof update.liked === 'boolean') {
+                nextItem.hasLiked = update.liked;
+                nextItem.likedByMe = update.liked;
+                nextItem.isLiked = update.liked;
+                nextItem.liked = update.liked;
+              }
+
+              if (Array.isArray(nextItem.images) && nextItem.images.length > 0) {
+                nextItem.images = nextItem.images.map((img: any) => {
+                  const imgMatches = String(img?.id) === String(update.imageId) || String(nextItem.id) === String(update.imageId);
+                  if (!imgMatches) return img;
+                  const nextImg = { ...img };
+                  if (!nextImg._count) nextImg._count = {};
+                  if (typeof update.likeCount === 'number') {
+                    nextImg._count.tarpImgLikes = update.likeCount;
+                    nextImg.likes = update.likeCount;
+                  }
+                  if (typeof update.commentCount === 'number') {
+                    nextImg._count.tarpImgComments = update.commentCount;
+                    nextImg.comments = update.commentCount;
+                  }
+                  return nextImg;
+                });
+              }
+
+              return nextItem;
+            });
+            return { ...cluster, items: updatedItems, count: updatedItems.length };
+          }
+
+          const matchesSingle =
+            (update.postId && String(cluster.id) === String(update.postId)) ||
+            (update.imageId && String(cluster.id) === String(update.imageId));
+
+          if (!matchesSingle) return cluster;
+
+          const next = { ...cluster };
+          if (!next._count) next._count = {};
+          if (typeof update.likeCount === 'number') {
+            next.likes = update.likeCount;
+            next.likesCount = update.likeCount;
+            next.numLikes = update.likeCount;
+            next._count.tarpImgLikes = update.likeCount;
+          }
+          if (typeof update.commentCount === 'number') {
+            next.comments = update.commentCount;
+            next.commentsCount = update.commentCount;
+            next._count.tarpImgComments = update.commentCount;
+          }
+          if (typeof update.liked === 'boolean') {
+            next.hasLiked = update.liked;
+            next.likedByMe = update.liked;
+            next.isLiked = update.liked;
+            next.liked = update.liked;
+          }
+          return next;
+        });
+      };
+
+      setGlobalPosts(prev => {
+        const updated = applyUpdate(prev);
+        AsyncStorage.setItem('globalPosts', JSON.stringify(updated)).catch(() => {});
+        return updated;
+      });
+      if (viewMode === 'posts') {
+        setServerPosts(prev => applyUpdate(prev));
+      }
+    };
     (global as any).refreshPostsInView = () => {
       console.log("🔄 Refreshing posts in view after report");
       const currentRegion = mapRegion || location;
@@ -446,6 +547,7 @@ export default function TarpsScreen() {
       delete (global as any).refreshPostsInView;
       delete (global as any).refreshAfterReport;
       delete (global as any).getGlobalPosts;
+      delete (global as any).updatePostMetrics;
     };
   }, [mapRegion, location, viewMode, globalPosts]);
 
