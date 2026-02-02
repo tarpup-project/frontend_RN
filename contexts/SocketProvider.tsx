@@ -312,6 +312,18 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
+      // Ping/Pong configuration to prevent timeouts
+      pingTimeout: 60000, // 60 seconds - how long to wait for pong response
+      pingInterval: 25000, // 25 seconds - how often to send ping
+      // Transport configuration
+      transports: ['websocket', 'polling'], // Fallback to polling if websocket fails
+      upgrade: true, // Allow transport upgrades
+      // Connection timeout
+      timeout: 20000, // 20 seconds connection timeout
+      // Force new connection on reconnect
+      forceNew: false,
+      // Additional reliability options
+      rememberUpgrade: true,
     });
 
     // Connection events
@@ -334,12 +346,35 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       }
     });
 
+    newSocket.on('connect_error', (error) => {
+      console.log('❌ Socket connection error:', error.message);
+      setSocketState(prev => ({
+        ...prev,
+        error: `Connection failed: ${error.message}`,
+      }));
+    });
+
+    newSocket.on('ping', () => {
+      console.log('🏓 Socket ping received');
+    });
+
+    newSocket.on('pong', (latency) => {
+      console.log('🏓 Socket pong received, latency:', latency, 'ms');
+    });
+
     newSocket.on(SocketEvents.DISCONNECT, (reason) => {
       console.log('❌ Socket disconnected:', reason);
       setSocketState(prev => ({
         ...prev,
         connected: false,
       }));
+      
+      // Handle specific disconnect reasons
+      if (reason === 'ping timeout') {
+        console.log('🏓 Ping timeout detected - will attempt reconnection');
+      } else if (reason === 'transport close') {
+        console.log('🚪 Transport closed - network issue detected');
+      }
     });
 
     newSocket.on('reconnect_attempt', () => {
@@ -521,6 +556,18 @@ export const GroupSocketProvider: React.FC<GroupSocketProviderProps> = ({
       reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
+      // Ping/Pong configuration to prevent timeouts
+      pingTimeout: 60000, // 60 seconds - how long to wait for pong response
+      pingInterval: 25000, // 25 seconds - how often to send ping
+      // Transport configuration
+      transports: ['websocket', 'polling'], // Fallback to polling if websocket fails
+      upgrade: true, // Allow transport upgrades
+      // Connection timeout
+      timeout: 20000, // 20 seconds connection timeout
+      // Force new connection on reconnect
+      forceNew: false,
+      // Additional reliability options
+      rememberUpgrade: true,
     });
 
     socket.on(SocketEvents.CONNECT, () => {

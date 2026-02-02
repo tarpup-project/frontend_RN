@@ -10,12 +10,12 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  TextInput,
-  View
+    ActivityIndicator,
+    FlatList,
+    Pressable,
+    StyleSheet,
+    TextInput,
+    View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
@@ -81,16 +81,20 @@ export default function ConnectionsScreen() {
 
       // Optimistic Update - immediately update UI
       if (actualAction === 'friend') {
-        // Track optimistic pending to prevent flicker until API resolves
+        // Immediately update the button state to pending
         queryClient.setQueryData(['connections', 'pendingOptimistic'], (old: string[] = []) => {
           const set = new Set(old);
           set.add(userId);
           return Array.from(set);
         });
 
-        // Add to pending
+        // Add to pending with immediate effect
         queryClient.setQueryData(['connections', 'pending'], (old: string[] = []) => {
-          return [...old, userId];
+          const newPending = [...old];
+          if (!newPending.includes(userId)) {
+            newPending.push(userId);
+          }
+          return newPending;
         });
 
         // Update followers data to show pending status

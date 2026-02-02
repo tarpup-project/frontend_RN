@@ -556,6 +556,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
         selectFile={selectFile}
         isSending={isSending}
         isComplete={finalGroupDetails?.isComplete || passedGroupData?.isComplete || false}
+        isDisabled={!isSocketConnected || (isLoading && messages.length === 0)}
       />
 
       {/* Loading Overlay - Only show when sending messages */}
