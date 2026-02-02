@@ -4,13 +4,13 @@ import { useAuthStore } from '@/state/authStore';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useState } from 'react';
 import {
-  AlertMessage,
-  Group,
-  GroupMessage,
-  MessageFile,
-  MessageType,
-  SendMessagePayload,
-  UserMessage
+    AlertMessage,
+    Group,
+    GroupMessage,
+    MessageFile,
+    MessageType,
+    SendMessagePayload,
+    UserMessage
 } from '../types/groups';
 import { SocketEvents } from '../types/socket';
 import { useCampus } from './useCampus';
@@ -234,13 +234,8 @@ export const useGroupMessages = (groupId: string, socket?: any): UseGroupMessage
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,
-    // Keep previous data while loading new data
-    placeholderData: (previousData) => {
-      if (previousData && previousData.length > 0) {
-        console.log('⚡ Using cached messages -', previousData.length, 'messages loaded from cache');
-      }
-      return previousData;
-    },
+    // REMOVED placeholderData to prevent showing previous chat's messages when switching groups
+    // placeholderData: (previousData) => ...
   });
 
   // Sync latest message to groups list when messages are loaded or updated
@@ -366,11 +361,33 @@ export const useGroupMessages = (groupId: string, socket?: any): UseGroupMessage
     };
 
     const handleNewMessage = (payload: any) => {
-      console.log('⚡️ Socket: New message received', payload?.content?.id || 'unknown ID');
       const msgData = payload.message || payload;
+      // comprehensive search for room ID
+      const msgRoomId = 
+        msgData.roomID || 
+        msgData.groupId || 
+        msgData.chatId || 
+        payload.roomID || 
+        payload.groupId || 
+        payload.chatId ||
+        msgData.content?.roomID ||
+        msgData.content?.groupId;
+      
+      console.log('⚡️ Socket: New message received. MsgID:', msgData?.content?.id, 'TargetRoom:', msgRoomId, 'CurrentRoom:', groupId);
 
-      // Filter by roomID if present in payload
-      if (msgData.roomID && msgData.roomID !== groupId) return;
+      // STRICT FILTERING:
+      // 1. If we have a room ID and it doesn't match the current group, reject it immediately.
+      if (msgRoomId && String(msgRoomId) !== String(groupId)) {
+         console.log(`🚫 Ignoring message for room ${msgRoomId} while in ${groupId}`);
+         return;
+      }
+
+      // 2. If room ID is missing completely, REJECT IT to prevent leaks.
+      // In a robust system, every message event must carry its destination room ID.
+      if (!msgRoomId) {
+        console.warn(`⚠️ Security: Rejecting message with NO room ID while in ${groupId}. Payload:`, JSON.stringify(payload).substring(0, 100));
+        return;
+      }
 
       const newMessage = transformMessageForUI(msgData);
 
