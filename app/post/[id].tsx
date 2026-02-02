@@ -763,6 +763,14 @@ export default function PostPreviewScreen() {
 
     setLiked(newLiked);
     setLikeCount(newLikeCount);
+    if ((global as any).updatePostMetrics) {
+      (global as any).updatePostMetrics({
+        postId: activeItem?.id,
+        imageId: imageID,
+        likeCount: newLikeCount,
+        liked: newLiked,
+      });
+    }
 
     try {
       console.log("Making like API call:", { imageID, action });
@@ -868,6 +876,14 @@ export default function PostPreviewScreen() {
       // Revert optimistic update on error
       setLiked(!newLiked);
       setLikeCount(action === "like" ? likeCount : likeCount + 1);
+      if ((global as any).updatePostMetrics) {
+        (global as any).updatePostMetrics({
+          postId: activeItem?.id,
+          imageId: imageID,
+          likeCount: action === "like" ? newLikeCount - 1 : newLikeCount + 1,
+          liked: !newLiked,
+        });
+      }
 
       if (error.response?.status === 401) {
         toast.error("Authentication error. Please log in again.");
@@ -1069,6 +1085,13 @@ export default function PostPreviewScreen() {
     // Optimistic UI update
     const newCommentCount = commentCount + 1;
     setCommentCount(newCommentCount);
+    if ((global as any).updatePostMetrics) {
+      (global as any).updatePostMetrics({
+        postId: activeItem?.id,
+        imageId: imageID,
+        commentCount: newCommentCount,
+      });
+    }
 
     try {
       setIsSendingComment(true);
@@ -1207,6 +1230,13 @@ export default function PostPreviewScreen() {
               }
               return post;
             }));
+            if ((global as any).updatePostMetrics) {
+              (global as any).updatePostMetrics({
+                postId: activeItem?.id,
+                imageId: imageID,
+                commentCount: actualCommentCount,
+              });
+            }
           }
         }
       } finally {
@@ -1218,6 +1248,13 @@ export default function PostPreviewScreen() {
 
       // Revert the optimistic update on error
       setCommentCount(prev => Math.max(0, prev - 1));
+      if ((global as any).updatePostMetrics) {
+        (global as any).updatePostMetrics({
+          postId: activeItem?.id,
+          imageId: imageID,
+          commentCount: Math.max(0, newCommentCount - 1),
+        });
+      }
       toast.error("Failed to post comment");
     } finally {
       setIsSendingComment(false);
