@@ -3,16 +3,16 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useRef } from "react";
 import {
-    ActionSheetIOS,
-    ActivityIndicator,
-    Alert,
-    Image,
-    Platform,
-    Pressable,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  ActionSheetIOS,
+  ActivityIndicator,
+  Alert,
+  Image,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 
 interface MessageInputProps {
@@ -32,6 +32,7 @@ interface MessageInputProps {
   selectFile: () => void;
   isSending?: boolean; // Add this prop to track sending state
   isComplete?: boolean; // Add this prop to track completion status
+  isDisabled?: boolean; // Add this prop to force disable input
 }
 
 export const MessageInput: React.FC<MessageInputProps> = ({
@@ -51,6 +52,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   selectFile,
   isSending = false, // Default to false
   isComplete = false, // Default to false
+  isDisabled = false, // Default to false
 }) => {
   const { isDark } = useTheme();
   const textInputRef = useRef<TextInput>(null);
@@ -59,21 +61,21 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
   const handleSend = async () => {
     const now = Date.now();
-    
+
     // Prevent double-sending within 1 second
     if (now - lastSendTime.current < 1000) {
       console.log('🚫 Preventing double-send');
       return;
     }
-    
+
     // Check if already sending or no content
     if (isLocalSending || isSending || (!message.trim() && !selectedFile)) {
       return;
     }
-    
+
     setIsLocalSending(true);
     lastSendTime.current = now;
-    
+
     try {
       await onSend();
     } finally {
@@ -243,10 +245,10 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                 style={[
                   styles.sendButton,
                   dynamicStyles.sendButton,
-                  (!message.trim() && !selectedFile) || isLocalSending || isSending ? { opacity: 0.5 } : {},
+                  (!message.trim() && !selectedFile) || isLocalSending || isSending || isDisabled ? { opacity: 0.5 } : {},
                 ]}
                 onPress={handleSend}
-                disabled={(!message.trim() && !selectedFile) || isLocalSending || isSending}
+                disabled={(!message.trim() && !selectedFile) || isLocalSending || isSending || isDisabled}
               >
                 {isLocalSending || isSending ? (
                   <ActivityIndicator

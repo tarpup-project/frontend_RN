@@ -366,7 +366,17 @@ export const useGroups = () => {
       globalNotificationsQuery.refetch();
     },
     markAsRead,
-    uiGroups: useMemo(() => (query.data || []).map(transformToUIFormat), [query.data, query.data?.length, lastReadTimestamps, activeGroupId]), // Re-calc when data OR timestamps OR active group changes
+    uiGroups: useMemo(() => {
+      if (query.data) {
+        console.log('🔄 Recalculating uiGroups from query data. Groups count:', query.data.length);
+        if (query.data.length > 0) {
+          const firstGroup = query.data[0];
+          const lastMsg = firstGroup.messages?.[firstGroup.messages.length - 1];
+          console.log('🔍 First group last message in hook:', lastMsg?.content);
+        }
+      }
+      return (query.data || []).map(transformToUIFormat);
+    }, [query.data, query.data?.length, lastReadTimestamps, activeGroupId]), // Re-calc when data OR timestamps OR active group changes
     query, // Expose original query object if needed
     globalNotifications: globalNotificationsQuery.data,
     // Additional cache info

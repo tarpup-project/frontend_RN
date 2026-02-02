@@ -4,12 +4,12 @@ import { useAuthStore } from '@/state/authStore';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useState } from 'react';
 import {
-  AlertMessage,
-  GroupMessage,
-  MessageFile,
-  MessageType,
-  SendMessagePayload,
-  UserMessage
+    AlertMessage,
+    GroupMessage,
+    MessageFile,
+    MessageType,
+    SendMessagePayload,
+    UserMessage
 } from '../types/groups';
 import { SocketEvents } from '../types/socket';
 
@@ -46,7 +46,10 @@ const fetchGroupMessages = async (groupId: string): Promise<GroupMessage[]> => {
   console.log('🔄 Fetching messages from API for group:', groupId);
 
   try {
-    const response = await api.get(UrlConstants.fetchGroupMessages(groupId));
+    const endpoint = UrlConstants.fetchGroupMessages(groupId);
+    console.log('📡 API endpoint:', endpoint);
+    
+    const response = await api.get(endpoint);
 
     if (response.data?.status === 'success' && response.data?.data) {
       const rawMessages = response.data.data;
@@ -59,9 +62,22 @@ const fetchGroupMessages = async (groupId: string): Promise<GroupMessage[]> => {
       return formatted;
     }
 
+    console.log('⚠️ API response format unexpected:', response.data);
     return [];
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Failed to fetch messages:', error);
+    
+    // Log specific error details for debugging
+    if (error.response) {
+      console.error('📡 Response status:', error.response.status);
+      console.error('📡 Response data:', error.response.data);
+      console.error('📡 Endpoint called:', UrlConstants.fetchGroupMessages(groupId));
+    } else if (error.request) {
+      console.error('📡 No response received:', error.request);
+    } else {
+      console.error('📡 Request setup error:', error.message);
+    }
+    
     throw error;
   }
 };

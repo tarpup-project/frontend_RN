@@ -1,6 +1,6 @@
+import { CachedImage } from "@/components/CachedImage";
 import { GroupOptionsDropdown } from "@/components/GroupOptionsDropdown";
 import { useTheme } from "@/contexts/ThemeContext";
-import { CachedImage } from "@/components/CachedImage";
 import { GroupMember } from "@/types/groups";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -84,7 +84,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             .map((member: GroupMember, index: number) => {
               const colors = ["#FF6B9D", "#4A90E2", "#9C27B0", "#00D084"];
               return (
-                <View
+                <Pressable
                   key={member.id}
                   style={[
                     styles.headerAvatar,
@@ -95,6 +95,10 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                     },
                     index > 0 && { marginLeft: -8 },
                   ]}
+                  onPress={() => {
+                    console.log('🔍 Avatar clicked for user:', member.id, member.fname);
+                    navigateToProfile(member.id);
+                  }}
                 >
                   {member.bgUrl ? (
                     <CachedImage
@@ -107,7 +111,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                   ) : (
                     <Text style={styles.avatarText}>{(member.fname || 'U')[0]}</Text>
                   )}
-                </View>
+                </Pressable>
               );
             })}
         </View>
