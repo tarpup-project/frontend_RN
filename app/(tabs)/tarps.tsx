@@ -1771,7 +1771,7 @@ export default function TarpsScreen() {
           styleURL={'mapbox://styles/mapbox/streets-v12'}
           projection="globe"
           scaleBarEnabled={false}
-          onRegionDidChange={(feature) => {
+          onRegionDidChange={(feature: any) => {
             // Handle region changes for Mapbox GL
             if (feature && feature.properties) {
               const { zoomLevel, visibleBounds } = feature.properties;
