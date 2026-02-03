@@ -6,7 +6,6 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import Constants from "expo-constants";
 import { Image as ExpoImage } from "expo-image";
 import * as Location from "expo-location";
 import * as MediaLibrary from "expo-media-library";
@@ -14,7 +13,7 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import moment from "moment";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Dimensions, FlatList, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, Dimensions, FlatList, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, Image as RNImage, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import uuid from "react-native-uuid";
@@ -27,32 +26,44 @@ let useMapboxGL = false;
 
 if (Platform.OS === 'android') {
   try {
+    console.log('🔄 Attempting to load Mapbox GL for Android...');
     const MapboxGLModule = require('@rnmapbox/maps');
-    MapboxGL = MapboxGLModule.default || MapboxGLModule;
+    console.log('🔍 Raw MapboxGL module:', MapboxGLModule);
+    console.log('🔍 MapboxGL keys:', Object.keys(MapboxGLModule));
+
+    // Try different possible structures
+    if (MapboxGLModule.default) {
+      MapboxGL = MapboxGLModule.default;
+      console.log('🔍 Using default export, keys:', Object.keys(MapboxGL));
+    } else {
+      MapboxGL = MapboxGLModule;
+      console.log('🔍 Using direct export, keys:', Object.keys(MapboxGL));
+    }
 
     // Initialize Mapbox GL for Android
-    const envToken = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
-    const extraToken =
-      (Constants?.expoConfig as any)?.extra?.MAPBOX_ACCESS_TOKEN ||
-      (Constants?.expoConfig as any)?.extra?.mapboxToken;
-    const token = envToken || extraToken;
+    const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
+    console.log('🔍 Token available:', !!token);
 
     if (token) {
       if (MapboxGL.setAccessToken) {
         MapboxGL.setAccessToken(token);
         useMapboxGL = true;
+        console.log('✅ Mapbox GL initialized for Android with token:', token.substring(0, 20) + '...');
       } else {
-        useMapboxGL = false;
+        console.error('❌ setAccessToken method not found');
+        console.log('Available methods:', Object.keys(MapboxGL));
       }
     } else {
-      useMapboxGL = false;
+      console.error('❌ Mapbox token not found in environment variables');
     }
   } catch (error) {
-    console.warn("Mapbox GL not available:", error);
+    console.error('❌ Failed to load Mapbox GL module:', error);
+    console.log('📱 Falling back to Google Maps for Android');
     useMapboxGL = false;
   }
+} else {
+  console.log('🍎 iOS detected - using Apple Maps (Mapbox disabled)');
 }
-
 
 export default function TarpsScreen() {
   const { isDark } = useTheme();
@@ -92,6 +103,7 @@ export default function TarpsScreen() {
     { id: string; latitude: number; longitude: number; imageUrl?: string; owner?: { id: string; fname: string; lname?: string; bgUrl?: string } }[]
   >([]);
   const mapRef = useRef<MapView | null>(null);
+  const mapboxCameraRef = useRef<any | null>(null);
   const [mapboxCamera, setMapboxCamera] = useState({
     centerCoordinate: [0, 0] as [number, number],
     zoomLevel: 1,
@@ -1705,13 +1717,15 @@ export default function TarpsScreen() {
         // Mapbox GL for Android (when available)
         <MapboxGL.MapView
           style={{ flex: 1 }}
-          styleURL={MapboxGL.StyleURL?.Satellite || 'mapbox://styles/mapbox/satellite-v9'}
-          projection="globe" // Enable Globe View
+          styleURL={'mapbox://styles/mapbox/streets-v12'}
+          projection="globe"
+          scaleBarEnabled={false}
           onRegionDidChange={() => {
             // Handle region changes for Mapbox GL
           }}
         >
           <MapboxGL.Camera
+            ref={mapboxCameraRef}
             centerCoordinate={mapboxCamera.centerCoordinate}
             zoomLevel={mapboxCamera.zoomLevel}
             animationDuration={mapboxCamera.animationDuration}
@@ -1822,13 +1836,22 @@ export default function TarpsScreen() {
                       const latDelta = Math.max(0.01, Math.abs(bounds.maxLat - bounds.minLat) * 1.5);
 
                       // Calculate zoom level from latitude delta and update camera state
-                      const zoomLevel = Math.max(1, Math.min(18, Math.log2(360 / latDelta)));
+                    const zoomLevel = Math.max(3, Math.min(16, Math.log2(360 / latDelta)));
 
+                    if (mapboxCameraRef.current && mapboxCameraRef.current.setCamera) {
+                      mapboxCameraRef.current.setCamera({
+                        centerCoordinate: [centerLng, centerLat],
+                        zoomLevel,
+                        animationDuration: 1200,
+                        padding: { paddingLeft: 48, paddingRight: 48, paddingTop: 48, paddingBottom: 48 } as any,
+                      });
+                    } else {
                       setMapboxCamera({
                         centerCoordinate: [centerLng, centerLat],
-                        zoomLevel: zoomLevel,
-                        animationDuration: 50,
+                        zoomLevel,
+                        animationDuration: 1200,
                       });
+                    }
                     }
                   } else if (p.image && Array.isArray(p.items) && p.items.length > 0) {
                     // Handle single post
@@ -1881,21 +1904,16 @@ export default function TarpsScreen() {
                   }
                 }}
               >
-                <View style={{ width: 96, height: 96 }}>
-                  <View
-                    style={[
-                      styles.markerContainer,
-                      isDark ? styles.markerDark : styles.markerLight,
-                      p.items?.some((item: any) => newPostIds.has(item.id)) && styles.markerContainerNew,
-                      { overflow: 'hidden' } // Ensure image is clipped to border radius
-                    ]}
-                  >
-                    <Image
-                      source={{ uri: p.image as string }}
-                      style={styles.markerImage}
-                      resizeMode="cover"
-                    />
-                  </View>
+                <View style={[
+                  styles.markerContainer,
+                  isDark ? styles.markerDark : styles.markerLight,
+                  p.items?.some((item: any) => newPostIds.has(item.id)) && styles.markerContainerNew
+                ]}>
+                  <RNImage
+                    source={{ uri: p.image as string }}
+                    style={styles.markerImage}
+                    resizeMode="cover"
+                  />
                   {!!p.count && p.count > 1 && (
                     <View style={styles.countBadge}>
                       <Text style={styles.countText}>{p.count >= 1000 ? `${Math.floor(p.count / 1000)}k` : `${p.count}`}</Text>
@@ -1916,26 +1934,18 @@ export default function TarpsScreen() {
                 setPersonOpen(true);
               }}
             >
-              <View style={{ width: 96, height: 96 }}>
-                <View
-                  style={[
-                    styles.markerContainer,
-                    isDark ? styles.markerDark : styles.markerLight,
-                    { overflow: 'hidden' }
-                  ]}
-                >
-                  {p.imageUrl ? (
-                    <Image
-                      source={{ uri: p.imageUrl }}
-                      style={styles.markerImage}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <View style={[styles.markerImage, { alignItems: "center", justifyContent: "center", backgroundColor: "#888" }]}>
-                      <Text style={{ color: "#fff", fontWeight: "700" }}>{p.owner?.fname?.[0]?.toUpperCase() || "F"}</Text>
-                    </View>
-                  )}
-                </View>
+              <View style={[styles.markerContainer, isDark ? styles.markerDark : styles.markerLight]}>
+                {p.imageUrl ? (
+                  <RNImage
+                    source={{ uri: p.imageUrl }}
+                    style={styles.markerImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={[styles.markerImage, { alignItems: "center", justifyContent: "center", backgroundColor: "#888" }]}>
+                    <Text style={{ color: "#fff", fontWeight: "700" }}>{p.owner?.fname?.[0]?.toUpperCase() || "F"}</Text>
+                  </View>
+                )}
                 <View style={styles.locBadge}>
                   <Ionicons name="location-outline" size={14} color="#FFFFFF" />
                 </View>
@@ -3063,8 +3073,8 @@ const styles = StyleSheet.create({
   },
   countBadge: {
     position: "absolute",
-    bottom: -10,
-    right: -10,
+    bottom: 0,
+    right: 0,
     backgroundColor: "#FFFFFF",
     width: 34,
     height: 34,
@@ -3107,10 +3117,9 @@ const styles = StyleSheet.create({
     borderColor: "#FFFFFF",
     shadowColor: "#000",
     shadowOpacity: 0.2,
-    elevation: 8,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
-    zIndex: 6,
+    zIndex: 2,
   },
   topBar: {
     position: "absolute",
