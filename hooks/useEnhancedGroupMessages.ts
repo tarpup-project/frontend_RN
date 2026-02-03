@@ -4,13 +4,13 @@ import { useAuthStore } from '@/state/authStore';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useState } from 'react';
 import {
-    AlertMessage,
-    Group,
-    GroupMessage,
-    MessageFile,
-    MessageType,
-    SendMessagePayload,
-    UserMessage
+  AlertMessage,
+  Group,
+  GroupMessage,
+  MessageFile,
+  MessageType,
+  SendMessagePayload,
+  UserMessage
 } from '../types/groups';
 import { SocketEvents } from '../types/socket';
 import { useCampus } from './useCampus';
@@ -59,7 +59,18 @@ const fetchGroupMessages = async (groupId: string): Promise<GroupMessage[]> => {
       console.log(`📦 Loaded ${rawMessages.length} messages from API`);
 
       const formatted = Array.isArray(rawMessages)
-        ? rawMessages.map(transformMessageForUI)
+        ? rawMessages
+            .filter((m: any) => {
+              const roomId =
+                m?.roomID ||
+                m?.groupId ||
+                m?.chatId ||
+                m?.content?.roomID ||
+                m?.content?.groupId;
+              if (roomId && String(roomId) !== String(groupId)) return false;
+              return true;
+            })
+            .map(transformMessageForUI)
         : [];
 
       return formatted;
@@ -335,7 +346,18 @@ export const useGroupMessages = (groupId: string, socket?: any): UseGroupMessage
       // If we get fresh data from socket, update the cache
       const rawMessages = response?.messages || response || [];
       if (Array.isArray(rawMessages) && rawMessages.length > 0) {
-        const formatted = rawMessages.map(transformMessageForUI);
+        const formatted = rawMessages
+          .filter((m: any) => {
+            const roomId =
+              m?.roomID ||
+              m?.groupId ||
+              m?.chatId ||
+              m?.content?.roomID ||
+              m?.content?.groupId;
+            if (roomId && String(roomId) !== String(groupId)) return false;
+            return true;
+          })
+          .map(transformMessageForUI);
 
         // Merge new messages with existing cache and deduplicate
         queryClient.setQueryData<GroupMessage[]>(
