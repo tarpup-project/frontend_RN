@@ -104,6 +104,7 @@ export default function TarpsScreen() {
   >([]);
   const mapRef = useRef<MapView | null>(null);
   const mapboxCameraRef = useRef<any | null>(null);
+  const mapboxInitialLoadedRef = useRef(false);
   const [mapboxCamera, setMapboxCamera] = useState({
     centerCoordinate: [0, 0] as [number, number],
     zoomLevel: 1,
@@ -120,6 +121,13 @@ export default function TarpsScreen() {
       });
     }
   }, [location, useMapboxGL]);
+
+  useEffect(() => {
+    if (Platform.OS === 'android' && useMapboxGL && viewMode === 'posts' && location && !mapboxInitialLoadedRef.current) {
+      loadPostsInView(location);
+      mapboxInitialLoadedRef.current = true;
+    }
+  }, [useMapboxGL, viewMode, location]);
   const [selectedPerson, setSelectedPerson] = useState<any | null>(null);
   const [personOpen, setPersonOpen] = useState(false);
 
@@ -1617,7 +1625,37 @@ export default function TarpsScreen() {
   const handleZoomOut = () => {
     // Check if we have zoom history to go back to
     if (zoomHistory.length === 0) {
-      console.log("No zoom history to go back to");
+      if (location) {
+        console.log("No zoom history, checking if fallback to globe view is needed");
+        // Fallback: If no history but zoomed in, return to globe view (User's location, Zoom 1)
+        // We use a threshold of ~2 to ensure we don't trigger this if already basically at world view
+        // Note: mapboxCamera.zoomLevel checks mapbox state, currentZoomLevel checks general state
+        if ((Platform.OS === 'android' && useMapboxGL && mapboxCamera.zoomLevel > 1.5) ||
+          (Platform.OS !== 'android' && currentZoomLevel > 1.5) ||
+          (mapRegion && mapRegion.latitudeDelta < 60)) {
+
+          console.log("🌍 Fallback: Restoring globe view (Zoom 1)");
+
+          if (Platform.OS === 'android' && useMapboxGL) {
+            setMapboxCamera({
+              centerCoordinate: [location.longitude, location.latitude],
+              zoomLevel: 1,
+              animationDuration: 2000,
+            });
+            setCurrentZoomLevel(1);
+          } else if (mapRef.current) {
+            const worldRegion = {
+              latitude: location.latitude,
+              longitude: location.longitude,
+              latitudeDelta: 120,
+              longitudeDelta: 120,
+            };
+            mapRef.current.animateToRegion(worldRegion, 2000);
+            setMapRegion(worldRegion);
+            setCurrentZoomLevel(1);
+          }
+        }
+      }
       return;
     }
 
@@ -1636,16 +1674,29 @@ export default function TarpsScreen() {
     }
 
     if (Platform.OS === 'android' && useMapboxGL) {
-      // Mapbox GL zoom out using recorded history
-      setMapboxCamera({
-        centerCoordinate: [previousState.longitude, previousState.latitude],
-        zoomLevel: previousState.zoomLevel || 1,
-        animationDuration: 50, // Matched to zoom-in speed for instant snap
-      });
+      const postsForBounds = previousState.posts && previousState.posts.length > 0 ? previousState.posts : serverPosts;
+      const latitudes = postsForBounds.map((p: any) => Number(p.latitude));
+      const longitudes = postsForBounds.map((p: any) => Number(p.longitude));
+      const minLat = Math.min(...latitudes);
+      const maxLat = Math.max(...latitudes);
+      const minLng = Math.min(...longitudes);
+      const maxLng = Math.max(...longitudes);
 
-      // Update current zoom level based on history
+      if (mapboxCameraRef.current && mapboxCameraRef.current.setCamera) {
+        mapboxCameraRef.current.setCamera({
+          bounds: { ne: [maxLng, maxLat], sw: [minLng, minLat] },
+          padding: { paddingLeft: 48, paddingRight: 48, paddingTop: 48, paddingBottom: 48 },
+          animationDuration: 1200,
+          animationMode: 'easeTo',
+        });
+      } else {
+        setMapboxCamera({
+          centerCoordinate: [previousState.longitude, previousState.latitude],
+          zoomLevel: previousState.zoomLevel || 1,
+          animationDuration: 1200,
+        });
+      }
       setCurrentZoomLevel(previousState.zoomLevel || 1);
-      console.log("🗺️ Mapbox camera restored to zoom level:", previousState.zoomLevel || 1);
     } else if (mapRef.current) {
       // Apple Maps zoom out using recorded history
       const newRegion = {
@@ -1655,7 +1706,7 @@ export default function TarpsScreen() {
         longitudeDelta: previousState.longitudeDelta,
       };
 
-      mapRef.current.animateToRegion(newRegion, 50); // Matched to zoom-in speed for instant snap
+      mapRef.current.animateToRegion(newRegion, 2000); // Slow zoom out to visualize clustering
       setMapRegion(newRegion);
       setLocation(newRegion); // Also update location state
 
@@ -1720,8 +1771,25 @@ export default function TarpsScreen() {
           styleURL={'mapbox://styles/mapbox/streets-v12'}
           projection="globe"
           scaleBarEnabled={false}
-          onRegionDidChange={() => {
+          onRegionDidChange={(feature) => {
             // Handle region changes for Mapbox GL
+            if (feature && feature.properties) {
+              const { zoomLevel, visibleBounds } = feature.properties;
+              const center = feature.geometry.coordinates;
+              // We update mapboxCamera state to keep it in sync, but without triggering a re-render loop if possible
+              // However, since handleZoomOut relies on mapboxCamera state, we need to update it.
+              // To avoid jitters, we might only update if significantly different or just rely on ref if available?
+              // Actually, let's just update the ref's knowledge or state.
+              // Updating state might cause re-renders. Let's try to be careful.
+              // For now, let's update state so handleZoomOut works.
+              setMapboxCamera(prev => ({
+                ...prev,
+                zoomLevel: zoomLevel,
+                centerCoordinate: center,
+              }));
+              // Also sync currentZoomLevel for consistency
+              setCurrentZoomLevel(zoomLevel);
+            }
           }}
         >
           <MapboxGL.Camera
@@ -1831,27 +1899,27 @@ export default function TarpsScreen() {
                         minLng: Math.min(...p.items.map((i: any) => Number(i.longitude ?? i.lng ?? p.longitude))),
                         maxLng: Math.max(...p.items.map((i: any) => Number(i.longitude ?? i.lng ?? p.longitude))),
                       };
-                      const centerLat = (bounds.minLat + bounds.maxLat) / 2;
-                      const centerLng = (bounds.minLng + bounds.maxLng) / 2;
-                      const latDelta = Math.max(0.01, Math.abs(bounds.maxLat - bounds.minLat) * 1.5);
-
-                      // Calculate zoom level from latitude delta and update camera state
-                    const zoomLevel = Math.max(3, Math.min(16, Math.log2(360 / latDelta)));
-
-                    if (mapboxCameraRef.current && mapboxCameraRef.current.setCamera) {
-                      mapboxCameraRef.current.setCamera({
-                        centerCoordinate: [centerLng, centerLat],
-                        zoomLevel,
-                        animationDuration: 1200,
-                        padding: { paddingLeft: 48, paddingRight: 48, paddingTop: 48, paddingBottom: 48 } as any,
-                      });
-                    } else {
-                      setMapboxCamera({
-                        centerCoordinate: [centerLng, centerLat],
-                        zoomLevel,
-                        animationDuration: 1200,
-                      });
-                    }
+                      if (mapboxCameraRef.current && mapboxCameraRef.current.setCamera) {
+                        mapboxCameraRef.current.setCamera({
+                          bounds: {
+                            ne: [bounds.maxLng, bounds.maxLat],
+                            sw: [bounds.minLng, bounds.minLat],
+                          },
+                          padding: { paddingLeft: 48, paddingRight: 48, paddingTop: 48, paddingBottom: 48 },
+                          animationDuration: 1200,
+                          animationMode: 'easeTo',
+                        });
+                      } else {
+                        const centerLat = (bounds.minLat + bounds.maxLat) / 2;
+                        const centerLng = (bounds.minLng + bounds.maxLng) / 2;
+                        const latDelta = Math.max(0.01, Math.abs(bounds.maxLat - bounds.minLat) * 1.5);
+                        const zoomLevel = Math.max(3, Math.min(16, Math.log2(360 / latDelta)));
+                        setMapboxCamera({
+                          centerCoordinate: [centerLng, centerLat],
+                          zoomLevel,
+                          animationDuration: 1200,
+                        });
+                      }
                     }
                   } else if (p.image && Array.isArray(p.items) && p.items.length > 0) {
                     // Handle single post
