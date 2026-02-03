@@ -20,7 +20,7 @@ import { useSocketConnection } from "@/hooks/useSocketConnection";
 import { useAuthStore } from "@/state/authStore";
 import { useNotificationStore } from "@/state/notificationStore";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useKeepAwake } from "expo-keep-awake";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -53,6 +53,7 @@ const GroupChat = () => {
 const GroupChatContent = ({ groupId }: { groupId: string }) => {
   const { isDark } = useTheme();
   const router = useRouter();
+  const navigation = useNavigation();
   const { user } = useAuthStore();
   const { socket } = useSocket();
   const messageRefs = useRef<Map<string, any>>(new Map());
@@ -163,6 +164,18 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     refetch(); // Fallback API call if needed
   }, [joinGroupRoom, refetch]);
 
+  useEffect(() => {
+    const gestureEnabled = !(isLoading && messages.length === 0);
+    navigation.setOptions({ gestureEnabled });
+  }, [navigation, isLoading, messages.length]);
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
+      if (isLoading && messages.length === 0) {
+        e.preventDefault();
+      }
+    });
+    return unsubscribe;
+  }, [navigation, isLoading, messages.length]);
 
   const { refetchNotifications } = useNotifications();
   const { setActiveGroupId } = useNotificationStore();
