@@ -6,6 +6,7 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Constants from "expo-constants";
 import { Image as ExpoImage } from "expo-image";
 import * as Location from "expo-location";
 import * as MediaLibrary from "expo-media-library";
@@ -26,44 +27,32 @@ let useMapboxGL = false;
 
 if (Platform.OS === 'android') {
   try {
-    console.log('🔄 Attempting to load Mapbox GL for Android...');
-    const MapboxGLModule = require('@react-native-mapbox-gl/maps');
-    console.log('🔍 Raw MapboxGL module:', MapboxGLModule);
-    console.log('🔍 MapboxGL keys:', Object.keys(MapboxGLModule));
-
-    // Try different possible structures
-    if (MapboxGLModule.default) {
-      MapboxGL = MapboxGLModule.default;
-      console.log('🔍 Using default export, keys:', Object.keys(MapboxGL));
-    } else {
-      MapboxGL = MapboxGLModule;
-      console.log('🔍 Using direct export, keys:', Object.keys(MapboxGL));
-    }
+    const MapboxGLModule = require('@rnmapbox/maps');
+    MapboxGL = MapboxGLModule.default || MapboxGLModule;
 
     // Initialize Mapbox GL for Android
-    const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
-    console.log('🔍 Token available:', !!token);
+    const envToken = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
+    const extraToken =
+      (Constants?.expoConfig as any)?.extra?.MAPBOX_ACCESS_TOKEN ||
+      (Constants?.expoConfig as any)?.extra?.mapboxToken;
+    const token = envToken || extraToken;
 
     if (token) {
       if (MapboxGL.setAccessToken) {
         MapboxGL.setAccessToken(token);
         useMapboxGL = true;
-        console.log('✅ Mapbox GL initialized for Android with token:', token.substring(0, 20) + '...');
       } else {
-        console.error('❌ setAccessToken method not found');
-        console.log('Available methods:', Object.keys(MapboxGL));
+        useMapboxGL = false;
       }
     } else {
-      console.error('❌ Mapbox token not found in environment variables');
+      useMapboxGL = false;
     }
   } catch (error) {
-    console.error('❌ Failed to load Mapbox GL module:', error);
-    console.log('📱 Falling back to Google Maps for Android');
+    console.warn("Mapbox GL not available:", error);
     useMapboxGL = false;
   }
-} else {
-  console.log('🍎 iOS detected - using Apple Maps (Mapbox disabled)');
 }
+
 
 export default function TarpsScreen() {
   const { isDark } = useTheme();
@@ -514,7 +503,7 @@ export default function TarpsScreen() {
 
       setGlobalPosts(prev => {
         const updated = applyUpdate(prev);
-        AsyncStorage.setItem('globalPosts', JSON.stringify(updated)).catch(() => {});
+        AsyncStorage.setItem('globalPosts', JSON.stringify(updated)).catch(() => { });
         return updated;
       });
       if (viewMode === 'posts') {

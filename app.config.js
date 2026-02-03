@@ -40,9 +40,7 @@ export default {
     android: {
       adaptiveIcon: {
         backgroundColor: "#FFFFFF",
-        foregroundImage: "./assets/images/tarpup-lightt.png",
-        backgroundImage: "./assets/images/tarpup-lightt.png",
-        monochromeImage: "./assets/images/tarpup-lightt.png"
+        foregroundImage: "./assets/images/tarpup-lightt.png"
       },
       backgroundColor: "#0a0a0a",
       edgeToEdgeEnabled: true,
@@ -100,7 +98,14 @@ export default {
         }
       ],
 
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "@rnmapbox/maps",
+        {
+          "RNMapboxMapsImpl": "mapbox",
+          "RNMapboxMapsDownloadToken": process.env.EXPO_PUBLIC_MAPBOX_TOKEN
+        }
+      ]
     ],
 
     experiments: {
@@ -112,7 +117,9 @@ export default {
       router: {},
       "eas": {
         "projectId": "9386a1c9-eed3-4a02-8943-efcecb53cc62"
-      }
+      },
+      MAPBOX_ACCESS_TOKEN: process.env.EXPO_PUBLIC_MAPBOX_TOKEN,
+      mapboxToken: process.env.EXPO_PUBLIC_MAPBOX_TOKEN
     },
 
     runtimeVersion: "1.0.2",
