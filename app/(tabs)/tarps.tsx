@@ -14,7 +14,7 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import moment from "moment";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Dimensions, FlatList, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, Dimensions, FlatList, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import uuid from "react-native-uuid";
@@ -1706,6 +1706,7 @@ export default function TarpsScreen() {
         <MapboxGL.MapView
           style={{ flex: 1 }}
           styleURL={MapboxGL.StyleURL?.Satellite || 'mapbox://styles/mapbox/satellite-v9'}
+          projection="globe" // Enable Globe View
           onRegionDidChange={() => {
             // Handle region changes for Mapbox GL
           }}
@@ -1880,19 +1881,21 @@ export default function TarpsScreen() {
                   }
                 }}
               >
-                <View style={[
-                  styles.markerContainer,
-                  isDark ? styles.markerDark : styles.markerLight,
-                  p.items?.some((item: any) => newPostIds.has(item.id)) && styles.markerContainerNew
-                ]}>
-                  <ExpoImage
-                    source={{ uri: p.image as string }}
-                    style={styles.markerImage}
-                    contentFit="cover"
-                    placeholder={require("@/assets/images/peop.png")}
-                    placeholderContentFit="cover"
-                    transition={200}
-                  />
+                <View style={{ width: 96, height: 96 }}>
+                  <View
+                    style={[
+                      styles.markerContainer,
+                      isDark ? styles.markerDark : styles.markerLight,
+                      p.items?.some((item: any) => newPostIds.has(item.id)) && styles.markerContainerNew,
+                      { overflow: 'hidden' } // Ensure image is clipped to border radius
+                    ]}
+                  >
+                    <Image
+                      source={{ uri: p.image as string }}
+                      style={styles.markerImage}
+                      resizeMode="cover"
+                    />
+                  </View>
                   {!!p.count && p.count > 1 && (
                     <View style={styles.countBadge}>
                       <Text style={styles.countText}>{p.count >= 1000 ? `${Math.floor(p.count / 1000)}k` : `${p.count}`}</Text>
@@ -1913,21 +1916,26 @@ export default function TarpsScreen() {
                 setPersonOpen(true);
               }}
             >
-              <View style={[styles.markerContainer, isDark ? styles.markerDark : styles.markerLight]}>
-                {p.imageUrl ? (
-                  <ExpoImage
-                    source={{ uri: p.imageUrl }}
-                    style={styles.markerImage}
-                    contentFit="cover"
-                    placeholder={isDark ? require("@/assets/images/peop.png") : require("@/assets/images/peop.png")}
-                    placeholderContentFit="cover"
-                    transition={200}
-                  />
-                ) : (
-                  <View style={[styles.markerImage, { alignItems: "center", justifyContent: "center", backgroundColor: "#888" }]}>
-                    <Text style={{ color: "#fff", fontWeight: "700" }}>{p.owner?.fname?.[0]?.toUpperCase() || "F"}</Text>
-                  </View>
-                )}
+              <View style={{ width: 96, height: 96 }}>
+                <View
+                  style={[
+                    styles.markerContainer,
+                    isDark ? styles.markerDark : styles.markerLight,
+                    { overflow: 'hidden' }
+                  ]}
+                >
+                  {p.imageUrl ? (
+                    <Image
+                      source={{ uri: p.imageUrl }}
+                      style={styles.markerImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={[styles.markerImage, { alignItems: "center", justifyContent: "center", backgroundColor: "#888" }]}>
+                      <Text style={{ color: "#fff", fontWeight: "700" }}>{p.owner?.fname?.[0]?.toUpperCase() || "F"}</Text>
+                    </View>
+                  )}
+                </View>
                 <View style={styles.locBadge}>
                   <Ionicons name="location-outline" size={14} color="#FFFFFF" />
                 </View>
@@ -3087,8 +3095,8 @@ const styles = StyleSheet.create({
   pointerLight: { borderTopColor: "#FFFFFF" },
   locBadge: {
     position: "absolute",
-    bottom: -8,
-    right: -8,
+    bottom: 0,
+    right: 0,
     backgroundColor: "#22C55E",
     width: 28,
     height: 28,
@@ -3099,9 +3107,10 @@ const styles = StyleSheet.create({
     borderColor: "#FFFFFF",
     shadowColor: "#000",
     shadowOpacity: 0.2,
+    elevation: 8,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
-    zIndex: 2,
+    zIndex: 6,
   },
   topBar: {
     position: "absolute",
