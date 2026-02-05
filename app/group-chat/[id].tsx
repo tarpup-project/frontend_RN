@@ -127,14 +127,13 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     }
     const idDeduped = Array.from(byId.values());
 
-    // 2) Dedup by composite key, keep latest
+    // 2) Dedup by normalized text + time bucket (1s), keep latest
     const byComposite = new Map<string, any>();
     for (const msg of idDeduped) {
-      const senderId = msg?.messageType === 'user' ? String(msg?.sender?.id || '') : 'system';
       const text = String(msg?.content?.message || '').trim().toLowerCase();
       const ms = msg?.createdAt ? new Date(msg.createdAt).getTime() : 0;
-      const bucket = Math.floor(ms / 5000);
-      const key = `${senderId}|${text}|${bucket}`;
+      const bucket = Math.floor(ms / 1000);
+      const key = `${text}|${bucket}`;
       const prev = byComposite.get(key);
       const prevTime = prev?.createdAt ? new Date(prev.createdAt).getTime() : 0;
       if (!prev || ms >= prevTime) {
