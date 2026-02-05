@@ -85,8 +85,17 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
 
   // Log caching behavior
   useEffect(() => {
+    // Check initial caching state
     if (messages.length > 0) {
       console.log('📱 Group chat loaded with', messages.length, 'cached messages');
+    } else {
+      console.log('⏳ No cached messages found on mount');
+    }
+  }, []); // Run only on mount to check initial state
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      console.log('📱 Group chat messages updated:', messages.length);
     }
   }, [messages.length]);
 

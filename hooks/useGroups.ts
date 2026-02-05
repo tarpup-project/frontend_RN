@@ -100,8 +100,69 @@ const fetchGroups = async (campusId?: string): Promise<Group[]> => {
 export const useGroups = () => {
   const { selectedUniversity } = useCampus();
   const { isAuthenticated, isHydrated, user } = useAuthStore();
-  const { setNotifications, activeGroupId } = useNotificationStore();
+  const { setNotifications, activeGroupId, groupNotifications } = useNotificationStore();
   const queryClient = useQueryClient();
+  const { socket } = require('@/contexts/SocketProvider').useSocket();
+
+  // Listen for new messages to update group list in real-time
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewMessage = (payload: any) => {
+      // Payload structure usually: { groupId, message: { ... } } or just message with groupId
+      const message = payload.message || payload;
+      const groupId = payload.groupId || message.groupId || (typeof message.group === 'string' ? message.group : message.group?.id);
+
+      if (!groupId || !message) return;
+
+      console.log(`📨 Socket: New message for group ${groupId} received in groups list`);
+
+      // Update the groups list cache
+      queryClient.setQueryData<Group[]>(groupsKeys.list(selectedUniversity?.id), (oldGroups) => {
+        if (!oldGroups) return oldGroups;
+
+        return oldGroups.map(group => {
+          if (group.id === groupId) {
+            // Determine if we should increment unread count
+            // Don't increment if we are currently looking at this group
+            const isCurrentGroup = String(activeGroupId) === String(groupId);
+            const shouldIncrement = !isCurrentGroup && message.senderId !== user?.id;
+
+            // Format the new message for the preview
+            // Ensure we handle both structure types if consistent
+            // Note: The groups list usually expects a 'messages' array or 'lastMessage' field
+            // We append to messages array to keep the preview current
+            const newMessages = [...(group.messages || []), message];
+
+            return {
+              ...group,
+              unread: shouldIncrement ? (group.unread || 0) + 1 : (group.unread || 0),
+              lastMessageAt: message.createdAt || new Date().toISOString(),
+              messages: newMessages // Update preview messages
+            };
+          }
+          return group;
+        });
+      });
+
+      // Update global unread count if applicable
+      const isCurrentGroup = String(activeGroupId) === String(groupId);
+      if (!isCurrentGroup && message.senderId !== user?.id) {
+        setNotifications({
+          groupNotifications: (groupNotifications || 0) + 1
+        });
+      }
+    };
+
+    socket.on('receive_message', handleNewMessage);
+    // Also listen for 'group_message' if that's the event name used elsewhere
+    socket.on('group_message', handleNewMessage);
+
+    return () => {
+      socket.off('receive_message', handleNewMessage);
+      socket.off('group_message', handleNewMessage);
+    };
+  }, [socket, queryClient, selectedUniversity?.id, activeGroupId, user?.id, groupNotifications]);
 
   // Global notifications query (like the web version)
   const globalNotificationsQuery = useQuery({

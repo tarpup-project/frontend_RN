@@ -10,6 +10,7 @@ import { useCampus } from "@/hooks/useCampus";
 import { useFriends } from "@/hooks/useFriends";
 import { useGroupMessagePreloader } from "@/hooks/useGroupMessagePreloader";
 import { useImagePreloader } from "@/hooks/useImagePreloader";
+import { useSocketConnection } from "@/hooks/useSocketConnection";
 import { useUnifiedGroups } from "@/hooks/useUnifiedGroups";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
@@ -114,6 +115,7 @@ const Groups = () => {
   const [showNewGroupModal, setShowNewGroupModal] = useState(false);
   const [showCacheStatus, setShowCacheStatus] = useState(false);
   const { selectedUniversity } = useCampus();
+  const { isReconnecting } = useSocketConnection();
   const router = useRouter();
 
   // Preload profile pictures for better performance
@@ -520,7 +522,7 @@ const Groups = () => {
                         {group.unreadCount > 0 && (
                           <View style={[styles.newMessagesBadge, { backgroundColor: isDark ? "#8B4A47" : "#F8BBD9" }]}>
                             <Text style={[styles.newMessagesText, { color: isDark ? "#FFFFFF" : "#000000" }]}>
-                              {group.unreadCount}
+                              {group.unreadCount - (isReconnecting ? 1 : 0) > 0 ? group.unreadCount - (isReconnecting ? 1 : 0) : 0}
                             </Text>
                           </View>
                         )}
@@ -732,7 +734,7 @@ const Groups = () => {
                   <Text
                     style={[styles.unreadText, { color: isDark ? "#FFFFFF" : "#000000" }]}
                   >
-                    {group.unreadCount} new messages
+                    {group.unreadCount - (isReconnecting ? 1 : 0) > 0 ? group.unreadCount - (isReconnecting ? 1 : 0) : 0} new messages
                   </Text>
                 </View>
               </View>

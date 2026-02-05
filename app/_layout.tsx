@@ -1,6 +1,7 @@
 import { SocketProvider } from "@/contexts/SocketProvider";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import { WatermelonProvider } from "@/contexts/WatermelonProvider";
+import { asyncStorageDB } from "@/database/asyncStorageDB";
 import { useAppBadge } from "@/hooks/useAppBadge";
 import { useAppUpdate } from "@/hooks/useAppUpdate";
 import { useDeepLinking } from "@/hooks/useDeepLinking";
@@ -61,6 +62,9 @@ function RootLayoutContent() {
 
       // Initialize query persistence (noop now, handled by provider, but kept for flow)
       await initializeQueryPersistence();
+
+      // Initialize local DB for synchronous access
+      await asyncStorageDB.initialize();
 
       // Then hydrate auth store
       await hydrate();

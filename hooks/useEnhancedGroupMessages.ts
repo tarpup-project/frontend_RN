@@ -1,5 +1,6 @@
 import { api } from '@/api/client';
 import { UrlConstants } from '@/constants/apiUrls';
+import { asyncStorageDB } from '@/database/asyncStorageDB';
 import { useAuthStore } from '@/state/authStore';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useState } from 'react';
@@ -257,9 +258,50 @@ export const useGroupMessages = (groupId: string, socket?: any): UseGroupMessage
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,
-    // REMOVED placeholderData to prevent showing previous chat's messages when switching groups
-    // placeholderData: (previousData) => ...
+    initialData: () => {
+      const cachedRaw = asyncStorageDB.getMessagesSync(groupId);
+      if (cachedRaw && cachedRaw.length > 0) {
+        const mapped = cachedRaw.map(transformMessageForUI);
+        console.log(`⚡️ Providing ${mapped.length} sync messages for ${groupId}`);
+        return mapped;
+      }
+      return undefined;
+    }
   });
+
+  // Load from local DB on mount to show messages immediately
+  // (Still kept as backup, but initialData should handle the critical first render)
+  useEffect(() => {
+    const loadFromCache = async () => {
+      if (!groupId) return;
+
+      const cachedRaw = await asyncStorageDB.getMessages(groupId);
+      if (cachedRaw && cachedRaw.length > 0) {
+        const cached = cachedRaw.map(transformMessageForUI);
+        console.log(`💾 Loaded ${cached.length} messages from local storage for ${groupId}`);
+
+        queryClient.setQueryData<GroupMessage[]>(
+          groupMessageKeys.detail(groupId),
+          (old) => {
+            // Only set if we don't have data, or merge carefully
+            if (!old || old.length === 0) return cached;
+            return old;
+          }
+        );
+      }
+    };
+
+    loadFromCache();
+  }, [groupId, queryClient]);
+
+  // Save to local DB whenever messages update
+  useEffect(() => {
+    if (messages && messages.length > 0) {
+      asyncStorageDB.saveMessages(groupId, messages).catch(err =>
+        console.warn('Failed to persist messages:', err)
+      );
+    }
+  }, [messages, groupId]);
 
   // Sync latest message to groups list when messages are loaded or updated
   useEffect(() => {
@@ -299,6 +341,41 @@ export const useGroupMessages = (groupId: string, socket?: any): UseGroupMessage
     console.log('📤 Emitting joinGroupRoom with payload:', joinPayload);
     socket.emit(SocketEvents.JOIN_GROUP_ROOM, joinPayload);
   }, [socket, groupId, user, queryClient]);
+
+  // Process offline queue on connect
+  const processOfflineQueue = useCallback(async () => {
+    if (!socket || !socket.connected || !user) return;
+
+    console.log('🔄 Checking for offline messages to sync...');
+    const offlineActions = await asyncStorageDB.getOfflineActions();
+    const pendingMessages = offlineActions.filter((a: any) =>
+      a.type === 'SEND_MESSAGE' &&
+      !a.isSynced
+    );
+
+    if (pendingMessages.length === 0) {
+      console.log('✅ No offline messages to sync');
+      return;
+    }
+
+    console.log(`📤 Trying to resend ${pendingMessages.length} pending messages`);
+
+    for (const action of pendingMessages) {
+      try {
+        const { payload } = action;
+
+        // Ensure we are sending to the right room if we can filter, 
+        // optionally we could sync all, but let's just do it
+        socket.emit(SocketEvents.GROUP_ROOM_MESSAGE, payload);
+
+        await asyncStorageDB.markActionAsSynced(action.id);
+        await asyncStorageDB.removeOfflineAction(action.id);
+        console.log('✅ Synced offline message:', action.id);
+      } catch (err) {
+        console.error('❌ Failed to sync offline message:', action.id, err);
+      }
+    }
+  }, [socket, user]);
 
   // Socket event handlers for real-time updates
   useEffect(() => {
@@ -462,8 +539,9 @@ export const useGroupMessages = (groupId: string, socket?: any): UseGroupMessage
     };
 
     const handleSocketConnect = () => {
-      console.log('🔌 Socket connected, joining group room');
+      console.log('🔌 Socket connected, joining group room and syncing offline queue');
       joinGroupRoom();
+      processOfflineQueue();
     };
 
     // Socket listeners
@@ -475,6 +553,7 @@ export const useGroupMessages = (groupId: string, socket?: any): UseGroupMessage
     // Join group room if socket is already connected
     if (socket.connected) {
       joinGroupRoom();
+      processOfflineQueue();
     }
 
     return () => {
@@ -483,7 +562,7 @@ export const useGroupMessages = (groupId: string, socket?: any): UseGroupMessage
       socket.off('groupMessages', handleNewMessage);
       socket.off('connect', handleSocketConnect);
     };
-  }, [socket, groupId, user, queryClient, joinGroupRoom]);
+  }, [socket, groupId, user, queryClient, joinGroupRoom, processOfflineQueue]);
 
   return {
     messages,
@@ -531,12 +610,38 @@ export const useSendGroupMessage = (groupId: string): UseSendGroupMessageResult 
         replyingTo: replyingTo?.content.id,
       };
 
-      // Emit via socket
-      if (socket && socket.connected) {
-        console.log('📤 Sending message via socket:', messageId);
-        socket.emit(SocketEvents.GROUP_ROOM_MESSAGE, payload);
-      } else {
-        throw new Error("Socket disconnected");
+      // 1. Persist INTENT immediately (Persistence-First Strategy)
+      const actionId = `retry_${messageId}`;
+      await asyncStorageDB.addOfflineAction({
+        id: actionId,
+        type: 'SEND_MESSAGE',
+        payload,
+        timestamp: Date.now(),
+        groupId
+      });
+
+      try {
+        // Emit via socket
+        if (socket && socket.connected) {
+          console.log('📤 Sending message via socket:', messageId);
+          await new Promise<void>((resolve, reject) => {
+            socket.emit(SocketEvents.GROUP_ROOM_MESSAGE, payload, (ack: any) => {
+              if (ack && ack.error) reject(ack.error);
+              else resolve();
+            });
+            setTimeout(resolve, 100);
+          });
+
+          // 2. If successful, remove the pending action
+          await asyncStorageDB.removeOfflineAction(actionId);
+          console.log('✅ Message sent and removed from offline queue:', messageId);
+        } else {
+          throw new Error("Socket disconnected");
+        }
+      } catch (error) {
+        // 3. If failed, the action remains in DB and will be picked up by auto-sync.
+        console.log('⚠️ Failed to send message immediately. It is safe in offline queue:', error);
+        return true;
       }
 
       return true;
@@ -630,11 +735,10 @@ export const useSendGroupMessage = (groupId: string): UseSendGroupMessageResult 
       return { previousMessages, previousGroups, optimisticId, groupListKey };
     },
     onSuccess: (result, variables, context) => {
-      console.log('✅ Message sent successfully');
-      // The real message will come through socket, which will replace the optimistic one
+      console.log('✅ Message handled successfully (Sent or Queued)');
     },
     onError: (err, newMsg, context) => {
-      console.error("❌ Failed to send message:", err);
+      console.error("❌ Critical error in message handler:", err);
 
       // Revert optimistic updates on error
       if (context?.previousMessages) {
