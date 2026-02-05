@@ -124,21 +124,35 @@ export const useGroups = () => {
         return oldGroups.map(group => {
           if (group.id === groupId) {
             // Determine if we should increment unread count
-            // Don't increment if we are currently looking at this group
             const isCurrentGroup = String(activeGroupId) === String(groupId);
-            const shouldIncrement = !isCurrentGroup && message.senderId !== user?.id;
+
+            // Robustly extract sender ID
+            const msgSenderId =
+              message.senderId ||
+              message.sender?.id ||
+              message.user?.id ||
+              (typeof message.sender === 'string' ? message.sender : null);
+
+            // Check if ANY of the potential sender IDs matches the current user
+            // We convert to strings for safe comparison
+            const isMyMessage =
+              String(msgSenderId) === String(user?.id) ||
+              String(message.sender) === String(user?.id);
+
+            // Only increment if:
+            // 1. We are NOT currently looking at this group
+            // 2. The message is NOT from me
+            // 3. The message is NOT a system message (optional, but good practice)
+            const shouldIncrement = !isCurrentGroup && !isMyMessage && message.messageType !== 'system';
 
             // Format the new message for the preview
-            // Ensure we handle both structure types if consistent
-            // Note: The groups list usually expects a 'messages' array or 'lastMessage' field
-            // We append to messages array to keep the preview current
             const newMessages = [...(group.messages || []), message];
 
             return {
               ...group,
               unread: shouldIncrement ? (group.unread || 0) + 1 : (group.unread || 0),
               lastMessageAt: message.createdAt || new Date().toISOString(),
-              messages: newMessages // Update preview messages
+              messages: newMessages
             };
           }
           return group;
@@ -146,8 +160,16 @@ export const useGroups = () => {
       });
 
       // Update global unread count if applicable
+      const msgSenderId =
+        message.senderId ||
+        message.sender?.id ||
+        message.user?.id ||
+        (typeof message.sender === 'string' ? message.sender : null);
+
+      const isMyMessage = String(msgSenderId) === String(user?.id);
       const isCurrentGroup = String(activeGroupId) === String(groupId);
-      if (!isCurrentGroup && message.senderId !== user?.id) {
+
+      if (!isCurrentGroup && !isMyMessage && message.messageType !== 'system') {
         setNotifications({
           groupNotifications: (groupNotifications || 0) + 1
         });

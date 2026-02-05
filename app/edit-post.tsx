@@ -1,6 +1,6 @@
 import { api } from "@/api/client";
-import { UrlConstants } from "@/constants/apiUrls";
 import { useTheme } from "@/contexts/ThemeContext";
+import { usePostUploadStore } from "@/state/postUploadStore"; // Import store
 import { Ionicons } from "@expo/vector-icons";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as Location from "expo-location";
@@ -40,7 +40,8 @@ export default function EditPostScreen() {
   const [imageDimensions, setImageDimensions] = useState<{ [key: string]: { width: number, height: number } }>({});
   const [placeName, setPlaceName] = useState("");
   const [caption, setCaption] = useState("");
-  const [isUploadingPost, setIsUploadingPost] = useState(false);
+  /* removed isUploadingPost */
+  const { uploadPost, isUploading } = usePostUploadStore();
   const [postLocSuggestions, setPostLocSuggestions] = useState<string[]>([]);
   const [showPostLocDropdown, setShowPostLocDropdown] = useState(false);
   const [loadingPostSuggest, setLoadingPostSuggest] = useState(false);
@@ -158,41 +159,26 @@ export default function EditPostScreen() {
     }
   };
 
-  const canPost = processedImages.length > 0 && placeName.trim().length > 0 && !isUploadingPost;
+  const canPost = processedImages.length > 0 && placeName.trim().length > 0 && !isUploading;
 
   const handleBack = () => {
     router.back();
   };
 
   const submitPost = async () => {
-    if (!currentLocation || processedImages.length === 0 || !placeName.trim() || isUploadingPost) return;
+    if (!currentLocation || processedImages.length === 0 || !placeName.trim() || isUploading) return;
 
-    try {
-      setIsUploadingPost(true);
+    // Fire and forget - background upload
+    uploadPost({
+      selectedImages: processedImages,
+      allMedia: [], // Images are already processed/resolved in this screen
+      caption,
+      placeName
+    });
 
-      const form = new FormData();
-      processedImages.forEach((uri, idx) => {
-        form.append("image", {
-          uri,
-          name: `photo_${idx + 1}.jpg`,
-          type: "image/jpeg",
-        } as any);
-      });
-      form.append("caption", caption.trim());
-      form.append("address", placeName.trim());
-
-      await api.post(UrlConstants.uploadTarps, form, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-      toast.success("Posted successfully");
-      router.push("/(tabs)/tarps");
-    } catch (e: any) {
-      toast.error("Failed to post photo");
-    } finally {
-      setIsUploadingPost(false);
-    }
+    // Immediate navigation back to feed
+    // navigate behaves better than push for returning to existing tabs without remounting
+    router.navigate("/(tabs)/tarps");
   };
 
   // Location suggestions logic
@@ -300,7 +286,7 @@ export default function EditPostScreen() {
           onPress={submitPost}
           disabled={!canPost}
         >
-          {isUploadingPost ? (
+          {isUploading ? (
             <ActivityIndicator size="small" color={canPost ? "#FFFFFF" : (isDark ? "#FFFFFF" : "#000000")} />
           ) : (
             <Text style={[

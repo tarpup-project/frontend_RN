@@ -4,6 +4,7 @@ import { UrlConstants } from "@/constants/apiUrls";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useAuthStore } from "@/state/authStore";
+import { usePostUploadStore } from "@/state/postUploadStore";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Image as ExpoImage } from "expo-image";
@@ -68,6 +69,7 @@ if (Platform.OS === 'android') {
 export default function TarpsScreen() {
   const { isDark } = useTheme();
   const { user } = useAuthStore();
+  const { isUploading, uploadProgress } = usePostUploadStore();
   const insets = useSafeAreaInsets();
   const nav = useRouter();
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -514,7 +516,7 @@ export default function TarpsScreen() {
 
       setGlobalPosts(prev => {
         const updated = applyUpdate(prev);
-        AsyncStorage.setItem('globalPosts', JSON.stringify(updated)).catch(() => {});
+        AsyncStorage.setItem('globalPosts', JSON.stringify(updated)).catch(() => { });
         return updated;
       });
       if (viewMode === 'posts') {
@@ -1711,6 +1713,17 @@ export default function TarpsScreen() {
   return (
     <View style={{ flex: 1 }}>
       <StatusBar style="light" />
+
+      {/* Uploading Status Modal */}
+      {isUploading && (
+        <View style={[styles.uploadToast, { top: insets.top + 10, backgroundColor: isDark ? "#1C1C1E" : "#FFFFFF" }]}>
+          <ActivityIndicator size="small" color={isDark ? "#FFFFFF" : "#000000"} />
+          <Text style={[styles.uploadToastText, { color: isDark ? "#FFFFFF" : "#000000" }]}>
+            Post uploading...
+          </Text>
+        </View>
+      )}
+
       {/* Conditional Map Rendering: Mapbox GL for Android (if available), Apple Maps for iOS */}
       {Platform.OS === 'android' && useMapboxGL && MapboxGL ? (
         // Mapbox GL for Android (when available)
@@ -3539,6 +3552,29 @@ const styles = StyleSheet.create({
   },
   currentLocationBtnText: {
     fontSize: 12,
+    fontWeight: "600",
+  },
+  uploadToast: {
+    position: 'absolute',
+    alignSelf: 'center',
+    zIndex: 9999,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  uploadToastText: {
+    fontSize: 13,
     fontWeight: "600",
   },
 });

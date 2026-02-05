@@ -171,7 +171,7 @@ interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
 const api = axios.create({
   baseURL: UrlConstants.baseUrl,
   withCredentials: true,
-  timeout: 50000,
+  timeout: 90000,
   headers: {
     'Content-Type': 'application/json',
   },
