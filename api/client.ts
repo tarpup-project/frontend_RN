@@ -171,7 +171,7 @@ interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
 const api = axios.create({
   baseURL: UrlConstants.baseUrl,
   withCredentials: true,
-  // timeout: 1000,
+  timeout: 50000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -206,6 +206,16 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
+let cachedAccessToken: string | null = null;
+
+// Subscribe to auth store changes to clear cache on logout
+useAuthStore.subscribe((state, prevState) => {
+  if (!state.isAuthenticated && prevState.isAuthenticated) {
+    console.log('🔒 Auth state changed to unauthenticated - clearing cached token');
+    cachedAccessToken = null;
+  }
+});
+
 api.interceptors.request.use(
   async (config) => {
     // Skip token refresh for refresh endpoint
@@ -213,11 +223,15 @@ api.interceptors.request.use(
       return config;
     }
 
-    const accessToken = await getAccessToken();
-
-    // Add access token to request if available
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
+    // Use cached token if available, otherwise get from storage
+    if (cachedAccessToken) {
+      config.headers.Authorization = `Bearer ${cachedAccessToken}`;
+    } else {
+      const accessToken = await getAccessToken();
+      if (accessToken) {
+        cachedAccessToken = accessToken;
+        config.headers.Authorization = `Bearer ${accessToken}`;
+      }
     }
 
     return config;
@@ -277,17 +291,26 @@ api.interceptors.response.use(
         );
 
         if (refreshResponse.data?.data?.authTokens) {
-          await saveAccessToken(refreshResponse.data.data.authTokens.accessToken);
+          const newAccessToken = refreshResponse.data.data.authTokens.accessToken;
+          await saveAccessToken(newAccessToken);
           await saveSocketToken(refreshResponse.data.data.authTokens.socketToken);
+
+          // Update cached token
+          cachedAccessToken = newAccessToken;
+
           console.log('✅ Token refresh successful, retrying original request');
 
-          processQueue(null);
+          // Update authorization header for the original request
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+
+          processQueue(null, newAccessToken);
           return api(originalRequest);
         } else {
           throw new Error('Invalid refresh response');
         }
       } catch (err: any) {
         console.log('❌ Token refresh failed:', err.message);
+        cachedAccessToken = null; // Clear cache on failure
         processQueue(err, null);
 
         // Only clear auth data if it's an auth error, not network error

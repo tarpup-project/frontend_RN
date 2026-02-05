@@ -9,17 +9,17 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Dimensions,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View
+  ActivityIndicator,
+  Dimensions,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
@@ -34,10 +34,10 @@ export default function EditPostScreen() {
 
   // Parse selected images from params
   const selectedImages = params.selectedImages ? JSON.parse(params.selectedImages as string) : [];
-  
+
   // State
   const [processedImages, setProcessedImages] = useState<string[]>([]);
-  const [imageDimensions, setImageDimensions] = useState<{[key: string]: {width: number, height: number}}>({});
+  const [imageDimensions, setImageDimensions] = useState<{ [key: string]: { width: number, height: number } }>({});
   const [placeName, setPlaceName] = useState("");
   const [caption, setCaption] = useState("");
   const [isUploadingPost, setIsUploadingPost] = useState(false);
@@ -80,7 +80,7 @@ export default function EditPostScreen() {
     try {
       setIsProcessingImages(true);
       console.log('Processing selected images:', selectedImages);
-      
+
       const processed = await Promise.all(
         selectedImages.map(async (uri: string) => {
           try {
@@ -88,10 +88,10 @@ export default function EditPostScreen() {
             let resolvedUri = uri;
             if (uri.startsWith('ph://')) {
               // Find the asset to get more info
-              const assets = await MediaLibrary.getAssetsAsync({ 
-                first: 1000, 
-                mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video], 
-                sortBy: MediaLibrary.SortBy.creationTime 
+              const assets = await MediaLibrary.getAssetsAsync({
+                first: 1000,
+                mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video],
+                sortBy: MediaLibrary.SortBy.creationTime
               });
               const asset = assets.assets.find(a => a.uri === uri);
               if (asset) {
@@ -100,10 +100,10 @@ export default function EditPostScreen() {
               }
             }
 
-            // Convert to JPEG with compression
+            // Convert to JPEG with compression and resize
             const manipulatedImage = await ImageManipulator.manipulateAsync(
               resolvedUri,
-              [], // No resize/crop operations, just format conversion
+              [{ resize: { width: 1350 } }], // Resize to reasonable width for mobile/social
               {
                 compress: 0.8, // 80% quality
                 format: ImageManipulator.SaveFormat.JPEG,
@@ -120,9 +120,9 @@ export default function EditPostScreen() {
       );
 
       setProcessedImages(processed);
-      
+
       // Get dimensions for each processed image
-      const dimensions: {[key: string]: {width: number, height: number}} = {};
+      const dimensions: { [key: string]: { width: number, height: number } } = {};
       await Promise.all(
         processed.map(async (uri) => {
           return new Promise<void>((resolve) => {
@@ -133,7 +133,7 @@ export default function EditPostScreen() {
                 const maxHeight = screenHeight * 0.5; // Match imageSection height
                 const aspectRatio = width / height;
                 const containerWidth = Math.min(screenWidth * 0.9, maxHeight * aspectRatio);
-                
+
                 dimensions[uri] = { width: containerWidth, height: maxHeight };
                 resolve();
               },
@@ -147,7 +147,7 @@ export default function EditPostScreen() {
           });
         })
       );
-      
+
       setImageDimensions(dimensions);
       console.log('All images processed:', processed.length);
     } catch (error) {
@@ -166,7 +166,7 @@ export default function EditPostScreen() {
 
   const submitPost = async () => {
     if (!currentLocation || processedImages.length === 0 || !placeName.trim() || isUploadingPost) return;
-    
+
     try {
       setIsUploadingPost(true);
 
@@ -202,7 +202,7 @@ export default function EditPostScreen() {
       setShowPostLocDropdown(false);
       return;
     }
-    
+
     const q = placeName.trim();
     if (q.length === 0) {
       setPostLocSuggestions([]);
@@ -233,7 +233,7 @@ export default function EditPostScreen() {
       toast.error("Current location not available. Please check location permissions.");
       return;
     }
-    
+
     setExtractingGPS(true);
     try {
       const { latitude, longitude } = currentLocation;
@@ -241,7 +241,7 @@ export default function EditPostScreen() {
         latitude,
         longitude,
       });
-      
+
       if (reverseGeocode && reverseGeocode.length > 0) {
         const address = reverseGeocode[0];
         let locationString = '';
@@ -262,7 +262,7 @@ export default function EditPostScreen() {
           if (locationString) locationString += ', ';
           locationString += address.country;
         }
-        
+
         if (locationString) {
           setPlaceName(locationString);
           setLocationFromCurrent(true);
@@ -286,7 +286,7 @@ export default function EditPostScreen() {
   return (
     <View style={[styles.container, { backgroundColor: isDark ? "#000000" : "#FFFFFF" }]}>
       <StatusBar style={isDark ? "light" : "dark"} />
-      
+
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <Pressable style={styles.headerButton} onPress={handleBack}>
@@ -295,7 +295,7 @@ export default function EditPostScreen() {
         <Text style={[styles.headerTitle, { color: isDark ? "#FFFFFF" : "#000000" }]}>
           New post
         </Text>
-        <Pressable 
+        <Pressable
           style={[styles.headerButton, canPost ? styles.shareButtonActive : styles.shareButtonInactive]}
           onPress={submitPost}
           disabled={!canPost}
@@ -304,8 +304,8 @@ export default function EditPostScreen() {
             <ActivityIndicator size="small" color={canPost ? "#FFFFFF" : (isDark ? "#FFFFFF" : "#000000")} />
           ) : (
             <Text style={[
-              styles.shareButtonText, 
-              { 
+              styles.shareButtonText,
+              {
                 opacity: canPost ? 1 : 0.5,
                 color: canPost ? "#FFFFFF" : (isDark ? "#FFFFFF" : "#000000")
               }
@@ -314,209 +314,209 @@ export default function EditPostScreen() {
         </Pressable>
       </View>
 
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.content}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-        <ScrollView 
+        <ScrollView
           ref={scrollViewRef}
           style={styles.scrollContainer}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-        {/* Image Display Section */}
-        <View style={[styles.imageSection, { backgroundColor: isDark ? "#000000" : "#FFFFFF" }]}>
-          {isProcessingImages ? (
-            <View style={styles.processingContainer}>
-              <ActivityIndicator size="large" color={isDark ? "#FFFFFF" : "#000000"} />
-              <Text style={[styles.processingText, { color: isDark ? "#FFFFFF" : "#000000" }]}>
-                Processing images...
-              </Text>
-            </View>
-          ) : processedImages.length === 1 ? (
-            // Single image - full screen
-            <View style={styles.singleImageContainer}>
-              <Image 
-                source={{ uri: processedImages[0] }} 
-                style={styles.singleImage} 
-                resizeMode="contain"
-              />
-            </View>
-          ) : (
-            // Multiple images - horizontal scroll with dynamic widths
-            <View style={styles.multiImageContainer}>
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.multiImageContent}
-                onMomentumScrollEnd={(event) => {
-                  const scrollX = event.nativeEvent.contentOffset.x;
-                  let currentX = 16; // Start with left padding
-                  let foundIndex = 0;
-                  
-                  for (let i = 0; i < processedImages.length; i++) {
-                    const uri = processedImages[i];
-                    const dimensions = imageDimensions[uri];
-                    const imageWidth = dimensions?.width || screenWidth * 0.8;
-                    
-                    if (scrollX >= currentX && scrollX < currentX + imageWidth + 16) {
-                      foundIndex = i;
-                      break;
-                    }
-                    currentX += imageWidth + 16; // Add image width + gap
-                  }
-                  
-                  setCurrentImageIndex(foundIndex);
-                }}
-                style={styles.imageScrollView}
-                decelerationRate="fast"
-                pagingEnabled={false}
-              >
-                {processedImages.map((uri, index) => {
-                  const dimensions = imageDimensions[uri];
-                  const containerWidth = dimensions?.width || screenWidth * 0.8;
-                  const containerHeight = dimensions?.height || screenHeight * 0.5;
-                  
-                  return (
-                    <View key={index} style={[styles.imageSlideWithGap, { width: containerWidth }]}>
-                      <View style={[
-                        styles.imageSlideContainer, 
-                        { 
-                          backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
-                          width: containerWidth,
-                          height: containerHeight
-                        }
-                      ]}>
-                        <Image 
-                          source={{ uri }} 
-                          style={[styles.slideImage, { width: containerWidth, height: containerHeight }]} 
-                          resizeMode="contain"
-                        />
-                      </View>
-                    </View>
-                  );
-                })}
-              </ScrollView>
-            </View>
-          )}
-        </View>
+          {/* Image Display Section */}
+          <View style={[styles.imageSection, { backgroundColor: isDark ? "#000000" : "#FFFFFF" }]}>
+            {isProcessingImages ? (
+              <View style={styles.processingContainer}>
+                <ActivityIndicator size="large" color={isDark ? "#FFFFFF" : "#000000"} />
+                <Text style={[styles.processingText, { color: isDark ? "#FFFFFF" : "#000000" }]}>
+                  Processing images...
+                </Text>
+              </View>
+            ) : processedImages.length === 1 ? (
+              // Single image - full screen
+              <View style={styles.singleImageContainer}>
+                <Image
+                  source={{ uri: processedImages[0] }}
+                  style={styles.singleImage}
+                  resizeMode="contain"
+                />
+              </View>
+            ) : (
+              // Multiple images - horizontal scroll with dynamic widths
+              <View style={styles.multiImageContainer}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.multiImageContent}
+                  onMomentumScrollEnd={(event) => {
+                    const scrollX = event.nativeEvent.contentOffset.x;
+                    let currentX = 16; // Start with left padding
+                    let foundIndex = 0;
 
-        {/* Form Section */}
-        <View style={styles.formSection}>
-          {/* Selected Images Count */}
-          <View style={styles.imageCountSection}>
-            <Text style={[styles.imageCountText, { color: isDark ? "#FFFFFF" : "#000000" }]}>
-              {processedImages.length} {processedImages.length === 1 ? 'photo' : 'photos'} selected
-            </Text>
+                    for (let i = 0; i < processedImages.length; i++) {
+                      const uri = processedImages[i];
+                      const dimensions = imageDimensions[uri];
+                      const imageWidth = dimensions?.width || screenWidth * 0.8;
+
+                      if (scrollX >= currentX && scrollX < currentX + imageWidth + 16) {
+                        foundIndex = i;
+                        break;
+                      }
+                      currentX += imageWidth + 16; // Add image width + gap
+                    }
+
+                    setCurrentImageIndex(foundIndex);
+                  }}
+                  style={styles.imageScrollView}
+                  decelerationRate="fast"
+                  pagingEnabled={false}
+                >
+                  {processedImages.map((uri, index) => {
+                    const dimensions = imageDimensions[uri];
+                    const containerWidth = dimensions?.width || screenWidth * 0.8;
+                    const containerHeight = dimensions?.height || screenHeight * 0.5;
+
+                    return (
+                      <View key={index} style={[styles.imageSlideWithGap, { width: containerWidth }]}>
+                        <View style={[
+                          styles.imageSlideContainer,
+                          {
+                            backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5",
+                            width: containerWidth,
+                            height: containerHeight
+                          }
+                        ]}>
+                          <Image
+                            source={{ uri }}
+                            style={[styles.slideImage, { width: containerWidth, height: containerHeight }]}
+                            resizeMode="contain"
+                          />
+                        </View>
+                      </View>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
           </View>
 
-          {/* Location Input */}
-          <View style={styles.inputGroup}>
-            <Text style={[styles.inputLabel, { color: isDark ? "#FFFFFF" : "#000000" }]}>Location *</Text>
-            <View style={{ position: "relative" }}>
-              <View style={[styles.inputWrapper, isDark ? styles.inputDark : styles.inputLight]}>
-                <Ionicons name="location-outline" size={16} color={isDark ? "#FFFFFF" : "#000000"} />
+          {/* Form Section */}
+          <View style={styles.formSection}>
+            {/* Selected Images Count */}
+            <View style={styles.imageCountSection}>
+              <Text style={[styles.imageCountText, { color: isDark ? "#FFFFFF" : "#000000" }]}>
+                {processedImages.length} {processedImages.length === 1 ? 'photo' : 'photos'} selected
+              </Text>
+            </View>
+
+            {/* Location Input */}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.inputLabel, { color: isDark ? "#FFFFFF" : "#000000" }]}>Location *</Text>
+              <View style={{ position: "relative" }}>
+                <View style={[styles.inputWrapper, isDark ? styles.inputDark : styles.inputLight]}>
+                  <Ionicons name="location-outline" size={16} color={isDark ? "#FFFFFF" : "#000000"} />
+                  <TextInput
+                    value={placeName}
+                    onChangeText={(text) => {
+                      setPlaceName(text);
+                      if (locationFromCurrent && text !== placeName) {
+                        setLocationFromCurrent(false);
+                      }
+                      if (locationSelected) {
+                        setLocationSelected(false);
+                      }
+                    }}
+                    onFocus={() => {
+                      setTimeout(() => {
+                        scrollViewRef.current?.scrollToEnd({ animated: true });
+                      }, 100);
+                    }}
+                    placeholder="Where was this photo taken?"
+                    placeholderTextColor={isDark ? "#888" : "#999"}
+                    style={[styles.textInput, { color: isDark ? "#FFFFFF" : "#000000" }]}
+                    editable={!extractingGPS}
+                  />
+                  {extractingGPS && (
+                    <ActivityIndicator size="small" color={isDark ? "#FFFFFF" : "#000000"} />
+                  )}
+                </View>
+
+                {extractingGPS && (
+                  <Text style={[styles.inputHint, { color: isDark ? "#9AA0A6" : "#666" }]}>
+                    Getting your current location...
+                  </Text>
+                )}
+
+                {!extractingGPS && locationFromCurrent && placeName && (
+                  <Text style={[styles.inputHint, { color: isDark ? "#9AA0A6" : "#666" }]}>
+                    Location set to your current location. You can edit this if needed.
+                  </Text>
+                )}
+
+                {!extractingGPS && (
+                  <Pressable
+                    style={[styles.currentLocationBtn, isDark ? styles.currentLocationBtnDark : styles.currentLocationBtnLight]}
+                    onPress={useCurrentLocation}
+                  >
+                    <Ionicons name="navigate-outline" size={14} color={isDark ? "#FFFFFF" : "#000000"} />
+                    <Text style={[styles.currentLocationBtnText, { color: isDark ? "#FFFFFF" : "#000000" }]}>
+                      Use Current Location
+                    </Text>
+                  </Pressable>
+                )}
+
+                {showPostLocDropdown && (
+                  <View style={[styles.dropdownList, isDark ? styles.dropdownDark : styles.dropdownLight]}>
+                    {loadingPostSuggest ? (
+                      <View style={styles.dropdownItem}>
+                        <Text style={{ color: isDark ? "#FFF" : "#000", fontSize: 13 }}>Loading...</Text>
+                      </View>
+                    ) : (
+                      postLocSuggestions.slice(0, 8).map((option) => (
+                        <Pressable
+                          key={option}
+                          style={[styles.dropdownItem, isDark ? styles.dropdownItemDark : styles.dropdownItemLight]}
+                          onPress={() => {
+                            setPlaceName(option);
+                            setLocationFromCurrent(false);
+                            setLocationSelected(true);
+                            setShowPostLocDropdown(false);
+                            setPostLocSuggestions([]);
+                          }}
+                        >
+                          <Text style={{ color: isDark ? "#FFF" : "#000", fontSize: 13 }}>{option}</Text>
+                        </Pressable>
+                      ))
+                    )}
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {/* Caption Input */}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.inputLabel, { color: isDark ? "#FFFFFF" : "#000000" }]}>Caption</Text>
+              <View style={[styles.textAreaWrapper, isDark ? styles.inputDark : styles.inputLight]}>
                 <TextInput
-                  value={placeName}
-                  onChangeText={(text) => {
-                    setPlaceName(text);
-                    if (locationFromCurrent && text !== placeName) {
-                      setLocationFromCurrent(false);
-                    }
-                    if (locationSelected) {
-                      setLocationSelected(false);
-                    }
-                  }}
+                  value={caption}
+                  onChangeText={setCaption}
                   onFocus={() => {
                     setTimeout(() => {
                       scrollViewRef.current?.scrollToEnd({ animated: true });
                     }, 100);
                   }}
-                  placeholder="Where was this photo taken?"
+                  placeholder="Write a caption..."
                   placeholderTextColor={isDark ? "#888" : "#999"}
-                  style={[styles.textInput, { color: isDark ? "#FFFFFF" : "#000000" }]}
-                  editable={!extractingGPS}
+                  style={[styles.textArea, { color: isDark ? "#FFFFFF" : "#000000" }]}
+                  multiline
+                  textAlignVertical="top"
                 />
-                {extractingGPS && (
-                  <ActivityIndicator size="small" color={isDark ? "#FFFFFF" : "#000000"} />
-                )}
               </View>
-              
-              {extractingGPS && (
-                <Text style={[styles.inputHint, { color: isDark ? "#9AA0A6" : "#666" }]}>
-                  Getting your current location...
-                </Text>
-              )}
-              
-              {!extractingGPS && locationFromCurrent && placeName && (
-                <Text style={[styles.inputHint, { color: isDark ? "#9AA0A6" : "#666" }]}>
-                  Location set to your current location. You can edit this if needed.
-                </Text>
-              )}
-              
-              {!extractingGPS && (
-                <Pressable
-                  style={[styles.currentLocationBtn, isDark ? styles.currentLocationBtnDark : styles.currentLocationBtnLight]}
-                  onPress={useCurrentLocation}
-                >
-                  <Ionicons name="navigate-outline" size={14} color={isDark ? "#FFFFFF" : "#000000"} />
-                  <Text style={[styles.currentLocationBtnText, { color: isDark ? "#FFFFFF" : "#000000" }]}>
-                    Use Current Location
-                  </Text>
-                </Pressable>
-              )}
-
-              {showPostLocDropdown && (
-                <View style={[styles.dropdownList, isDark ? styles.dropdownDark : styles.dropdownLight]}>
-                  {loadingPostSuggest ? (
-                    <View style={styles.dropdownItem}>
-                      <Text style={{ color: isDark ? "#FFF" : "#000", fontSize: 13 }}>Loading...</Text>
-                    </View>
-                  ) : (
-                    postLocSuggestions.slice(0, 8).map((option) => (
-                      <Pressable
-                        key={option}
-                        style={[styles.dropdownItem, isDark ? styles.dropdownItemDark : styles.dropdownItemLight]}
-                        onPress={() => {
-                          setPlaceName(option);
-                          setLocationFromCurrent(false);
-                          setLocationSelected(true);
-                          setShowPostLocDropdown(false);
-                          setPostLocSuggestions([]);
-                        }}
-                      >
-                        <Text style={{ color: isDark ? "#FFF" : "#000", fontSize: 13 }}>{option}</Text>
-                      </Pressable>
-                    ))
-                  )}
-                </View>
-              )}
             </View>
           </View>
-
-          {/* Caption Input */}
-          <View style={styles.inputGroup}>
-            <Text style={[styles.inputLabel, { color: isDark ? "#FFFFFF" : "#000000" }]}>Caption</Text>
-            <View style={[styles.textAreaWrapper, isDark ? styles.inputDark : styles.inputLight]}>
-              <TextInput
-                value={caption}
-                onChangeText={setCaption}
-                onFocus={() => {
-                  setTimeout(() => {
-                    scrollViewRef.current?.scrollToEnd({ animated: true });
-                  }, 100);
-                }}
-                placeholder="Write a caption..."
-                placeholderTextColor={isDark ? "#888" : "#999"}
-                style={[styles.textArea, { color: isDark ? "#FFFFFF" : "#000000" }]}
-                multiline
-                textAlignVertical="top"
-              />
-            </View>
-          </View>
-        </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
