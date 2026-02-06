@@ -155,18 +155,18 @@ export const MessageInput: React.FC<MessageInputProps> = ({
               <View style={styles.replyBar} />
               <View style={styles.replyContent}>
                 <Text style={[styles.replyAuthor, dynamicStyles.text]}>
-                  Replying to {replyingTo.sender.fname}
+                  Replying to {replyingTo.sender?.fname || "Unknown"}
                 </Text>
                 <Text
                   style={[styles.replyText, dynamicStyles.subtitle]}
                   numberOfLines={1}
                 >
-                  {replyingTo.content.message}
+                  {replyingTo.content?.message || ""}
                 </Text>
               </View>
               {replyingTo.file && (
                 <Image
-                  source={{ uri: replyingTo.file.data }}
+                  source={{ uri: replyingTo.file?.data }}
                   style={styles.replyImage}
                 />
               )}

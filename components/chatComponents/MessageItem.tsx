@@ -1,5 +1,4 @@
 
-import { CachedImage } from "@/components/CachedImage";
 import { CachedMessageImage } from "@/components/CachedMessageImage";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
@@ -315,7 +314,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                           styles.replyReference,
                           // msg.file && styles.replyReferenceWithImage, // No longer needed as reply is top
                         ]}
-                        onPress={() => scrollToMessage(msg.replyingTo!.content.id)}
+                        onPress={() => scrollToMessage(msg.replyingTo!.content?.id || '')}
                       >
                         {/* Subtle overlay for reply section */}
                         <View style={[StyleSheet.absoluteFill, dynamicStyles.replyOverlay]} />
@@ -324,19 +323,19 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                             <Text
                               style={[styles.replyAuthor, dynamicStyles.replyAuthorText]}
                             >
-                              {msg.replyingTo.sender.fname || "Unknown User"}
+                              {msg.replyingTo.sender?.fname || "Unknown User"}
                             </Text>
                             <Text
                               style={[styles.replyText, dynamicStyles.replyContentText]}
-                              numberOfLines={getReplyDimensions(msg.replyingTo.content.message).numberOfLines}
+                              numberOfLines={getReplyDimensions(msg.replyingTo.content?.message).numberOfLines}
                             >
-                              {msg.replyingTo.content.message || "[Message not available]"}
+                              {msg.replyingTo.content?.message || "[Message not available]"}
                             </Text>
                           </View>
                           {msg.replyingTo.file && (
                             <CachedMessageImage
                               uri={msg.replyingTo.file.data}
-                              messageId={msg.replyingTo.content.id}
+                              messageId={msg.replyingTo.content?.id || 'unknown'}
                               groupId={msg.groupId || 'unknown'}
                               style={styles.replyImage}
                               fallbackText="📷"
