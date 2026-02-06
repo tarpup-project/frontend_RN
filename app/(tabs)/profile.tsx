@@ -13,15 +13,15 @@ import * as SecureStore from "expo-secure-store";
 import moment from "moment";
 import React, { useEffect, useState } from "react";
 import {
-    Alert,
-    Image,
-    Modal,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    Share,
-    StyleSheet,
-    View,
+  Alert,
+  Image,
+  Modal,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Share,
+  StyleSheet,
+  View,
 } from "react-native";
 import { toast } from "sonner-native";
 
@@ -698,7 +698,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   profileName: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
     marginBottom: 4,
   },
@@ -709,7 +709,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   infoText: {
-    fontSize: 13,
+    fontSize: 10,
   },
   editButton: {
     flexDirection: "row",
@@ -719,11 +719,11 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   editText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "600",
   },
   memberSince: {
-    fontSize: 14,
+    fontSize: 12,
     marginBottom: 20,
     fontWeight: "500",
   },
@@ -738,12 +738,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statNumber: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
     marginBottom: 4,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: "500",
   },
   actionButtons: {
@@ -758,7 +758,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   completeButtonText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "600",
   },
   connectionsButton: {
@@ -771,14 +771,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   connectionsButtonText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "600",
   },
   section: {
     marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "bold",
     marginBottom: 16,
   },
@@ -835,7 +835,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitleInCard: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "bold",
     marginBottom: 16,
     marginTop: 0,
@@ -859,11 +859,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   referralCount: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "700",
   },
   referralDescription: {
-    fontSize: 12,
+    fontSize: 11,
     lineHeight: 18,
     marginBottom: 12,
   },
@@ -878,7 +878,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   referralLink: {
-    fontSize: 12,
+    fontSize: 11,
     flex: 1,
   },
   copyButton: {
@@ -896,7 +896,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   shareButtonText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "600",
     color: "#FFFFFF",
   },
@@ -906,11 +906,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   settingText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
   },
   signOutText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "600",
     color: "#FF4444",
   },
@@ -922,7 +922,7 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   footerTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "bold",
     marginBottom: 14,
   },
@@ -962,11 +962,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   footerSubtitle: {
-    fontSize: 11,
+    fontSize: 10,
     marginBottom: 14,
   },
   footerVersion: {
-    fontSize: 11,
+    fontSize: 10,
   },
   completionBanner: {
     padding: 16,
@@ -996,12 +996,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   completionTitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "700",
     marginBottom: 2,
   },
   completionSubtitle: {
-    fontSize: 12,
+    fontSize: 11,
     lineHeight: 16,
   },
   completionButton: {
@@ -1012,7 +1012,7 @@ const styles = StyleSheet.create({
   },
   completionButtonText: {
     color: "#FFFFFF",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "600",
   },
 });

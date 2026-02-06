@@ -100,8 +100,91 @@ const fetchGroups = async (campusId?: string): Promise<Group[]> => {
 export const useGroups = () => {
   const { selectedUniversity } = useCampus();
   const { isAuthenticated, isHydrated, user } = useAuthStore();
-  const { setNotifications, activeGroupId } = useNotificationStore();
+  const { setNotifications, activeGroupId, groupNotifications } = useNotificationStore();
   const queryClient = useQueryClient();
+  const { socket } = require('@/contexts/SocketProvider').useSocket();
+
+  // Listen for new messages to update group list in real-time
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewMessage = (payload: any) => {
+      // Payload structure usually: { groupId, message: { ... } } or just message with groupId
+      const message = payload.message || payload;
+      const groupId = payload.groupId || message.groupId || (typeof message.group === 'string' ? message.group : message.group?.id);
+
+      if (!groupId || !message) return;
+
+      console.log(`📨 Socket: New message for group ${groupId} received in groups list`);
+
+      // Update the groups list cache
+      queryClient.setQueryData<Group[]>(groupsKeys.list(selectedUniversity?.id), (oldGroups) => {
+        if (!oldGroups) return oldGroups;
+
+        return oldGroups.map(group => {
+          if (group.id === groupId) {
+            // Determine if we should increment unread count
+            const isCurrentGroup = String(activeGroupId) === String(groupId);
+
+            // Robustly extract sender ID
+            const msgSenderId =
+              message.senderId ||
+              message.sender?.id ||
+              message.user?.id ||
+              (typeof message.sender === 'string' ? message.sender : null);
+
+            // Check if ANY of the potential sender IDs matches the current user
+            // We convert to strings for safe comparison
+            const isMyMessage =
+              String(msgSenderId) === String(user?.id) ||
+              String(message.sender) === String(user?.id);
+
+            // Only increment if:
+            // 1. We are NOT currently looking at this group
+            // 2. The message is NOT from me
+            // 3. The message is NOT a system message (optional, but good practice)
+            const shouldIncrement = !isCurrentGroup && !isMyMessage && message.messageType !== 'system';
+
+            // Format the new message for the preview
+            const newMessages = [...(group.messages || []), message];
+
+            return {
+              ...group,
+              unread: shouldIncrement ? (group.unread || 0) + 1 : (group.unread || 0),
+              lastMessageAt: message.createdAt || new Date().toISOString(),
+              messages: newMessages
+            };
+          }
+          return group;
+        });
+      });
+
+      // Update global unread count if applicable
+      const msgSenderId =
+        message.senderId ||
+        message.sender?.id ||
+        message.user?.id ||
+        (typeof message.sender === 'string' ? message.sender : null);
+
+      const isMyMessage = String(msgSenderId) === String(user?.id);
+      const isCurrentGroup = String(activeGroupId) === String(groupId);
+
+      if (!isCurrentGroup && !isMyMessage && message.messageType !== 'system') {
+        setNotifications({
+          groupNotifications: (groupNotifications || 0) + 1
+        });
+      }
+    };
+
+    socket.on('receive_message', handleNewMessage);
+    // Also listen for 'group_message' if that's the event name used elsewhere
+    socket.on('group_message', handleNewMessage);
+
+    return () => {
+      socket.off('receive_message', handleNewMessage);
+      socket.off('group_message', handleNewMessage);
+    };
+  }, [socket, queryClient, selectedUniversity?.id, activeGroupId, user?.id, groupNotifications]);
 
   // Global notifications query (like the web version)
   const globalNotificationsQuery = useQuery({

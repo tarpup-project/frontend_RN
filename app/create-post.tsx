@@ -1,25 +1,25 @@
 import { api } from "@/api/client";
-import { UrlConstants } from "@/constants/apiUrls";
 import { useTheme } from "@/contexts/ThemeContext";
+import { usePostUploadStore } from "@/state/postUploadStore";
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import * as Location from "expo-location";
 import * as MediaLibrary from "expo-media-library";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Animated,
-    Dimensions,
-    Easing,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View
+  ActivityIndicator,
+  Animated,
+  Dimensions,
+  Easing,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View
 } from "react-native";
 import { PanGestureHandler, PanGestureHandlerGestureEvent, State } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -38,7 +38,8 @@ export default function CreatePostScreen() {
   const [allMedia, setAllMedia] = useState<MediaLibrary.Asset[]>([]);
   const [placeName, setPlaceName] = useState("");
   const [caption, setCaption] = useState("");
-  const [isUploadingPost, setIsUploadingPost] = useState(false);
+  // Local state removed, using global store for status checking if needed, but mainly we just fire and forget
+  const { uploadPost, isUploading } = usePostUploadStore();
   const [postLocSuggestions, setPostLocSuggestions] = useState<string[]>([]);
   const [showPostLocDropdown, setShowPostLocDropdown] = useState(false);
   const [loadingPostSuggest, setLoadingPostSuggest] = useState(false);
@@ -66,7 +67,7 @@ export default function CreatePostScreen() {
 
   const toggleZoom = () => {
     const to = isZoomed ? 1 : 1.2; // Reduced from 2 to 1.5 for more moderate zoom
-    
+
     // Reset pan position when toggling zoom
     Animated.parallel([
       Animated.timing(previewScale, {
@@ -99,7 +100,7 @@ export default function CreatePostScreen() {
       // Constrain pan within reasonable bounds when zoomed
       if (isZoomed) {
         const maxPan = 50; // Maximum pan distance
-        
+
         Animated.parallel([
           Animated.spring(panX, {
             toValue: Math.max(-maxPan, Math.min(maxPan, event.nativeEvent.translationX)),
@@ -206,7 +207,7 @@ export default function CreatePostScreen() {
     try {
       setIsLoadingMedia(true);
       console.log('Loading all media...');
-      
+
       const perm = await MediaLibrary.requestPermissionsAsync();
       if (!perm.granted) {
         console.log('Media library permission not granted');
@@ -214,19 +215,33 @@ export default function CreatePostScreen() {
         setIsLoadingMedia(false);
         return;
       }
-      
-      // Load all photos
-      const photoAssets = await MediaLibrary.getAssetsAsync({ 
-        first: 1000, 
-        mediaType: MediaLibrary.MediaType.photo, 
-        sortBy: MediaLibrary.SortBy.creationTime 
-      });
-      console.log('Loaded photos:', photoAssets.assets.length);
-      const photos = [...photoAssets.assets];
-      photos.sort((a, b) => b.creationTime - a.creationTime);
-      console.log('Total photo items:', photos.length);
-      setAllMedia(photos);
-      
+
+      // Load photos in batches to prevent memory issues
+      const batchSize = 100;
+      let allPhotos: MediaLibrary.Asset[] = [];
+      let hasMore = true;
+      let after: string | undefined = undefined;
+
+      while (hasMore && allPhotos.length < 500) { // Limit to 500 photos max
+        const photoAssets = await MediaLibrary.getAssetsAsync({
+          first: batchSize,
+          mediaType: MediaLibrary.MediaType.photo,
+          sortBy: MediaLibrary.SortBy.creationTime,
+          after: after
+        });
+        
+        allPhotos = [...allPhotos, ...photoAssets.assets];
+        hasMore = photoAssets.hasNextPage;
+        after = photoAssets.endCursor;
+        
+        console.log(`Loaded batch: ${photoAssets.assets.length} photos, total: ${allPhotos.length}`);
+      }
+
+      // Sort by creation time (newest first)
+      allPhotos.sort((a, b) => b.creationTime - a.creationTime);
+      console.log('Total photo items:', allPhotos.length);
+      setAllMedia(allPhotos);
+
     } catch (error) {
       console.error('Error loading media:', error);
       setAllMedia([]);
@@ -245,20 +260,20 @@ export default function CreatePostScreen() {
     if (event.nativeEvent.state === State.BEGAN) {
       dragY.current = event.nativeEvent.translationY;
     }
-    
+
     if (event.nativeEvent.state === State.END) {
       const { translationY, velocityY } = event.nativeEvent;
       const currentPosition = screenHeight * 0.5 + translationY;
-      
+
       // Determine if should expand to full screen or snap back
       const shouldExpand = translationY < -100 || velocityY < -500;
-      
+
       if (shouldExpand) {
         animateExpand();
       } else {
         animateCollapse();
       }
-      
+
       // Reset translation
       galleryTranslateY.setValue(0);
     }
@@ -268,7 +283,7 @@ export default function CreatePostScreen() {
     // Reset pan position when changing images
     panX.setValue(0);
     panY.setValue(0);
-    
+
     setSelectedImages((prev) => {
       const exists = prev.includes(uri);
       if (exists) {
@@ -286,7 +301,9 @@ export default function CreatePostScreen() {
 
   /* removed: toggleSelect */
 
-  const canPost = selectedImages.length > 0 && placeName.trim().length > 0 && caption.trim().length > 0 && !isUploadingPost;
+  /* removed: toggleSelect */
+
+  const canPost = selectedImages.length > 0 && placeName.trim().length > 0 && caption.trim().length > 0 && !isUploading;
   const canProceed = selectedImages.length > 0;
 
   const handleNext = async () => {
@@ -312,51 +329,18 @@ export default function CreatePostScreen() {
   };
 
   const submitPost = async () => {
-    if (!currentLocation || selectedImages.length === 0 || !placeName.trim() || !caption.trim() || isUploadingPost) return;
-    
-    try {
-      setIsUploadingPost(true);
+    if (!currentLocation || selectedImages.length === 0 || !placeName.trim() || !caption.trim() || isUploading) return;
 
-      const resolvedUris = await Promise.all(
-        selectedImages.map(async (uri) => {
-          if (typeof uri === "string" && uri.startsWith("ph://")) {
-            const asset = allMedia.find((a) => a.uri === uri);
-            if (asset) {
-              try {
-                const info = await MediaLibrary.getAssetInfoAsync(asset.id);
-                return (info as any)?.localUri || (info as any)?.uri || uri;
-              } catch (e) {
-                return uri;
-              }
-            }
-          }
-          return uri;
-        })
-      );
+    // Fire and forget - background upload
+    uploadPost({
+      selectedImages,
+      allMedia,
+      caption,
+      placeName
+    });
 
-      const form = new FormData();
-      resolvedUris.forEach((uri, idx) => {
-        form.append("image", {
-          uri,
-          name: `photo_${idx + 1}.jpg`,
-          type: "image/jpeg",
-        } as any);
-      });
-      form.append("caption", caption.trim());
-      form.append("address", placeName.trim());
-
-      const res = await api.post(UrlConstants.uploadTarps, form, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-      toast.success("Posted successfully");
-      router.back();
-    } catch (e: any) {
-      toast.error("Failed to post photo");
-    } finally {
-      setIsUploadingPost(false);
-    }
+    // Immediately navigate back
+    router.back();
   };
 
   // Location suggestions logic (keeping existing functionality)
@@ -366,7 +350,7 @@ export default function CreatePostScreen() {
       setShowPostLocDropdown(false);
       return;
     }
-    
+
     const q = placeName.trim();
     if (q.length === 0) {
       setPostLocSuggestions([]);
@@ -397,7 +381,7 @@ export default function CreatePostScreen() {
       toast.error("Current location not available. Please check location permissions.");
       return;
     }
-    
+
     setExtractingGPS(true);
     try {
       const { latitude, longitude } = currentLocation;
@@ -405,7 +389,7 @@ export default function CreatePostScreen() {
         latitude,
         longitude,
       });
-      
+
       if (reverseGeocode && reverseGeocode.length > 0) {
         const address = reverseGeocode[0];
         let locationString = '';
@@ -426,7 +410,7 @@ export default function CreatePostScreen() {
           if (locationString) locationString += ', ';
           locationString += address.country;
         }
-        
+
         if (locationString) {
           setPlaceName(locationString);
           setLocationFromCurrent(true);
@@ -447,7 +431,7 @@ export default function CreatePostScreen() {
   return (
     <View style={[styles.container, { backgroundColor: isDark ? "#000000" : "#FFFFFF" }]}>
       <StatusBar style={isDark ? "light" : "dark"} />
-      
+
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}
         onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
@@ -458,7 +442,7 @@ export default function CreatePostScreen() {
         <Text style={[styles.headerTitle, { color: isDark ? "#FFFFFF" : "#000000" }]}>
           Select photos
         </Text>
-        <Pressable 
+        <Pressable
           style={[styles.headerButton, canProceed ? styles.nextButtonActive : styles.nextButtonInactive]}
           onPress={handleNext}
           disabled={!canProceed}
@@ -467,217 +451,191 @@ export default function CreatePostScreen() {
         </Pressable>
       </View>
 
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.content}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         {/* Main Image Preview - Only show when not in form mode */}
-            {!showForm && (
-              <Animated.View 
-                style={[
-                  styles.imagePreview,
-                  {
-                    opacity: previewOpacity,
-                  }
-                ]}
+        {!showForm && (
+          <Animated.View
+            style={[
+              styles.imagePreview,
+              {
+                opacity: previewOpacity,
+              }
+            ]}
+          >
+            {allMedia.length > 0 ? (
+              <PanGestureHandler
+                onGestureEvent={onPanGestureEvent}
+                onHandlerStateChange={onPanHandlerStateChange}
+                enabled={isZoomed} // Only enable panning when zoomed
               >
-                {allMedia.length > 0 ? (
-                  <PanGestureHandler
-                    onGestureEvent={onPanGestureEvent}
-                    onHandlerStateChange={onPanHandlerStateChange}
-                    enabled={isZoomed} // Only enable panning when zoomed
-                  >
-                    <Animated.View style={styles.panContainer}>
-                      <Animated.Image 
-                        source={{ uri: selectedImages.length > 0 ? selectedImages[selectedImages.length - 1] : (allMedia[0]?.uri || '') }} 
-                        style={[
-                          styles.previewImage, 
-                          { 
-                            transform: [
-                              { scale: previewScale },
-                              { translateX: panX },
-                              { translateY: panY }
-                            ] 
-                          }
-                        ]} 
-                        resizeMode={isZoomed ? "cover" : "contain"}
-                        onError={(error: any) => {
-                          console.log('Preview image error:', error.nativeEvent, 'URI:', selectedImages.length > 0 ? selectedImages[selectedImages.length - 1] : (allMedia[0]?.uri || ''));
-                        }}
-                        onLoad={() => {
-                          console.log('Preview image loaded successfully');
-                        }}
-                      />
-                    </Animated.View>
-                  </PanGestureHandler>
-                ) : (
-                  <View style={[styles.placeholderImage, { backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5" }]}>
-                    <Ionicons name="image-outline" size={48} color={isDark ? "#666" : "#999"} />
-                    <Text style={[styles.placeholderText, { color: isDark ? "#666" : "#999" }]}>
-                      Loading media...
-                    </Text>
-                  </View>
-                )}
-                
-                {/* Image counter */}
-                {selectedImages.length > 0 && (
-                  <View style={styles.imageCounter}>
-                    <Text style={styles.imageCounterText}>{selectedImages.length} selected</Text>
-                  </View>
-                )}
-
-                {/* Zoom toggle - moved to gallery header */}
-              </Animated.View>
+                <Animated.View style={styles.panContainer}>
+                  <Animated.Image
+                    source={{ uri: selectedImages.length > 0 ? selectedImages[selectedImages.length - 1] : (allMedia[0]?.uri || '') }}
+                    style={[
+                      styles.previewImage,
+                      {
+                        transform: [
+                          { scale: previewScale },
+                          { translateX: panX },
+                          { translateY: panY }
+                        ]
+                      }
+                    ]}
+                    resizeMode={isZoomed ? "cover" : "contain"}
+                    onError={(error: any) => {
+                      console.log('Preview image error:', error.nativeEvent, 'URI:', selectedImages.length > 0 ? selectedImages[selectedImages.length - 1] : (allMedia[0]?.uri || ''));
+                    }}
+                    onLoad={() => {
+                      console.log('Preview image loaded successfully');
+                    }}
+                  />
+                </Animated.View>
+              </PanGestureHandler>
+            ) : (
+              <View style={[styles.placeholderImage, { backgroundColor: isDark ? "#1A1A1A" : "#F5F5F5" }]}>
+                <Ionicons name="image-outline" size={48} color={isDark ? "#666" : "#999"} />
+                <Text style={[styles.placeholderText, { color: isDark ? "#666" : "#999" }]}>
+                  Loading media...
+                </Text>
+              </View>
             )}
+
+            {/* Image counter */}
+            {selectedImages.length > 0 && (
+              <View style={styles.imageCounter}>
+                <Text style={styles.imageCounterText}>{selectedImages.length} selected</Text>
+              </View>
+            )}
+
+            {/* Zoom toggle - moved to gallery header */}
+          </Animated.View>
+        )}
 
         {/* Draggable Gallery Section */}
         {!showForm && (
-          <PanGestureHandler
-            onGestureEvent={onGestureEvent}
-            onHandlerStateChange={onHandlerStateChange}
+          <Animated.View
+            style={[
+              styles.draggableGallery,
+              {
+                height: galleryHeight,
+                backgroundColor: isDark ? "#000000" : "#FFFFFF",
+                borderWidth: 1,
+                borderColor: isDark ? "#333" : "#DDD",
+              }
+            ]}
           >
-            <Animated.View 
-              style={[
-                styles.draggableGallery,
-                {
-                  transform: [{ translateY: galleryTranslateY }],
-                  height: galleryHeight,
-                  backgroundColor: isDark ? "#000000" : "#FFFFFF",
-                  borderWidth: 1, // Temporary border to see the component
-                  borderColor: isDark ? "#333" : "#DDD",
-                }
-              ]}
+            {/* Drag Handle - Only this area should trigger expand/collapse */}
+            <PanGestureHandler
+              onGestureEvent={onGestureEvent}
+              onHandlerStateChange={onHandlerStateChange}
             >
-              {/* Drag Handle */}
               <View style={styles.dragHandle}>
                 <View style={[styles.dragIndicator, { backgroundColor: isDark ? "#666" : "#CCC" }]} />
               </View>
+            </PanGestureHandler>
 
-              {/* Gallery Header */}
-              <View style={styles.galleryHeader}>
-                <Text style={[styles.galleryTitle, { color: isDark ? "#FFFFFF" : "#000000" }]}>
-                  {isLoadingMedia ? "Loading..." : `Photos (${allMedia.length})`}
-                </Text>
-                <View style={styles.galleryHeaderRight}>
+            {/* Gallery Header */}
+            <View style={styles.galleryHeader}>
+              <Text style={[styles.galleryTitle, { color: isDark ? "#FFFFFF" : "#000000" }]}>
+                {isLoadingMedia ? "Loading..." : `Photos (${allMedia.length})`}
+              </Text>
+              <View style={styles.galleryHeaderRight}>
 
-                  {/* Zoom Button */}
-                  {allMedia.length > 0 && (
-                    <Pressable 
-                      style={[styles.zoomButton, { backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)" }]} 
-                      onPress={toggleZoom}
-                    >
-                      <Ionicons 
-                        name={isZoomed ? "contract-outline" : "expand-outline"} 
-                        size={18} 
-                        color={isDark ? "#FFFFFF" : "#000000"} 
-                      />
-                    </Pressable>
-                  )}
-                </View>
-              </View>
-
-              {/* Media Grid */}
-              <ScrollView 
-                style={styles.mediaGrid}
-                contentContainerStyle={styles.gridContentContainer}
-                showsVerticalScrollIndicator={false}
-                onScrollBeginDrag={(event) => {
-                  const y = event.nativeEvent.contentOffset.y;
-                  lastScrollY.current = y;
-                  if (!isGalleryExpanded && y >= 0) {
-                    animateExpand();
-                  }
-                }}
-                onScrollEndDrag={(event) => {
-                  if (!isGalleryExpanded) return;
-                  const scrollY = event.nativeEvent.contentOffset.y;
-                  const viewH = event.nativeEvent.layoutMeasurement.height;
-                  const contentH = event.nativeEvent.contentSize.height;
-                  const isAtBottom = scrollY + viewH >= contentH - 10;
-                  if (isAtBottom) {
-                    animateCollapse();
-                  }
-                }}
-                onMomentumScrollEnd={(event) => {
-                  if (!isGalleryExpanded) return;
-                  const scrollY = event.nativeEvent.contentOffset.y;
-                  const viewH = event.nativeEvent.layoutMeasurement.height;
-                  const contentH = event.nativeEvent.contentSize.height;
-                  const isAtBottom = scrollY + viewH >= contentH - 10;
-                  if (isAtBottom) {
-                    animateCollapse();
-                  }
-                }}
-                onScroll={(event) => {
-                  // Removed automatic preview update on scroll
-                  // Preview now only updates when user selects an image
-                }}
-                scrollEventThrottle={16}
-              >
-                {isLoadingMedia ? (
-                  <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={isDark ? "#FFFFFF" : "#000000"} />
-                    <Text style={[styles.loadingText, { color: isDark ? "#666" : "#999" }]}>
-                      Loading your photos...
-                    </Text>
-                  </View>
-                ) : allMedia.length === 0 ? (
-                  <View style={styles.emptyState}>
-                    <Ionicons name="images-outline" size={48} color={isDark ? "#666" : "#999"} />
-                    <Text style={[styles.emptyStateText, { color: isDark ? "#666" : "#999" }]}>
-                      No photos found
-                    </Text>
-                    <Text style={[styles.emptyStateSubtext, { color: isDark ? "#888" : "#BBB" }]}>
-                      Check console logs for debugging info
-                    </Text>
-                  </View>
-                ) : (
-                  <View style={styles.gridContainer}>
-                    {allMedia.map((asset, i) => {
-                      const uri = asset.uri;
-                      const order = selectedImages.indexOf(uri);
-                      const active = order !== -1;
-                      const isPreview = selectedImages.length > 0 && uri === selectedImages[selectedImages.length - 1]; // Preview is last selected image
-                      
-                      return (
-                        <Pressable 
-                          key={`${asset.id}-${i}`} 
-                          style={[
-                            styles.gridItem, 
-                            active && styles.gridItemActive,
-                            isPreview && !active && styles.gridItemPreview
-                          ]} 
-                          onPress={() => handleImagePress(uri, i)}
-                        >
-                          <Image 
-                            source={{ uri }} 
-                            style={styles.gridImage}
-                            resizeMode="cover"
-                            onError={(error: any) => {
-                              console.log(`Grid image error for ${i}:`, error.nativeEvent, 'URI:', uri);
-                            }}
-                            onLoad={() => {
-                              if (i < 5) console.log(`Grid image ${i} loaded successfully`);
-                            }}
-                          />
-                          {active && (
-                            <View style={styles.orderBadge}>
-                              <Text style={styles.orderText}>{order + 1}</Text>
-                            </View>
-                          )}
-                          {isPreview && !active && (
-                            <View style={styles.previewOverlay}>
-                              <View style={styles.previewBorder} />
-                            </View>
-                          )}
-                        </Pressable>
-                      );
-                    })}
-                  </View>
+                {/* Zoom Button */}
+                {allMedia.length > 0 && (
+                  <Pressable
+                    style={[styles.zoomButton, { backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)" }]}
+                    onPress={toggleZoom}
+                  >
+                    <Ionicons
+                      name={isZoomed ? "contract-outline" : "expand-outline"}
+                      size={18}
+                      color={isDark ? "#FFFFFF" : "#000000"}
+                    />
+                  </Pressable>
                 )}
-              </ScrollView>
-            </Animated.View>
-          </PanGestureHandler>
+              </View>
+            </View>
+
+            {/* Media Grid */}
+            <ScrollView
+              style={styles.mediaGrid}
+              contentContainerStyle={styles.gridContentContainer}
+              showsVerticalScrollIndicator={false}
+              scrollEventThrottle={16}
+              nestedScrollEnabled={true}
+            >
+              {isLoadingMedia ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color={isDark ? "#FFFFFF" : "#000000"} />
+                  <Text style={[styles.loadingText, { color: isDark ? "#666" : "#999" }]}>
+                    Loading your photos...
+                  </Text>
+                </View>
+              ) : allMedia.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Ionicons name="images-outline" size={48} color={isDark ? "#666" : "#999"} />
+                  <Text style={[styles.emptyStateText, { color: isDark ? "#666" : "#999" }]}>
+                    No photos found
+                  </Text>
+                  <Text style={[styles.emptyStateSubtext, { color: isDark ? "#888" : "#BBB" }]}>
+                    Check console logs for debugging info
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.gridContainer}>
+                  {allMedia.map((asset, i) => {
+                    const uri = asset.uri;
+                    const order = selectedImages.indexOf(uri);
+                    const active = order !== -1;
+                    const isPreview = selectedImages.length > 0 && uri === selectedImages[selectedImages.length - 1];
+
+                    return (
+                      <Pressable
+                        key={`${asset.id}-${i}`}
+                        style={[
+                          styles.gridItem,
+                          active && styles.gridItemActive,
+                          isPreview && !active && styles.gridItemPreview
+                        ]}
+                        onPress={() => handleImagePress(uri, i)}
+                      >
+                        <Image
+                          source={{ uri }}
+                          style={styles.gridImage}
+                          contentFit="cover"
+                          cachePolicy="memory-disk"
+                          recyclingKey={`grid-${asset.id}`}
+                          placeholder={require('@/assets/images/favicon.png')}
+                          placeholderContentFit="cover"
+                          transition={100}
+                          onError={(error: any) => {
+                            console.log(`Grid image error for ${i}:`, error, 'URI:', uri);
+                          }}
+                          onLoad={() => {
+                            if (i < 5) console.log(`Grid image ${i} loaded successfully`);
+                          }}
+                        />
+                        {active && (
+                          <View style={styles.orderBadge}>
+                            <Text style={styles.orderText}>{order + 1}</Text>
+                          </View>
+                        )}
+                        {isPreview && !active && (
+                          <View style={styles.previewOverlay}>
+                            <View style={styles.previewBorder} />
+                          </View>
+                        )}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              )}
+            </ScrollView>
+          </Animated.View>
         )}
 
         {/* Form section removed - now handled in edit-post screen */}

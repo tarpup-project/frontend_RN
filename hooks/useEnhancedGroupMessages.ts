@@ -1,5 +1,6 @@
 import { api } from '@/api/client';
 import { UrlConstants } from '@/constants/apiUrls';
+import { asyncStorageDB } from '@/database/asyncStorageDB';
 import { useAuthStore } from '@/state/authStore';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useState } from 'react';
@@ -51,7 +52,7 @@ const fetchGroupMessages = async (groupId: string): Promise<GroupMessage[]> => {
   try {
     const endpoint = UrlConstants.fetchGroupMessages(groupId);
     console.log('📡 API endpoint:', endpoint);
-    
+
     const response = await api.get(endpoint);
 
     if (response.data?.status === 'success' && response.data?.data) {
@@ -60,17 +61,17 @@ const fetchGroupMessages = async (groupId: string): Promise<GroupMessage[]> => {
 
       const formatted = Array.isArray(rawMessages)
         ? rawMessages
-            .filter((m: any) => {
-              const roomId =
-                m?.roomID ||
-                m?.groupId ||
-                m?.chatId ||
-                m?.content?.roomID ||
-                m?.content?.groupId;
-              if (roomId && String(roomId) !== String(groupId)) return false;
-              return true;
-            })
-            .map(transformMessageForUI)
+          .filter((m: any) => {
+            const roomId =
+              m?.roomID ||
+              m?.groupId ||
+              m?.chatId ||
+              m?.content?.roomID ||
+              m?.content?.groupId;
+            if (roomId && String(roomId) !== String(groupId)) return false;
+            return true;
+          })
+          .map(transformMessageForUI)
         : [];
 
       return formatted;
@@ -79,8 +80,16 @@ const fetchGroupMessages = async (groupId: string): Promise<GroupMessage[]> => {
     console.log('⚠️ API response format unexpected:', response.data);
     return [];
   } catch (error: any) {
+    // Graceful handling for 404 (Group not found/deleted)
+    if (error.response && error.response.status === 404) {
+      console.warn(`⚠️ Group ${groupId} not found (404). It might have been deleted.`);
+      // We accept this as a failure but warn gently.
+      // Do NOT return [] here, or we wipe the cache. Throwing allows useQuery to keep stale data.
+      throw error;
+    }
+
     console.error('❌ Failed to fetch messages:', error);
-    
+
     // Log specific error details for debugging
     if (error.response) {
       console.error('📡 Response status:', error.response.status);
@@ -91,7 +100,7 @@ const fetchGroupMessages = async (groupId: string): Promise<GroupMessage[]> => {
     } else {
       console.error('📡 Request setup error:', error.message);
     }
-    
+
     throw error;
   }
 };
@@ -202,25 +211,25 @@ export const useGroupMessages = (groupId: string, socket?: any): UseGroupMessage
         if (group.id === groupId) {
           // Convert GroupMessage to the format expected by groups list
           const simpleMessage = {
-             id: latestMessage.content.id,
-             content: latestMessage.content.message,
-             sender: latestMessage.messageType === 'user' ? (latestMessage as UserMessage).sender : { fname: 'System', id: 'system' },
-             // Add a fallback for lastMessageAt if createdAt is missing
-             createdAt: latestMessage.createdAt || new Date().toISOString(),
+            id: latestMessage.content.id,
+            content: latestMessage.content.message,
+            sender: latestMessage.messageType === 'user' ? (latestMessage as UserMessage).sender : { fname: 'System', id: 'system' },
+            // Add a fallback for lastMessageAt if createdAt is missing
+            createdAt: latestMessage.createdAt || new Date().toISOString(),
           };
 
           const msgTime = latestMessage.createdAt ? new Date(latestMessage.createdAt).getTime() : Date.now();
           const groupTime = group.lastMessageAt ? new Date(group.lastMessageAt).getTime() : 0;
-          
+
           // Only update if the message is newer or equal
           if (msgTime >= groupTime) {
-             const newMessages = group.messages ? [...group.messages, simpleMessage] : [simpleMessage];
-             
-             return {
-               ...group,
-               lastMessageAt: latestMessage.createdAt || new Date().toISOString(),
-               messages: newMessages
-             };
+            const newMessages = group.messages ? [...group.messages, simpleMessage] : [simpleMessage];
+
+            return {
+              ...group,
+              lastMessageAt: latestMessage.createdAt || new Date().toISOString(),
+              messages: newMessages
+            };
           }
         }
         return group;
@@ -241,19 +250,64 @@ export const useGroupMessages = (groupId: string, socket?: any): UseGroupMessage
     enabled: !!groupId && !!user,
     staleTime: 1000 * 60 * 5, // 5 minutes - consider data fresh
     gcTime: 1000 * 60 * 30, // 30 minutes - keep in cache
-    retry: 3,
+    retry: (failureCount, error: any) => {
+      // Don't retry if group is not found (404)
+      if (error?.response?.status === 404) return false;
+      return failureCount < 3;
+    },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,
-    // REMOVED placeholderData to prevent showing previous chat's messages when switching groups
-    // placeholderData: (previousData) => ...
+    initialData: () => {
+      const cachedRaw = asyncStorageDB.getMessagesSync(groupId);
+      if (cachedRaw && cachedRaw.length > 0) {
+        const mapped = cachedRaw.map(transformMessageForUI);
+        console.log(`⚡️ Providing ${mapped.length} sync messages for ${groupId}`);
+        return mapped;
+      }
+      return undefined;
+    }
   });
+
+  // Load from local DB on mount to show messages immediately
+  // (Still kept as backup, but initialData should handle the critical first render)
+  useEffect(() => {
+    const loadFromCache = async () => {
+      if (!groupId) return;
+
+      const cachedRaw = await asyncStorageDB.getMessages(groupId);
+      if (cachedRaw && cachedRaw.length > 0) {
+        const cached = cachedRaw.map(transformMessageForUI);
+        console.log(`💾 Loaded ${cached.length} messages from local storage for ${groupId}`);
+
+        queryClient.setQueryData<GroupMessage[]>(
+          groupMessageKeys.detail(groupId),
+          (old) => {
+            // Only set if we don't have data, or merge carefully
+            if (!old || old.length === 0) return cached;
+            return old;
+          }
+        );
+      }
+    };
+
+    loadFromCache();
+  }, [groupId, queryClient]);
+
+  // Save to local DB whenever messages update
+  useEffect(() => {
+    if (messages && messages.length > 0) {
+      asyncStorageDB.saveMessages(groupId, messages).catch(err =>
+        console.warn('Failed to persist messages:', err)
+      );
+    }
+  }, [messages, groupId]);
 
   // Sync latest message to groups list when messages are loaded or updated
   useEffect(() => {
     if (messages && messages.length > 0) {
       const sorted = [...messages].filter(m => m.createdAt).sort((a, b) => {
-         return new Date(a.createdAt!).getTime() - new Date(b.createdAt!).getTime();
+        return new Date(a.createdAt!).getTime() - new Date(b.createdAt!).getTime();
       });
       if (sorted.length > 0) {
         const latest = sorted[sorted.length - 1];
@@ -287,6 +341,41 @@ export const useGroupMessages = (groupId: string, socket?: any): UseGroupMessage
     console.log('📤 Emitting joinGroupRoom with payload:', joinPayload);
     socket.emit(SocketEvents.JOIN_GROUP_ROOM, joinPayload);
   }, [socket, groupId, user, queryClient]);
+
+  // Process offline queue on connect
+  const processOfflineQueue = useCallback(async () => {
+    if (!socket || !socket.connected || !user) return;
+
+    console.log('🔄 Checking for offline messages to sync...');
+    const offlineActions = await asyncStorageDB.getOfflineActions();
+    const pendingMessages = offlineActions.filter((a: any) =>
+      a.type === 'SEND_MESSAGE' &&
+      !a.isSynced
+    );
+
+    if (pendingMessages.length === 0) {
+      console.log('✅ No offline messages to sync');
+      return;
+    }
+
+    console.log(`📤 Trying to resend ${pendingMessages.length} pending messages`);
+
+    for (const action of pendingMessages) {
+      try {
+        const { payload } = action;
+
+        // Ensure we are sending to the right room if we can filter, 
+        // optionally we could sync all, but let's just do it
+        socket.emit(SocketEvents.GROUP_ROOM_MESSAGE, payload);
+
+        await asyncStorageDB.markActionAsSynced(action.id);
+        await asyncStorageDB.removeOfflineAction(action.id);
+        console.log('✅ Synced offline message:', action.id);
+      } catch (err) {
+        console.error('❌ Failed to sync offline message:', action.id, err);
+      }
+    }
+  }, [socket, user]);
 
   // Socket event handlers for real-time updates
   useEffect(() => {
@@ -367,17 +456,17 @@ export const useGroupMessages = (groupId: string, socket?: any): UseGroupMessage
             return dedupAndSort(merged);
           }
         );
-        
+
         // Update groups list with latest message
         if (formatted.length > 0) {
-           // Sort formatted messages to ensure we get the latest
-           const sorted = [...formatted].sort((a, b) => {
-             const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-             const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-             return aTime - bTime;
-           });
-           const latest = sorted[sorted.length - 1];
-           updateGroupCache(latest);
+          // Sort formatted messages to ensure we get the latest
+          const sorted = [...formatted].sort((a, b) => {
+            const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return aTime - bTime;
+          });
+          const latest = sorted[sorted.length - 1];
+          updateGroupCache(latest);
         }
       }
     };
@@ -385,23 +474,23 @@ export const useGroupMessages = (groupId: string, socket?: any): UseGroupMessage
     const handleNewMessage = (payload: any) => {
       const msgData = payload.message || payload;
       // comprehensive search for room ID
-      const msgRoomId = 
-        msgData.roomID || 
-        msgData.groupId || 
-        msgData.chatId || 
-        payload.roomID || 
-        payload.groupId || 
+      const msgRoomId =
+        msgData.roomID ||
+        msgData.groupId ||
+        msgData.chatId ||
+        payload.roomID ||
+        payload.groupId ||
         payload.chatId ||
         msgData.content?.roomID ||
         msgData.content?.groupId;
-      
+
       console.log('⚡️ Socket: New message received. MsgID:', msgData?.content?.id, 'TargetRoom:', msgRoomId, 'CurrentRoom:', groupId);
 
       // STRICT FILTERING:
       // 1. If we have a room ID and it doesn't match the current group, reject it immediately.
       if (msgRoomId && String(msgRoomId) !== String(groupId)) {
-         console.log(`🚫 Ignoring message for room ${msgRoomId} while in ${groupId}`);
-         return;
+        console.log(`🚫 Ignoring message for room ${msgRoomId} while in ${groupId}`);
+        return;
       }
 
       // 2. If room ID is missing completely, REJECT IT to prevent leaks.
@@ -450,8 +539,9 @@ export const useGroupMessages = (groupId: string, socket?: any): UseGroupMessage
     };
 
     const handleSocketConnect = () => {
-      console.log('🔌 Socket connected, joining group room');
+      console.log('🔌 Socket connected, joining group room and syncing offline queue');
       joinGroupRoom();
+      processOfflineQueue();
     };
 
     // Socket listeners
@@ -463,6 +553,7 @@ export const useGroupMessages = (groupId: string, socket?: any): UseGroupMessage
     // Join group room if socket is already connected
     if (socket.connected) {
       joinGroupRoom();
+      processOfflineQueue();
     }
 
     return () => {
@@ -471,7 +562,7 @@ export const useGroupMessages = (groupId: string, socket?: any): UseGroupMessage
       socket.off('groupMessages', handleNewMessage);
       socket.off('connect', handleSocketConnect);
     };
-  }, [socket, groupId, user, queryClient, joinGroupRoom]);
+  }, [socket, groupId, user, queryClient, joinGroupRoom, processOfflineQueue]);
 
   return {
     messages,
@@ -519,12 +610,38 @@ export const useSendGroupMessage = (groupId: string): UseSendGroupMessageResult 
         replyingTo: replyingTo?.content.id,
       };
 
-      // Emit via socket
-      if (socket && socket.connected) {
-        console.log('📤 Sending message via socket:', messageId);
-        socket.emit(SocketEvents.GROUP_ROOM_MESSAGE, payload);
-      } else {
-        throw new Error("Socket disconnected");
+      // 1. Persist INTENT immediately (Persistence-First Strategy)
+      const actionId = `retry_${messageId}`;
+      await asyncStorageDB.addOfflineAction({
+        id: actionId,
+        type: 'SEND_MESSAGE',
+        payload,
+        timestamp: Date.now(),
+        groupId
+      });
+
+      try {
+        // Emit via socket
+        if (socket && socket.connected) {
+          console.log('📤 Sending message via socket:', messageId);
+          await new Promise<void>((resolve, reject) => {
+            socket.emit(SocketEvents.GROUP_ROOM_MESSAGE, payload, (ack: any) => {
+              if (ack && ack.error) reject(ack.error);
+              else resolve();
+            });
+            setTimeout(resolve, 100);
+          });
+
+          // 2. If successful, remove the pending action
+          await asyncStorageDB.removeOfflineAction(actionId);
+          console.log('✅ Message sent and removed from offline queue:', messageId);
+        } else {
+          throw new Error("Socket disconnected");
+        }
+      } catch (error) {
+        // 3. If failed, the action remains in DB and will be picked up by auto-sync.
+        console.log('⚠️ Failed to send message immediately. It is safe in offline queue:', error);
+        return true;
       }
 
       return true;
@@ -618,11 +735,10 @@ export const useSendGroupMessage = (groupId: string): UseSendGroupMessageResult 
       return { previousMessages, previousGroups, optimisticId, groupListKey };
     },
     onSuccess: (result, variables, context) => {
-      console.log('✅ Message sent successfully');
-      // The real message will come through socket, which will replace the optimistic one
+      console.log('✅ Message handled successfully (Sent or Queued)');
     },
     onError: (err, newMsg, context) => {
-      console.error("❌ Failed to send message:", err);
+      console.error("❌ Critical error in message handler:", err);
 
       // Revert optimistic updates on error
       if (context?.previousMessages) {
@@ -689,7 +805,8 @@ export const useEnhancedGroupMessages = ({ groupId, socket }: { groupId: string,
   return {
     messages,
     isLoading,
-    error: error ? error.message : null,
+    // Mask error if we have cached messages so the UI keeps showing them
+    error: (messages && messages.length > 0) ? null : (error ? error.message : null),
     sendMessage,
     markAsRead,
     isCached,

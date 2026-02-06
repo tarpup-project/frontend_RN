@@ -79,7 +79,12 @@ export class AsyncStorageDB {
     }
   }
 
-  // Messages operations
+  // Sync accessor for initialData (requires allow asyncStorageDB.initialize() to be called first)
+  getMessagesSync(groupId: string): any[] {
+    const messages = this.cache.get(`db_messages_${groupId}`) || [];
+    return messages;
+  }
+
   async getMessages(groupId: string): Promise<any[]> {
     await this.initialize();
 
@@ -93,7 +98,6 @@ export class AsyncStorageDB {
         return [];
       }
 
-      // CRITICAL FIX: Validate message data before returning
       const validMessages = messages.filter((msg: any) => {
         return msg &&
           typeof msg.id === 'string' &&
@@ -106,11 +110,14 @@ export class AsyncStorageDB {
 
       if (validMessages.length !== messages.length) {
         console.warn(`⚠️ Filtered out ${messages.length - validMessages.length} corrupted messages for group ${groupId}`);
-        // Save cleaned messages back to cache
         await this.saveMessages(groupId, validMessages);
       }
 
-      return validMessages.sort((a: any, b: any) => (a.createdAt || 0) - (b.createdAt || 0));
+      const compact = this.compactMessages(validMessages);
+      if (compact.length !== validMessages.length) {
+        await this.saveMessages(groupId, compact);
+      }
+      return compact.sort((a: any, b: any) => (a.createdAt || 0) - (b.createdAt || 0));
     } catch (error) {
       console.error('❌ Failed to get messages for group:', groupId, error);
       return []; // Return empty array instead of throwing
@@ -121,28 +128,59 @@ export class AsyncStorageDB {
     await this.initialize();
 
     try {
-      // CRITICAL FIX: Validate messages before saving
-      const validMessages = messages.filter((msg: any) => {
-        return msg &&
-          typeof msg.id === 'string' &&
-          typeof msg.content === 'string' &&
-          typeof msg.senderId === 'string' &&
-          typeof msg.senderName === 'string';
-      }).map(msg => ({
-        ...msg,
-        groupId: groupId, // Ensure groupId is set
-        createdAt: msg.createdAt || Date.now(),
-        updatedAt: msg.updatedAt || Date.now(),
-      }));
+      const normalized = messages.map((msg: any) => {
+        const contentText = typeof msg.content === 'string'
+          ? msg.content
+          : (msg?.content?.message ?? '');
+        const id =
+          (typeof msg.id === 'string' && msg.id) ||
+          (msg?.content?.id) ||
+          (msg?.serverId) ||
+          `temp_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+        const senderId =
+          (typeof msg.senderId === 'string' && msg.senderId) ||
+          (msg?.sender?.id) ||
+          'unknown';
+        const senderName =
+          (typeof msg.senderName === 'string' && msg.senderName) ||
+          (msg?.sender?.fname) ||
+          'Unknown';
+        const fileUrl = msg?.fileUrl ?? msg?.file?.data ?? undefined;
+        const fileType = msg?.fileType ?? msg?.file?.ext ?? undefined;
+        const createdAt =
+          typeof msg.createdAt === 'number'
+            ? msg.createdAt
+            : (msg.createdAt ? new Date(msg.createdAt).getTime() : Date.now());
+        const updatedAt = msg.updatedAt || Date.now();
+        return {
+          id,
+          serverId: msg.serverId,
+          groupId: groupId,
+          content: contentText,
+          senderId,
+          senderName,
+          fileUrl,
+          fileType,
+          createdAt,
+          updatedAt,
+        };
+      }).filter((m: any) =>
+        typeof m.id === 'string' &&
+        typeof m.content === 'string' &&
+        m.content.length > 0 &&
+        typeof m.senderId === 'string' &&
+        typeof m.senderName === 'string'
+      );
 
-      if (validMessages.length !== messages.length) {
-        console.warn(`⚠️ Filtered out ${messages.length - validMessages.length} invalid messages before saving to group ${groupId}`);
+      if (normalized.length !== messages.length) {
+        console.warn(`⚠️ Filtered out ${messages.length - normalized.length} invalid messages before saving to group ${groupId}`);
       }
 
+      const compact = this.compactMessages(normalized);
       const key = `db_messages_${groupId}`;
-      this.cache.set(key, validMessages);
-      await AsyncStorage.setItem(key, JSON.stringify(validMessages));
-      console.log('💾 Saved', validMessages.length, 'messages for group', groupId);
+      this.cache.set(key, compact);
+      await AsyncStorage.setItem(key, JSON.stringify(compact));
+      console.log('💾 Saved', compact.length, 'messages for group', groupId);
     } catch (error) {
       console.error('❌ Failed to save messages for group:', groupId, error);
       // Don't throw - just log the error to prevent app crashes
@@ -228,13 +266,13 @@ export class AsyncStorageDB {
       // Update group's last message in db_groups for instant list update
       const groups = await this.getGroups();
       const groupIndex = groups.findIndex(g => g.id === groupId || g.serverId === groupId);
-      
+
       if (groupIndex !== -1) {
         const newMessageObj = {
           content: newMessage.content,
-          sender: { 
-            fname: newMessage.senderName, 
-            id: newMessage.senderId 
+          sender: {
+            fname: newMessage.senderName,
+            id: newMessage.senderId
           },
           senderId: newMessage.senderId,
           senderName: newMessage.senderName,
@@ -250,11 +288,11 @@ export class AsyncStorageDB {
           lastMessage: newMessageObj,
           updatedAt: new Date().toISOString(),
           // Update messages array if it exists
-          messages: currentGroup.messages && Array.isArray(currentGroup.messages) 
-            ? [...currentGroup.messages, newMessageObj] 
+          messages: currentGroup.messages && Array.isArray(currentGroup.messages)
+            ? [...currentGroup.messages, newMessageObj]
             : currentGroup.messages
         };
-        
+
         groups[groupIndex] = updatedGroup;
         await this.saveGroups(groups);
         console.log('🔄 Updated last message for group:', groupId);
@@ -363,9 +401,9 @@ export class AsyncStorageDB {
 
     const newAction = {
       ...action,
-      id: `action_${Date.now()}_${Math.random()}`,
-      createdAt: Date.now(),
-      retryCount: 0,
+      id: action.id || `action_${Date.now()}_${Math.random()}`,
+      createdAt: action.createdAt || Date.now(),
+      retryCount: action.retryCount || 0,
       isSynced: false,
     };
 
@@ -492,6 +530,31 @@ export class AsyncStorageDB {
       console.error('❌ Failed to restore message backup:', error);
       return [];
     }
+  }
+  private compactMessages(messages: any[]): any[] {
+    const byId = new Map<string, any>();
+    for (const m of messages) {
+      const id = typeof m.id === 'string' ? m.id : '';
+      if (!id) continue;
+      const prev = byId.get(id);
+      const cur = m.createdAt || 0;
+      const prevTime = prev?.createdAt || 0;
+      if (!prev || cur >= prevTime) byId.set(id, m);
+    }
+    const idDeduped = Array.from(byId.values());
+    const byComposite = new Map<string, any>();
+    for (const m of idDeduped) {
+      const text = String(m.content || '').trim().toLowerCase();
+      const ms = typeof m.createdAt === 'number' ? m.createdAt : Date.now();
+      const bucket = Math.floor(ms / 1000);
+      const key = `${text}|${bucket}`;
+      const prev = byComposite.get(key);
+      const prevTime = prev?.createdAt || 0;
+      if (!prev || ms >= prevTime) byComposite.set(key, m);
+    }
+    const out = Array.from(byComposite.values());
+    out.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+    return out;
   }
   async clearAll(): Promise<void> {
     await this.initialize();

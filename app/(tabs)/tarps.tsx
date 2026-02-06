@@ -1623,102 +1623,57 @@ export default function TarpsScreen() {
 
   // Intelligent zoom out - use recorded zoom history to go back exactly
   const handleZoomOut = () => {
-    // Check if we have zoom history to go back to
-    if (zoomHistory.length === 0) {
-      if (location) {
-        console.log("No zoom history, checking if fallback to globe view is needed");
-        // Fallback: If no history but zoomed in, return to globe view (User's location, Zoom 1)
-        // We use a threshold of ~2 to ensure we don't trigger this if already basically at world view
-        // Note: mapboxCamera.zoomLevel checks mapbox state, currentZoomLevel checks general state
-        if ((Platform.OS === 'android' && useMapboxGL && mapboxCamera.zoomLevel > 1.5) ||
-          (Platform.OS !== 'android' && currentZoomLevel > 1.5) ||
-          (mapRegion && mapRegion.latitudeDelta < 60)) {
-
-          console.log("🌍 Fallback: Restoring globe view (Zoom 1)");
-
-          if (Platform.OS === 'android' && useMapboxGL) {
-            setMapboxCamera({
-              centerCoordinate: [location.longitude, location.latitude],
-              zoomLevel: 1,
-              animationDuration: 2000,
-            });
-            setCurrentZoomLevel(1);
-          } else if (mapRef.current) {
-            const worldRegion = {
-              latitude: location.latitude,
-              longitude: location.longitude,
-              latitudeDelta: 120,
-              longitudeDelta: 120,
-            };
-            mapRef.current.animateToRegion(worldRegion, 2000);
-            setMapRegion(worldRegion);
-            setCurrentZoomLevel(1);
-          }
-        }
-      }
+    const targetIndex = zoomHistory.length - 1;
+    if (targetIndex < 0) {
+      console.log("🔙 Smart Zoom Out: History empty. Resetting to world view.");
+      zoomToWorldView();
       return;
     }
 
-    console.log("🔙 Zooming out using saved history, entries available:", zoomHistory.length);
+    const targetState = zoomHistory[targetIndex];
+    console.log(`🔙 Smart Zoom Out: Restoring history index ${targetIndex}`);
 
-    // Get the last recorded state and remove it from history
-    const previousState = zoomHistory[zoomHistory.length - 1];
-    setZoomHistory(prev => prev.slice(0, -1));
-
-    console.log("📍 Restoring previous zoom state:", previousState);
+    // Consume the last history entry
+    setZoomHistory(prev => prev.slice(0, targetIndex));
 
     // Restore cached posts if available
-    if (viewMode === "posts" && previousState.posts && previousState.posts.length > 0) {
-      console.log("♻️ Restoring cached posts from history:", previousState.posts.length);
-      setServerPosts(previousState.posts);
+    if (viewMode === "posts" && targetState.posts && targetState.posts.length > 0) {
+      console.log("♻️ Restoring cached posts from history:", targetState.posts.length);
+      setServerPosts(targetState.posts);
     }
 
     if (Platform.OS === 'android' && useMapboxGL) {
-      const postsForBounds = previousState.posts && previousState.posts.length > 0 ? previousState.posts : serverPosts;
-      const latitudes = postsForBounds.map((p: any) => Number(p.latitude));
-      const longitudes = postsForBounds.map((p: any) => Number(p.longitude));
-      const minLat = Math.min(...latitudes);
-      const maxLat = Math.max(...latitudes);
-      const minLng = Math.min(...longitudes);
-      const maxLng = Math.max(...longitudes);
-
       if (mapboxCameraRef.current && mapboxCameraRef.current.setCamera) {
         mapboxCameraRef.current.setCamera({
-          bounds: { ne: [maxLng, maxLat], sw: [minLng, minLat] },
-          padding: { paddingLeft: 48, paddingRight: 48, paddingTop: 48, paddingBottom: 48 },
+          centerCoordinate: [targetState.longitude, targetState.latitude],
+          zoomLevel: targetState.zoomLevel || 1,
           animationDuration: 1200,
           animationMode: 'easeTo',
         });
       } else {
         setMapboxCamera({
-          centerCoordinate: [previousState.longitude, previousState.latitude],
-          zoomLevel: previousState.zoomLevel || 1,
+          centerCoordinate: [targetState.longitude, targetState.latitude],
+          zoomLevel: targetState.zoomLevel || 1,
           animationDuration: 1200,
         });
       }
-      setCurrentZoomLevel(previousState.zoomLevel || 1);
+      setCurrentZoomLevel(targetState.zoomLevel || 1);
     } else if (mapRef.current) {
-      // Apple Maps zoom out using recorded history
+      // Apple Maps restoration
       const newRegion = {
-        latitude: previousState.latitude,
-        longitude: previousState.longitude,
-        latitudeDelta: previousState.latitudeDelta,
-        longitudeDelta: previousState.longitudeDelta,
+        latitude: targetState.latitude,
+        longitude: targetState.longitude,
+        latitudeDelta: targetState.latitudeDelta,
+        longitudeDelta: targetState.longitudeDelta,
       };
 
-      mapRef.current.animateToRegion(newRegion, 2000); // Slow zoom out to visualize clustering
+      mapRef.current.animateToRegion(newRegion, 2000);
       setMapRegion(newRegion);
-      setLocation(newRegion); // Also update location state
+      setLocation(newRegion);
 
-      // Calculate and update current zoom level based on delta
       const zoomLevel = Math.round(Math.log2(360 / newRegion.latitudeDelta));
       setCurrentZoomLevel(Math.max(1, Math.min(20, zoomLevel)));
-      console.log("🗺️ Apple Maps region restored, zoom level:", zoomLevel);
     }
-
-    // Provide user feedback
-    const remainingHistory = zoomHistory.length - 1; // -1 because we just removed one
-    // Removed toast notifications for zoom out actions
   };
 
   // Function to zoom out to world view level when switching view modes
