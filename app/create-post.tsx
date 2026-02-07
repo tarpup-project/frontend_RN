@@ -278,7 +278,10 @@ export default function CreatePostScreen() {
         // No need to manually update previewIndex since we're using selectedImages[selectedImages.length - 1]
         return next;
       } else {
-        if (prev.length >= 10) return prev;
+        if (prev.length >= 5) {
+          toast.error("You can only select up to 5 images");
+          return prev;
+        }
         // When selecting, the new image becomes the last selected (and thus previewed)
         return [...prev, uri];
       }

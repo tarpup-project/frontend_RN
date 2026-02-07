@@ -4,7 +4,6 @@ import { UrlConstants } from "@/constants/apiUrls";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useAuthStore } from "@/state/authStore";
-import { usePostUploadStore } from "@/state/postUploadStore";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Image as ExpoImage } from "expo-image";
@@ -14,7 +13,7 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import moment from "moment";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Dimensions, FlatList, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, Dimensions, FlatList, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, Image as RNImage, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import uuid from "react-native-uuid";
@@ -28,7 +27,7 @@ let useMapboxGL = false;
 if (Platform.OS === 'android') {
   try {
     console.log('🔄 Attempting to load Mapbox GL for Android...');
-    const MapboxGLModule = require('@react-native-mapbox-gl/maps');
+    const MapboxGLModule = require('@rnmapbox/maps');
     console.log('🔍 Raw MapboxGL module:', MapboxGLModule);
     console.log('🔍 MapboxGL keys:', Object.keys(MapboxGLModule));
 
@@ -69,7 +68,6 @@ if (Platform.OS === 'android') {
 export default function TarpsScreen() {
   const { isDark } = useTheme();
   const { user } = useAuthStore();
-  const { isUploading, uploadProgress } = usePostUploadStore();
   const insets = useSafeAreaInsets();
   const nav = useRouter();
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -105,6 +103,8 @@ export default function TarpsScreen() {
     { id: string; latitude: number; longitude: number; imageUrl?: string; owner?: { id: string; fname: string; lname?: string; bgUrl?: string } }[]
   >([]);
   const mapRef = useRef<MapView | null>(null);
+  const mapboxCameraRef = useRef<any | null>(null);
+  const mapboxInitialLoadedRef = useRef(false);
   const [mapboxCamera, setMapboxCamera] = useState({
     centerCoordinate: [0, 0] as [number, number],
     zoomLevel: 1,
@@ -121,6 +121,13 @@ export default function TarpsScreen() {
       });
     }
   }, [location, useMapboxGL]);
+
+  useEffect(() => {
+    if (Platform.OS === 'android' && useMapboxGL && viewMode === 'posts' && location && !mapboxInitialLoadedRef.current) {
+      loadPostsInView(location);
+      mapboxInitialLoadedRef.current = true;
+    }
+  }, [useMapboxGL, viewMode, location]);
   const [selectedPerson, setSelectedPerson] = useState<any | null>(null);
   const [personOpen, setPersonOpen] = useState(false);
 
@@ -1616,59 +1623,104 @@ export default function TarpsScreen() {
 
   // Intelligent zoom out - use recorded zoom history to go back exactly
   const handleZoomOut = () => {
-    // Check if we have zoom history to go back to
-    if (zoomHistory.length === 0) {
-      console.log("No zoom history to go back to");
+    // 1. Determine current zoom/delta
+    let currentZoom = 1;
+    let currentLatDelta = 120;
+
+    if (Platform.OS === 'android' && useMapboxGL) {
+      currentZoom = mapboxCamera.zoomLevel;
+    } else if (mapRegion) {
+      currentLatDelta = mapRegion.latitudeDelta;
+      // Approximate zoom for comparison consistency if needed, but delta checking is fine for iOS
+      currentZoom = Math.round(Math.log2(360 / currentLatDelta));
+    }
+
+    // 2. Find a valid target in history
+    let targetIndex = -1;
+
+    // Scan backwards to find the first state that is "wider" (more zoomed out) than current
+    for (let i = zoomHistory.length - 1; i >= 0; i--) {
+      const entry = zoomHistory[i];
+      let isWider = false;
+
+      if (Platform.OS === 'android' && useMapboxGL) {
+        // Mapbox: target zoom must be smaller than current
+        // Use a buffer (0.5) to ensure it's a significant zoom out
+        isWider = (entry.zoomLevel || 0) < (currentZoom - 0.5);
+      } else {
+        // iOS: target delta must be larger than current
+        isWider = entry.latitudeDelta > (currentLatDelta * 1.1);
+      }
+
+      if (isWider) {
+        targetIndex = i;
+        break;
+      }
+    }
+
+    // 3. Fallback logic if no valid history found
+    if (targetIndex === -1) {
+      console.log("🔙 Smart Zoom Out: No wider history found. Clearing history and resetting.");
+      setZoomHistory([]);
+      zoomToWorldView();
       return;
     }
 
-    console.log("🔙 Zooming out using saved history, entries available:", zoomHistory.length);
+    // 4. Restore the specific target state
+    const targetState = zoomHistory[targetIndex];
+    console.log(`🔙 Smart Zoom Out: Restoring history index ${targetIndex}`);
 
-    // Get the last recorded state and remove it from history
-    const previousState = zoomHistory[zoomHistory.length - 1];
-    setZoomHistory(prev => prev.slice(0, -1));
-
-    console.log("📍 Restoring previous zoom state:", previousState);
+    // We consume the history up to the target (target becomes current)
+    setZoomHistory(prev => prev.slice(0, targetIndex));
 
     // Restore cached posts if available
-    if (viewMode === "posts" && previousState.posts && previousState.posts.length > 0) {
-      console.log("♻️ Restoring cached posts from history:", previousState.posts.length);
-      setServerPosts(previousState.posts);
+    if (viewMode === "posts" && targetState.posts && targetState.posts.length > 0) {
+      console.log("♻️ Restoring cached posts from history:", targetState.posts.length);
+      setServerPosts(targetState.posts);
     }
 
     if (Platform.OS === 'android' && useMapboxGL) {
-      // Mapbox GL zoom out using recorded history
-      setMapboxCamera({
-        centerCoordinate: [previousState.longitude, previousState.latitude],
-        zoomLevel: previousState.zoomLevel || 1,
-        animationDuration: 50, // Matched to zoom-in speed for instant snap
-      });
+      const postsForBounds = targetState.posts && targetState.posts.length > 0 ? targetState.posts : [];
 
-      // Update current zoom level based on history
-      setCurrentZoomLevel(previousState.zoomLevel || 1);
-      console.log("🗺️ Mapbox camera restored to zoom level:", previousState.zoomLevel || 1);
+      if (postsForBounds.length > 0 && mapboxCameraRef.current && mapboxCameraRef.current.setCamera) {
+        const latitudes = postsForBounds.map((p: any) => Number(p.latitude));
+        const longitudes = postsForBounds.map((p: any) => Number(p.longitude));
+        const minLat = Math.min(...latitudes);
+        const maxLat = Math.max(...latitudes);
+        const minLng = Math.min(...longitudes);
+        const maxLng = Math.max(...longitudes);
+
+        mapboxCameraRef.current.setCamera({
+          bounds: { ne: [maxLng, maxLat], sw: [minLng, minLat] },
+          padding: { paddingLeft: 48, paddingRight: 48, paddingTop: 48, paddingBottom: 48 },
+          animationDuration: 1200,
+          animationMode: 'easeTo',
+        });
+      } else {
+        // Fallback to center/zoom restoration
+        setMapboxCamera({
+          centerCoordinate: [targetState.longitude, targetState.latitude],
+          zoomLevel: targetState.zoomLevel || 1,
+          animationDuration: 1200,
+        });
+      }
+      setCurrentZoomLevel(targetState.zoomLevel || 1);
     } else if (mapRef.current) {
-      // Apple Maps zoom out using recorded history
+      // Apple Maps restoration
       const newRegion = {
-        latitude: previousState.latitude,
-        longitude: previousState.longitude,
-        latitudeDelta: previousState.latitudeDelta,
-        longitudeDelta: previousState.longitudeDelta,
+        latitude: targetState.latitude,
+        longitude: targetState.longitude,
+        latitudeDelta: targetState.latitudeDelta,
+        longitudeDelta: targetState.longitudeDelta,
       };
 
-      mapRef.current.animateToRegion(newRegion, 50); // Matched to zoom-in speed for instant snap
+      mapRef.current.animateToRegion(newRegion, 2000);
       setMapRegion(newRegion);
-      setLocation(newRegion); // Also update location state
+      setLocation(newRegion);
 
-      // Calculate and update current zoom level based on delta
       const zoomLevel = Math.round(Math.log2(360 / newRegion.latitudeDelta));
       setCurrentZoomLevel(Math.max(1, Math.min(20, zoomLevel)));
-      console.log("🗺️ Apple Maps region restored, zoom level:", zoomLevel);
     }
-
-    // Provide user feedback
-    const remainingHistory = zoomHistory.length - 1; // -1 because we just removed one
-    // Removed toast notifications for zoom out actions
   };
 
   // Function to zoom out to world view level when switching view modes
@@ -1713,28 +1765,37 @@ export default function TarpsScreen() {
   return (
     <View style={{ flex: 1 }}>
       <StatusBar style="light" />
-
-      {/* Uploading Status Modal */}
-      {isUploading && (
-        <View style={[styles.uploadToast, { top: insets.top + 10, backgroundColor: isDark ? "#1C1C1E" : "#FFFFFF" }]}>
-          <ActivityIndicator size="small" color={isDark ? "#FFFFFF" : "#000000"} />
-          <Text style={[styles.uploadToastText, { color: isDark ? "#FFFFFF" : "#000000" }]}>
-            Post uploading...
-          </Text>
-        </View>
-      )}
-
       {/* Conditional Map Rendering: Mapbox GL for Android (if available), Apple Maps for iOS */}
       {Platform.OS === 'android' && useMapboxGL && MapboxGL ? (
         // Mapbox GL for Android (when available)
         <MapboxGL.MapView
           style={{ flex: 1 }}
-          styleURL={MapboxGL.StyleURL?.Satellite || 'mapbox://styles/mapbox/satellite-v9'}
-          onRegionDidChange={() => {
+          styleURL={'mapbox://styles/mapbox/streets-v12'}
+          projection="globe"
+          scaleBarEnabled={false}
+          onRegionDidChange={(feature: any) => {
             // Handle region changes for Mapbox GL
+            if (feature && feature.properties) {
+              const { zoomLevel, visibleBounds } = feature.properties;
+              const center = feature.geometry.coordinates;
+              // We update mapboxCamera state to keep it in sync, but without triggering a re-render loop if possible
+              // However, since handleZoomOut relies on mapboxCamera state, we need to update it.
+              // To avoid jitters, we might only update if significantly different or just rely on ref if available?
+              // Actually, let's just update the ref's knowledge or state.
+              // Updating state might cause re-renders. Let's try to be careful.
+              // For now, let's update state so handleZoomOut works.
+              setMapboxCamera(prev => ({
+                ...prev,
+                zoomLevel: zoomLevel,
+                centerCoordinate: center,
+              }));
+              // Also sync currentZoomLevel for consistency
+              setCurrentZoomLevel(zoomLevel);
+            }
           }}
         >
           <MapboxGL.Camera
+            ref={mapboxCameraRef}
             centerCoordinate={mapboxCamera.centerCoordinate}
             zoomLevel={mapboxCamera.zoomLevel}
             animationDuration={mapboxCamera.animationDuration}
@@ -1840,18 +1901,27 @@ export default function TarpsScreen() {
                         minLng: Math.min(...p.items.map((i: any) => Number(i.longitude ?? i.lng ?? p.longitude))),
                         maxLng: Math.max(...p.items.map((i: any) => Number(i.longitude ?? i.lng ?? p.longitude))),
                       };
-                      const centerLat = (bounds.minLat + bounds.maxLat) / 2;
-                      const centerLng = (bounds.minLng + bounds.maxLng) / 2;
-                      const latDelta = Math.max(0.01, Math.abs(bounds.maxLat - bounds.minLat) * 1.5);
-
-                      // Calculate zoom level from latitude delta and update camera state
-                      const zoomLevel = Math.max(1, Math.min(18, Math.log2(360 / latDelta)));
-
-                      setMapboxCamera({
-                        centerCoordinate: [centerLng, centerLat],
-                        zoomLevel: zoomLevel,
-                        animationDuration: 50,
-                      });
+                      if (mapboxCameraRef.current && mapboxCameraRef.current.setCamera) {
+                        mapboxCameraRef.current.setCamera({
+                          bounds: {
+                            ne: [bounds.maxLng, bounds.maxLat],
+                            sw: [bounds.minLng, bounds.minLat],
+                          },
+                          padding: { paddingLeft: 48, paddingRight: 48, paddingTop: 48, paddingBottom: 48 },
+                          animationDuration: 1200,
+                          animationMode: 'easeTo',
+                        });
+                      } else {
+                        const centerLat = (bounds.minLat + bounds.maxLat) / 2;
+                        const centerLng = (bounds.minLng + bounds.maxLng) / 2;
+                        const latDelta = Math.max(0.01, Math.abs(bounds.maxLat - bounds.minLat) * 1.5);
+                        const zoomLevel = Math.max(3, Math.min(16, Math.log2(360 / latDelta)));
+                        setMapboxCamera({
+                          centerCoordinate: [centerLng, centerLat],
+                          zoomLevel,
+                          animationDuration: 1200,
+                        });
+                      }
                     }
                   } else if (p.image && Array.isArray(p.items) && p.items.length > 0) {
                     // Handle single post
@@ -1909,13 +1979,10 @@ export default function TarpsScreen() {
                   isDark ? styles.markerDark : styles.markerLight,
                   p.items?.some((item: any) => newPostIds.has(item.id)) && styles.markerContainerNew
                 ]}>
-                  <ExpoImage
+                  <RNImage
                     source={{ uri: p.image as string }}
                     style={styles.markerImage}
-                    contentFit="cover"
-                    placeholder={require("@/assets/images/peop.png")}
-                    placeholderContentFit="cover"
-                    transition={200}
+                    resizeMode="cover"
                   />
                   {!!p.count && p.count > 1 && (
                     <View style={styles.countBadge}>
@@ -1939,13 +2006,10 @@ export default function TarpsScreen() {
             >
               <View style={[styles.markerContainer, isDark ? styles.markerDark : styles.markerLight]}>
                 {p.imageUrl ? (
-                  <ExpoImage
+                  <RNImage
                     source={{ uri: p.imageUrl }}
                     style={styles.markerImage}
-                    contentFit="cover"
-                    placeholder={isDark ? require("@/assets/images/peop.png") : require("@/assets/images/peop.png")}
-                    placeholderContentFit="cover"
-                    transition={200}
+                    resizeMode="cover"
                   />
                 ) : (
                   <View style={[styles.markerImage, { alignItems: "center", justifyContent: "center", backgroundColor: "#888" }]}>
@@ -3079,8 +3143,8 @@ const styles = StyleSheet.create({
   },
   countBadge: {
     position: "absolute",
-    bottom: -10,
-    right: -10,
+    bottom: 0,
+    right: 0,
     backgroundColor: "#FFFFFF",
     width: 34,
     height: 34,
@@ -3111,8 +3175,8 @@ const styles = StyleSheet.create({
   pointerLight: { borderTopColor: "#FFFFFF" },
   locBadge: {
     position: "absolute",
-    bottom: -8,
-    right: -8,
+    bottom: 0,
+    right: 0,
     backgroundColor: "#22C55E",
     width: 28,
     height: 28,
@@ -3552,29 +3616,6 @@ const styles = StyleSheet.create({
   },
   currentLocationBtnText: {
     fontSize: 12,
-    fontWeight: "600",
-  },
-  uploadToast: {
-    position: 'absolute',
-    alignSelf: 'center',
-    zIndex: 9999,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  uploadToastText: {
-    fontSize: 13,
     fontWeight: "600",
   },
 });
