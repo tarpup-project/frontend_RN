@@ -1,6 +1,7 @@
 import { api } from "@/api/client";
 import { UrlConstants } from "@/constants/apiUrls";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useAddPostComment, usePostComments } from "@/hooks/usePostComments";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useAuthStore } from "@/state/authStore";
 import { getAccessToken } from "@/utils/storage";
@@ -65,11 +66,33 @@ export default function PostPreviewScreen() {
   const svCurrentImageIndex = useSharedValue(0);
   const svImagesLength = useSharedValue(0);
   const [commentsOpen, setCommentsOpen] = useState(false);
-  const [comments, setComments] = useState<any[]>([]);
+  // Replaced local comments state with TanStack Query
+  // const [comments, setComments] = useState<any[]>([]);
   const [commentText, setCommentText] = useState("");
   const [replyingToID, setReplyingToID] = useState<string | null>(null);
-  const [isLoadingComments, setIsLoadingComments] = useState(false);
-  const [isSendingComment, setIsSendingComment] = useState(false);
+
+  const currentImageID = useMemo(() => {
+    // Logic to extract current image ID safely for the hook
+    // We can't use getCurrentImageId() here directly as it relies on state that might not be ready
+    // So we'll trust the hook to handle nulls, but we need to pass a reactive value
+    if (commentsOpen) {
+      // We need to re-implement a safe version of getCurrentImageId that works during render
+      // or just rely on state variables
+      const activeItem = allPostItems.length > 0 && currentImageIndex < allPostItems.length
+        ? allPostItems[currentImageIndex]
+        : currentPostItem;
+
+      if (activeItem?.images && Array.isArray(activeItem.images) && activeItem.images.length > 0) {
+        const idx = currentImageIndex < activeItem.images.length ? currentImageIndex : 0;
+        return activeItem.images[idx]?.id ? String(activeItem.images[idx].id) : null;
+      }
+      return currentImageIds[currentImageIndex] || null;
+    }
+    return null;
+  }, [commentsOpen, currentImageIndex, allPostItems, currentPostItem, currentImageIds]);
+
+  const { data: comments = [], isLoading: isLoadingComments } = usePostComments(currentImageID, commentsOpen);
+  const { mutateAsync: addComment, isPending: isSendingComment } = useAddPostComment();
   const commentsScrollRef = useRef<FlatList | null>(null);
   const mainImageScrollRef = useRef<any>(null);
   const [liked, setLiked] = useState(false);
@@ -410,33 +433,7 @@ export default function PostPreviewScreen() {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    if (!commentsOpen) return;
-    const imageID = getCurrentImageId();
-    if (!imageID) return;
-    let cancelled = false;
-    const run = async () => {
-      try {
-        setIsLoadingComments(true);
-        const res = await api.get(UrlConstants.tarpPostComments(imageID));
-        if (cancelled) return;
-        const list = (res as any)?.data?.data ?? (res as any)?.data?.comments ?? (res as any)?.data;
-        setComments(Array.isArray(list) ? list : []);
-      } catch {
-        if (!cancelled) {
-          toast.error("Failed to fetch comments");
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoadingComments(false);
-        }
-      }
-    };
-    run();
-    return () => {
-      cancelled = true;
-    };
-  }, [commentsOpen, currentImageIndex, currentPostItem]);
+  // Removed manual comment fetching useEffect as it's now handled by usePostComments hook
 
   const extractImageUrl = (item: any): string | null => {
     if (!item || typeof item !== "object") return null;
@@ -955,7 +952,7 @@ export default function PostPreviewScreen() {
           (global as any).updatePostMetrics({ postId: activeItem.id, imageId: imageID, commentCount: actualCommentCount });
         }
       }
-    } catch {}
+    } catch { }
     try {
       const resStats = await api.get(UrlConstants.tarpStatsPosts);
       const all = (resStats as any)?.data?.data ?? [];
@@ -1002,7 +999,7 @@ export default function PostPreviewScreen() {
           (global as any).updatePostMetrics({ postId: activeItem.id, imageId: imageID, likeCount: actualLikeCount });
         }
       }
-    } catch {}
+    } catch { }
   }, [currentPostItem, currentImageIndex, likeCount, commentCount]);
   useEffect(() => {
     if (!currentPostItem) return;
@@ -1178,7 +1175,8 @@ export default function PostPreviewScreen() {
 
     const activeItem = getCurrentPostItem();
 
-    // Optimistic UI update
+    // Optimistic UI update for the post metrics (comment count)
+    // The actual comment list update is handled by the mutation's onMutate
     const newCommentCount = commentCount + 1;
     setCommentCount(newCommentCount);
     if ((global as any).updatePostMetrics) {
@@ -1190,13 +1188,11 @@ export default function PostPreviewScreen() {
     }
 
     try {
-      setIsSendingComment(true);
-      const body = { message: msg, ...(replyingToID ? { replyingToID } : {}) };
-      await api.post(UrlConstants.tarpPostComments(imageID), body);
+      await addComment({ imageId: imageID, message: msg, replyingToID });
       setCommentText("");
       setReplyingToID(null);
 
-      // Update the underlying data structures to persist the change
+      // Update the underlying data structures to persist the change (comment count)
       const updateItemCommentData = (item: any) => {
         if (!item) return item;
 
@@ -1220,6 +1216,7 @@ export default function PostPreviewScreen() {
             images: updatedImages,
             // Also update item-level comment data as fallback
             commentsCount: newCommentCount,
+            // We don't add to comments array here anymore as it's handled by the query cache
             comments: Array.isArray(item.comments) ? [...item.comments, { message: msg }] : [{ message: msg }],
           };
         } else {
@@ -1257,87 +1254,6 @@ export default function PostPreviewScreen() {
         return post;
       }));
 
-      console.log("Updated underlying data structures with new comment count:", {
-        newCommentCount,
-        activeItemId: activeItem?.id,
-        imageID
-      });
-
-      // Refresh comments to get the actual server data
-      try {
-        setIsLoadingComments(true);
-        const res = await api.get(UrlConstants.tarpPostComments(imageID));
-        const list = (res as any)?.data?.data ?? (res as any)?.data?.comments ?? (res as any)?.data;
-        setComments(Array.isArray(list) ? list : []);
-
-        // Update comment count with actual count from server (in case of discrepancy)
-        if (Array.isArray(list)) {
-          const actualCommentCount = list.length;
-          setCommentCount(actualCommentCount);
-
-          // Update data structures with actual count if different
-          if (actualCommentCount !== newCommentCount) {
-            const updateWithActualCount = (item: any) => {
-              if (!item) return item;
-
-              if (item.images && Array.isArray(item.images) && currentImageIndex < item.images.length) {
-                const updatedImages = [...item.images];
-                const currentImage = { ...updatedImages[currentImageIndex] };
-
-                if (currentImage._count) {
-                  currentImage._count = { ...currentImage._count, tarpImgComments: actualCommentCount };
-                } else {
-                  currentImage._count = { tarpImgComments: actualCommentCount };
-                }
-                currentImage.comments = actualCommentCount;
-
-                updatedImages[currentImageIndex] = currentImage;
-
-                return {
-                  ...item,
-                  images: updatedImages,
-                  commentsCount: actualCommentCount,
-                };
-              } else {
-                return {
-                  ...item,
-                  commentsCount: actualCommentCount,
-                };
-              }
-            };
-
-            // Update all data structures with actual count
-            if (currentPostItem) {
-              setCurrentPostItem(updateWithActualCount(currentPostItem));
-            }
-
-            if (allPostItems.length > 0) {
-              setAllPostItems(prev => prev.map((item, index) => {
-                if (index === currentImageIndex || item.id === activeItem?.id) {
-                  return updateWithActualCount(item);
-                }
-                return item;
-              }));
-            }
-
-            setAllAvailablePosts(prev => prev.map(post => {
-              if (post.id === activeItem?.id) {
-                return updateWithActualCount(post);
-              }
-              return post;
-            }));
-            if ((global as any).updatePostMetrics) {
-              (global as any).updatePostMetrics({
-                postId: activeItem?.id,
-                imageId: imageID,
-                commentCount: actualCommentCount,
-              });
-            }
-          }
-        }
-      } finally {
-        setIsLoadingComments(false);
-      }
       toast.success("Comment posted");
     } catch (error) {
       console.error("Failed to post comment:", error);
@@ -1352,8 +1268,6 @@ export default function PostPreviewScreen() {
         });
       }
       toast.error("Failed to post comment");
-    } finally {
-      setIsSendingComment(false);
     }
   };
 
@@ -1559,7 +1473,7 @@ export default function PostPreviewScreen() {
       const mergedReplies = [...replies, ...inlineReplies].filter(Boolean);
       const uniqReplies = mergedReplies.reduce((acc: any[], cur: any) => {
         const cid = getCommentId(cur);
-        if (!cid || !acc.find((x) => getCommentId(x) === cid)) acc.push(cur);
+        if (!cid || !acc.find((x: any) => getCommentId(x) === cid)) acc.push(cur);
         return acc;
       }, []);
 
@@ -1942,7 +1856,7 @@ export default function PostPreviewScreen() {
                   <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                     <Text style={{ color: isDark ? "#FFFFFF" : "#0a0a0a" }}>
                       Replying to{" "}
-                      {getDisplayName(comments.find((x) => String(getCommentId(x)) === String(replyingToID)))}
+                      {getDisplayName(comments.find((x: any) => String(getCommentId(x)) === String(replyingToID)))}
                     </Text>
                     <Pressable onPress={() => setReplyingToID(null)}>
                       <Text style={{ color: isDark ? "#9AA0A6" : "#666" }}>Cancel</Text>

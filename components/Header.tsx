@@ -258,6 +258,7 @@ const Header = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeTab, setActiveTab] = useState<'all' | 'unread'>('all');
   const [isClearing, setIsClearing] = useState(false);
+  const [isLoadingPost, setIsLoadingPost] = useState(false); // New loading state for post navigation
 
 
 
@@ -380,23 +381,39 @@ const Header = () => {
     // Find the notification to get navigation data
     const notification = notifications.find(notif => notif.id === notificationId);
 
-    // Mark this notification as read on server if it's not already read
-    if (notification && !notification.isRead) {
-      try {
-        await api.put(UrlConstants.tarpNotifications, {
-          notificationIDs: [notificationId]
-        });
+    // Check if this is a post navigation to show loading immediately
+    const type = notification?.type?.toLowerCase();
+    const isPostNavigation =
+      type === 'new_comment' ||
+      type === 'comment' ||
+      type === 'new_like' ||
+      type === 'like' ||
+      (notification?.data?.postID);
 
-        // Update local state
+    if (isPostNavigation) {
+      // Show loading modal immediately
+      setIsLoadingPost(true);
+    }
+
+    // Mark this notification as read on server if it's not already read
+    // FIRE AND FORGET - Don't await this to keep UI responsive
+    if (notification && !notification.isRead) {
+      api.put(UrlConstants.tarpNotifications, {
+        notificationIDs: [notificationId]
+      }).then(() => {
+        // Update local state after success (optional, or optimistically update)
         setNotifications(prev => prev.map(n =>
           n.id === notificationId ? { ...n, isRead: true } : n
         ));
-
-        // Update unread count
         setUnreadCount(prev => Math.max(0, prev - 1));
-      } catch (error) {
-        console.error('Error marking single notification as read:', error);
-      }
+      }).catch(err => console.error('Error marking single notification as read:', err));
+
+      // Optimistically update local state immediately
+      // This might redundant with the .then block but ensures immediate UI feedback for read status too
+      setNotifications(prev => prev.map(n =>
+        n.id === notificationId ? { ...n, isRead: true } : n
+      ));
+      setUnreadCount(prev => Math.max(0, prev - 1));
     }
 
     if (notification) {
@@ -417,9 +434,6 @@ const Header = () => {
         type: notificationType,
         data: data,
         postID: data?.postID,
-        actors: notification.actors,
-        firstActorId: notification.actors?.[0]?.actor?.id,
-        firstActorName: notification.actors?.[0]?.actor?.fname
       });
 
       // Close the notification panel first
@@ -436,9 +450,16 @@ const Header = () => {
             // Navigate to post if postID is available
             if (data?.postID) {
               console.log('Fetching post data for navigation:', data.postID);
-              await navigateToPost(data.postID);
+              const targetImageId =
+                data?.tarpPostImgID ??
+                data?.imageID ??
+                data?.imgID ??
+                data?.imageId ??
+                null;
+              await navigateToPost(data.postID, targetImageId);
             } else {
               console.warn('No postID found in notification data');
+              setIsLoadingPost(false); // dismissed on error
               toast.error('Unable to navigate to post');
             }
             break;
@@ -482,6 +503,8 @@ const Header = () => {
             console.log('No specific navigation for notification type:', notificationType);
             // For unknown types, try to navigate to post if postID exists
             if (data?.postID) {
+              // Also show loading if we didn't before
+              setIsLoadingPost(true);
               await navigateToPost(data.postID);
             }
             break;
@@ -489,17 +512,15 @@ const Header = () => {
       }, 300); // Small delay to allow smooth panel closing
     } catch (error) {
       console.error('Error navigating from notification:', error);
+      setIsLoadingPost(false);
       toast.error('Navigation failed');
     }
   };
 
   // Fetch post data and navigate to post screen (using tarps/stats/posts endpoint)
-  const navigateToPost = async (postId: string) => {
+  const navigateToPost = async (postId: string, targetImageId?: string | null) => {
     try {
       console.log('Fetching posts data to find post ID:', postId);
-
-      // Show loading toast
-      toast.loading('Loading post...');
 
       // Fetch both posts data and authenticated user data
       const [postsResponse, authResponse] = await Promise.all([
@@ -507,8 +528,8 @@ const Header = () => {
         api.get(UrlConstants.fetchAuthUser)
       ]);
 
-      // Dismiss loading toast
-      toast.dismiss();
+      // Dismiss loading modal ONLY AFTER we have data
+      setIsLoadingPost(false);
 
       if (postsResponse.data?.status === 'success' && postsResponse.data?.data) {
         const allPosts = postsResponse.data.data;
@@ -607,8 +628,22 @@ const Header = () => {
           firstId: imageSet.ids[0]
         });
 
-        // Navigate to post screen with proper parameters (same as tarps.tsx)
-        const navigationUrl = `/post/${enhancedPostItem.id}?item=${encodeURIComponent(JSON.stringify(enhancedPostItem))}&images=${encodeURIComponent(JSON.stringify(imageSet))}&idx=0&serverPosts=${encodeURIComponent(JSON.stringify(allPosts))}`;
+        // Determine target image index if targetImageId is provided
+        let targetIdx = 0;
+        if (targetImageId) {
+          const idStr = String(targetImageId);
+          const directIndex = imageSet.ids.findIndex((id) => id === idStr);
+          if (directIndex >= 0) {
+            targetIdx = directIndex;
+          } else if (Array.isArray(enhancedPostItem.images)) {
+            const fallbackIndex = enhancedPostItem.images.findIndex((img: any) => String(img?.id) === idStr);
+            if (fallbackIndex >= 0) targetIdx = fallbackIndex;
+          }
+          console.log('Resolved target image index from notification:', { targetImageId: idStr, targetIdx });
+        }
+
+        // Navigate to post screen with proper parameters (same as tarps.tsx) and target image index
+        const navigationUrl = `/post/${enhancedPostItem.id}?item=${encodeURIComponent(JSON.stringify(enhancedPostItem))}&images=${encodeURIComponent(JSON.stringify(imageSet))}&idx=${encodeURIComponent(String(targetIdx))}&serverPosts=${encodeURIComponent(JSON.stringify(allPosts))}`;
 
         console.log('Navigating to post with complete data:', {
           postId: enhancedPostItem.id,
@@ -630,8 +665,8 @@ const Header = () => {
     } catch (error: any) {
       console.error('Error fetching posts data:', error);
 
-      // Dismiss loading toast
-      toast.dismiss();
+      // Dismiss loading modal
+      setIsLoadingPost(false);
 
       if (error.response?.status === 404) {
         toast.error('Posts not found');
@@ -796,6 +831,43 @@ const Header = () => {
   return (
     <>
       <StatusBar style={isDark ? "light" : "dark"} />
+      {/* Full screen loading modal */}
+      <Modal
+        transparent={true}
+        visible={isLoadingPost}
+        animationType="fade"
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <View style={{
+            backgroundColor: isDark ? '#1a1a1a' : 'white',
+            padding: 24,
+            borderRadius: 16,
+            alignItems: 'center',
+            shadowColor: "#000",
+            shadowOffset: {
+              width: 0,
+              height: 2,
+            },
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+            elevation: 5,
+          }}>
+            <ActivityIndicator size="large" color="#3B82F6" />
+            <Text style={{
+              marginTop: 16,
+              color: isDark ? 'white' : 'black',
+              fontSize: 16,
+              fontWeight: '600'
+            }}>Loading Post...</Text>
+          </View>
+        </View>
+      </Modal>
+
       <View
         style={[
           styles.container,

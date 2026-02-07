@@ -229,11 +229,11 @@ export default function CreatePostScreen() {
           sortBy: MediaLibrary.SortBy.creationTime,
           after: after
         });
-        
+
         allPhotos = [...allPhotos, ...photoAssets.assets];
         hasMore = photoAssets.hasNextPage;
         after = photoAssets.endCursor;
-        
+
         console.log(`Loaded batch: ${photoAssets.assets.length} photos, total: ${allPhotos.length}`);
       }
 
@@ -292,7 +292,10 @@ export default function CreatePostScreen() {
         // No need to manually update previewIndex since we're using selectedImages[selectedImages.length - 1]
         return next;
       } else {
-        if (prev.length >= 10) return prev;
+        if (prev.length >= 5) {
+          toast.error("You can only select up to 5 images");
+          return prev;
+        }
         // When selecting, the new image becomes the last selected (and thus previewed)
         return [...prev, uri];
       }
