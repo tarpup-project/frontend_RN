@@ -1473,7 +1473,7 @@ export default function PostPreviewScreen() {
       const mergedReplies = [...replies, ...inlineReplies].filter(Boolean);
       const uniqReplies = mergedReplies.reduce((acc: any[], cur: any) => {
         const cid = getCommentId(cur);
-        if (!cid || !acc.find((x) => getCommentId(x) === cid)) acc.push(cur);
+        if (!cid || !acc.find((x: any) => getCommentId(x) === cid)) acc.push(cur);
         return acc;
       }, []);
 
@@ -1856,7 +1856,7 @@ export default function PostPreviewScreen() {
                   <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                     <Text style={{ color: isDark ? "#FFFFFF" : "#0a0a0a" }}>
                       Replying to{" "}
-                      {getDisplayName(comments.find((x) => String(getCommentId(x)) === String(replyingToID)))}
+                      {getDisplayName(comments.find((x: any) => String(getCommentId(x)) === String(replyingToID)))}
                     </Text>
                     <Pressable onPress={() => setReplyingToID(null)}>
                       <Text style={{ color: isDark ? "#9AA0A6" : "#666" }}>Cancel</Text>
