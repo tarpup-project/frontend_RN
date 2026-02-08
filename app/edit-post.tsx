@@ -177,8 +177,13 @@ export default function EditPostScreen() {
     });
 
     // Immediate navigation back to feed
-    // navigate behaves better than push for returning to existing tabs without remounting
-    router.navigate("/(tabs)/tarps");
+    // dismiss(2) pops EditPost and CreatePost to return to Tarps without reloading
+    if (router.canDismiss()) {
+      router.dismiss(2);
+    } else {
+      // Fallback if we can't dismiss (e.g. deep link)
+      router.navigate("/(tabs)/tarps");
+    }
   };
 
   // Location suggestions logic

@@ -2,15 +2,17 @@ import { api } from "@/api/client";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image as ExpoImage } from "expo-image";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import moment from "moment";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -22,16 +24,50 @@ export default function MyTarpsScreen() {
   const { isDark } = useTheme();
   const { user } = useAuthStore();
   const nav = useRouter();
+  const queryClient = useQueryClient();
+
+  // Queries
+  const {
+    data: profileStats,
+    isLoading: isStatsLoading,
+    refetch: refetchStats
+  } = useQuery({
+    queryKey: ['my-tarps', 'stats'],
+    queryFn: async () => {
+      const response = await api.get('/tarps/stats');
+      return response.data.data;
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    // cacheTime is deprecated in v5, use gcTime if needed, or default
+  });
+
+  const {
+    data: userPosts = [],
+    isLoading: isPostsLoading,
+    refetch: refetchPosts
+  } = useQuery({
+    queryKey: ['my-tarps', 'posts'],
+    queryFn: async () => {
+      const response = await api.get('/tarps/stats/posts');
+      const posts = response.data.data || [];
+      if (posts.length === 0) {
+        // toast('No Current Posts'); // Optional: keep or remove based on preference
+      }
+      return posts;
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  useFocusEffect(
+    React.useCallback(() => {
+      refetchStats();
+      refetchPosts();
+    }, [refetchStats, refetchPosts])
+  );
+
+  const isLoading = isStatsLoading || isPostsLoading;
 
   // State
-  const [profileStats, setProfileStats] = useState<{
-    posts: number;
-    photos: number;
-    likes: number;
-    comments: number;
-  } | null>(null);
-  const [userPosts, setUserPosts] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [postToDelete, setPostToDelete] = useState<any | null>(null);
   const [isDeletingPost, setIsDeletingPost] = useState(false);
@@ -42,66 +78,24 @@ export default function MyTarpsScreen() {
   const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0 });
   const [previewedPosts, setPreviewedPosts] = useState<Set<string>>(new Set());
 
-  // Function to fetch profile stats
-  const fetchProfileStats = async () => {
-    try {
-      const response = await api.get('/tarps/stats');
-      setProfileStats(response.data.data);
-    } catch (error) {
-      console.error('Error fetching profile stats:', error);
-      // Suppressed toast error as requested
-    }
-  };
-
-  // Function to fetch user posts
-  const fetchUserPosts = async () => {
-    try {
-      const response = await api.get('/tarps/stats/posts');
-      const posts = response.data.data || [];
-      setUserPosts(posts);
-
-      if (posts.length === 0) {
-        toast('No Current Posts');
-      }
-    } catch (error) {
-      console.error('Error fetching user posts:', error);
-      // Suppressed toast error as requested
-    }
-  };
-
-  // Combined function to load all data
-  const loadAllData = async () => {
-    if (isLoading) return;
-
-    try {
-      setIsLoading(true);
-      await Promise.all([
-        fetchProfileStats(),
-        fetchUserPosts()
-      ]);
-    } catch (error) {
-      console.error('Error loading data:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   // Function to delete post
   const deletePost = async (postId: string) => {
     try {
       setIsDeletingPost(true);
       await api.delete(`/tarps/posts/${postId}`);
 
-      // Remove from local state
-      setUserPosts(prev => prev.filter(post => post.id !== postId));
+      // Update cache
+      queryClient.setQueryData(['my-tarps', 'posts'], (oldPosts: any[] | undefined) => {
+        return oldPosts ? oldPosts.filter(post => post.id !== postId) : [];
+      });
 
-      // Update stats
-      if (profileStats) {
-        setProfileStats(prev => prev ? {
-          ...prev,
-          posts: prev.posts - 1
-        } : null);
-      }
+      // Update stats cache
+      queryClient.setQueryData(['my-tarps', 'stats'], (oldStats: any | undefined) => {
+        return oldStats ? {
+          ...oldStats,
+          posts: Math.max(0, oldStats.posts - 1)
+        } : oldStats;
+      });
 
       toast.success('Post deleted successfully');
       setShowDeleteModal(false);
@@ -114,10 +108,10 @@ export default function MyTarpsScreen() {
     }
   };
 
-  // Load data on mount
-  useEffect(() => {
-    loadAllData();
-  }, []);
+  const onRefresh = React.useCallback(() => {
+    refetchStats();
+    refetchPosts();
+  }, [refetchStats, refetchPosts]);
 
   const formatLocation = (location: string) => {
     if (!location) return '';
@@ -166,7 +160,17 @@ export default function MyTarpsScreen() {
         </View>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={onRefresh}
+            tintColor={isDark ? "#FFFFFF" : "#000000"}
+          />
+        }
+      >
         {/* Loading State */}
         {isLoading ? (
           <View style={styles.loadingContainer}>
@@ -201,7 +205,7 @@ export default function MyTarpsScreen() {
             {/* Posts List */}
             {userPosts.length > 0 ? (
               <View style={styles.postsContainer}>
-                {userPosts.map((post, index) => (
+                {userPosts.map((post: any, index: number) => (
                   <View key={post.id || index} style={[styles.postCard, dynamicStyles.card]}>
                     <View style={styles.postContent}>
                       {/* Post Image */}
@@ -380,7 +384,7 @@ export default function MyTarpsScreen() {
                             const set = resolveItemImageSet(enhancedPost);
 
                             // Create enhanced userPosts array with user data
-                            const enhancedUserPosts = userPosts.map(p => ({
+                            const enhancedUserPosts = userPosts.map((p: any) => ({
                               ...p,
                               creator: user ? {
                                 id: user.id,
@@ -465,7 +469,7 @@ export default function MyTarpsScreen() {
             <Pressable
               style={styles.dropdownItem}
               onPress={() => {
-                const post = userPosts.find(p => p.id === showDropdownMenu);
+                const post = userPosts.find((p: any) => p.id === showDropdownMenu);
                 if (post) {
                   try {
                     // Add current user as creator/owner since these are user's own posts
@@ -554,7 +558,7 @@ export default function MyTarpsScreen() {
                     const set = resolveItemImageSet(enhancedPost);
 
                     // Create enhanced userPosts array with user data
-                    const enhancedUserPosts = userPosts.map(p => ({
+                    const enhancedUserPosts = userPosts.map((p: any) => ({
                       ...p,
                       creator: user ? {
                         id: user.id,
@@ -594,7 +598,7 @@ export default function MyTarpsScreen() {
             <Pressable
               style={[styles.dropdownItem, { borderBottomWidth: 0 }]}
               onPress={() => {
-                const post = userPosts.find(p => p.id === showDropdownMenu);
+                const post = userPosts.find((p: any) => p.id === showDropdownMenu);
                 if (post) {
                   console.log('Delete post pressed for:', post.id);
                   setPostToDelete(post);
