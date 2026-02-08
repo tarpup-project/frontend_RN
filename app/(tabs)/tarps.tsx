@@ -4,6 +4,7 @@ import { UrlConstants } from "@/constants/apiUrls";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useAuthStore } from "@/state/authStore";
+import { usePostUploadStore } from "@/state/postUploadStore";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Image as ExpoImage } from "expo-image";
@@ -84,6 +85,7 @@ export default function TarpsScreen() {
     { id: number; image: string; latitude: number; longitude: number; userId?: string; createdAt?: number }[]
   >([]);
   const [showMine, setShowMine] = useState(false);
+  const { isUploading } = usePostUploadStore();
 
 
   const [myTarpsModalVisible, setMyTarpsModalVisible] = useState(false);
@@ -2371,6 +2373,16 @@ export default function TarpsScreen() {
         </View>
       )}
 
+      {/* Upload Status Indicator - Centered at top */}
+      {isUploading && (
+        <View style={[styles.uploadStatusPill, isDark ? styles.pillDark : styles.pillLight, { top: insets.top + 8 }]}>
+          <ActivityIndicator size="small" color={isDark ? "#FFFFFF" : "#000000"} />
+          <Text style={[styles.uploadStatusText, { color: isDark ? "#FFFFFF" : "#000000" }]}>
+            Posting...
+          </Text>
+        </View>
+      )}
+
       <View style={[styles.topBar, { top: insets.top + 8 }]}>
         <View style={styles.leftButtons}>
           <View style={[styles.viewTogglePill, isDark ? styles.pillDark : styles.pillLight]}>
@@ -3568,6 +3580,23 @@ const styles = StyleSheet.create({
     borderColor: "#E0E0E0",
   },
   currentLocationBtnText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  uploadStatusPill: {
+    position: "absolute",
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    zIndex: 10,
+  },
+  uploadStatusText: {
     fontSize: 12,
     fontWeight: "600",
   },

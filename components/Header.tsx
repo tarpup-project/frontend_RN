@@ -181,7 +181,9 @@ const NotificationItem = ({ notification, isDark, onFriendRequest, onNotificatio
         </Text>
 
         <Text style={[styles.notificationMessage, { color: isDark ? "#CCCCCC" : "#666666" }]}>
-          {(notification.message || notification.content || 'No message').replace(/\s+/g, ' ').trim()}
+          {notification.type?.toLowerCase() === 'friend_request' || notification.type?.toLowerCase() === 'new_friend_request'
+            ? `You have a friend request from ${userInfo.name}`
+            : (notification.message || notification.content || 'No message').replace(/\s+/g, ' ').trim()}
         </Text>
 
         <Text style={[styles.notificationTime, { color: isDark ? "#999999" : "#999999" }]}>
