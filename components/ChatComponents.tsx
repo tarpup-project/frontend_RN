@@ -1,17 +1,16 @@
-import { formatTimeAgo } from "@/hooks/useEnhancedGroupMessages";
 import { AlertMessage, Group, MessageFile, MessageType, UserMessage } from '@/types/groups';
-import { formatFileSize } from '@/utils/timeUtils';
+import { formatFileSize, timeAgo } from '@/utils/timeUtils';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
-    Dimensions,
-    Image,
-    Linking,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  Dimensions,
+  Image,
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -114,7 +113,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
 
         {/* Timestamp */}
         <Text style={[styles.timestamp, isOwn ? dynamicStyles.ownMessageText : dynamicStyles.otherMessageText]}>
-          {userMessage.createdAt ? formatTimeAgo(userMessage.createdAt) : 'Sending...'}
+          {userMessage.createdAt ? timeAgo(userMessage.createdAt) : 'Sending...'}
         </Text>
       </View>
 
@@ -232,10 +231,10 @@ export const GroupInfoPanel: React.FC<GroupInfoPanelProps> = ({
           {/* Group Details */}
           <View style={styles.groupSection}>
             <View style={[styles.groupIcon, { backgroundColor: group.category[0]?.bgColorHex || '#007AFF' }]}>
-              <Ionicons 
-                name="people" 
-                size={24} 
-                color={group.category[0]?.colorHex || '#FFFFFF'} 
+              <Ionicons
+                name="people"
+                size={24}
+                color={group.category[0]?.colorHex || '#FFFFFF'}
               />
             </View>
             <Text style={[styles.groupTitle, dynamicStyles.text]}>{group.name}</Text>
