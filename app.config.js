@@ -115,7 +115,7 @@ export default {
       }
     },
 
-    runtimeVersion: "1.0.2",
+    runtimeVersion: "1.0.4",
 
     owner: "expo_travor"
   }
