@@ -159,14 +159,23 @@ export default function EditPostScreen() {
     }
   };
 
-  const canPost = processedImages.length > 0 && placeName.trim().length > 0 && !isUploading;
+  const canPost = !isUploading;
 
   const handleBack = () => {
     router.back();
   };
 
   const submitPost = async () => {
-    if (!currentLocation || processedImages.length === 0 || !placeName.trim() || isUploading) return;
+    if (processedImages.length === 0) {
+      toast.error("Please select at least one photo");
+      return;
+    }
+    if (!placeName.trim()) {
+      toast.error("Please add a location");
+      return;
+    }
+    if (isUploading) return;
+
 
     // Fire and forget - background upload
     uploadPost({
