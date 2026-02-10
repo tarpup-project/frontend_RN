@@ -1,5 +1,5 @@
 import { CacheStatus } from "@/components/CacheStatus";
-import { CachedImage } from "@/components/CachedImage";
+import { CachedImage, CachedImageUtils } from "@/components/CachedImage";
 import Header from "@/components/Header";
 import NewChatModal from "@/components/NewChatModal";
 import NewGroupModal from "@/components/NewGroupModal";
@@ -14,9 +14,9 @@ import { useSocketConnection } from "@/hooks/useSocketConnection";
 import { useUnifiedGroups } from "@/hooks/useUnifiedGroups";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import moment from "moment";
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   Pressable,
   RefreshControl,
@@ -109,14 +109,43 @@ const Groups = () => {
     isCached,
     hasData,
   } = useUnifiedGroups();
+
+  const { isReconnecting } = useSocketConnection();
+  const router = useRouter();
+
+  // Aggressive refresh function to clear caches and fetch fresh data
+  const handleAggressiveRefresh = useCallback(async () => {
+    console.log('🔄 Performing background refresh...');
+
+    try {
+      // 1. Clear Image Cache to ensure fresh avatars/images
+      // We do this first so when the list re-renders with new data, it fetches fresh images
+      await CachedImageUtils.clearCache();
+
+      // 2. Fetch fresh data (background refresh)
+      // We do NOT remove queries here to avoid showing the skeleton loading state
+      await refresh();
+
+      console.log('✅ Background refresh completed');
+    } catch (error) {
+      console.error('❌ Error during background refresh:', error);
+    }
+  }, [refresh]);
+
+  // Refresh groups when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('🔄 Groups screen focused - refreshing data');
+      handleAggressiveRefresh();
+    }, [handleAggressiveRefresh])
+  );
+
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
   const [showComposeMenu, setShowComposeMenu] = useState(false);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [showNewGroupModal, setShowNewGroupModal] = useState(false);
   const [showCacheStatus, setShowCacheStatus] = useState(false);
   const { selectedUniversity } = useCampus();
-  const { isReconnecting } = useSocketConnection();
-  const router = useRouter();
 
   // Preload profile pictures for better performance
   useImagePreloader(groups || []);
@@ -129,7 +158,7 @@ const Groups = () => {
 
   const handleManualRefresh = async () => {
     setIsManualRefreshing(true);
-    await refresh();
+    await handleAggressiveRefresh();
     setIsManualRefreshing(false);
   };
 
@@ -652,7 +681,7 @@ const Groups = () => {
                       },
                     ]}
                   >
-                    {group.matchPercentage}% match
+                    {group.matchPercentage} match
                   </Text>
                 </View>
 

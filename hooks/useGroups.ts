@@ -58,7 +58,7 @@ const fetchGlobalNotifications = async (): Promise<{
   }
 };
 
-const fetchGroups = async (campusId?: string): Promise<Group[]> => {
+export const fetchGroups = async (campusId?: string): Promise<Group[]> => {
   try {
     console.log('🔄 Fetching groups for campus:', campusId || 'all');
 
@@ -128,6 +128,7 @@ export const useGroups = () => {
 
             // Robustly extract sender ID
             const msgSenderId =
+              message.senderID ||
               message.senderId ||
               message.sender?.id ||
               message.user?.id ||
@@ -161,6 +162,7 @@ export const useGroups = () => {
 
       // Update global unread count if applicable
       const msgSenderId =
+        message.senderID ||
         message.senderId ||
         message.sender?.id ||
         message.user?.id ||
@@ -218,7 +220,7 @@ export const useGroups = () => {
     queryKey: groupsKeys.list(selectedUniversity?.id),
     queryFn: () => fetchGroups(selectedUniversity?.id),
     enabled: !!(isAuthenticated && isHydrated), // Only fetch when authenticated and hydrated
-    staleTime: 1000 * 60 * 1, // Consider data stale after 1 minute (more frequent for unread counts)
+    staleTime: 0, // Consider data stale immediately to force refetch
     gcTime: 1000 * 60 * 60, // Keep in cache for 1 hour
     retry: (failureCount, error: any) => {
 
@@ -245,14 +247,7 @@ export const useGroups = () => {
     refetchOnWindowFocus: true, // Refetch when app comes back to focus
     refetchOnReconnect: true, // Refetch when network reconnects
     // Return stale data while refetching
-    // refetchOnMount: 'always', // REMOVED to prevent continuous loading
-    // Keep previous data while loading new data (eliminates loading states)
-    placeholderData: (previousData) => {
-      if (previousData && previousData.length > 0) {
-        console.log('⚡ Using cached groups data -', previousData.length, 'groups loaded from TanStack Query cache');
-      }
-      return previousData;
-    },
+    refetchOnMount: 'always', // Enabled to ensure fresh data on mount
     // Show cached data even when there's an error
     select: (data) => {
       if (data && data.length > 0) {
@@ -352,10 +347,18 @@ export const useGroups = () => {
       ? new Date(group.lastMessageAt).getTime()
       : (group.createdAt ? new Date(group.createdAt).getTime() : 0);
 
+    // Debug log for specific group to trace unread count logic
+    if (group.unread && group.unread > 0) {
+      console.log(`🔍 Unread Calc [${group.name}]: Server=${group.unread}, LastMsg=${lastMessageTimestamp}, LastRead=${lastReadTime}`);
+    }
+
     // 2. Client-side Override: Visited recently
     // If we have a local read timestamp that is newer than or equal to the last message,
     // then we consider the group read locally, overriding the server count.
     if (lastReadTime >= lastMessageTimestamp && lastMessageTimestamp > 0) {
+      if (group.unread && group.unread > 0) {
+        console.log(`🚫 [${group.name}] Resetting unread to 0 because LastRead (${lastReadTime}) >= LastMsg (${lastMessageTimestamp})`);
+      }
       unreadCount = 0;
     }
 
@@ -365,17 +368,21 @@ export const useGroups = () => {
     if (group.messages && group.messages.length > 0) {
       const lastMsg = group.messages[group.messages.length - 1];
       const isFromMe = (lastMsg.sender && lastMsg.sender.id === currentUserId) ||
-        (lastMsg as any).senderId === currentUserId;
+        (lastMsg as any).senderId === currentUserId ||
+        (lastMsg as any).senderID === currentUserId;
 
       if (isFromMe) {
+        if (unreadCount > 0) console.log(`🚫 [${group.name}] Resetting unread to 0 because last message is from me`);
         unreadCount = 0;
       }
     } else if (group.lastMessageAt && (group as any).lastMessageSenderId === currentUserId) {
+      if (unreadCount > 0) console.log(`🚫 [${group.name}] Resetting unread to 0 because lastMessageSenderId is me`);
       unreadCount = 0;
     }
 
     // 4. Active group override: If user is currently in this group, count should be 0
     if (String(activeGroupId || '') === String(group.id)) {
+      if (unreadCount > 0) console.log(`🚫 [${group.name}] Resetting unread to 0 because group is active`);
       unreadCount = 0;
     }
 
