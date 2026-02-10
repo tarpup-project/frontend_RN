@@ -220,7 +220,7 @@ export const useGroups = () => {
     queryKey: groupsKeys.list(selectedUniversity?.id),
     queryFn: () => fetchGroups(selectedUniversity?.id),
     enabled: !!(isAuthenticated && isHydrated), // Only fetch when authenticated and hydrated
-    staleTime: 0, // Consider data stale immediately to force refetch
+    staleTime: 1000 * 60 * 1, // Consider data stale after 1 minute (more frequent for unread counts)
     gcTime: 1000 * 60 * 60, // Keep in cache for 1 hour
     retry: (failureCount, error: any) => {
 
@@ -247,7 +247,14 @@ export const useGroups = () => {
     refetchOnWindowFocus: true, // Refetch when app comes back to focus
     refetchOnReconnect: true, // Refetch when network reconnects
     // Return stale data while refetching
-    refetchOnMount: 'always', // Enabled to ensure fresh data on mount
+    // refetchOnMount: 'always', // REMOVED to prevent continuous loading
+    // Keep previous data while loading new data (eliminates loading states)
+    placeholderData: (previousData) => {
+      if (previousData && previousData.length > 0) {
+        console.log('⚡ Using cached groups data -', previousData.length, 'groups loaded from TanStack Query cache');
+      }
+      return previousData;
+    },
     // Show cached data even when there's an error
     select: (data) => {
       if (data && data.length > 0) {
@@ -357,7 +364,7 @@ export const useGroups = () => {
     // then we consider the group read locally, overriding the server count.
     if (lastReadTime >= lastMessageTimestamp && lastMessageTimestamp > 0) {
       if (group.unread && group.unread > 0) {
-        console.log(`🚫 [${group.name}] Resetting unread to 0 because LastRead (${lastReadTime}) >= LastMsg (${lastMessageTimestamp})`);
+         console.log(`🚫 [${group.name}] Resetting unread to 0 because LastRead (${lastReadTime}) >= LastMsg (${lastMessageTimestamp})`);
       }
       unreadCount = 0;
     }
@@ -376,8 +383,8 @@ export const useGroups = () => {
         unreadCount = 0;
       }
     } else if (group.lastMessageAt && (group as any).lastMessageSenderId === currentUserId) {
-      if (unreadCount > 0) console.log(`🚫 [${group.name}] Resetting unread to 0 because lastMessageSenderId is me`);
-      unreadCount = 0;
+       if (unreadCount > 0) console.log(`🚫 [${group.name}] Resetting unread to 0 because lastMessageSenderId is me`);
+       unreadCount = 0;
     }
 
     // 4. Active group override: If user is currently in this group, count should be 0
