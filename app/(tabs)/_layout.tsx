@@ -1,17 +1,24 @@
 import AuthModal from "@/components/AuthModal";
 import ProtectedTabIcon from "@/components/ProtectedTabIcon";
 import { useTheme } from "@/contexts/ThemeContext";
+import { fetchGroups, groupsKeys } from "@/hooks/useGroups";
 import { useNotifications } from "@/hooks/useNotification";
 import { useUnifiedGroups } from "@/hooks/useUnifiedGroups";
 import { useAuthStore } from "@/state/authStore";
+import { useCampusStore } from "@/state/campusStore";
+import { useNotificationStore } from "@/state/notificationStore";
 import { Ionicons } from "@expo/vector-icons";
+import { useQueryClient } from "@tanstack/react-query";
 import { Tabs } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Platform } from "react-native";
 
 export default function TabLayout() {
   const { isDark } = useTheme();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
+  const { selectedUniversity } = useCampusStore();
+  const queryClient = useQueryClient();
+  const { setNotifications } = useNotificationStore();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const { 
     groupNotifications, 
@@ -22,6 +29,31 @@ export default function TabLayout() {
   const unreadTotal = useMemo(() => {
     return (uiGroups || []).reduce((sum: number, g: any) => sum + (Number(g.unreadCount || 0)), 0);
   }, [uiGroups]);
+
+  // Initial fetch of groups to speed up unread count display
+  useEffect(() => {
+    if (isAuthenticated) {
+      // Use selected university or fallback to user's home university
+      const campusId = selectedUniversity?.id || user?.universityID;
+      
+      console.log('🚀 Initial fetch of groups/DMs to update unread counts for campus:', campusId || 'all');
+      
+      fetchGroups(campusId)
+        .then((groups) => {
+          // Update the cache immediately for the specific campus ID we used
+          queryClient.setQueryData(groupsKeys.list(campusId), groups);
+          
+          // Calculate and update global unread count
+          const totalUnread = groups.reduce((sum, group) => sum + (group.unread || 0), 0);
+          console.log('📊 Initial unread count from fetch:', totalUnread);
+          
+          if (totalUnread > 0) {
+            setNotifications({ groupNotifications: totalUnread });
+          }
+        })
+        .catch(err => console.error('❌ Initial fetch failed:', err));
+    }
+  }, [isAuthenticated, selectedUniversity?.id, user?.universityID]);
 
   // Refresh notifications when tab layout mounts or when switching tabs
   useEffect(() => {

@@ -197,14 +197,22 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         let unreadIncrement = 0;
         dedupIncoming.forEach(m => {
           const isUserMessage = m.messageType === MessageType.USER;
-          const senderId = isUserMessage ? (m as UserMessage).sender?.id : 'system';
+          
+          // Robustly extract sender ID from various possible fields
+          const senderId = isUserMessage ? (
+            (m as any).senderID || 
+            (m as any).senderId || 
+            (m as UserMessage).sender?.id ||
+            ''
+          ) : 'system';
+          
           const senderName = isUserMessage ? (m as UserMessage).sender?.fname : 'System';
           
           const shouldIncrement = shouldIncrementUnread({
             userId: user?.id || '',
             activeGroupId,
             isUserMessage,
-            senderId: senderId || '',
+            senderId: String(senderId),
             groupId: String(group.id)
           });
 
@@ -313,8 +321,8 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       // Ping/Pong configuration to prevent timeouts
-      pingTimeout: 60000, // 60 seconds - how long to wait for pong response
-      pingInterval: 25000, // 25 seconds - how often to send ping
+      // pingTimeout: 60000, // Not available in client options
+      // pingInterval: 25000, // Not available in client options
       // Transport configuration
       transports: ['websocket', 'polling'], // Fallback to polling if websocket fails
       upgrade: true, // Allow transport upgrades
@@ -557,8 +565,8 @@ export const GroupSocketProvider: React.FC<GroupSocketProviderProps> = ({
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       // Ping/Pong configuration to prevent timeouts
-      pingTimeout: 60000, // 60 seconds - how long to wait for pong response
-      pingInterval: 25000, // 25 seconds - how often to send ping
+      // pingTimeout: 60000, // Not available in client options
+      // pingInterval: 25000, // Not available in client options
       // Transport configuration
       transports: ['websocket', 'polling'], // Fallback to polling if websocket fails
       upgrade: true, // Allow transport upgrades

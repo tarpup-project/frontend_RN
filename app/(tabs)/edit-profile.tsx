@@ -6,18 +6,19 @@ import { UrlConstants } from "@/constants/apiUrls";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
-import * as SecureStore from 'expo-secure-store';
 import { router } from "expo-router";
+import * as SecureStore from 'expo-secure-store';
 import { useEffect, useRef, useState } from "react";
 import {
-    Alert,
-    Image,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    View,
+  Alert,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
 } from "react-native";
 import { toast } from "sonner-native";
 
@@ -90,7 +91,7 @@ const EditProfile = () => {
     },
   };
 
-  const yearOptions = ["Freshman", "Sophomore", "Junior", "Senior", "Graduate"];
+  const yearOptions = ["freshman", "sophomore", "junior", "senior", "graduate"];
 
   const countryCodes = [
     { code: "+1", country: "US", flag: "🇺🇸" },
@@ -192,7 +193,7 @@ const EditProfile = () => {
   useEffect(() => {
     if (user) {
       setFormData({
-        fullName: user.fname && user.lname ? `${user.fname} ${user.lname}` : "",
+        fullName: user.fname ? `${user.fname}${user.lname ? ` ${user.lname}` : ""}` : "",
         bio: user.bio || "",
         major: user.major || "",
         year: user.year || "Select year",
@@ -305,22 +306,27 @@ const EditProfile = () => {
       if (formData.year && formData.year !== "Select year") {
         uploadFormData.append("year", formData.year);
       }
-      if (formData.interests.length > 0) {
+
+      // Ensure arrays are stringified as per requirements
+      if (formData.interests) {
         uploadFormData.append("interests", JSON.stringify(formData.interests));
       }
-      if (formData.prefs.length > 0) {
+      if (formData.prefs) {
         uploadFormData.append("prefs", JSON.stringify(formData.prefs));
       }
 
       if (imageUri && imageUri !== user?.bgUrl) {
-        const filename = imageUri.split("/").pop();
-        const match = /\.(\w+)$/.exec(filename || "");
-        const type = match ? `image/${match[1]}` : "image/jpeg";
+        // Compress and convert image to JPEG
+        const manipulatedImage = await ImageManipulator.manipulateAsync(
+          imageUri,
+          [{ resize: { width: 1080 } }], // Resize to max width 1080px to save space
+          { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+        );
 
         uploadFormData.append("image", {
-          uri: imageUri,
-          name: filename || "profile.jpg",
-          type,
+          uri: manipulatedImage.uri,
+          name: "profile.jpg", // Always send as jpg
+          type: "image/jpeg",
         } as any);
       }
 
@@ -473,7 +479,7 @@ const EditProfile = () => {
                   color={dynamicStyles.subtitle.color}
                 />
               </Pressable>
-              
+
               <TextInput
                 style={[styles.phoneInput, dynamicStyles.input]}
                 value={formData.phoneNumber}
@@ -488,7 +494,7 @@ const EditProfile = () => {
                 maxLength={15}
               />
             </View>
-            
+
             {showCountryCodeDropdown && (
               <View style={[styles.countryCodeDropdown, dynamicStyles.card]}>
                 <ScrollView style={styles.countryCodeScrollView} nestedScrollEnabled>
@@ -582,7 +588,7 @@ const EditProfile = () => {
                         style={[
                           styles.dropdownItem,
                           index !== yearOptions.length - 1 &&
-                            styles.dropdownItemBorder,
+                          styles.dropdownItemBorder,
                           { borderBottomColor: dynamicStyles.card.borderColor },
                         ]}
                         onPress={() => {
