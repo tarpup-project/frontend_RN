@@ -1,6 +1,9 @@
+import { useCampus } from '@/hooks/useCampus'; // Import useCampus
+import { groupsKeys } from '@/hooks/useGroups'; // Import groupsKeys
 import { useAuthStore } from '@/state/authStore';
 import { setupNotifications } from '@/utils/notifications';
 import messaging from '@react-native-firebase/messaging';
+import { useQueryClient } from '@tanstack/react-query'; // Import useQueryClient
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -9,6 +12,14 @@ import { Platform } from 'react-native';
 export function usePushNotifications() {
   const router = useRouter();
   const { isAuthenticated, user } = useAuthStore();
+  const queryClient = useQueryClient(); // Get queryClient
+  const { selectedUniversity } = useCampus(); // Get selectedUniversity
+  const universityRef = useRef(selectedUniversity);
+
+  // Keep ref updated
+  useEffect(() => {
+    universityRef.current = selectedUniversity;
+  }, [selectedUniversity]);
 
   const [isInitialized, setIsInitialized] = useState(false);
   const [fcmToken, setFcmToken] = useState<string | null>(null);
@@ -62,11 +73,103 @@ export function usePushNotifications() {
       setupTokenRefreshHandler();
       await subscribeToDefaultTopics();
 
+      // Process any notifications that were delivered while app was in background/closed
+      await processDeliveredNotifications();
+
       setIsInitialized(true);
       console.log('✅ Push notifications initialized');
     } catch (error) {
       console.error('❌ Push notification init error:', error);
       initializingRef.current = false;
+    }
+  };
+
+  const processDeliveredNotifications = async () => {
+    try {
+      console.log('📬 Checking for delivered notifications...');
+      const delivered = await Notifications.getPresentedNotificationsAsync();
+
+      if (delivered && delivered.length > 0) {
+        console.log(`📬 Found ${delivered.length} delivered notifications to process`);
+
+        // Group by groupID to batch updates
+        const updatesByGroup: Record<string, { body: string; title: string; date: number }> = {};
+
+        delivered.forEach(n => {
+          const content = n.request.content;
+          const data = content.data || {};
+          // Safely access properties and cast to unknowns then to specific types if needed or just use optional chaining with fallback
+          const groupId = (data as any).groupID || (data as any).groupId;
+
+          if (groupId) {
+            const title = content.title || 'Notification';
+            const body = content.body || '';
+            const date = n.date; // timestamp
+
+            // Keep the latest notification for each group
+            if (!updatesByGroup[groupId] || updatesByGroup[groupId].date < date) {
+              updatesByGroup[groupId] = {
+                body: typeof body === 'string' ? body : JSON.stringify(body),
+                title: typeof title === 'string' ? title : String(title),
+                date
+              };
+            }
+          }
+        });
+
+        // Update cache for each group
+        Object.entries(updatesByGroup).forEach(([groupId, info]) => {
+          updateGroupCache(groupId, info.body, info.title, info.date);
+        });
+      }
+    } catch (error) {
+      console.error('❌ Failed to process delivered notifications:', error);
+    }
+  };
+
+  const updateGroupCache = (groupId: string, body: string, title: string, timestamp?: number) => {
+    if (!queryClient) return;
+
+    try {
+      queryClient.setQueryData<any[]>(groupsKeys.list(universityRef.current?.id), (oldGroups) => {
+        if (!oldGroups) return oldGroups;
+
+        return oldGroups.map(group => {
+          if (group.id === groupId) {
+            // Duplicate check
+            const lastMsg = group.messages?.[group.messages.length - 1];
+            const lastContent = lastMsg?.content || (lastMsg as any)?.message;
+
+            if (lastContent === body) {
+              console.log(`🚫 Duplicate delivered content for group ${groupId}, ignoring initial cache update`);
+              return group;
+            }
+
+            console.log(`⚡ Updating cache for group ${groupId} from delivered notification`);
+
+            const newMessage = {
+              id: `temp_delivered_${Date.now()}_${Math.random()}`,
+              content: body,
+              senderID: 'unknown',
+              createdAt: timestamp ? new Date(timestamp).toISOString() : new Date().toISOString(),
+              sender: {
+                fname: title,
+              },
+              isTemp: true
+            };
+
+            return {
+              ...group,
+              unread: (group.unread || 0) + 1,
+              lastMessageAt: newMessage.createdAt,
+              messages: [...(group.messages || []), newMessage]
+            };
+          }
+          return group;
+        });
+      });
+    } catch (e) {
+      console.error('Error updating group cache:', e);
     }
   };
 
@@ -102,6 +205,26 @@ export function usePushNotifications() {
           remoteMessage.notification?.body ||
           data?.body ||
           '';
+
+        // ---------------------------------------------------------
+        // IMMEDIATE CACHE UPDATE START
+        // ---------------------------------------------------------
+        try {
+          // Extract group ID from data
+          const groupId = (data.groupID || data.groupId) as string;
+
+          if (groupId) {
+            // Ensure body is string
+            const bodyStr = typeof body === 'string' ? body : JSON.stringify(body || '');
+            const titleStr = typeof title === 'string' ? title : String(title || 'Notification');
+            updateGroupCache(groupId, bodyStr, titleStr);
+          }
+        } catch (cacheError) {
+          console.error('⚠️ Failed to update cache from notification:', cacheError);
+        }
+        // ---------------------------------------------------------
+        // IMMEDIATE CACHE UPDATE END
+        // ---------------------------------------------------------
 
         // ✅ FIXED: Always show notification in foreground
         // channelId moved to content, trigger set to null
@@ -144,7 +267,7 @@ export function usePushNotifications() {
     );
 
     const data = response.notification.request.content.data;
-    
+
     // Create a normalized ID from either groupID or groupId
     const targetGroupId = data?.groupID || data?.groupId;
 
@@ -163,7 +286,7 @@ export function usePushNotifications() {
         };
 
         console.log('🚀 Attempting navigation to group chat:', targetGroupId);
-        
+
         try {
           // Use the explicit dynamic route syntax for better stability
           router.push({
