@@ -5,6 +5,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useAuthStore } from "@/state/authStore";
 import { usePostUploadStore } from "@/state/postUploadStore";
+import { useTarpsStore } from "@/state/tarpsStore";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Image as ExpoImage } from "expo-image";
@@ -99,7 +100,7 @@ export default function TarpsScreen() {
   const [knownPosts, setKnownPosts] = useState<Map<string, { lat: number; lng: number; timestamp: number }>>(new Map());
   const [previewedPosts, setPreviewedPosts] = useState<Set<string>>(new Set());
   const [reportedPosts, setReportedPosts] = useState<Set<string>>(new Set());
-  const [showHandAnimation, setShowHandAnimation] = useState(true);
+  const [showHandAnimation, setShowHandAnimation] = useState(false);
   const [handAnimationVisible, setHandAnimationVisible] = useState(true);
   const [serverPeople, setServerPeople] = useState<
     { id: string; latitude: number; longitude: number; imageUrl?: string; owner?: { id: string; fname: string; lname?: string; bgUrl?: string } }[]
@@ -339,6 +340,10 @@ export default function TarpsScreen() {
   // Function to mark a post as viewed (when actually previewed)
   const markPostAsViewed = (postId: string) => {
     setNewPostIds(prev => {
+      // If it was considered "new", decrement the store count
+      if (prev.has(postId)) {
+        useTarpsStore.getState().decrementUnseenCount(1);
+      }
       const updated = new Set(prev);
       updated.delete(postId);
       return updated;
@@ -357,8 +362,19 @@ export default function TarpsScreen() {
   // Function to mark multiple posts as viewed (for clusters)
   const markPostsAsViewed = (postIds: string[]) => {
     setNewPostIds(prev => {
+      let decrementAmount = 0;
       const updated = new Set(prev);
-      postIds.forEach(id => updated.delete(id));
+      postIds.forEach(id => {
+        if (updated.has(id)) {
+          decrementAmount++;
+          updated.delete(id);
+        }
+      });
+
+      if (decrementAmount > 0) {
+        useTarpsStore.getState().decrementUnseenCount(decrementAmount);
+      }
+
       return updated;
     });
 
@@ -562,6 +578,21 @@ export default function TarpsScreen() {
     };
   }, [mapRegion, location, viewMode, globalPosts]);
 
+  // Check if hand animation has been shown before
+  useEffect(() => {
+    (async () => {
+      try {
+        const hasShown = await AsyncStorage.getItem('hasShownHandAnimation');
+        if (hasShown !== 'true') {
+          setShowHandAnimation(true);
+          await AsyncStorage.setItem('hasShownHandAnimation', 'true');
+        }
+      } catch (error) {
+        console.error('Error checking hand animation status:', error);
+      }
+    })();
+  }, []);
+
   // Hand animation blinking effect
   useEffect(() => {
     if (!showHandAnimation) return;
@@ -588,12 +619,7 @@ export default function TarpsScreen() {
     };
   }, [viewMode]);
 
-  // Show hand animation when switching to posts view
-  useEffect(() => {
-    if (viewMode === "posts") {
-      setShowHandAnimation(true);
-    }
-  }, [viewMode]);
+
 
   const extractImageUrl = (item: any): string | null => {
     if (!item || typeof item !== "object") return null;

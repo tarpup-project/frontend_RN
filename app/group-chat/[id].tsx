@@ -85,8 +85,17 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
 
   // Log caching behavior
   useEffect(() => {
+    // Check initial caching state
     if (messages.length > 0) {
       console.log('📱 Group chat loaded with', messages.length, 'cached messages');
+    } else {
+      console.log('⏳ No cached messages found on mount');
+    }
+  }, []); // Run only on mount to check initial state
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      console.log('📱 Group chat messages updated:', messages.length);
     }
   }, [messages.length]);
 
@@ -118,14 +127,13 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     }
     const idDeduped = Array.from(byId.values());
 
-    // 2) Dedup by composite key, keep latest
+    // 2) Dedup by normalized text + time bucket (1s), keep latest
     const byComposite = new Map<string, any>();
     for (const msg of idDeduped) {
-      const senderId = msg?.messageType === 'user' ? String(msg?.sender?.id || '') : 'system';
       const text = String(msg?.content?.message || '').trim().toLowerCase();
       const ms = msg?.createdAt ? new Date(msg.createdAt).getTime() : 0;
-      const bucket = Math.floor(ms / 5000);
-      const key = `${senderId}|${text}|${bucket}`;
+      const bucket = Math.floor(ms / 1000);
+      const key = `${text}|${bucket}`;
       const prev = byComposite.get(key);
       const prevTime = prev?.createdAt ? new Date(prev.createdAt).getTime() : 0;
       if (!prev || ms >= prevTime) {
@@ -464,7 +472,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
     <KeyboardAvoidingView
       style={[styles.container, dynamicStyles.container]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={0}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
     >
       <Header />
       <NetworkStatusBanner />
@@ -510,6 +518,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
             messageRefs={messageRefs}
             navigateToProfile={navigateToProfile}
             isLoadingMore={false}
+            keyboardVisible={keyboardVisible}
           />
         )}
 

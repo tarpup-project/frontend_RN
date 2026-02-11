@@ -799,13 +799,7 @@ const Header = () => {
     });
   };
 
-  const handleChatPress = () => {
-    if (!isAuthenticated) {
-      setShowAuthModal(true);
-    } else {
-      router.push("/chat");
-    }
-  };
+
 
   const handleThemeToggle = () => {
     toggleTheme();
@@ -822,12 +816,7 @@ const Header = () => {
     icon: {
       color: isDark ? "#FFFFFF" : "#0a0a0a",
     },
-    chatButton: {
-      backgroundColor: isDark ? "#FFFFFF" : "#0a0a0a",
-    },
-    chatText: {
-      color: isDark ? "#0a0a0a" : "#FFFFFF",
-    },
+
   };
 
   return (
@@ -912,34 +901,7 @@ const Header = () => {
         </View>
 
         {/* Right side - Chat Button Only */}
-        <View style={styles.iconsContainer}>
-          <Pressable
-            style={[styles.chatButton, dynamicStyles.chatButton]}
-            onPress={handleChatPress}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-              <View style={styles.chatContent}>
-                <Ionicons
-                  name="chatbubble-outline"
-                  size={18}
-                  color={dynamicStyles.chatText.color}
-                />
-                <Text style={[styles.chatText, dynamicStyles.chatText]}>
-                  AI Chat
-                </Text>
-              </View>
-              {/* Show badge for pending matches */}
-              {unviewedMatchesCount > 0 && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>
-                    {unviewedMatchesCount > 9 ? '9+' : unviewedMatchesCount}
-                  </Text>
-                </View>
-              )}
-            </Animated.View>
-          </Pressable>
-        </View>
+
       </View>
       <AuthModal
         visible={showAuthModal}
@@ -1004,7 +966,7 @@ const Header = () => {
                       Mark all read
                     </Text>
                   </Pressable>
-                  <Pressable
+                  {/* <Pressable
                     style={styles.clearButton}
                     onPress={clearAllNotifications}
                     disabled={isClearing}
@@ -1019,7 +981,7 @@ const Header = () => {
                         </Text>
                       </>
                     )}
-                  </Pressable>
+                  </Pressable> */}
                 </View>
               )}
 
@@ -1165,39 +1127,6 @@ const styles = StyleSheet.create({
   },
   iconButton: {
     padding: 8,
-  },
-  chatButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    position: "relative",
-  },
-  chatContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  chatText: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  badge: {
-    position: "absolute",
-    top: -16,
-    right: -18,
-    backgroundColor: "#EF4444",
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  badgeText: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "700",
   },
   modalOverlay: {
     flex: 1,
@@ -1431,6 +1360,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingLeft: 8,
   },
+
 });
 
 export default Header;

@@ -1,3 +1,4 @@
+import FloatingChatButton from "@/components/FloatingChatButton";
 import Header from "@/components/Header";
 import LeaderBoard from "@/components/Leaderboard";
 import PreviewModeBanner from "@/components/PreviewModeBanner";
@@ -41,7 +42,7 @@ const getIconComponent = (iconName: any, categoryName?: string) => {
 
     const normalized = categoryName.toLowerCase().trim();
     const foundIcon = nameMap[normalized];
-    
+
     if (foundIcon) return foundIcon;
   }
 
@@ -203,10 +204,10 @@ const Index = () => {
       borderColor: isDark ? "#333333" : "#E0E0E0",
     },
     matchesBadge: {
-      backgroundColor: "#6B7280", 
+      backgroundColor: "#6B7280",
     },
     matchesBadgeText: {
-      color: "#FFFFFF", 
+      color: "#FFFFFF",
     },
     avatarBorder: {
       borderColor: isDark ? "#0a0a0a" : "#FFFFFF",
@@ -388,10 +389,10 @@ const Index = () => {
                       ]}
                     >
                       <Ionicons
-  name={getIconComponent(category.icon, category.name) as any}
-  size={24}
-  color={category.name.toLowerCase() === 'games' ? '#0EA5E9' : category.iconColor}
-/>
+                        name={getIconComponent(category.icon, category.name) as any}
+                        size={24}
+                        color={category.name.toLowerCase() === 'games' ? '#0EA5E9' : category.iconColor}
+                      />
                     </View>
                     <Text style={[styles.cardTitle, dynamicStyles.text]}>
                       {category.name}
@@ -461,19 +462,19 @@ const Index = () => {
                     >
                       {(() => {
 
-  const iconName = getIconComponent(
-    match.categoryDetails.icon,
-    match.categoryDetails.name
-  );
-  
-  return (
-    <Ionicons
-      name={iconName as any}
-      size={20}
-      color={match.categoryDetails.colorHex}
-    />
-  );
-})()}
+                        const iconName = getIconComponent(
+                          match.categoryDetails.icon,
+                          match.categoryDetails.name
+                        );
+
+                        return (
+                          <Ionicons
+                            name={iconName as any}
+                            size={20}
+                            color={match.categoryDetails.colorHex}
+                          />
+                        );
+                      })()}
                     </View>
                     <View style={styles.recentContent}>
                       <Text style={[styles.recentTitle, dynamicStyles.text]}>
@@ -525,9 +526,8 @@ const Index = () => {
                         <Text style={[styles.usersText]}>
                           {match.members.length > 3
                             ? `+${match.members.length - 3} more`
-                            : `${match.members.length} member${
-                                match.members.length > 1 ? "s" : ""
-                              }`}
+                            : `${match.members.length} member${match.members.length > 1 ? "s" : ""
+                            }`}
                         </Text>
                       </View>
                     </View>
@@ -614,6 +614,7 @@ const Index = () => {
           </View>
         </View>
       </ScrollView>
+      <FloatingChatButton />
     </View>
   );
 };
@@ -624,7 +625,7 @@ const styles = StyleSheet.create({
     fontFamily: "Geist-Regular",
   },
   content: {
-   // flex: 1,
+    // flex: 1,
     paddingHorizontal: 16,
     paddingTop: 0,
     paddingBottom: 100,
@@ -901,5 +902,4 @@ const styles = StyleSheet.create({
 });
 
 export default Index;
-
 

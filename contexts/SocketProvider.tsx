@@ -8,7 +8,7 @@ import { useNotificationStore } from '@/state/notificationStore';
 import { AlertMessage, Group, GroupMessage, MessageType, UserMessage } from '@/types/groups';
 import { SocketEvents, SocketInterface, SocketState } from '@/types/socket';
 import { queryClient } from '@/utils/queryClient';
-import { logUnreadDecision, resetUnreadCount, shouldIncrementUnread } from '@/utils/unreadCounter';
+import { resetUnreadCount, shouldIncrementUnread } from '@/utils/unreadCounter';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { io, Socket } from 'socket.io-client';
@@ -166,7 +166,21 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       });
     });
 
-    // 2. Bulk update Group Lists (Inbox/Home)
+    // 2. Pre-calculate existing group timestamps to prevent replay counting
+    const existingGroupTimestamps: Record<string, number> = {};
+    const cachedQueries = queryClient.getQueriesData<Group[]>({ queryKey: groupsKeys.lists() });
+    cachedQueries.forEach(([_, groups]) => {
+      if (groups) {
+        groups.forEach(g => {
+          const ts = g.lastMessageAt ? new Date(g.lastMessageAt).getTime() : 0;
+          if (!existingGroupTimestamps[g.id] || existingGroupTimestamps[g.id] < ts) {
+            existingGroupTimestamps[g.id] = ts;
+          }
+        });
+      }
+    });
+
+    // 3. Bulk update Group Lists (Inbox/Home)
     queryClient.setQueriesData<Group[]>({ queryKey: groupsKeys.lists() }, (old) => {
       if (!old) return old as any;
       return old.map((group) => {
@@ -176,7 +190,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
           return group;
         }
 
-        // Deduplicate incoming messages by content.id to avoid double counting
+        // Deduplicate incoming messages by content.id
         const dedupIncoming = (() => {
           const seen = new Set<string>();
           const out: GroupMessage[] = [];
@@ -189,25 +203,32 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
           return out;
         })();
 
-        // We have new messages for this group (use deduped list)
         const lastMsgObj = dedupIncoming[dedupIncoming.length - 1]; // Take the last one
-        const isActiveGroup = String(activeGroupId || '') === String(group.id);
 
-        // Count unread: only unseen messages (when user is not in the group) from other users
+        // Count unread: only unseen messages from other users
+        // AND check if message is newer than what we already have (prevent replays)
         let unreadIncrement = 0;
+        const currentGroupLastMsgTime = existingGroupTimestamps[group.id] || 0;
+
         dedupIncoming.forEach(m => {
           const isUserMessage = m.messageType === MessageType.USER;
-          
-          // Robustly extract sender ID from various possible fields
+
+          // Timestamp check
+          const msgTime = m.createdAt ? new Date(m.createdAt).getTime() : Date.now();
+          if (msgTime <= currentGroupLastMsgTime) {
+            // This is an older or duplicate message replay, do not increment unread
+            return;
+          }
+
           const senderId = isUserMessage ? (
-            (m as any).senderID || 
-            (m as any).senderId || 
+            (m as any).senderID ||
+            (m as any).senderId ||
             (m as UserMessage).sender?.id ||
             ''
           ) : 'system';
-          
+
           const senderName = isUserMessage ? (m as UserMessage).sender?.fname : 'System';
-          
+
           const shouldIncrement = shouldIncrementUnread({
             userId: user?.id || '',
             activeGroupId,
@@ -219,22 +240,9 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
           if (shouldIncrement) {
             unreadIncrement++;
           }
-
-          // Log the decision for debugging
-          logUnreadDecision(
-            {
-              userId: user?.id || '',
-              activeGroupId,
-              isUserMessage,
-              senderId: senderId || '',
-              groupId: String(group.id)
-            },
-            shouldIncrement,
-            senderName
-          );
         });
 
-        // Update messages array - keep it bounded if needed
+        // Update messages array
         const messages = Array.isArray(group.messages) ? [...group.messages] : [];
         const combined = [
           ...messages,
@@ -246,7 +254,8 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
             fileUrl: (m as any).file?.data
           }))
         ];
-        // Deduplicate combined list by id and keep only last 20
+
+        // Deduplicate combined list
         const seenCombined = new Set<string>();
         const dedupCombined: typeof combined = [];
         for (const msg of combined) {
@@ -255,13 +264,57 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
           seenCombined.add(id);
           dedupCombined.push(msg);
         }
+
+        // Sort by createdAt to ensure correct order
+        dedupCombined.sort((a, b) => {
+          const tA = new Date((a as any).createdAt || 0).getTime();
+          const tB = new Date((b as any).createdAt || 0).getTime();
+          return tA - tB;
+        });
+
         const updatedMessages = dedupCombined.slice(-20);
+
+        // RECALCULATE UNREAD COUNT based on user's last sent message
+        let newUnreadCount = (group.unread || 0) + unreadIncrement;
+
+        // Find the last message sent by the current user to use as an anchor
+        let lastUserMessageTime = 0;
+        for (let i = updatedMessages.length - 1; i >= 0; i--) {
+          const msg = updatedMessages[i];
+          const msgSenderId = (msg as any).sender?.id || (msg as any).senderId || (msg as any).sender?.id;
+          const isFromMe = String(msgSenderId) === String(user?.id);
+
+          if (isFromMe) {
+            lastUserMessageTime = new Date((msg as any).createdAt || 0).getTime();
+            break;
+          }
+        }
+
+        // If we found a user message, we can strictly count messages after it
+        if (lastUserMessageTime > 0) {
+          let calculatedUnread = 0;
+          updatedMessages.forEach(msg => {
+            const msgTime = new Date((msg as any).createdAt || 0).getTime();
+            const msgSenderId = (msg as any).sender?.id || (msg as any).senderId || (msg as any).sender?.id;
+            const isFromMe = String(msgSenderId) === String(user?.id);
+
+            // Count if it's after my last message AND not from me AND not a system message (implied by typical usage)
+            if (msgTime > lastUserMessageTime && !isFromMe) {
+              calculatedUnread++;
+            }
+          });
+
+          if (calculatedUnread !== newUnreadCount) {
+            console.log(`🔄 Recalculating unread for group ${group.id}: ${newUnreadCount} -> ${calculatedUnread} (based on last sent msg)`);
+            newUnreadCount = calculatedUnread;
+          }
+        }
 
         const updatedGroup = {
           ...group,
-          unread: (group.unread || 0) + unreadIncrement,
+          unread: newUnreadCount,
           messages: updatedMessages,
-          lastMessageAt: lastMsgObj.createdAt,
+          lastMessageAt: lastMsgObj ? lastMsgObj.createdAt : group.lastMessageAt,
         };
 
         if (unreadIncrement > 0) {
@@ -272,18 +325,23 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       });
     });
 
-    // 3. Notifications and Mark Read
+    // 4. Notifications and Mark Read (Update Global Count)
     Object.entries(rawDataByRoom).forEach(([roomId, rawDataList]) => {
       const isActiveGroup = String(activeGroupId || '') === String(roomId);
+      const groupLastMsgTime = existingGroupTimestamps[roomId] || 0;
 
       rawDataList.forEach(data => {
         const senderId = data?.sender?.id || data?.senderId;
         const isMe = senderId === user?.id;
+        const msgTime = data?.createdAt ? new Date(data.createdAt).getTime() : Date.now();
 
         if (isMe) return;
 
         if (!isActiveGroup) {
-          incrementNotification('group');
+          // Only increment global notification if message is NEWER than known group state
+          if (msgTime > groupLastMsgTime) {
+            incrementNotification('group');
+          }
         } else {
           // Mark read if active
           api.post(UrlConstants.markGroupMessageAsRead(roomId)).catch(e => console.error('Mark read failed', e));
@@ -376,7 +434,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         ...prev,
         connected: false,
       }));
-      
+
       // Handle specific disconnect reasons
       if (reason === 'ping timeout') {
         console.log('🏓 Ping timeout detected - will attempt reconnection');
@@ -476,7 +534,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   useEffect(() => {
     if (isConnected && user) {
       console.log('🌐 Network back online - prioritizing socket reconnection');
-      
+
       // Immediate socket reconnection as first priority
       if (socket && !socket.connected) {
         console.log('🔌 Network restored: Reconnecting existing socket');
@@ -497,7 +555,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     if (activeGroupId !== previousActiveGroupId) {
       if (activeGroupId) {
         console.log(`👁️ User entered group ${activeGroupId} - marking as read`);
-        
+
         // Reset unread count for the group the user just entered
         queryClient.setQueriesData<Group[]>({ queryKey: groupsKeys.lists() }, (old) => {
           if (!old) return old as any;
@@ -510,11 +568,11 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
           });
         });
       }
-      
+
       if (previousActiveGroupId) {
         console.log(`👋 User left group ${previousActiveGroupId}`);
       }
-      
+
       setPreviousActiveGroupId(activeGroupId || null);
     }
   }, [activeGroupId, previousActiveGroupId, queryClient]);

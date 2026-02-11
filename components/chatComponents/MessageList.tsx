@@ -18,6 +18,7 @@ interface MessageListProps {
   messageRefs: React.MutableRefObject<Map<string, any>>;
   navigateToProfile: (userId: string) => void;
   isLoadingMore?: boolean;
+  keyboardVisible?: boolean;
 }
 
 export const MessageList: React.FC<MessageListProps> = ({
@@ -30,6 +31,7 @@ export const MessageList: React.FC<MessageListProps> = ({
   messageRefs,
   navigateToProfile,
   isLoadingMore,
+  keyboardVisible,
 }) => {
   const scrollViewRef = useRef<ScrollView>(null);
   const nativeScrollGesture = Gesture.Native();
@@ -118,6 +120,13 @@ export const MessageList: React.FC<MessageListProps> = ({
   }, []);
 
   useEffect(() => {
+    if (keyboardVisible) {
+      // When keyboard shows, ensure bottom message is visible above it
+      setTimeout(() => smoothScrollToBottom(true), 50);
+    }
+  }, [keyboardVisible, smoothScrollToBottom]);
+
+  useEffect(() => {
     const currentMessageIds = new Set(messages.map(msg => msg.content.id));
     const refsToDelete: string[] = [];
 
@@ -151,7 +160,7 @@ export const MessageList: React.FC<MessageListProps> = ({
                 smoothScrollToBottom(false);
               }, 50);
               shouldAutoScroll.current = false;
-            } 
+            }
             // New messages arrived
             else if (shouldAutoScroll.current) {
               smoothScrollToBottom(true);
