@@ -25,14 +25,14 @@ import { useKeepAwake } from "expo-keep-awake";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    Alert,
-    Animated,
-    AppState,
-    Keyboard,
-    KeyboardAvoidingView, Linking, Platform,
-    Pressable,
-    StyleSheet,
-    View
+  Alert,
+  Animated,
+  AppState,
+  Keyboard,
+  KeyboardAvoidingView, Linking, Platform,
+  Pressable,
+  StyleSheet,
+  View
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
@@ -471,8 +471,8 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   return (
     <KeyboardAvoidingView
       style={[styles.container, dynamicStyles.container]}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={0}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
     >
       <Header />
       <NetworkStatusBanner />
@@ -518,6 +518,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
             messageRefs={messageRefs}
             navigateToProfile={navigateToProfile}
             isLoadingMore={false}
+            keyboardVisible={keyboardVisible}
           />
         )}
 

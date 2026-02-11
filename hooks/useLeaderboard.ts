@@ -1,36 +1,34 @@
-import { useState, useEffect } from 'react';
+import { api } from '@/api/client';
+import { UrlConstants } from "@/constants/apiUrls";
 import { useAuthStore } from '@/state/authStore';
-import { UrlConstants } from "@/constants/apiUrls"
+import { useQuery } from '@tanstack/react-query';
 
 export const useLeaderboard = () => {
   const { user } = useAuthStore();
-  const [data, setData] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (user?.id) {
-      fetchLeaderboardData();
+  
+  const fetchLeaderboard = async () => {
+    if (!user?.id) {
+      throw new Error('User not authenticated');
     }
-  }, [user?.id]);
-
-  const fetchLeaderboardData = async () => {
-    if (!user?.id) return; 
-    
-    try {
-      setIsLoading(true);
-      const response = await fetch(`${UrlConstants.baseUrl}${UrlConstants.getUserLeaderboard(user.id)}`);
-      const result = await response.json();
-      setData(result.data);
-      setError(null);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch leaderboard';
-      setError(errorMessage);
-      console.error('Failed to fetch leaderboard:', err);
-    } finally {
-      setIsLoading(false);
-    }
+    const response = await api.get(UrlConstants.getUserLeaderboard(user.id));
+    // API shape: { status, data }
+    return response.data?.data;
   };
 
-  return { data, isLoading, error, refetch: fetchLeaderboardData };
+  const {
+    data,
+    isLoading,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['leaderboard', user?.id || ''],
+    queryFn: fetchLeaderboard,
+    enabled: !!user?.id,
+    staleTime: 1000 * 60 * 5, // 5 minutes: show cached data as "stable"
+    gcTime: 1000 * 60 * 30,   // 30 minutes: cache lifetime
+    refetchOnMount: 'always', // Always refetch in background on mount
+    placeholderData: (prev) => prev, // Use cached data immediately if available
+  });
+
+  return { data, isLoading, error: error as any, refetch };
 };

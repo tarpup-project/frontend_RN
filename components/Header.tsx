@@ -1004,7 +1004,7 @@ const Header = () => {
                       Mark all read
                     </Text>
                   </Pressable>
-                  <Pressable
+                  {/* <Pressable
                     style={styles.clearButton}
                     onPress={clearAllNotifications}
                     disabled={isClearing}
@@ -1019,7 +1019,7 @@ const Header = () => {
                         </Text>
                       </>
                     )}
-                  </Pressable>
+                  </Pressable> */}
                 </View>
               )}
 
