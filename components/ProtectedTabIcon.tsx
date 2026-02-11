@@ -4,21 +4,23 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 interface ProtectedTabIconProps {
-  name: string; 
+  name: string;
   size?: number;
   color: string;
   focused?: boolean;
   isProtected: boolean;
   notificationCount?: number;
+  badgeType?: 'dot' | 'number';
 }
 
 const ProtectedTabIcon: React.FC<ProtectedTabIconProps> = ({
-  name, 
+  name,
   size = 24,
   color,
   focused = false,
   isProtected,
-  notificationCount = 0
+  notificationCount = 0,
+  badgeType = 'number'
 }) => {
   const { isDark } = useTheme();
 
@@ -37,13 +39,19 @@ const ProtectedTabIcon: React.FC<ProtectedTabIconProps> = ({
 
   return (
     <>
-      <Ionicons name={name as any} size={size} color={color} /> 
+      <Ionicons name={name as any} size={size} color={color} />
 
       {notificationCount > 0 && !isProtected && (
-        <View style={[styles.notificationBadge, dynamicStyles.notificationBadge]}>
-          <Text style={styles.notificationText}>
-            {notificationCount > 99 ? "99+" : notificationCount.toString()}
-          </Text>
+        <View style={[
+          styles.notificationBadge,
+          dynamicStyles.notificationBadge,
+          badgeType === 'dot' ? styles.dotBadge : styles.numberBadge
+        ]}>
+          {badgeType === 'number' && (
+            <Text style={styles.notificationText}>
+              {notificationCount > 99 ? "99+" : notificationCount.toString()}
+            </Text>
+          )}
         </View>
       )}
 
@@ -72,12 +80,24 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: -2,
     right: -2,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 4
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#FFFFFF"
+  },
+  dotBadge: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    top: 0,
+    right: 0
+  },
+  numberBadge: {
+    minWidth: 16,
+    height: 16,
+    paddingHorizontal: 4,
+    borderRadius: 8
   },
   notificationText: {
     color: "#FFFFFF",

@@ -1,231 +1,54 @@
-import { api } from "@/api/client";
-import AuthModal from "@/components/AuthModal";
-import { UrlConstants } from "@/constants/apiUrls";
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Location from 'expo-location';
+import * as MediaLibrary from 'expo-media-library';
+import { useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Dimensions, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, Image as RNImage, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
+import { toast } from 'sonner-native';
+
+import { api } from '@/api/client';
+import AuthModal from '@/components/AuthModal';
+import { UrlConstants } from '@/constants/apiUrls';
 import { useTheme } from "@/contexts/ThemeContext";
-import { useUserProfile } from "@/hooks/useUserProfile";
-import { useAuthStore } from "@/state/authStore";
-import { usePostUploadStore } from "@/state/postUploadStore";
-import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Image as ExpoImage } from "expo-image";
-import * as Location from "expo-location";
-import * as MediaLibrary from "expo-media-library";
-import { useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import moment from "moment";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Dimensions, FlatList, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, Image as RNImage, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import uuid from "react-native-uuid";
-import io from "socket.io-client";
-import { toast } from "sonner-native";
-
-// Conditional Mapbox GL imports for Android only
-let MapboxGL: any = null;
-let useMapboxGL = false;
-
-if (Platform.OS === 'android') {
-  try {
-    console.log('🔄 Attempting to load Mapbox GL for Android...');
-    const MapboxGLModule = require('@rnmapbox/maps');
-    console.log('🔍 Raw MapboxGL module:', MapboxGLModule);
-    console.log('🔍 MapboxGL keys:', Object.keys(MapboxGLModule));
-
-    // Try different possible structures
-    if (MapboxGLModule.default) {
-      MapboxGL = MapboxGLModule.default;
-      console.log('🔍 Using default export, keys:', Object.keys(MapboxGL));
-    } else {
-      MapboxGL = MapboxGLModule;
-      console.log('🔍 Using direct export, keys:', Object.keys(MapboxGL));
-    }
-
-    // Initialize Mapbox GL for Android
-    const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
-    console.log('🔍 Token available:', !!token);
-
-    if (token) {
-      if (MapboxGL.setAccessToken) {
-        MapboxGL.setAccessToken(token);
-        useMapboxGL = true;
-        console.log('✅ Mapbox GL initialized for Android with token:', token.substring(0, 20) + '...');
-      } else {
-        console.error('❌ setAccessToken method not found');
-        console.log('Available methods:', Object.keys(MapboxGL));
-      }
-    } else {
-      console.error('❌ Mapbox token not found in environment variables');
-    }
-  } catch (error) {
-    console.error('❌ Failed to load Mapbox GL module:', error);
-    console.log('📱 Falling back to Google Maps for Android');
-    useMapboxGL = false;
-  }
-} else {
-  console.log('🍎 iOS detected - using Apple Maps (Mapbox disabled)');
-}
+import { useAuthStore } from '@/state/authStore';
+import { useTarpsStore } from '@/state/tarpsStore';
+import { Image as ExpoImage } from 'expo-image';
+import { StatusBar } from 'expo-status-bar';
+import moment from 'moment';
+import { FlatList } from 'react-native-gesture-handler';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import uuid from 'react-native-uuid';
+import { io } from 'socket.io-client';
 
 export default function TarpsScreen() {
   const { isDark } = useTheme();
   const { user } = useAuthStore();
-  const insets = useSafeAreaInsets();
-  const nav = useRouter();
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  // Correct type for Map region
-  const [location, setLocation] = useState<{
-    latitude: number;
-    longitude: number;
-    latitudeDelta: number;
-    longitudeDelta: number;
-  } | null>(null);
-  const [hasLocationPermission, setHasLocationPermission] = useState<boolean>(false);
+  const router = useRouter();
+  const { decrementUnseenCount } = useTarpsStore();
 
-  const [markers, setMarkers] = useState<
-    { id: number; image: string; latitude: number; longitude: number; userId?: string; createdAt?: number }[]
-  >([]);
-  const [showMine, setShowMine] = useState(false);
-  const { isUploading } = usePostUploadStore();
+  const [viewMode, setViewMode] = useState<'posts' | 'people'>('posts');
+  const [location, setLocation] = useState<any>(null);
+  const [mapRegion, setMapRegion] = useState<any>(null);
+  const [hasLocationPermission, setHasLocationPermission] = useState(false);
 
-
-  const [myTarpsModalVisible, setMyTarpsModalVisible] = useState(false);
-  const [recents, setRecents] = useState<MediaLibrary.Asset[]>([]);
-
-  // Map and Posts State
-  const [viewMode, setViewMode] = useState<"people" | "posts">("posts");
-  const [mapRegion, setMapRegion] = useState(location);
-  const [serverPosts, setServerPosts] = useState<{ id: string; image: string | null; latitude: number; longitude: number; count?: number; items?: any[] }[]>([]);
-  const [newPostIds, setNewPostIds] = useState<Set<string>>(new Set());
-  const [knownPosts, setKnownPosts] = useState<Map<string, { lat: number; lng: number; timestamp: number }>>(new Map());
-  const [previewedPosts, setPreviewedPosts] = useState<Set<string>>(new Set());
-  const [reportedPosts, setReportedPosts] = useState<Set<string>>(new Set());
-  const [showHandAnimation, setShowHandAnimation] = useState(true);
-  const [handAnimationVisible, setHandAnimationVisible] = useState(true);
-  const [serverPeople, setServerPeople] = useState<
-    { id: string; latitude: number; longitude: number; imageUrl?: string; owner?: { id: string; fname: string; lname?: string; bgUrl?: string } }[]
-  >([]);
-  const mapRef = useRef<MapView | null>(null);
-  const mapboxCameraRef = useRef<any | null>(null);
-  const mapboxInitialLoadedRef = useRef(false);
-  const [mapboxCamera, setMapboxCamera] = useState({
-    centerCoordinate: [0, 0] as [number, number],
-    zoomLevel: 1,
-    animationDuration: 0,
-  });
-
-  // Update Mapbox GL camera when location changes
-  useEffect(() => {
-    if (Platform.OS === 'android' && location && useMapboxGL) {
-      setMapboxCamera({
-        centerCoordinate: [location.longitude, location.latitude],
-        zoomLevel: 1,
-        animationDuration: 1000,
-      });
-    }
-  }, [location, useMapboxGL]);
-
-  useEffect(() => {
-    if (Platform.OS === 'android' && useMapboxGL && viewMode === 'posts' && location && !mapboxInitialLoadedRef.current) {
-      loadPostsInView(location);
-      mapboxInitialLoadedRef.current = true;
-    }
-  }, [useMapboxGL, viewMode, location]);
-  const [selectedPerson, setSelectedPerson] = useState<any | null>(null);
-  const [personOpen, setPersonOpen] = useState(false);
-
-  // Fetch profile details for the selected person (only for friends, not current user)
-  const selectedPersonId = selectedPerson?.owner?.id || selectedPerson?.id;
-  const isCurrentUser = selectedPersonId === user?.id;
-  const {
-    data: profileDetails,
-    isLoading: profileLoading,
-    error: profileError
-  } = useUserProfile(!isCurrentUser ? selectedPersonId : null);
-
-  // Debug logging for profile data
-  useEffect(() => {
-    if (selectedPersonId && !isCurrentUser) {
-      console.log('👤 Selected person for profile fetch:', {
-        id: selectedPersonId,
-        isCurrentUser,
-        profileLoading,
-        hasProfileData: !!profileDetails,
-        profileError: profileError?.message
-      });
-
-      if (profileDetails) {
-        console.log('📊 Profile stats loaded:', {
-          friends: profileDetails.friends,
-          followers: profileDetails.followers,
-          following: profileDetails.following,
-          posts: profileDetails.posts // This will be excluded from display
-        });
-      }
-
-      if (profileError) {
-        console.error('❌ Profile error:', profileError);
-      }
-    }
-  }, [selectedPersonId, isCurrentUser, profileDetails, profileLoading, profileError]);
-
-  const [currentZoomLevel, setCurrentZoomLevel] = useState(0); // Track zoom level for intelligent zooming
-  const [zoomHistory, setZoomHistory] = useState<Array<{
-    latitude: number;
-    longitude: number;
-    latitudeDelta: number;
-    longitudeDelta: number;
-    zoomLevel?: number; // For Mapbox
-    posts?: any[]; // Cached posts state
-  }>>([]);
-  const [loadingMessage, setLoadingMessage] = useState(false);
-  const [loadingNavigate, setLoadingNavigate] = useState(false);
-  const [showViewersList, setShowViewersList] = useState(false);
-  const [locationViewers, setLocationViewers] = useState<any[]>([]);
-  const [loadingViewers, setLoadingViewers] = useState(false);
-  const [showMapConfirmModal, setShowMapConfirmModal] = useState(false);
-  const [modalTransitioning, setModalTransitioning] = useState(false);
+  const [markers, setMarkers] = useState<any[]>([]);
+  const [serverPosts, setServerPosts] = useState<any[]>([]);
   const [globalPosts, setGlobalPosts] = useState<any[]>([]);
-  const [isLoadingGlobalPosts, setIsLoadingGlobalPosts] = useState(false);
-  const [canLoadImages, setCanLoadImages] = useState(false);
-  const [isRestoringGlobalPosts, setIsRestoringGlobalPosts] = useState(true);
+  const [serverPeople, setServerPeople] = useState<any[]>([]);
 
-  // Debug modal state changes and prevent conflicts
-  useEffect(() => {
-    console.log("🔍 Map confirm modal state changed:", showMapConfirmModal);
+  const [knownPosts, setKnownPosts] = useState<Map<string, any>>(new Map());
+  const [previewedPosts, setPreviewedPosts] = useState<Set<string>>(new Set());
+  const [newPostIds, setNewPostIds] = useState<Set<string>>(new Set());
+  const [reportedPosts, setReportedPosts] = useState<Set<string>>(new Set());
 
-    // If trying to show confirmation modal while person modal is still open, delay it
-    if (showMapConfirmModal && personOpen) {
-      console.log("⚠️ Modal conflict detected! Person modal still open, delaying confirmation modal");
-      setShowMapConfirmModal(false);
+  const knownPostsRef = useRef<Map<string, any>>(new Map());
+  const reportedPostsRef = useRef<Set<string>>(new Set());
+  const hasSeenHintRef = useRef(false);
+  const previewedPostsRef = useRef<Set<string>>(new Set());
 
-      // Retry after person modal closes
-      setTimeout(() => {
-        if (!personOpen) {
-          console.log("✅ Person modal closed, now showing confirmation modal");
-          setShowMapConfirmModal(true);
-        }
-      }, 500);
-    }
-  }, [showMapConfirmModal, personOpen]);
-
-  // Debug person modal state changes
-  useEffect(() => {
-    console.log("🔍 Person modal state changed:", personOpen);
-  }, [personOpen]);
-  const [chatOpen, setChatOpen] = useState(false);
-  const [groupDetails, setGroupDetails] = useState<any | null>(null);
-  const [groupMessages, setGroupMessages] = useState<any[]>([]);
-  const [chatText, setChatText] = useState("");
-  const chatScrollRef = useRef<FlatList | null>(null);
-  const socketRef = useRef<any | null>(null);
-  const lastPostRequestId = useRef(0);
-  const lastPeopleRequestId = useRef(0);
-
-  // Refs for accessing latest state in async functions
-  const knownPostsRef = useRef(knownPosts);
-  const previewedPostsRef = useRef(previewedPosts);
-  const reportedPostsRef = useRef(reportedPosts);
-
+  // Sync refs with state to avoid stale closures in background tasks
   useEffect(() => {
     knownPostsRef.current = knownPosts;
   }, [knownPosts]);
@@ -233,114 +56,143 @@ export default function TarpsScreen() {
   useEffect(() => {
     previewedPostsRef.current = previewedPosts;
   }, [previewedPosts]);
+  const lastPostRequestId = useRef(0);
+  const lastPeopleRequestId = useRef(0);
+
+  const [showHandAnimation, setShowHandAnimation] = useState(false);
+  const [isHandAnimationVisible, setHandAnimationVisible] = useState(false);
+
+  const [selectedPerson, setSelectedPerson] = useState<any>(null);
+  const [personOpen, setPersonOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+
+  const [loadingMessage, setLoadingMessage] = useState(false);
+  const [loadingNavigate, setLoadingNavigate] = useState(false);
+  const [loadingViewers, setLoadingViewers] = useState(false);
+
+  const [groupDetails, setGroupDetails] = useState<any>(null);
+  const [groupMessages, setGroupMessages] = useState<any[]>([]);
+
+  const [showMapConfirmModal, setShowMapConfirmModal] = useState(false);
+  const [modalTransitioning, setModalTransitioning] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showViewersList, setShowViewersList] = useState(false);
+  const [locationViewers, setLocationViewers] = useState<any[]>([]);
+  const [recents, setRecents] = useState<any[]>([]);
+
+  const chatScrollRef = useRef<any>(null);
+  const mapboxCameraRef = useRef<any>(null);
+  const insets = useSafeAreaInsets();
+  const [chatText, setChatText] = useState("");
+  const [canLoadImages, setCanLoadImages] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
+  // Profile data fetching
+  const [profileDetails, setProfileDetails] = useState<any>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState(false);
+
+  const selectedPersonId = selectedPerson?.id;
+  const isCurrentUser = selectedPerson?.owner?.id === user?.id;
+
+  const openProfileScreen = () => router.push('/my-tarps');
+  const handleCreatePostPress = () => router.push('/create-post');
+  const handleShareLocation = () => router.push('/share-location');
 
   useEffect(() => {
-    reportedPostsRef.current = reportedPosts;
-  }, [reportedPosts]);
-
-  // Profile modal state - REMOVED (now using full screen)
-
-
-  const durationOptions = ["1 hour", "2 hours", "5 hours", "1 day"];
-
-  const suggestions = [
-    "studying", "eating lunch", "working out", "hanging out",
-    "in class", "at meeting", "chilling", "grabbing coffee",
-    "at event", "playing sports"
-  ];
-
-  const openProfileScreen = () => {
-    if (!user) {
-      setShowAuthModal(true);
-      return;
+    if (selectedPerson?.owner?.id && !isCurrentUser) {
+      const fetchProfile = async () => {
+        setProfileLoading(true);
+        setProfileError(false);
+        try {
+          const res = await api.get(`/user/${selectedPerson.owner.id}`);
+          if (res?.data?.status === 'success') {
+            setProfileDetails(res.data.data);
+          }
+        } catch (e) {
+          console.error("Failed to fetch profile stats", e);
+          setProfileError(true);
+        } finally {
+          setProfileLoading(false);
+        }
+      };
+      fetchProfile();
+    } else {
+      setProfileDetails(null);
     }
-    nav.push('/my-tarps');
+  }, [selectedPerson?.owner?.id, isCurrentUser]);
+
+  // Missing state/refs added by fix
+  const mapRef = useRef<MapView>(null);
+  const [currentZoomLevel, setCurrentZoomLevel] = useState(1);
+  const [isLoadingGlobalPosts, setIsLoadingGlobalPosts] = useState(false);
+
+  const [zoomHistory, setZoomHistory] = useState<any[]>([]);
+
+  // Mapbox stubs
+  const useMapboxGL = false;
+  const MapboxGL: any = null;
+  const [mapboxCamera, setMapboxCamera] = useState<any>(null);
+
+  // Other missing refs/state
+  const [isRestoringGlobalPosts, setIsRestoringGlobalPosts] = useState(false);
+  const socketRef = useRef<any>(null);
+
+  const saveKnownPosts = async (posts: Map<string, any>) => {
+    try {
+      await AsyncStorage.setItem('tarps.knownPosts', JSON.stringify(Array.from(posts.entries())));
+    } catch (e) {
+      console.error('Failed to save known posts', e);
+    }
   };
 
-  const handleShareLocation = () => {
-    if (!user) {
-      setShowAuthModal(true);
-      return;
+  const savePreviewedPosts = async (posts: Set<string>) => {
+    try {
+      await AsyncStorage.setItem('tarps.previewedPosts', JSON.stringify(Array.from(posts)));
+    } catch (e) {
+      console.error('Failed to save previewed posts', e);
     }
-    nav.push('/share-location');
   };
 
-  const handleCreatePostPress = () => {
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
-    nav.push('/create-post');
-  };
-
-  // Function to load known posts from storage
   const loadKnownPosts = async () => {
     try {
-      const knownPostsData = await AsyncStorage.getItem('knownPosts');
-      console.log("Loading known posts from storage:", knownPostsData);
-      if (knownPostsData) {
-        const parsedData = JSON.parse(knownPostsData);
-        console.log("Parsed known posts:", parsedData);
-        // Convert array back to Map with proper typing
-        const postsMap = new Map<string, { lat: number; lng: number; timestamp: number }>(parsedData);
-        setKnownPosts(postsMap);
-      } else {
-        console.log("No known posts found in storage");
-        setKnownPosts(new Map());
+      const data = await AsyncStorage.getItem('tarps.knownPosts');
+      if (data) {
+        const parsed = JSON.parse(data);
+        setKnownPosts(new Map(parsed));
       }
-    } catch (error) {
-      console.error('Error loading known posts:', error);
-      setKnownPosts(new Map());
-    }
+    } catch (e) { console.error(e); }
   };
 
-  // Function to load previewed posts from storage
   const loadPreviewedPosts = async () => {
     try {
-      const previewedPostsData = await AsyncStorage.getItem('previewedPosts');
-      console.log("Loading previewed posts from storage:", previewedPostsData);
-      if (previewedPostsData) {
-        const parsedData = JSON.parse(previewedPostsData);
-        console.log("Parsed previewed posts:", parsedData);
-        setPreviewedPosts(new Set(parsedData));
-      } else {
-        console.log("No previewed posts found in storage");
-        setPreviewedPosts(new Set());
+      const data = await AsyncStorage.getItem('tarps.previewedPosts');
+      if (data) {
+        const parsed = JSON.parse(data);
+        setPreviewedPosts(new Set(parsed));
       }
-    } catch (error) {
-      console.error('Error loading previewed posts:', error);
-      setPreviewedPosts(new Set());
-    }
+    } catch (e) { console.error(e); }
   };
 
-  // Function to save known posts to storage
-  const saveKnownPosts = async (postsMap: Map<string, { lat: number; lng: number; timestamp: number }>) => {
+
+
+  const dismissHandAnimation = async () => {
+    setShowHandAnimation(false);
+    hasSeenHintRef.current = true;
     try {
-      // Convert Map to array for JSON storage
-      const postsArray = Array.from(postsMap.entries());
-      await AsyncStorage.setItem('knownPosts', JSON.stringify(postsArray));
-      console.log("Saved known posts to storage:", postsArray.length, "posts");
-    } catch (error) {
-      console.error('Error saving known posts:', error);
-    }
+      await AsyncStorage.setItem('tarps.hasSeenHandAnimation', 'true');
+    } catch { }
   };
 
-  // Function to save previewed posts to storage
-  const savePreviewedPosts = async (postsSet: Set<string>) => {
-    try {
-      const postsArray = Array.from(postsSet);
-      await AsyncStorage.setItem('previewedPosts', JSON.stringify(postsArray));
-      console.log("Saved previewed posts to storage:", postsArray.length, "posts");
-    } catch (error) {
-      console.error('Error saving previewed posts:', error);
-    }
-  };
-
-  // Function to mark a post as viewed (when actually previewed)
+  // Function to mark a post as viewed
   const markPostAsViewed = (postId: string) => {
     setNewPostIds(prev => {
       const updated = new Set(prev);
-      updated.delete(postId);
+      if (updated.has(postId)) {
+        updated.delete(postId);
+        // Sync global store - defer to avoid setState during render
+        setTimeout(() => decrementUnseenCount(1), 0);
+      }
       return updated;
     });
 
@@ -350,15 +202,23 @@ export default function TarpsScreen() {
       savePreviewedPosts(updated);
       return updated;
     });
-
-    console.log("Post marked as previewed:", postId);
   };
 
   // Function to mark multiple posts as viewed (for clusters)
   const markPostsAsViewed = (postIds: string[]) => {
     setNewPostIds(prev => {
       const updated = new Set(prev);
-      postIds.forEach(id => updated.delete(id));
+      let removedCount = 0;
+      postIds.forEach(id => {
+        if (updated.has(id)) {
+          updated.delete(id);
+          removedCount++;
+        }
+      });
+      if (removedCount > 0) {
+        // Defer to avoid setState during render
+        setTimeout(() => decrementUnseenCount(removedCount), 0);
+      }
       return updated;
     });
 
@@ -368,8 +228,6 @@ export default function TarpsScreen() {
       savePreviewedPosts(updated);
       return updated;
     });
-
-    console.log("Posts marked as previewed:", postIds);
   };
 
   // Function to load reported posts from storage
@@ -577,21 +435,37 @@ export default function TarpsScreen() {
 
   // Auto-hide hand animation after 10 seconds, but only in posts view
   useEffect(() => {
-    if (viewMode !== "posts") return;
+    if (viewMode !== "posts" || !showHandAnimation) return;
 
     const hideTimer = setTimeout(() => {
-      setShowHandAnimation(false);
+      void dismissHandAnimation();
     }, 10000); // Hide after 10 seconds
 
     return () => {
       clearTimeout(hideTimer);
     };
-  }, [viewMode]);
+  }, [viewMode, showHandAnimation]);
 
-  // Show hand animation when switching to posts view
+  // Load hand animation seen state on mount
   useEffect(() => {
-    if (viewMode === "posts") {
-      setShowHandAnimation(true);
+    AsyncStorage.getItem('tarps.hasSeenHandAnimation').then(seen => {
+      if (seen === 'true') {
+        hasSeenHintRef.current = true;
+      }
+    });
+  }, []);
+
+  // Show hand animation when switching to posts view, if not seen
+  useEffect(() => {
+    if (viewMode === "posts" && !hasSeenHintRef.current) {
+      // Double check storage to avoid race conditions
+      AsyncStorage.getItem('tarps.hasSeenHandAnimation').then(seen => {
+        if (seen !== 'true') {
+          setShowHandAnimation(true);
+        } else {
+          hasSeenHintRef.current = true;
+        }
+      });
     }
   }, [viewMode]);
 
@@ -1786,7 +1660,7 @@ export default function TarpsScreen() {
               // Actually, let's just update the ref's knowledge or state.
               // Updating state might cause re-renders. Let's try to be careful.
               // For now, let's update state so handleZoomOut works.
-              setMapboxCamera(prev => ({
+              setMapboxCamera((prev: any) => ({
                 ...prev,
                 zoomLevel: zoomLevel,
                 centerCoordinate: center,
@@ -1877,7 +1751,7 @@ export default function TarpsScreen() {
                           markPostsAsViewed(validIds);
                         }
 
-                        nav.push(`/post/${primaryItem.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(primaryItem))}&images=${encodeURIComponent(JSON.stringify(combinedSet))}&allItems=${encodeURIComponent(JSON.stringify(allItems))}&idx=0&serverPosts=${encodeURIComponent(JSON.stringify(serverPosts))}`);
+                        router.push(`/post/${primaryItem.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(primaryItem))}&images=${encodeURIComponent(JSON.stringify(combinedSet))}&allItems=${encodeURIComponent(JSON.stringify(allItems))}&idx=0&serverPosts=${encodeURIComponent(JSON.stringify(serverPosts))}`);
                       } catch (error) {
                         console.error("Failed to navigate to stacked posts:", error);
                         toast.error("Failed to open posts");
@@ -1968,7 +1842,7 @@ export default function TarpsScreen() {
                       if (item.id) {
                         markPostsAsViewed([item.id]);
                       }
-                      nav.push(`/post/${item.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(item))}&images=${encodeURIComponent(JSON.stringify(set))}&idx=0&serverPosts=${encodeURIComponent(JSON.stringify(serverPosts))}`);
+                      router.push(`/post/${item.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(item))}&images=${encodeURIComponent(JSON.stringify(set))}&idx=0&serverPosts=${encodeURIComponent(JSON.stringify(serverPosts))}`);
                     } catch (error) {
                       console.error("Failed to navigate to post:", error);
                       toast.error("Failed to open post");
@@ -2149,7 +2023,7 @@ export default function TarpsScreen() {
                           }
 
                           console.log("Combined set created:", { totalImages: allUrls.length, totalItems: allItems.length });
-                          nav.push(`/post/${primaryItem.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(primaryItem))}&images=${encodeURIComponent(JSON.stringify(combinedSet))}&allItems=${encodeURIComponent(JSON.stringify(allItems))}&idx=0&serverPosts=${encodeURIComponent(JSON.stringify(serverPosts))}`);
+                          router.push(`/post/${primaryItem.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(primaryItem))}&images=${encodeURIComponent(JSON.stringify(combinedSet))}&allItems=${encodeURIComponent(JSON.stringify(allItems))}&idx=0&serverPosts=${encodeURIComponent(JSON.stringify(serverPosts))}`);
                         } catch (error) {
                           console.error("Failed to navigate to stacked posts:", error);
                           toast.error("Failed to open posts");
@@ -2229,7 +2103,7 @@ export default function TarpsScreen() {
                         if (item.id) {
                           markPostsAsViewed([item.id]);
                         }
-                        nav.push(`/post/${item.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(item))}&images=${encodeURIComponent(JSON.stringify(set))}&idx=0&serverPosts=${encodeURIComponent(JSON.stringify(serverPosts))}`);
+                        router.push(`/post/${item.id || 'unknown'}?item=${encodeURIComponent(JSON.stringify(item))}&images=${encodeURIComponent(JSON.stringify(set))}&idx=0&serverPosts=${encodeURIComponent(JSON.stringify(serverPosts))}`);
                       } catch (error) {
                         console.error("Failed to navigate to post:", error);
                         toast.error("Failed to open post");
@@ -2398,8 +2272,8 @@ export default function TarpsScreen() {
             style={[
               styles.handAnimationCard,
               {
-                opacity: handAnimationVisible ? 1 : 0.3,
-                transform: [{ scale: handAnimationVisible ? 1 : 0.95 }]
+                opacity: isHandAnimationVisible ? 1 : 0.3,
+                transform: [{ scale: isHandAnimationVisible ? 1 : 0.95 }]
               },
               isDark ? styles.handAnimationDark : styles.handAnimationLight
             ]}
@@ -2412,7 +2286,7 @@ export default function TarpsScreen() {
             </View>
             <Pressable
               style={styles.handAnimationClose}
-              onPress={() => setShowHandAnimation(false)}
+              onPress={() => void dismissHandAnimation()}
             >
               <Ionicons name="close" size={16} color={isDark ? "#FFFFFF" : "#0a0a0a"} />
             </Pressable>

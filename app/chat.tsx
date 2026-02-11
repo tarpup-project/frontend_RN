@@ -1,7 +1,9 @@
 import { api } from "@/api/client";
+import { CampusGroup } from "@/components/chatComponents/CampusGroup";
+import { CampusRequest } from "@/components/chatComponents/CampusRequest";
 import {
-    ChatSettingsModal,
-    ConfirmationModal,
+  ChatSettingsModal,
+  ConfirmationModal,
 } from "@/components/chatComponents/chatSettingsModal";
 import { ImageUploadModal } from "@/components/ImageUploadModal";
 import { Skeleton } from "@/components/Skeleton";
@@ -17,17 +19,19 @@ import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View
 } from "react-native";
+import Hyperlink from "react-native-hyperlink";
 
 const Chat = () => {
   const { isDark } = useTheme();
@@ -47,6 +51,15 @@ const Chat = () => {
   } | null>(null);
   const [currentMessageId, setCurrentMessageId] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsSubmitting, setDetailsSubmitting] = useState(false);
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+  const [requestDetails, setRequestDetails] = useState<{
+    id: string;
+    group?: { id: string } | null;
+    currState?: "pending" | "rejected" | "accepted";
+  } | null | undefined>(undefined);
 
   const {
     messages,
@@ -62,7 +75,8 @@ const Chat = () => {
   const { handleMatchAction: processMatchAction, isLoading: isMatchLoading } =
     useMatchActions();
 
-  const [matchActionStates, setMatchActionStates] = useState<Record<string, "accepted" | "declined">>({});
+  type MatchState = "accepted" | "declined" | { status: "accepted" | "declined"; groupId?: string };
+  const [matchActionStates, setMatchActionStates] = useState<Record<string, MatchState>>({});
   const MATCH_STATE_KEY = "tarpai_match_actions";
 
   useEffect(() => {
@@ -75,14 +89,14 @@ const Chat = () => {
             setMatchActionStates(parsed);
           }
         }
-      } catch {}
+      } catch { }
     })();
   }, []);
 
-  const persistMatchStates = async (states: Record<string, "accepted" | "declined">) => {
+  const persistMatchStates = async (states: Record<string, MatchState>) => {
     try {
       await SecureStore.setItemAsync(MATCH_STATE_KEY, JSON.stringify(states));
-    } catch {}
+    } catch { }
   };
   const quickStartOptions = [
     { icon: "car-outline", text: "I need a ride to downtown" },
@@ -218,17 +232,24 @@ const Chat = () => {
 
   const onMatchAction = async (
     matchId: string,
-    action: "private" | "public" | "decline"
+    action: "private" | "public" | "decline" | "add"
   ) => {
-    const status = action === "decline" ? "declined" : "accepted";
-    setMatchActionStates((prev) => {
-      const updated: Record<string, "accepted" | "declined"> = { ...prev, [matchId]: status };
-      void persistMatchStates(updated);
-      return updated;
-    });
     const result = await processMatchAction(matchId, action);
 
     if (result.status === "ok") {
+      const status = action === "decline" ? "declined" : "accepted";
+
+      setMatchActionStates((prev) => {
+        const newState: MatchState =
+          status === "accepted" && result.groupId
+            ? { status: "accepted", groupId: result.groupId }
+            : status;
+
+        const updated = { ...prev, [matchId]: newState };
+        void persistMatchStates(updated);
+        return updated;
+      });
+
       if (action !== "decline" && result.groupId) {
         router.push(`/group-chat/${result.groupId}`);
       }
@@ -294,9 +315,56 @@ const Chat = () => {
     }
   };
 
+  const fetchRequestDetails = async (id: string) => {
+    try {
+      setDetailsLoading(true);
+      const response = await api.get(UrlConstants.fetchRequestDetails(id));
+      setRequestDetails(response.data?.data ?? null);
+    } catch {
+      setRequestDetails(null);
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
+
+  const submitRequest = async () => {
+    if (!selectedRequestId) return;
+    if (requestDetails === undefined) return;
+    try {
+      setDetailsSubmitting(true);
+      await api.post(UrlConstants.submitRequest, { requestID: selectedRequestId });
+      await fetchRequestDetails(selectedRequestId);
+    } catch {
+    } finally {
+      setDetailsSubmitting(false);
+    }
+  };
+
   const renderMatchButtons = (matchId: string) => {
-    const state = matchActionStates[matchId];
-    if (state === "accepted") {
+    const rawState = matchActionStates[matchId];
+    // Normalize state to object or string
+    const status = typeof rawState === 'string' ? rawState : rawState?.status;
+    const groupId = typeof rawState === 'object' ? rawState?.groupId : undefined;
+
+    if (status === "accepted") {
+      if (groupId) {
+        return (
+          <View style={styles.matchButtonsContainer}>
+            <Pressable
+              style={[
+                styles.matchButton,
+                dynamicStyles.matchButton,
+                { backgroundColor: "#10B981", width: '100%' },
+              ]}
+              onPress={() => router.push(`/group-chat/${groupId}`)}
+            >
+              <Text style={[styles.matchButtonText, { color: "#FFFFFF" }]}>
+                Open Chat
+              </Text>
+            </Pressable>
+          </View>
+        );
+      }
       return (
         <View style={styles.matchButtonsContainer}>
           <View style={[styles.statusChip, { backgroundColor: "#10B981" }]}>
@@ -307,7 +375,7 @@ const Chat = () => {
         </View>
       );
     }
-    if (state === "declined") {
+    if (status === "declined") {
       return (
         <View style={styles.matchButtonsContainer}>
           <View style={[styles.statusChip, { backgroundColor: "#EF4444" }]}>
@@ -366,11 +434,57 @@ const Chat = () => {
   };
 
   const parseMessageForActions = (content: string) => {
+    // Legacy parsing
     const matchButtonPattern = /<MatchButton[^>]*id="([^"]*)"[^>]*\/>/;
     const match = content.match(matchButtonPattern);
     const userProfileTag = content.match(/<UserProfile[^>]*\/>/);
     const requestDetailsTag = content.match(/<RequestDetails[^>]*\/>/);
 
+    // New parsing for CampusRequest and CampusGroup
+    const campusRequestMatch = content.match(/<CampusRequest[^>]*\/>/);
+    const campusGroupMatch = content.match(/<CampusGroup[^>]*\/>/);
+
+    const extractAttributes = (tagString: string) => {
+      const attrs: any = {};
+      const regex = /(\w+)="([^"]*)"/g;
+      let m;
+      while ((m = regex.exec(tagString)) !== null) {
+        attrs[m[1]] = m[2];
+      }
+      return attrs;
+    };
+
+    if (campusRequestMatch) {
+      const attrs = extractAttributes(campusRequestMatch[0]);
+      const index = campusRequestMatch.index ?? 0;
+      const textBefore = content.substring(0, index).trim();
+      const textAfter = content.substring(index + campusRequestMatch[0].length).trim();
+
+      return {
+        type: 'CampusRequest',
+        props: attrs,
+        textBefore,
+        textAfter,
+        textContent: textBefore + " " + textAfter // Fallback
+      };
+    }
+
+    if (campusGroupMatch) {
+      const attrs = extractAttributes(campusGroupMatch[0]);
+      const index = campusGroupMatch.index ?? 0;
+      const textBefore = content.substring(0, index).trim();
+      const textAfter = content.substring(index + campusGroupMatch[0].length).trim();
+
+      return {
+        type: 'CampusGroup',
+        props: attrs,
+        textBefore,
+        textAfter,
+        textContent: textBefore + " " + textAfter // Fallback
+      };
+    }
+
+    // Fallback to existing logic for legacy support
     const extractAttr = (src: string | null, name: string) => {
       if (!src) return undefined;
       const m = src.match(new RegExp(`${name}="([^"]*)"`, "i"));
@@ -380,6 +494,9 @@ const Chat = () => {
     const fname = extractAttr(userProfileTag ? userProfileTag[0] : null, "fname");
     const campusName = extractAttr(userProfileTag ? userProfileTag[0] : null, "campusName");
     const description = extractAttr(requestDetailsTag ? requestDetailsTag[0] : null, "description");
+    const groupName = extractAttr(requestDetailsTag ? requestDetailsTag[0] : null, "groupName");
+    const matchPercent = extractAttr(requestDetailsTag ? requestDetailsTag[0] : null, "matchPercent");
+    const buttonText = extractAttr(requestDetailsTag ? requestDetailsTag[0] : null, "buttonText");
 
     const normalizedDesc = (() => {
       if (!description) return "";
@@ -408,11 +525,22 @@ const Chat = () => {
         hasMatchButtons: true,
         matchId,
         textContent: descriptiveText,
+        groupName,
+        matchPercent,
+        buttonText: buttonText || "View Details",
+        hasInterestBlock: !!(fname || campusName || description) && !groupName,
+        fname,
+        campusName,
+        description: normalizedDesc,
       };
     }
     return {
       hasMatchButtons: false,
       textContent: descriptiveText,
+      hasInterestBlock: !!(fname || campusName || description) && !groupName,
+      fname,
+      campusName,
+      description: normalizedDesc,
     };
   };
 
@@ -445,20 +573,114 @@ const Chat = () => {
               : dynamicStyles.aiMessageContainer,
           ]}
         >
-          <Text
-            style={[
-              styles.messageText,
-              isUser ? dynamicStyles.userMessageText : dynamicStyles.text,
-            ]}
-          >
-            {messageData.textContent}
-          </Text>
+          {msg.messageType === "markdown" && !isUser ? (
+            <View>
+              {!!messageData.textBefore && (
+                <Hyperlink linkDefault>
+                  <Text style={[styles.messageText, dynamicStyles.text, { marginBottom: 4 }]}>
+                    {messageData.textBefore}
+                  </Text>
+                </Hyperlink>
+              )}
 
-          {messageData.hasMatchButtons &&
+              {messageData.type === 'CampusRequest' && (
+                <CampusRequest
+                  id={messageData.props.id}
+                  score={messageData.props.score}
+                  title={messageData.props.title}
+                  description={messageData.props.description}
+                  startTime={messageData.props.startTime}
+                  userFname={messageData.props.userFname}
+                  userID={messageData.props.userID}
+                />
+              )}
+              {messageData.type === 'CampusGroup' && (
+                <CampusGroup
+                  id={messageData.props.id}
+                  score={messageData.props.score}
+                  title={messageData.props.title}
+                  description={messageData.props.description}
+                  userFname={messageData.props.userFname}
+                  userID={messageData.props.userID}
+                />
+              )}
+
+              {!!messageData.textAfter && (
+                <Hyperlink linkDefault>
+                  <Text style={[styles.messageText, dynamicStyles.text, { marginTop: 4 }]}>
+                    {messageData.textAfter}
+                  </Text>
+                </Hyperlink>
+              )}
+
+              {!messageData.type &&
+                // Don't render text here if we are rendering it inside the Match Proposal Card
+                !(messageData.hasMatchButtons && messageData.matchId && !messageData.groupName) && (
+                  <Hyperlink linkDefault>
+                    <Text style={[styles.messageText, dynamicStyles.text]}>
+                      {messageData.textContent}
+                    </Text>
+                  </Hyperlink>
+                )}
+            </View>
+          ) : (
+            <Text
+              style={[
+                styles.messageText,
+                isUser ? dynamicStyles.userMessageText : dynamicStyles.text,
+              ]}
+            >
+              {messageData.textContent}
+            </Text>
+          )}
+
+          {!isUser &&
+            !messageData.type &&
+            messageData.hasMatchButtons &&
             messageData.matchId &&
-            renderMatchButtons(messageData.matchId)}
+            !messageData.groupName && (
+              <View style={[styles.requestCard, dynamicStyles.aiMessageContainer]}>
+                <Text style={[styles.messageText, dynamicStyles.text, { marginBottom: 8 }]}>
+                  {messageData.textContent}
+                </Text>
+                {renderMatchButtons(messageData.matchId)}
+              </View>
+            )}
 
+          {!isUser &&
+            !messageData.type && // Only show legacy if new type is not present
+            messageData.hasMatchButtons &&
+            messageData.matchId &&
+            messageData.groupName && (
+              <View style={[styles.requestCard, dynamicStyles.aiMessageContainer]}>
+                <View style={styles.requestCardHeader}>
+                  <Text style={[styles.requestCardTitle, dynamicStyles.text]}>
+                    {messageData.groupName}
+                  </Text>
+                  {!!messageData.matchPercent && (
+                    <View style={styles.matchPercentBadge}>
+                      <Text style={styles.matchPercentText}>
+                        {String(messageData.matchPercent).replace('%', '')}% Match
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <Pressable
+                  style={styles.requestCardButton}
+                  onPress={() => {
+                    setSelectedRequestId(messageData.matchId!);
+                    setShowDetailsModal(true);
+                    void fetchRequestDetails(messageData.matchId!);
+                  }}
+                >
+                  <Text style={styles.requestCardButtonText}>
+                    {messageData.buttonText}
+                  </Text>
+                </Pressable>
+              </View>
+            )}
           {/* Image display */}
+
           {msg.imageUrl && (
             <View style={styles.imageContainer}>
               <Image
@@ -530,7 +752,7 @@ const Chat = () => {
     <KeyboardAvoidingView
       style={[styles.container, dynamicStyles.container]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 50 : 0}
     >
       {/* Header */}
       <View style={[styles.header, dynamicStyles.header]}>
@@ -613,7 +835,7 @@ const Chat = () => {
         ) : (
           <>
             {messages.length === 0 ||
-            (messages.length === 1 && messages[0].id === "-1") ? (
+              (messages.length === 1 && messages[0].id === "-1") ? (
               <View style={styles.quickStartSection}>
                 <Text style={[styles.sectionTitle, dynamicStyles.text]}>
                   Quick Start
@@ -762,6 +984,55 @@ const Chat = () => {
         onUpload={handleImageUpload}
         isUploading={uploadingImage}
       />
+      <Modal visible={showDetailsModal} transparent animationType="fade" onRequestClose={() => setShowDetailsModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.detailsModalCard, dynamicStyles.container]}>
+            {detailsLoading ? (
+              <View style={styles.modalSection}>
+                <ActivityIndicator size="small" color={dynamicStyles.text.color} />
+                <Text style={[styles.loadingText, dynamicStyles.subtitle]}>Loading...</Text>
+              </View>
+            ) : requestDetails === null ? (
+              <Pressable
+                style={[styles.primaryActionButton, { backgroundColor: "#10B981" }]}
+                onPress={submitRequest}
+                disabled={detailsSubmitting}
+              >
+                <Text style={styles.primaryActionText}>
+                  {detailsSubmitting ? "Submitting..." : "Match Request"}
+                </Text>
+              </Pressable>
+            ) : requestDetails?.currState === "pending" ? (
+              <View style={[styles.secondaryActionButton, { borderColor: "#F59E0B" }]}>
+                <Text style={[styles.secondaryActionText, { color: "#F59E0B" }]}>
+                  Awaiting Approval
+                </Text>
+              </View>
+            ) : requestDetails?.currState === "rejected" ? (
+              <View style={[styles.secondaryActionButton, { borderColor: "#EF4444" }]}>
+                <Text style={[styles.secondaryActionText, { color: "#EF4444" }]}>
+                  Declined
+                </Text>
+              </View>
+            ) : (
+              <Pressable
+                style={[styles.primaryActionButton, { backgroundColor: "#10B981" }]}
+                onPress={() => {
+                  setShowDetailsModal(false);
+                  if (requestDetails?.group?.id) {
+                    router.push(`/group-chat/${requestDetails.group.id}`);
+                  }
+                }}
+              >
+                <Text style={styles.primaryActionText}>Open Chat</Text>
+              </Pressable>
+            )}
+            <Pressable style={styles.modalCloseButton} onPress={() => setShowDetailsModal(false)}>
+              <Ionicons name="close" size={20} color={dynamicStyles.text.color} />
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 };
@@ -979,6 +1250,117 @@ const styles = StyleSheet.create({
   typingText: {
     fontSize: 12,
     fontStyle: "italic",
+  },
+  interestCard: {
+    marginTop: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 12,
+    gap: 10,
+  },
+  interestTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  interestSubtitle: {
+    fontSize: 12,
+  },
+  interestPill: {
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    alignSelf: "flex-start",
+  },
+  interestPillText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  interestQuestion: {
+    fontSize: 12,
+    marginTop: 4,
+  },
+  requestCard: {
+    marginTop: 12,
+    marginBottom: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 12,
+    gap: 12,
+  },
+  requestCardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  requestCardTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  matchPercentBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: "#E5E7EB",
+  },
+  matchPercentText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#374151",
+  },
+  requestCardButton: {
+    backgroundColor: "#10B981",
+    borderRadius: 12,
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  requestCardButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 16,
+  },
+  detailsModalCard: {
+    width: "100%",
+    maxWidth: 420,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+  },
+  modalSection: {
+    gap: 10,
+    alignItems: "center",
+  },
+  primaryActionButton: {
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  primaryActionText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  secondaryActionButton: {
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  secondaryActionText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  modalCloseButton: {
+    position: "absolute",
+    right: 8,
+    top: 8,
+    padding: 6,
   },
   inputSection: {
     padding: 16,

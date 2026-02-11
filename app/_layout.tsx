@@ -176,7 +176,18 @@ function RootLayoutContent() {
             backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
           },
         }}
-      />
+      >
+        <Stack.Screen
+          name="chat"
+          options={{
+            presentation: "modal",
+            headerShown: false,
+            contentStyle: {
+              backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
+            },
+          }}
+        />
+      </Stack>
 
       <Toaster
         theme={isDark ? "dark" : "light"}

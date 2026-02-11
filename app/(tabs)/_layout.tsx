@@ -13,6 +13,9 @@ import { Tabs } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Platform } from "react-native";
 
+import { useUnseenTarps } from "@/hooks/useUnseenTarps";
+import { useTarpsStore } from "@/state/tarpsStore";
+
 export default function TabLayout() {
   const { isDark } = useTheme();
   const { isAuthenticated, user } = useAuthStore();
@@ -20,11 +23,16 @@ export default function TabLayout() {
   const queryClient = useQueryClient();
   const { setNotifications } = useNotificationStore();
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const { 
-    groupNotifications, 
-    personalNotifications, 
-    refetchNotifications 
+  const {
+    groupNotifications,
+    personalNotifications,
+    refetchNotifications
   } = useNotifications();
+
+  // Use global unseen check
+  useUnseenTarps();
+  const { unseenCount: unseenTarpsCount } = useTarpsStore();
+
   const { uiGroups } = useUnifiedGroups();
   const unreadTotal = useMemo(() => {
     return (uiGroups || []).reduce((sum: number, g: any) => sum + (Number(g.unreadCount || 0)), 0);
@@ -35,18 +43,18 @@ export default function TabLayout() {
     if (isAuthenticated) {
       // Use selected university or fallback to user's home university
       const campusId = selectedUniversity?.id || user?.universityID;
-      
+
       console.log('🚀 Initial fetch of groups/DMs to update unread counts for campus:', campusId || 'all');
-      
+
       fetchGroups(campusId)
         .then((groups) => {
           // Update the cache immediately for the specific campus ID we used
           queryClient.setQueryData(groupsKeys.list(campusId), groups);
-          
+
           // Calculate and update global unread count
           const totalUnread = groups.reduce((sum, group) => sum + (group.unread || 0), 0);
           console.log('📊 Initial unread count from fetch:', totalUnread);
-          
+
           if (totalUnread > 0) {
             setNotifications({ groupNotifications: totalUnread });
           }
@@ -100,7 +108,7 @@ export default function TabLayout() {
           name="index"
           options={{
             title: "Spot",
-            tabBarIcon: ({ color, focused }) => (          
+            tabBarIcon: ({ color, focused }) => (
               <Ionicons name="home" size={24} color={color} />
             )
           }}
@@ -122,73 +130,72 @@ export default function TabLayout() {
             )
           }}
         />
-          <Tabs.Screen
-        name="tarps"
-        options={{
-          title: "Tarps",
-          tabBarIcon: ({ color, focused }) => (
-            <ProtectedTabIcon
-              name={focused ? "location" : "location-outline"}
-              size={28}
-              color={color}
-              focused={focused}
-              isProtected={false}
-              notificationCount={0}
-            />
-          )
-        }}
-      />
+        <Tabs.Screen
+          name="groups"
+          options={{
+            title: "Chats",
+            tabBarIcon: ({ color, focused }) => (
+              <ProtectedTabIcon
+                name={focused ? "chatbubble" : "chatbubble-outline"}
+                size={24}
+                color={isAuthenticated ? color : "#999999"}
+                focused={focused}
+                isProtected={!isAuthenticated}
+                notificationCount={isAuthenticated ? unreadTotal : 0}
+              />
+            )
+          }}
+          listeners={{
+            tabPress: (e) => {
+              if (!isAuthenticated) {
+                e.preventDefault();
+                setShowAuthModal(true);
+              }
+            }
+          }}
+        />
+        <Tabs.Screen
+          name="tarps"
+          options={{
+            title: "Tarps",
+            tabBarIcon: ({ color, focused }) => (
+              <ProtectedTabIcon
+                name={focused ? "location" : "location-outline"}
+                size={28}
+                color={color}
+                focused={focused}
+                isProtected={false}
+                notificationCount={unseenTarpsCount > 0 ? 1 : 0}
+                badgeType="dot"
+              />
+            )
+          }}
+        />
 
-
-<Tabs.Screen
-  name="groups"
-  options={{
-    title: "Chats",
-    tabBarIcon: ({ color, focused }) => (
-      <ProtectedTabIcon
-        name={focused ? "chatbubble" : "chatbubble-outline"}
-        size={24}
-        color={isAuthenticated ? color : "#999999"}
-        focused={focused}
-        isProtected={!isAuthenticated}
-        notificationCount={isAuthenticated ? unreadTotal : 0}
-      />
-    )
-  }}
-  listeners={{
-    tabPress: (e) => {
-      if (!isAuthenticated) {
-        e.preventDefault();
-        setShowAuthModal(true);
-      }
-    }
-  }}
-/>
-
-<Tabs.Screen
-  name="profile"
-  options={{
-    title: "Profile",
-    tabBarIcon: ({ color, focused }) => (
-      <ProtectedTabIcon
-        name={focused ? "person" : "person-outline"}
-        size={24}
-        color={isAuthenticated ? color : "#999999"}
-        focused={focused}
-        isProtected={!isAuthenticated}
-        notificationCount={0}
-      />
-    )
-  }}
-  listeners={{
-    tabPress: (e) => {
-      if (!isAuthenticated) {
-        e.preventDefault();
-        setShowAuthModal(true);
-      }
-    }
-  }}
-/>
+        <Tabs.Screen
+          name="profile"
+          options={{
+            title: "Profile",
+            tabBarIcon: ({ color, focused }) => (
+              <ProtectedTabIcon
+                name={focused ? "person" : "person-outline"}
+                size={24}
+                color={isAuthenticated ? color : "#999999"}
+                focused={focused}
+                isProtected={!isAuthenticated}
+                notificationCount={0}
+              />
+            )
+          }}
+          listeners={{
+            tabPress: (e) => {
+              if (!isAuthenticated) {
+                e.preventDefault();
+                setShowAuthModal(true);
+              }
+            }
+          }}
+        />
 
         <Tabs.Screen name="edit-profile" options={{ href: null }} />
         <Tabs.Screen name="account-settings" options={{ href: null }} />

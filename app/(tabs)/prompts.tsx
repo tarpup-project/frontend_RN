@@ -1,4 +1,5 @@
 import AuthModal from "@/components/AuthModal";
+import FloatingChatButton from "@/components/FloatingChatButton";
 import Header from "@/components/Header";
 import { Loader } from "@/components/Loader";
 import PreviewModeBanner from "@/components/PreviewModeBanner";
@@ -141,7 +142,7 @@ const Prompts = () => {
     setIsFiltering(true);
     setFilterStartTime(Date.now());
     setFilteringCategoryIndex(index);
-    
+
     // Update the selected category
     setSelectedCategoryIndex(index);
     setSelectedCategoryId(categoryId);
@@ -164,7 +165,7 @@ const Prompts = () => {
         await joinPublicGroup(publicGroupId);
         // Silently reload groups list in background
         await queryClient.invalidateQueries({ queryKey: groupsKeys.list(selectedUniversity?.id) });
-        
+
         toast.success("Wait while your group is created");
         router.push("/(tabs)/groups");
       } else {
@@ -191,7 +192,7 @@ const Prompts = () => {
     if (!isLoadingPrompts && isFiltering && filterStartTime) {
       const elapsedTime = Date.now() - filterStartTime;
       const minDisplayTime = 9000; // Minimum 10 seconds to show loading
-      
+
       if (elapsedTime >= minDisplayTime) {
         // Enough time has passed, stop loading immediately
         setIsFiltering(false);
@@ -332,55 +333,55 @@ const Prompts = () => {
                 </Pressable>
 
                 {categories.map((category, index) => {
-  const iconName = getIconComponent(category.icon);
-  return (
-    <Pressable
-      key={category.id}
-      style={[
-        styles.categoryChip,
-        dynamicStyles.categoryChip,
-        selectedCategoryIndex === index + 1 && [
-          dynamicStyles.categoryChipActive,
-        ],
-      ]}
-      onPress={() =>
-        handleCategorySelect(index + 1, category.id)
-      }
-    >
-      {filteringCategoryIndex === index + 1 ? (
-        <ActivityIndicator
-          size="small"
-          color={
-            selectedCategoryIndex === index + 1
-              ? dynamicStyles.categoryChipTextActive.color
-              : dynamicStyles.categoryChipText.color
-          }
-        />
-      ) : (
-        <Ionicons
-          name={iconName as any}
-          size={16}
-          color={
-            selectedCategoryIndex === index + 1
-              ? dynamicStyles.categoryChipTextActive.color
-              : dynamicStyles.categoryChipText.color
-          }
-        />
-      )}
-      <Text
-        style={[
-          styles.categoryText,
-          dynamicStyles.categoryChipText,
-          selectedCategoryIndex === index + 1 && [
-            dynamicStyles.categoryChipTextActive,
-          ],
-        ]}
-      >
-        {category.name}
-      </Text>
-    </Pressable>
-  );
-})}
+                  const iconName = getIconComponent(category.icon);
+                  return (
+                    <Pressable
+                      key={category.id}
+                      style={[
+                        styles.categoryChip,
+                        dynamicStyles.categoryChip,
+                        selectedCategoryIndex === index + 1 && [
+                          dynamicStyles.categoryChipActive,
+                        ],
+                      ]}
+                      onPress={() =>
+                        handleCategorySelect(index + 1, category.id)
+                      }
+                    >
+                      {filteringCategoryIndex === index + 1 ? (
+                        <ActivityIndicator
+                          size="small"
+                          color={
+                            selectedCategoryIndex === index + 1
+                              ? dynamicStyles.categoryChipTextActive.color
+                              : dynamicStyles.categoryChipText.color
+                          }
+                        />
+                      ) : (
+                        <Ionicons
+                          name={iconName as any}
+                          size={16}
+                          color={
+                            selectedCategoryIndex === index + 1
+                              ? dynamicStyles.categoryChipTextActive.color
+                              : dynamicStyles.categoryChipText.color
+                          }
+                        />
+                      )}
+                      <Text
+                        style={[
+                          styles.categoryText,
+                          dynamicStyles.categoryChipText,
+                          selectedCategoryIndex === index + 1 && [
+                            dynamicStyles.categoryChipTextActive,
+                          ],
+                        ]}
+                      >
+                        {category.name}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
               </ScrollView>
             </View>
           )}
@@ -402,7 +403,7 @@ const Prompts = () => {
               <View style={styles.emptyCharacter}>
                 <Text style={styles.emptyCharacterEmoji}>👋</Text>
               </View>
-              
+
               {/* Message box */}
               <View style={styles.emptyMessageBox}>
                 <Text style={[
@@ -425,29 +426,29 @@ const Prompts = () => {
               >
                 <View style={styles.cardHeader}>
                   <View style={styles.categoryBadgesContainer}>
-                  {prompt.category.slice(0, 2).map((cat) => {
-  const iconName = getIconComponent(cat.icon);
-  return (
-    <View
-      key={cat.id}
-      style={[
-        styles.categoryBadge,
-        { backgroundColor: cat.bgColorHex },
-      ]}
-    >
-      <Ionicons
-        name={iconName as any}
-        size={12}
-        color={cat.colorHex}
-      />
-      <Text
-        style={[styles.badgeText, { color: cat.colorHex }]}
-      >
-        {cat.name}
-      </Text>
-    </View>
-  );
-})}
+                    {prompt.category.slice(0, 2).map((cat) => {
+                      const iconName = getIconComponent(cat.icon);
+                      return (
+                        <View
+                          key={cat.id}
+                          style={[
+                            styles.categoryBadge,
+                            { backgroundColor: cat.bgColorHex },
+                          ]}
+                        >
+                          <Ionicons
+                            name={iconName as any}
+                            size={12}
+                            color={cat.colorHex}
+                          />
+                          <Text
+                            style={[styles.badgeText, { color: cat.colorHex }]}
+                          >
+                            {cat.name}
+                          </Text>
+                        </View>
+                      );
+                    })}
                   </View>
                   <View style={styles.headerRight}>
                     <View style={styles.timeRow}>
@@ -471,7 +472,7 @@ const Prompts = () => {
                           styles.requestButton,
                           dynamicStyles.requestButton,
                           loadingStates[prompt.publicGroupID || prompt.id] &&
-                            styles.requestButtonDisabled,
+                          styles.requestButtonDisabled,
                         ]}
                         onPress={() =>
                           handleRequestClick(prompt.id, prompt.publicGroupID)
@@ -532,10 +533,10 @@ const Prompts = () => {
                   ]}
                   onPress={() => setShowReportModal(prompt.id)}
                 >
-                  <Ionicons 
-                    name="information-circle-outline" 
-                    size={18} 
-                    color={isDark ? "#fa0909ff" : "#ef0f0fff"} 
+                  <Ionicons
+                    name="information-circle-outline"
+                    size={18}
+                    color={isDark ? "#fa0909ff" : "#ef0f0fff"}
                   />
                 </Pressable>
               </View>
@@ -552,32 +553,32 @@ const Prompts = () => {
         transparent={true}
         animationType="fade"
         onRequestClose={() => setShowFullImage(null)}
->
-  <Pressable
-    style={styles.imageModalOverlay}
-    onPress={() => setShowFullImage(null)}
-  >
-    <Pressable
-      style={styles.closeButton}
-      onPress={() => setShowFullImage(null)}
-    >
-      <Ionicons name="close" size={28} color="#FFFFFF" />
-    </Pressable>
-
-    {showFullImage && (
-      <Pressable
-        onPress={(e) => e.stopPropagation()}
-        style={styles.imageModalContent}
       >
-        <Image
-          source={{ uri: showFullImage }}
-          style={styles.fullImage}
-          resizeMode="contain"
-        />
-      </Pressable>
-    )}
-  </Pressable>
-</Modal>
+        <Pressable
+          style={styles.imageModalOverlay}
+          onPress={() => setShowFullImage(null)}
+        >
+          <Pressable
+            style={styles.closeButton}
+            onPress={() => setShowFullImage(null)}
+          >
+            <Ionicons name="close" size={28} color="#FFFFFF" />
+          </Pressable>
+
+          {showFullImage && (
+            <Pressable
+              onPress={(e) => e.stopPropagation()}
+              style={styles.imageModalContent}
+            >
+              <Image
+                source={{ uri: showFullImage }}
+                style={styles.fullImage}
+                resizeMode="contain"
+              />
+            </Pressable>
+          )}
+        </Pressable>
+      </Modal>
 
       {/* Report Modal */}
       <Modal
@@ -614,16 +615,16 @@ const Prompts = () => {
                 }
               }}
             >
-              <Ionicons 
-                name="flag-outline" 
-                size={20} 
-                color="#FF3B30" 
+              <Ionicons
+                name="flag-outline"
+                size={20}
+                color="#FF3B30"
               />
               <Text style={[styles.reportOptionText, { color: "#FF3B30" }]}>
                 Report
               </Text>
             </Pressable>
-            
+
             <Pressable
               style={styles.reportOption}
               onPress={async () => {
@@ -638,10 +639,10 @@ const Prompts = () => {
                 }
               }}
             >
-              <Ionicons 
-                name="ban-outline" 
-                size={20} 
-                color="#FF3B30" 
+              <Ionicons
+                name="ban-outline"
+                size={20}
+                color="#FF3B30"
               />
               <Text style={[styles.reportOptionText, { color: "#FF3B30" }]}>
                 Block
@@ -650,6 +651,7 @@ const Prompts = () => {
           </Pressable>
         </Pressable>
       </Modal>
+      <FloatingChatButton />
     </View>
   );
 };
@@ -871,9 +873,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
-  reportOptionText: { 
-    fontSize: 16, 
-    fontWeight: "600" 
+  reportOptionText: {
+    fontSize: 16,
+    fontWeight: "600"
   },
   blockModalOverlay: {
     flex: 1,
