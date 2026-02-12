@@ -231,131 +231,133 @@ const Index = () => {
           </View>
         )}
 
-        <View
-          style={[
-            styles.filterSection,
-            styles.dashed,
-            dynamicStyles.filterContainer,
-          ]}
-        >
-          <View style={styles.filterHeader}>
-            <Ionicons
-              name="funnel-outline"
-              size={16}
-              color={dynamicStyles.text.color}
-            />
-            <Text style={[styles.filterTitle, dynamicStyles.text]}>
-              Filter Campus Needs
-            </Text>
-
-            <View style={styles.realTimeBadge}>
-              <Text style={[styles.realTimeText, dynamicStyles.text]}>
-                Real-Time
+        {isAuthenticated && (
+          <View
+            style={[
+              styles.filterSection,
+              styles.dashed,
+              dynamicStyles.filterContainer,
+            ]}
+          >
+            <View style={styles.filterHeader}>
+              <Ionicons
+                name="funnel-outline"
+                size={16}
+                color={dynamicStyles.text.color}
+              />
+              <Text style={[styles.filterTitle, dynamicStyles.text]}>
+                Filter Campus Needs
               </Text>
-            </View>
-          </View>
 
-          <View style={[styles.innerCard, dynamicStyles.innerCard]}>
-            <Text style={[styles.universityLabel, dynamicStyles.text]}>
-              University:
-            </Text>
-
-            <View style={{ position: "relative" }}>
-              <TouchableOpacity
-                style={[styles.campusSelector, dynamicStyles.innerCard]}
-                onPress={() => setIsDropdownOpen(!isDropdownOpen)}
-              >
-                <View style={styles.campusRow}>
-                  <Ionicons
-                    name="location-outline"
-                    size={16}
-                    color={dynamicStyles.text.color}
-                  />
-                  <View style={styles.dotIndicator} />
-                  <Text style={[styles.campusText, dynamicStyles.text]}>
-                    {isLoadingUniversities
-                      ? "Loading universities..."
-                      : selectedUniversity?.name || "Select your university"}
-                  </Text>
-                  <Ionicons
-                    name={isDropdownOpen ? "chevron-up" : "chevron-down"}
-                    size={16}
-                    color={dynamicStyles.text.color}
-                  />
-                </View>
-              </TouchableOpacity>
-
-              {isDropdownOpen && (
-                <ScrollView
-                  style={[styles.dropdown, dynamicStyles.innerCard]}
-                  showsVerticalScrollIndicator={true}
-                  nestedScrollEnabled
-                  keyboardShouldPersistTaps="handled"
-                >
-                  {isLoadingUniversities ? (
-                    <UniversityDropdownSkeleton />
-                  ) : (
-                    universities.map((uni) => (
-                      <TouchableOpacity
-                        key={uni.id}
-                        style={[
-                          styles.dropdownItem,
-                          {
-                            borderBottomColor:
-                              dynamicStyles.innerCard.borderColor,
-                          },
-                        ]}
-                        onPress={() => {
-                          setSelectedUniversity(uni);
-                          setIsDropdownOpen(false);
-                        }}
-                      >
-                        <View style={{ flex: 1 }}>
-                          <Text
-                            style={[styles.dropdownText, dynamicStyles.text]}
-                          >
-                            {uni.name}
-                          </Text>
-                        </View>
-                        {selectedUniversity?.id === uni.id && (
-                          <Ionicons
-                            name="checkmark"
-                            size={18}
-                            color={isDark ? "#FFFFFF" : "#0a0a0a"}
-                          />
-                        )}
-                      </TouchableOpacity>
-                    ))
-                  )}
-                </ScrollView>
-              )}
-            </View>
-
-            <View style={styles.resetSection}>
-              <TouchableOpacity
-                style={[
-                  styles.resetButton,
-                  { borderColor: dynamicStyles.innerCard.borderColor },
-                ]}
-                onPress={() => reset()}
-              >
-                <Ionicons
-                  name="refresh-outline"
-                  size={16}
-                  color={dynamicStyles.text.color}
-                />
-                <Text style={[styles.resetText, dynamicStyles.text]}>
-                  Reset
+              <View style={styles.realTimeBadge}>
+                <Text style={[styles.realTimeText, dynamicStyles.text]}>
+                  Real-Time
                 </Text>
-              </TouchableOpacity>
-              <Text style={[styles.resetSubtext, dynamicStyles.subtitle]}>
-                {selectedUniversity
-                  ? "Filtered to your university"
-                  : "No filter applied"}
+              </View>
+            </View>
+
+            <View style={[styles.innerCard, dynamicStyles.innerCard]}>
+              <Text style={[styles.universityLabel, dynamicStyles.text]}>
+                University:
               </Text>
+
+              <View style={{ position: "relative" }}>
+                <TouchableOpacity
+                  style={[styles.campusSelector, dynamicStyles.innerCard]}
+                  onPress={() => setIsDropdownOpen(!isDropdownOpen)}
+                >
+                  <View style={styles.campusRow}>
+                    <Ionicons
+                      name="location-outline"
+                      size={16}
+                      color={dynamicStyles.text.color}
+                    />
+                    <View style={styles.dotIndicator} />
+                    <Text style={[styles.campusText, dynamicStyles.text]}>
+                      {isLoadingUniversities
+                        ? "Loading universities..."
+                        : selectedUniversity?.name || "Select your university"}
+                    </Text>
+                    <Ionicons
+                      name={isDropdownOpen ? "chevron-up" : "chevron-down"}
+                      size={16}
+                      color={dynamicStyles.text.color}
+                    />
+                  </View>
+                </TouchableOpacity>
+
+                {isDropdownOpen && (
+                  <ScrollView
+                    style={[styles.dropdown, dynamicStyles.innerCard]}
+                    showsVerticalScrollIndicator={true}
+                    nestedScrollEnabled
+                    keyboardShouldPersistTaps="handled"
+                  >
+                    {isLoadingUniversities ? (
+                      <UniversityDropdownSkeleton />
+                    ) : (
+                      universities.map((uni) => (
+                        <TouchableOpacity
+                          key={uni.id}
+                          style={[
+                            styles.dropdownItem,
+                            {
+                              borderBottomColor:
+                                dynamicStyles.innerCard.borderColor,
+                            },
+                          ]}
+                          onPress={() => {
+                            setSelectedUniversity(uni);
+                            setIsDropdownOpen(false);
+                          }}
+                        >
+                          <View style={{ flex: 1 }}>
+                            <Text
+                              style={[styles.dropdownText, dynamicStyles.text]}
+                            >
+                              {uni.name}
+                            </Text>
+                          </View>
+                          {selectedUniversity?.id === uni.id && (
+                            <Ionicons
+                              name="checkmark"
+                              size={18}
+                              color={isDark ? "#FFFFFF" : "#0a0a0a"}
+                            />
+                          )}
+                        </TouchableOpacity>
+                      ))
+                    )}
+                  </ScrollView>
+                )}
+              </View>
+
+              <View style={styles.resetSection}>
+                <TouchableOpacity
+                  style={[
+                    styles.resetButton,
+                    { borderColor: dynamicStyles.innerCard.borderColor },
+                  ]}
+                  onPress={() => reset()}
+                >
+                  <Ionicons
+                    name="refresh-outline"
+                    size={16}
+                    color={dynamicStyles.text.color}
+                  />
+                  <Text style={[styles.resetText, dynamicStyles.text]}>
+                    Reset
+                  </Text>
+                </TouchableOpacity>
+                <Text style={[styles.resetSubtext, dynamicStyles.subtitle]}>
+                  {selectedUniversity
+                    ? "Filtered to your university"
+                    : "No filter applied"}
+                </Text>
+              </View>
             </View>
           </View>
-        </View>
+        )}
 
         <View style={styles.matchesSection}>
           <Text style={[styles.sectionTitle, dynamicStyles.text]}>

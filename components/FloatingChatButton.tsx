@@ -48,7 +48,7 @@ const FloatingChatButton = () => {
                 onPress={handlePress}
             >
                 <Ionicons
-                    name="chatbubble-ellipses-outline"
+                    name="add"
                     size={28}
                     color={dynamicStyles.icon.color}
                 />
