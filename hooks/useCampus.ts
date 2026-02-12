@@ -1,10 +1,10 @@
+import { UrlConstants } from '@/constants/apiUrls';
+import { useAuthStore } from '@/state/authStore';
+import { useCampusStore } from '@/state/campusStore';
+import { University } from '@/types/auth';
+import { storage, StorageKeys } from '@/utils/storage';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { storage, StorageKeys } from '@/utils/storage';
-import { UrlConstants } from '@/constants/apiUrls';
-import { useCampusStore } from '@/state/campusStore';
-import { useAuthStore } from '@/state/authStore';
-import { University } from '@/types/auth';
 import { useEffect } from 'react';
 
 interface UniversityGroup {
@@ -29,7 +29,7 @@ export const useCampus = () => {
         (group) => group.universities
       );
     },
-    staleTime: 5 * 60 * 1000, 
+    staleTime: 5 * 60 * 1000,
     retry: 2,
   });
 
@@ -37,7 +37,7 @@ export const useCampus = () => {
     const hydrateCampusSelection = async () => {
       if (universities.length > 0 && !selectedUniversity && isHydrated) {
         const storedId = await storage.getValue(StorageKeys.UNIVERSITY_ID);
-        
+
         if (storedId) {
           const university = universities.find(u => u.id === storedId);
           if (university) {
@@ -45,16 +45,26 @@ export const useCampus = () => {
             return;
           }
         }
-        
+
         if (user?.universityID) {
           const userUniversity = universities.find(u => u.id === user.universityID);
           if (userUniversity) {
             setSelectedUniversity(userUniversity);
+            return;
+          }
+        }
+
+        if (!user) {
+          const defaultUniversity = universities.find(
+            (u) => u.name === "Louisiana Tech University"
+          );
+          if (defaultUniversity) {
+            setSelectedUniversity(defaultUniversity);
           }
         }
       }
     };
-  
+
     hydrateCampusSelection();
   }, [universities, selectedUniversity, isHydrated, user?.universityID]);
 
