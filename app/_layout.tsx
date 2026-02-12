@@ -188,6 +188,16 @@ function RootLayoutContent() {
             },
           }}
         />
+        <Stack.Screen
+          name="group-chat/[id]"
+          options={{
+            presentation: "card",
+            headerShown: false,
+            gestureEnabled: true,
+            gestureDirection: 'horizontal',
+            animation: 'slide_from_right',
+          }}
+        />
       </Stack>
 
       <Toaster
