@@ -180,11 +180,11 @@ function RootLayoutContent() {
         <Stack.Screen
           name="chat"
           options={{
-            presentation: "modal",
-            animation: "default",
+            presentation: "transparentModal",
+            animation: "fade",
             headerShown: false,
             contentStyle: {
-              backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
+              backgroundColor: "rgba(0,0,0,0.5)",
             },
           }}
         />

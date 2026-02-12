@@ -11,7 +11,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Image as ExpoImage } from "expo-image";
 import * as Location from "expo-location";
 import * as MediaLibrary from "expo-media-library";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import moment from "moment";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -443,6 +443,19 @@ export default function TarpsScreen() {
     loadReportedPosts();
   }, []);
 
+  // Log total unseen global posts on focus and sync to store
+  const { setUnseenCount } = useTarpsStore();
+
+  useEffect(() => {
+    setUnseenCount(newPostIds.size);
+  }, [newPostIds.size, setUnseenCount]);
+
+  useFocusEffect(
+    useCallback(() => {
+      console.log("🔴 DEBUG: Total unseen global posts (red border):", newPostIds.size);
+    }, [newPostIds])
+  );
+
   // Expose global function for post screen communication
   useEffect(() => {
     (global as any).markPostsAsViewed = markPostsAsViewed;
@@ -792,7 +805,12 @@ export default function TarpsScreen() {
           mapped = list
             .map((cell: any) => {
               const items = Array.isArray(cell.result) ? cell.result : [];
-              const cover = resolveImageUrl(items[0]);
+              // Find first item with a valid image
+              const cover = items.map((i: any) => resolveImageUrl(i)).find((url: string | null) => url);
+
+              if (!cover && items.length > 0) {
+                console.log("⚠️ Cluster dropped - no valid image found in", items.length, "items");
+              }
               return {
                 id: String(cell.id ?? `${cell.avgLat}-${cell.avgLng}`),
                 image: cover,
@@ -1215,7 +1233,12 @@ export default function TarpsScreen() {
           mapped = list
             .map((cell: any) => {
               const items = Array.isArray(cell.result) ? cell.result : [];
-              const cover = resolveImageUrl(items[0]);
+              // Find first item with a valid image
+              const cover = items.map((i: any) => resolveImageUrl(i)).find((url: string | null) => url);
+
+              if (!cover && items.length > 0) {
+                console.log("⚠️ Global Cluster dropped - no valid image found in", items.length, "items");
+              }
               return {
                 id: String(cell.id ?? `${cell.avgLat}-${cell.avgLng}`),
                 image: cover,

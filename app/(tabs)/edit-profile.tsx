@@ -185,7 +185,6 @@ const EditProfile = () => {
     "Ride Shares",
     "Sports Partners",
     "Event Buddies",
-    "Dating",
     "Marketplace Deals",
     "Gaming Friends",
   ];
