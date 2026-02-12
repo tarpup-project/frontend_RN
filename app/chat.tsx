@@ -110,7 +110,7 @@ const Chat = () => {
 
   const dynamicStyles = {
     container: {
-      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
+      backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF",
       marginTop: insets.top + 10,
       marginBottom: insets.bottom + 10,
       marginHorizontal: 16,
@@ -118,7 +118,7 @@ const Chat = () => {
       overflow: "hidden" as "hidden",
     },
     header: {
-      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
+      backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF",
       borderBottomColor: isDark ? "#333333" : "#E0E0E0",
     },
     text: {
