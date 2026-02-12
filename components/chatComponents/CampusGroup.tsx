@@ -60,7 +60,7 @@ export const CampusGroup = ({
     const handleOpenChat = () => {
         setShowModal(false);
         if (groupDetails?.id) {
-            router.push(`/group-chat/${groupDetails.id}`);
+            router.replace(`/group-chat/${groupDetails.id}`);
         }
     };
 

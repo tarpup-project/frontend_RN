@@ -259,7 +259,8 @@ const Chat = () => {
       });
 
       if (action !== "decline" && result.groupId) {
-        router.push(`/group-chat/${result.groupId}`);
+        console.log("🔄 Replacing modal with group chat:", result.groupId);
+        router.replace(`/group-chat/${result.groupId}`);
       }
     } else {
       Alert.alert("Error", result.message || "Failed to process action");
@@ -364,7 +365,10 @@ const Chat = () => {
                 dynamicStyles.matchButton,
                 { backgroundColor: "#10B981", width: '100%' },
               ]}
-              onPress={() => router.push(`/group-chat/${groupId}`)}
+              onPress={() => {
+                console.log("🔄 Open Chat clicked, replacing route...");
+                router.replace(`/group-chat/${groupId}`);
+              }}
             >
               <Text style={[styles.matchButtonText, { color: "#FFFFFF" }]}>
                 Open Chat
@@ -1043,7 +1047,7 @@ const Chat = () => {
                 onPress={() => {
                   setShowDetailsModal(false);
                   if (requestDetails?.group?.id) {
-                    router.push(`/group-chat/${requestDetails.group.id}`);
+                    router.replace(`/group-chat/${requestDetails.group.id}`);
                   }
                 }}
               >
