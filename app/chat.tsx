@@ -22,6 +22,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -29,12 +30,14 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
-  View
+  View,
 } from "react-native";
 import Hyperlink from "react-native-hyperlink";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const Chat = () => {
   const { isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [message, setMessage] = useState("");
   const scrollViewRef = useRef<ScrollView>(null);
@@ -108,6 +111,11 @@ const Chat = () => {
   const dynamicStyles = {
     container: {
       backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
+      marginTop: insets.top + 10,
+      marginBottom: insets.bottom + 10,
+      marginHorizontal: 16,
+      borderRadius: 20,
+      overflow: "hidden" as "hidden",
     },
     header: {
       backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
@@ -748,11 +756,26 @@ const Chat = () => {
     markAsRead();
   }, []);
 
+  useEffect(() => {
+    const keyboardListener = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      () => {
+        setTimeout(() => {
+          scrollViewRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      }
+    );
+
+    return () => {
+      keyboardListener.remove();
+    };
+  }, []);
+
   return (
     <KeyboardAvoidingView
       style={[styles.container, dynamicStyles.container]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 50 : 0}
+      keyboardVerticalOffset={Platform.OS === "ios" ? -10 : 0}
     >
       {/* Header */}
       <View style={[styles.header, dynamicStyles.header]}>

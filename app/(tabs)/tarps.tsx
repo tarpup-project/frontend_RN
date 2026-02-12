@@ -26,7 +26,7 @@ export default function TarpsScreen() {
   const { isDark } = useTheme();
   const { user } = useAuthStore();
   const router = useRouter();
-  const { decrementUnseenCount } = useTarpsStore();
+  const { decrementUnseenCount, setUnseenCount } = useTarpsStore();
 
   const [viewMode, setViewMode] = useState<'posts' | 'people'>('posts');
   const [location, setLocation] = useState<any>(null);
@@ -748,7 +748,11 @@ export default function TarpsScreen() {
       });
 
       // Update new posts state
-      setNewPostIds(newPosts);
+      setNewPostIds(prev => {
+        const next = new Set(prev);
+        newPosts.forEach(id => next.add(id));
+        return next;
+      });
 
       setServerPosts(mapped);
       console.log("PostsInView:mappedSample", JSON.stringify(mapped[0], null, 2));
@@ -1186,6 +1190,41 @@ export default function TarpsScreen() {
       }
     }
   }, [location, viewMode, globalPosts, isLoadingGlobalPosts, isRestoringGlobalPosts]);
+
+  // Log for unseen posts (red border)
+  // Log for unseen posts (red border)
+  useEffect(() => {
+    // Always log the state to debug
+    if (viewMode === 'posts') {
+      const sourcePosts = globalPosts.length > 0 ? globalPosts : serverPosts;
+      const unseenPosts = sourcePosts.filter(p =>
+        p.items?.some((item: any) => newPostIds.has(item.id))
+      );
+
+      console.log(`🔍 DEBUG: Checking for unseen posts (Source: ${globalPosts.length > 0 ? 'Global' : 'Server'}).
+        - sourcePosts length: ${sourcePosts.length}
+        - newPostIds size: ${newPostIds.size}
+        - newPostIds values: ${JSON.stringify(Array.from(newPostIds))}
+        - unseenPosts found: ${unseenPosts.length}
+      `);
+
+      if (unseenPosts.length > 0) {
+        console.log(`🔴 Found ${unseenPosts.length} unseen posts/clusters with red border:`,
+          unseenPosts.map(p => ({
+            id: p.id,
+            count: p.count,
+            location: `${p.latitude},${p.longitude}`,
+            items: p.items?.map((i: any) => i.id)
+          }))
+        );
+        // Sync global store with total unseen count
+        setUnseenCount(unseenPosts.length);
+      } else {
+        console.log("🟢 No unseen posts found in current view.");
+        setUnseenCount(0);
+      }
+    }
+  }, [serverPosts, newPostIds, viewMode]);
 
   // Load global posts on tarps screen mount for faster post browsing
   useEffect(() => {
