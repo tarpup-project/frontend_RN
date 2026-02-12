@@ -13,6 +13,7 @@ import AuthModal from '@/components/AuthModal';
 import { UrlConstants } from '@/constants/apiUrls';
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthStore } from '@/state/authStore';
+import { usePostUploadStore } from '@/state/postUploadStore';
 import { useTarpsStore } from '@/state/tarpsStore';
 import { Image as ExpoImage } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
@@ -85,7 +86,7 @@ export default function TarpsScreen() {
   const insets = useSafeAreaInsets();
   const [chatText, setChatText] = useState("");
   const [canLoadImages, setCanLoadImages] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
+  const { isUploading } = usePostUploadStore();
 
   // Profile data fetching
   const [profileDetails, setProfileDetails] = useState<any>(null);
