@@ -7,7 +7,6 @@ import { MessageInput } from "@/components/chatComponents/MessageInput";
 import { MessageList } from "@/components/chatComponents/MessageList";
 import { CreatingChatLoader } from "@/components/CreatingChatLoader";
 import Header from "@/components/Header";
-import * as Updates from "expo-updates";
 import { NetworkStatusBanner } from "@/components/NetworkStatusBanner";
 import { Text } from "@/components/Themedtext";
 import { UrlConstants } from "@/constants/apiUrls";
@@ -24,6 +23,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useKeepAwake } from "expo-keep-awake";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import * as Updates from "expo-updates";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
@@ -65,6 +65,10 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   const [iconPosition, setIconPosition] = useState({ x: 0, y: 0 });
   const { groupData } = useLocalSearchParams();
   const passedGroupData = groupData ? JSON.parse(groupData as string) : null;
+  
+  // Background timer for auto-navigation
+  const appState = useRef(AppState.currentState);
+  const backgroundTime = useRef<number | null>(null);
 
   const {
     data: groupDetails,
@@ -302,16 +306,39 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextState) => {
-      if (nextState === "active") {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextState === "active"
+      ) {
+        // App has come to the foreground
+        if (backgroundTime.current) {
+          const timeInBackground = Date.now() - backgroundTime.current;
+          console.log(`📱 Group chat: App foregrounded after ${timeInBackground}ms`);
+
+          // If backgrounded for more than 40 seconds, navigate back to groups
+          if (timeInBackground > 30000) {
+            console.log("🔄 App was in background for >40s. Navigating to groups...");
+            router.replace("/(tabs)/groups");
+          }
+        }
+        backgroundTime.current = null;
+        
+        // Existing logic
         retryConnection();
         refetchNotifications();
+      } else if (nextState.match(/inactive|background/)) {
+        // App has gone to the background
+        console.log("📱 Group chat: App backgrounded");
+        backgroundTime.current = Date.now();
       }
+
+      appState.current = nextState;
     });
 
     return () => {
       subscription.remove();
     };
-  }, [retryConnection, refetchNotifications]);
+  }, [retryConnection, refetchNotifications, router]);
 
   // Reconnect socket when coming online - handled by SocketProvider now
   // const { isConnected } = useNetworkStatus();

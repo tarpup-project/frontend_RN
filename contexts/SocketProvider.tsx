@@ -503,20 +503,21 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       disconnectSocket();
     }
 
-    // CRITICAL FIX: handle app state changes to force reconnection
+    // CRITICAL FIX: handle app state changes to force fresh connection
     const subscription = AppState.addEventListener('change', (nextAppState) => {
       if (nextAppState === 'active' && user) {
-        console.log('📱 App came to foreground, forcing socket reconnection...');
+        console.log('📱 App came to foreground, creating fresh socket connection...');
 
-        // If socket exists but disconnected, connect manually to bypass backoff
-        if (socket && !socket.connected) {
-          console.log('🔌 Socket disconnected, calling connect()');
-          socket.connect();
-        } else if (!socket) {
-          // If no socket instance, create one
-          console.log('🔌 No socket instance, creating new connection');
-          connectSocket();
+        // Always disconnect existing socket and create a fresh connection
+        if (socket) {
+          console.log('🔌 Disconnecting old socket to create fresh connection');
+          socket.disconnect();
+          socket.removeAllListeners();
         }
+        
+        // Create a completely new socket connection
+        console.log('🔌 Creating new socket connection');
+        connectSocket();
 
         // Trigger global message sync when returning to app
         // syncAllMessages(); // DISABLED: Global message sync stopped per user request
