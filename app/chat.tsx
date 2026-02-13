@@ -446,66 +446,81 @@ const Chat = () => {
   };
 
 const parseMessageForActions = (content: string) => {
-  // Legacy parsing
+  // Extract all custom components (CampusRequest, CampusGroup, etc.)
+  const componentRegex = /<(CampusRequest|CampusGroup)[\s\S]*?\/>/g;
+  const components: Array<{
+    type: string;
+    props: any;
+    index: number;
+    length: number;
+  }> = [];
+
+  let componentMatch;
+  while ((componentMatch = componentRegex.exec(content)) !== null) {
+    const componentType = componentMatch[1];
+    const fullTag = componentMatch[0];
+    
+    // Extract attributes
+    const attrs: any = {};
+    const attrRegex = /(\w+)="([^"]*)"/g;
+    let attrMatch;
+    while ((attrMatch = attrRegex.exec(fullTag)) !== null) {
+      attrs[attrMatch[1]] = attrMatch[2];
+    }
+
+    components.push({
+      type: componentType,
+      props: attrs,
+      index: componentMatch.index,
+      length: fullTag.length,
+    });
+  }
+
+  // If we found custom components, return structured data
+  if (components.length > 0) {
+    // Build text segments between components
+    const segments: Array<{ type: 'text' | 'component'; content?: string; componentType?: string; props?: any }> = [];
+    let lastIndex = 0;
+
+    components.forEach((comp) => {
+      // Add text before this component
+      if (comp.index > lastIndex) {
+        const textBefore = content.substring(lastIndex, comp.index).trim();
+        if (textBefore) {
+          segments.push({ type: 'text', content: textBefore });
+        }
+      }
+
+      // Add the component
+      segments.push({
+        type: 'component',
+        componentType: comp.type,
+        props: comp.props,
+      });
+
+      lastIndex = comp.index + comp.length;
+    });
+
+    // Add any remaining text after the last component
+    if (lastIndex < content.length) {
+      const textAfter = content.substring(lastIndex).trim();
+      if (textAfter) {
+        segments.push({ type: 'text', content: textAfter });
+      }
+    }
+
+    return {
+      hasCustomComponents: true,
+      segments,
+    };
+  }
+
+  // Legacy parsing for old component types
   const matchButtonPattern = /<MatchButton[^>]*id="([^"]*)"[^>]*\/>/;
   const match = content.match(matchButtonPattern);
   const userProfileTag = content.match(/<UserProfile[^>]*\/>/);
   const requestDetailsTag = content.match(/<RequestDetails[^>]*\/>/);
 
-  // ✅ FIXED: Supports multi-line + self closing + normal closing
-  const campusRequestMatch = content.match(
-    /<CampusRequest[\s\S]*?(?:\/>|<\/CampusRequest>)/
-  );
-
-  const campusGroupMatch = content.match(
-    /<CampusGroup[\s\S]*?(?:\/>|<\/CampusGroup>)/
-  );
-
-  const extractAttributes = (tagString: string) => {
-    const attrs: any = {};
-    const regex = /(\w+)="([^"]*)"/g;
-    let m;
-    while ((m = regex.exec(tagString)) !== null) {
-      attrs[m[1]] = m[2];
-    }
-    return attrs;
-  };
-
-  if (campusRequestMatch) {
-    const attrs = extractAttributes(campusRequestMatch[0]);
-    const index = campusRequestMatch.index ?? 0;
-    const textBefore = content.substring(0, index).trim();
-    const textAfter = content
-      .substring(index + campusRequestMatch[0].length)
-      .trim();
-
-    return {
-      type: "CampusRequest",
-      props: attrs,
-      textBefore,
-      textAfter,
-      textContent: (textBefore + " " + textAfter).trim(),
-    };
-  }
-
-  if (campusGroupMatch) {
-    const attrs = extractAttributes(campusGroupMatch[0]);
-    const index = campusGroupMatch.index ?? 0;
-    const textBefore = content.substring(0, index).trim();
-    const textAfter = content
-      .substring(index + campusGroupMatch[0].length)
-      .trim();
-
-    return {
-      type: "CampusGroup",
-      props: attrs,
-      textBefore,
-      textAfter,
-      textContent: (textBefore + " " + textAfter).trim(),
-    };
-  }
-
-  // Fallback to existing logic for legacy support
   const extractAttr = (src: string | null, name: string) => {
     if (!src) return undefined;
     const m = src.match(new RegExp(`${name}="([^"]*)"`, "i"));
@@ -615,53 +630,61 @@ const parseMessageForActions = (content: string) => {
         >
           {msg.messageType === "markdown" && !isUser ? (
             <View>
-              {!!messageData.textBefore && (
-                <Hyperlink linkDefault>
-                  <Text style={[styles.messageText, dynamicStyles.text, { marginBottom: 4 }]}>
-                    {messageData.textBefore}
-                  </Text>
-                </Hyperlink>
+              {/* Handle new multi-component structure */}
+              {messageData.hasCustomComponents && messageData.segments ? (
+                <>
+                  {messageData.segments.map((segment: any, idx: number) => {
+                    if (segment.type === 'text') {
+                      return (
+                        <Hyperlink key={idx} linkDefault>
+                          <Text style={[styles.messageText, dynamicStyles.text, { marginVertical: 4 }]}>
+                            {segment.content}
+                          </Text>
+                        </Hyperlink>
+                      );
+                    } else if (segment.type === 'component') {
+                      if (segment.componentType === 'CampusRequest') {
+                        return (
+                          <CampusRequest
+                            key={idx}
+                            id={segment.props.id}
+                            score={segment.props.score}
+                            title={segment.props.title}
+                            description={segment.props.description}
+                            startTime={segment.props.startTime}
+                            userFname={segment.props.userFname}
+                            userID={segment.props.userID}
+                          />
+                        );
+                      } else if (segment.componentType === 'CampusGroup') {
+                        return (
+                          <CampusGroup
+                            key={idx}
+                            id={segment.props.id}
+                            score={segment.props.score}
+                            title={segment.props.title}
+                            description={segment.props.description}
+                            userFname={segment.props.userFname}
+                            userID={segment.props.userID}
+                          />
+                        );
+                      }
+                    }
+                    return null;
+                  })}
+                </>
+              ) : (
+                <>
+                  {/* Legacy single component rendering */}
+                  {!messageData.hasMatchButtons && messageData.textContent && (
+                    <Hyperlink linkDefault>
+                      <Text style={[styles.messageText, dynamicStyles.text]}>
+                        {messageData.textContent}
+                      </Text>
+                    </Hyperlink>
+                  )}
+                </>
               )}
-
-              {messageData.type === 'CampusRequest' && (
-                <CampusRequest
-                  id={messageData.props.id}
-                  score={messageData.props.score}
-                  title={messageData.props.title}
-                  description={messageData.props.description}
-                  startTime={messageData.props.startTime}
-                  userFname={messageData.props.userFname}
-                  userID={messageData.props.userID}
-                />
-              )}
-              {messageData.type === 'CampusGroup' && (
-                <CampusGroup
-                  id={messageData.props.id}
-                  score={messageData.props.score}
-                  title={messageData.props.title}
-                  description={messageData.props.description}
-                  userFname={messageData.props.userFname}
-                  userID={messageData.props.userID}
-                />
-              )}
-
-              {!!messageData.textAfter && (
-                <Hyperlink linkDefault>
-                  <Text style={[styles.messageText, dynamicStyles.text, { marginTop: 4 }]}>
-                    {messageData.textAfter}
-                  </Text>
-                </Hyperlink>
-              )}
-
-              {!messageData.type &&
-                // Don't render text here if we are rendering it inside the Match Proposal Card
-                !(messageData.hasMatchButtons && messageData.matchId && !messageData.groupName) && (
-                  <Hyperlink linkDefault>
-                    <Text style={[styles.messageText, dynamicStyles.text]}>
-                      {messageData.textContent}
-                    </Text>
-                  </Hyperlink>
-                )}
             </View>
           ) : (
             <Text
@@ -670,12 +693,12 @@ const parseMessageForActions = (content: string) => {
                 isUser ? dynamicStyles.userMessageText : dynamicStyles.text,
               ]}
             >
-              {messageData.textContent}
+              {messageData.textContent || messageData.segments?.[0]?.content || ''}
             </Text>
           )}
 
           {!isUser &&
-            !messageData.type &&
+            !messageData.hasCustomComponents &&
             messageData.hasMatchButtons &&
             messageData.matchId &&
             !messageData.groupName && (
@@ -688,7 +711,7 @@ const parseMessageForActions = (content: string) => {
             )}
 
           {!isUser &&
-            !messageData.type && // Only show legacy if new type is not present
+            !messageData.hasCustomComponents &&
             messageData.hasMatchButtons &&
             messageData.matchId &&
             messageData.groupName && (
