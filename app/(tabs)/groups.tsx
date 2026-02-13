@@ -15,6 +15,7 @@ import { useUnifiedGroups } from "@/hooks/useUnifiedGroups";
 import { useAuthStore } from "@/state/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
+import * as Updates from "expo-updates";
 import moment from "moment";
 import React, { useCallback, useState } from "react";
 import {
@@ -98,7 +99,7 @@ const GroupSkeletonCard = ({ isDark }: { isDark: boolean }) => {
 
 const Groups = () => {
   const { isDark } = useTheme();
-  const { user } = useAuthStore(); // Get current user for message comparison
+  const { user, isAuthenticated } = useAuthStore(); // Get current user for message comparison
   const {
     groups,
     uiGroups,
@@ -155,6 +156,14 @@ const Groups = () => {
 
   // Preload group messages for instant chat loading
   useGroupMessagePreloader((groups || []).map(group => group.id).filter(Boolean));
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!isAuthenticated) {
+        Updates.reloadAsync().catch((e) => console.warn("Failed to reload app:", e));
+      }
+    }, [isAuthenticated])
+  );
 
   const handleManualRefresh = async () => {
     setIsManualRefreshing(true);

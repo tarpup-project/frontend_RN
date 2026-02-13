@@ -110,7 +110,7 @@ const Chat = () => {
 
   const dynamicStyles = {
     container: {
-      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
+      backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF",
       marginTop: insets.top + 10,
       marginBottom: insets.bottom + 10,
       marginHorizontal: 16,
@@ -118,7 +118,7 @@ const Chat = () => {
       overflow: "hidden" as "hidden",
     },
     header: {
-      backgroundColor: isDark ? "#0a0a0a" : "#FFFFFF",
+      backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF",
       borderBottomColor: isDark ? "#333333" : "#E0E0E0",
     },
     text: {
@@ -445,116 +445,159 @@ const Chat = () => {
     );
   };
 
-  const parseMessageForActions = (content: string) => {
-    // Legacy parsing
-    const matchButtonPattern = /<MatchButton[^>]*id="([^"]*)"[^>]*\/>/;
-    const match = content.match(matchButtonPattern);
-    const userProfileTag = content.match(/<UserProfile[^>]*\/>/);
-    const requestDetailsTag = content.match(/<RequestDetails[^>]*\/>/);
+const parseMessageForActions = (content: string) => {
+  // Extract all custom components (CampusRequest, CampusGroup, etc.)
+  const componentRegex = /<(CampusRequest|CampusGroup)[\s\S]*?\/>/g;
+  const components: Array<{
+    type: string;
+    props: any;
+    index: number;
+    length: number;
+  }> = [];
 
-    // New parsing for CampusRequest and CampusGroup
-    const campusRequestMatch = content.match(/<CampusRequest[^>]*\/>/);
-    const campusGroupMatch = content.match(/<CampusGroup[^>]*\/>/);
+  let componentMatch;
+  while ((componentMatch = componentRegex.exec(content)) !== null) {
+    const componentType = componentMatch[1];
+    const fullTag = componentMatch[0];
+    
+    // Extract attributes
+    const attrs: any = {};
+    const attrRegex = /(\w+)="([^"]*)"/g;
+    let attrMatch;
+    while ((attrMatch = attrRegex.exec(fullTag)) !== null) {
+      attrs[attrMatch[1]] = attrMatch[2];
+    }
 
-    const extractAttributes = (tagString: string) => {
-      const attrs: any = {};
-      const regex = /(\w+)="([^"]*)"/g;
-      let m;
-      while ((m = regex.exec(tagString)) !== null) {
-        attrs[m[1]] = m[2];
+    components.push({
+      type: componentType,
+      props: attrs,
+      index: componentMatch.index,
+      length: fullTag.length,
+    });
+  }
+
+  // If we found custom components, return structured data
+  if (components.length > 0) {
+    // Build text segments between components
+    const segments: Array<{ type: 'text' | 'component'; content?: string; componentType?: string; props?: any }> = [];
+    let lastIndex = 0;
+
+    components.forEach((comp) => {
+      // Add text before this component
+      if (comp.index > lastIndex) {
+        const textBefore = content.substring(lastIndex, comp.index).trim();
+        if (textBefore) {
+          segments.push({ type: 'text', content: textBefore });
+        }
       }
-      return attrs;
-    };
 
-    if (campusRequestMatch) {
-      const attrs = extractAttributes(campusRequestMatch[0]);
-      const index = campusRequestMatch.index ?? 0;
-      const textBefore = content.substring(0, index).trim();
-      const textAfter = content.substring(index + campusRequestMatch[0].length).trim();
+      // Add the component
+      segments.push({
+        type: 'component',
+        componentType: comp.type,
+        props: comp.props,
+      });
 
-      return {
-        type: 'CampusRequest',
-        props: attrs,
-        textBefore,
-        textAfter,
-        textContent: textBefore + " " + textAfter // Fallback
-      };
-    }
+      lastIndex = comp.index + comp.length;
+    });
 
-    if (campusGroupMatch) {
-      const attrs = extractAttributes(campusGroupMatch[0]);
-      const index = campusGroupMatch.index ?? 0;
-      const textBefore = content.substring(0, index).trim();
-      const textAfter = content.substring(index + campusGroupMatch[0].length).trim();
-
-      return {
-        type: 'CampusGroup',
-        props: attrs,
-        textBefore,
-        textAfter,
-        textContent: textBefore + " " + textAfter // Fallback
-      };
-    }
-
-    // Fallback to existing logic for legacy support
-    const extractAttr = (src: string | null, name: string) => {
-      if (!src) return undefined;
-      const m = src.match(new RegExp(`${name}="([^"]*)"`, "i"));
-      return m ? m[1] : undefined;
-    };
-
-    const fname = extractAttr(userProfileTag ? userProfileTag[0] : null, "fname");
-    const campusName = extractAttr(userProfileTag ? userProfileTag[0] : null, "campusName");
-    const description = extractAttr(requestDetailsTag ? requestDetailsTag[0] : null, "description");
-    const groupName = extractAttr(requestDetailsTag ? requestDetailsTag[0] : null, "groupName");
-    const matchPercent = extractAttr(requestDetailsTag ? requestDetailsTag[0] : null, "matchPercent");
-    const buttonText = extractAttr(requestDetailsTag ? requestDetailsTag[0] : null, "buttonText");
-
-    const normalizedDesc = (() => {
-      if (!description) return "";
-      let d = description;
-      d = d.replace(/requesting connection with the group organizer/gi, "connecting with the group organizers");
-      return d;
-    })();
-
-    const descriptiveText = (() => {
-      if (fname || campusName || normalizedDesc) {
-        const who = fname ? fname : "Someone";
-        const from = campusName ? ` from ${campusName}` : "";
-        const action = normalizedDesc ? `: ${normalizedDesc}` : "";
-        return `${who}${from} is interested in your activity${action}`.trim();
+    // Add any remaining text after the last component
+    if (lastIndex < content.length) {
+      const textAfter = content.substring(lastIndex).trim();
+      if (textAfter) {
+        segments.push({ type: 'text', content: textAfter });
       }
-      const cleaned = content
-        .replace(matchButtonPattern, "")
-        .replace(/<[^>]+>/g, "")
-        .trim();
-      return cleaned;
-    })();
-
-    if (match) {
-      const matchId = match[1];
-      return {
-        hasMatchButtons: true,
-        matchId,
-        textContent: descriptiveText,
-        groupName,
-        matchPercent,
-        buttonText: buttonText || "View Details",
-        hasInterestBlock: !!(fname || campusName || description) && !groupName,
-        fname,
-        campusName,
-        description: normalizedDesc,
-      };
     }
+
     return {
-      hasMatchButtons: false,
+      hasCustomComponents: true,
+      segments,
+    };
+  }
+
+  // Legacy parsing for old component types
+  const matchButtonPattern = /<MatchButton[^>]*id="([^"]*)"[^>]*\/>/;
+  const match = content.match(matchButtonPattern);
+  const userProfileTag = content.match(/<UserProfile[^>]*\/>/);
+  const requestDetailsTag = content.match(/<RequestDetails[^>]*\/>/);
+
+  const extractAttr = (src: string | null, name: string) => {
+    if (!src) return undefined;
+    const m = src.match(new RegExp(`${name}="([^"]*)"`, "i"));
+    return m ? m[1] : undefined;
+  };
+
+  const fname = extractAttr(userProfileTag ? userProfileTag[0] : null, "fname");
+  const campusName = extractAttr(
+    userProfileTag ? userProfileTag[0] : null,
+    "campusName"
+  );
+  const description = extractAttr(
+    requestDetailsTag ? requestDetailsTag[0] : null,
+    "description"
+  );
+  const groupName = extractAttr(
+    requestDetailsTag ? requestDetailsTag[0] : null,
+    "groupName"
+  );
+  const matchPercent = extractAttr(
+    requestDetailsTag ? requestDetailsTag[0] : null,
+    "matchPercent"
+  );
+  const buttonText = extractAttr(
+    requestDetailsTag ? requestDetailsTag[0] : null,
+    "buttonText"
+  );
+
+  const normalizedDesc = (() => {
+    if (!description) return "";
+    let d = description;
+    d = d.replace(
+      /requesting connection with the group organizer/gi,
+      "connecting with the group organizers"
+    );
+    return d;
+  })();
+
+  const descriptiveText = (() => {
+    if (fname || campusName || normalizedDesc) {
+      const who = fname ? fname : "Someone";
+      const from = campusName ? ` from ${campusName}` : "";
+      const action = normalizedDesc ? `: ${normalizedDesc}` : "";
+      return `${who}${from} is interested in your activity${action}`.trim();
+    }
+    const cleaned = content
+      .replace(matchButtonPattern, "")
+      .replace(/<[^>]+>/g, "")
+      .trim();
+    return cleaned;
+  })();
+
+  if (match) {
+    const matchId = match[1];
+    return {
+      hasMatchButtons: true,
+      matchId,
       textContent: descriptiveText,
+      groupName,
+      matchPercent,
+      buttonText: buttonText || "View Details",
       hasInterestBlock: !!(fname || campusName || description) && !groupName,
       fname,
       campusName,
       description: normalizedDesc,
     };
+  }
+
+  return {
+    hasMatchButtons: false,
+    textContent: descriptiveText,
+    hasInterestBlock: !!(fname || campusName || description) && !groupName,
+    fname,
+    campusName,
+    description: normalizedDesc,
   };
+};
 
   const renderMessage = (msg: any, index: number) => {
     const isUser = msg.sender === "user";
@@ -587,53 +630,61 @@ const Chat = () => {
         >
           {msg.messageType === "markdown" && !isUser ? (
             <View>
-              {!!messageData.textBefore && (
-                <Hyperlink linkDefault>
-                  <Text style={[styles.messageText, dynamicStyles.text, { marginBottom: 4 }]}>
-                    {messageData.textBefore}
-                  </Text>
-                </Hyperlink>
+              {/* Handle new multi-component structure */}
+              {messageData.hasCustomComponents && messageData.segments ? (
+                <>
+                  {messageData.segments.map((segment: any, idx: number) => {
+                    if (segment.type === 'text') {
+                      return (
+                        <Hyperlink key={idx} linkDefault>
+                          <Text style={[styles.messageText, dynamicStyles.text, { marginVertical: 4 }]}>
+                            {segment.content}
+                          </Text>
+                        </Hyperlink>
+                      );
+                    } else if (segment.type === 'component') {
+                      if (segment.componentType === 'CampusRequest') {
+                        return (
+                          <CampusRequest
+                            key={idx}
+                            id={segment.props.id}
+                            score={segment.props.score}
+                            title={segment.props.title}
+                            description={segment.props.description}
+                            startTime={segment.props.startTime}
+                            userFname={segment.props.userFname}
+                            userID={segment.props.userID}
+                          />
+                        );
+                      } else if (segment.componentType === 'CampusGroup') {
+                        return (
+                          <CampusGroup
+                            key={idx}
+                            id={segment.props.id}
+                            score={segment.props.score}
+                            title={segment.props.title}
+                            description={segment.props.description}
+                            userFname={segment.props.userFname}
+                            userID={segment.props.userID}
+                          />
+                        );
+                      }
+                    }
+                    return null;
+                  })}
+                </>
+              ) : (
+                <>
+                  {/* Legacy single component rendering */}
+                  {!messageData.hasMatchButtons && messageData.textContent && (
+                    <Hyperlink linkDefault>
+                      <Text style={[styles.messageText, dynamicStyles.text]}>
+                        {messageData.textContent}
+                      </Text>
+                    </Hyperlink>
+                  )}
+                </>
               )}
-
-              {messageData.type === 'CampusRequest' && (
-                <CampusRequest
-                  id={messageData.props.id}
-                  score={messageData.props.score}
-                  title={messageData.props.title}
-                  description={messageData.props.description}
-                  startTime={messageData.props.startTime}
-                  userFname={messageData.props.userFname}
-                  userID={messageData.props.userID}
-                />
-              )}
-              {messageData.type === 'CampusGroup' && (
-                <CampusGroup
-                  id={messageData.props.id}
-                  score={messageData.props.score}
-                  title={messageData.props.title}
-                  description={messageData.props.description}
-                  userFname={messageData.props.userFname}
-                  userID={messageData.props.userID}
-                />
-              )}
-
-              {!!messageData.textAfter && (
-                <Hyperlink linkDefault>
-                  <Text style={[styles.messageText, dynamicStyles.text, { marginTop: 4 }]}>
-                    {messageData.textAfter}
-                  </Text>
-                </Hyperlink>
-              )}
-
-              {!messageData.type &&
-                // Don't render text here if we are rendering it inside the Match Proposal Card
-                !(messageData.hasMatchButtons && messageData.matchId && !messageData.groupName) && (
-                  <Hyperlink linkDefault>
-                    <Text style={[styles.messageText, dynamicStyles.text]}>
-                      {messageData.textContent}
-                    </Text>
-                  </Hyperlink>
-                )}
             </View>
           ) : (
             <Text
@@ -642,12 +693,12 @@ const Chat = () => {
                 isUser ? dynamicStyles.userMessageText : dynamicStyles.text,
               ]}
             >
-              {messageData.textContent}
+              {messageData.textContent || messageData.segments?.[0]?.content || ''}
             </Text>
           )}
 
           {!isUser &&
-            !messageData.type &&
+            !messageData.hasCustomComponents &&
             messageData.hasMatchButtons &&
             messageData.matchId &&
             !messageData.groupName && (
@@ -660,7 +711,7 @@ const Chat = () => {
             )}
 
           {!isUser &&
-            !messageData.type && // Only show legacy if new type is not present
+            !messageData.hasCustomComponents &&
             messageData.hasMatchButtons &&
             messageData.matchId &&
             messageData.groupName && (
@@ -911,6 +962,11 @@ const Chat = () => {
                       What would you like help with today?
                     </Text>
                   </View>
+                </View>
+                <View style={[styles.comingSoonContainer, {  backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF"}, {  borderColor: isDark ? "#FFFFFF" : "#1A1A1A"}]}>
+                  <Text style={[styles.comingSoonText, dynamicStyles.subtitle]}>
+                    Real-time web search coming soon....
+                  </Text>
                 </View>
               </View>
             ) : (
@@ -1191,6 +1247,19 @@ const styles = StyleSheet.create({
   aiMessageText: {
     fontSize: 12,
     lineHeight: 18,
+  },
+comingSoonContainer: {
+  alignItems: "center",
+  marginTop: 72,
+  padding: 10,
+  marginBottom: 4,
+  borderWidth: 1,
+  borderRadius: 20,
+},
+  comingSoonText: {
+    fontSize: 24,
+    textAlign: 'center',
+    fontStyle: "italic",
   },
   messageContainer: {
     marginVertical: 8,

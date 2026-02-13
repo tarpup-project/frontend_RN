@@ -23,6 +23,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useKeepAwake } from "expo-keep-awake";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import * as Updates from "expo-updates";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
@@ -54,7 +55,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   const { isDark } = useTheme();
   const router = useRouter();
   const navigation = useNavigation();
-  const { user } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const { socket } = useSocket();
   const messageRefs = useRef<Map<string, any>>(new Map());
   const infoButtonRef = useRef<View>(null); // Added back
@@ -289,6 +290,14 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
         setActiveGroupId(null);
       };
     }, [refetchNotifications, groupId, setActiveGroupId])
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!isAuthenticated) {
+        Updates.reloadAsync().catch((e) => console.warn("Failed to reload app:", e));
+      }
+    }, [isAuthenticated])
   );
 
   useEffect(() => {
