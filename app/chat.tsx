@@ -912,6 +912,11 @@ const Chat = () => {
                     </Text>
                   </View>
                 </View>
+                <View style={[styles.comingSoonContainer, {  backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF"}, {  borderColor: isDark ? "#FFFFFF" : "#1A1A1A"}]}>
+                  <Text style={[styles.comingSoonText, dynamicStyles.subtitle]}>
+                    Real-time web search coming soon....
+                  </Text>
+                </View>
               </View>
             ) : (
               <>
@@ -1191,6 +1196,19 @@ const styles = StyleSheet.create({
   aiMessageText: {
     fontSize: 12,
     lineHeight: 18,
+  },
+comingSoonContainer: {
+  alignItems: "center",
+  marginTop: 72,
+  padding: 10,
+  marginBottom: 4,
+  borderWidth: 1,
+  borderRadius: 20,
+},
+  comingSoonText: {
+    fontSize: 24,
+    textAlign: 'center',
+    fontStyle: "italic",
   },
   messageContainer: {
     marginVertical: 8,

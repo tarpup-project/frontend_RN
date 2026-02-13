@@ -71,6 +71,12 @@ const UserProfile = () => {
   const [showImageModal, setShowImageModal] = useState(false);
   const [universityName, setUniversityName] = useState('');
 
+  useEffect(() => {
+    if (id) {
+      refetch();
+    }
+  }, [id]);
+
   // University name resolution logic
   useEffect(() => {
     const university = user?.university;
