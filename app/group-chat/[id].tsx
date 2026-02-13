@@ -7,6 +7,7 @@ import { MessageInput } from "@/components/chatComponents/MessageInput";
 import { MessageList } from "@/components/chatComponents/MessageList";
 import { CreatingChatLoader } from "@/components/CreatingChatLoader";
 import Header from "@/components/Header";
+import * as Updates from "expo-updates";
 import { NetworkStatusBanner } from "@/components/NetworkStatusBanner";
 import { Text } from "@/components/Themedtext";
 import { UrlConstants } from "@/constants/apiUrls";
@@ -54,7 +55,7 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
   const { isDark } = useTheme();
   const router = useRouter();
   const navigation = useNavigation();
-  const { user } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const { socket } = useSocket();
   const messageRefs = useRef<Map<string, any>>(new Map());
   const infoButtonRef = useRef<View>(null); // Added back
@@ -289,6 +290,14 @@ const GroupChatContent = ({ groupId }: { groupId: string }) => {
         setActiveGroupId(null);
       };
     }, [refetchNotifications, groupId, setActiveGroupId])
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!isAuthenticated) {
+        Updates.reloadAsync().catch((e) => console.warn("Failed to reload app:", e));
+      }
+    }, [isAuthenticated])
   );
 
   useEffect(() => {

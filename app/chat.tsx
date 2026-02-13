@@ -445,116 +445,144 @@ const Chat = () => {
     );
   };
 
-  const parseMessageForActions = (content: string) => {
-    // Legacy parsing
-    const matchButtonPattern = /<MatchButton[^>]*id="([^"]*)"[^>]*\/>/;
-    const match = content.match(matchButtonPattern);
-    const userProfileTag = content.match(/<UserProfile[^>]*\/>/);
-    const requestDetailsTag = content.match(/<RequestDetails[^>]*\/>/);
+const parseMessageForActions = (content: string) => {
+  // Legacy parsing
+  const matchButtonPattern = /<MatchButton[^>]*id="([^"]*)"[^>]*\/>/;
+  const match = content.match(matchButtonPattern);
+  const userProfileTag = content.match(/<UserProfile[^>]*\/>/);
+  const requestDetailsTag = content.match(/<RequestDetails[^>]*\/>/);
 
-    // New parsing for CampusRequest and CampusGroup
-    const campusRequestMatch = content.match(/<CampusRequest[^>]*\/>/);
-    const campusGroupMatch = content.match(/<CampusGroup[^>]*\/>/);
+  // ✅ FIXED: Supports multi-line + self closing + normal closing
+  const campusRequestMatch = content.match(
+    /<CampusRequest[\s\S]*?(?:\/>|<\/CampusRequest>)/
+  );
 
-    const extractAttributes = (tagString: string) => {
-      const attrs: any = {};
-      const regex = /(\w+)="([^"]*)"/g;
-      let m;
-      while ((m = regex.exec(tagString)) !== null) {
-        attrs[m[1]] = m[2];
-      }
-      return attrs;
-    };
+  const campusGroupMatch = content.match(
+    /<CampusGroup[\s\S]*?(?:\/>|<\/CampusGroup>)/
+  );
 
-    if (campusRequestMatch) {
-      const attrs = extractAttributes(campusRequestMatch[0]);
-      const index = campusRequestMatch.index ?? 0;
-      const textBefore = content.substring(0, index).trim();
-      const textAfter = content.substring(index + campusRequestMatch[0].length).trim();
-
-      return {
-        type: 'CampusRequest',
-        props: attrs,
-        textBefore,
-        textAfter,
-        textContent: textBefore + " " + textAfter // Fallback
-      };
+  const extractAttributes = (tagString: string) => {
+    const attrs: any = {};
+    const regex = /(\w+)="([^"]*)"/g;
+    let m;
+    while ((m = regex.exec(tagString)) !== null) {
+      attrs[m[1]] = m[2];
     }
+    return attrs;
+  };
 
-    if (campusGroupMatch) {
-      const attrs = extractAttributes(campusGroupMatch[0]);
-      const index = campusGroupMatch.index ?? 0;
-      const textBefore = content.substring(0, index).trim();
-      const textAfter = content.substring(index + campusGroupMatch[0].length).trim();
+  if (campusRequestMatch) {
+    const attrs = extractAttributes(campusRequestMatch[0]);
+    const index = campusRequestMatch.index ?? 0;
+    const textBefore = content.substring(0, index).trim();
+    const textAfter = content
+      .substring(index + campusRequestMatch[0].length)
+      .trim();
 
-      return {
-        type: 'CampusGroup',
-        props: attrs,
-        textBefore,
-        textAfter,
-        textContent: textBefore + " " + textAfter // Fallback
-      };
-    }
-
-    // Fallback to existing logic for legacy support
-    const extractAttr = (src: string | null, name: string) => {
-      if (!src) return undefined;
-      const m = src.match(new RegExp(`${name}="([^"]*)"`, "i"));
-      return m ? m[1] : undefined;
-    };
-
-    const fname = extractAttr(userProfileTag ? userProfileTag[0] : null, "fname");
-    const campusName = extractAttr(userProfileTag ? userProfileTag[0] : null, "campusName");
-    const description = extractAttr(requestDetailsTag ? requestDetailsTag[0] : null, "description");
-    const groupName = extractAttr(requestDetailsTag ? requestDetailsTag[0] : null, "groupName");
-    const matchPercent = extractAttr(requestDetailsTag ? requestDetailsTag[0] : null, "matchPercent");
-    const buttonText = extractAttr(requestDetailsTag ? requestDetailsTag[0] : null, "buttonText");
-
-    const normalizedDesc = (() => {
-      if (!description) return "";
-      let d = description;
-      d = d.replace(/requesting connection with the group organizer/gi, "connecting with the group organizers");
-      return d;
-    })();
-
-    const descriptiveText = (() => {
-      if (fname || campusName || normalizedDesc) {
-        const who = fname ? fname : "Someone";
-        const from = campusName ? ` from ${campusName}` : "";
-        const action = normalizedDesc ? `: ${normalizedDesc}` : "";
-        return `${who}${from} is interested in your activity${action}`.trim();
-      }
-      const cleaned = content
-        .replace(matchButtonPattern, "")
-        .replace(/<[^>]+>/g, "")
-        .trim();
-      return cleaned;
-    })();
-
-    if (match) {
-      const matchId = match[1];
-      return {
-        hasMatchButtons: true,
-        matchId,
-        textContent: descriptiveText,
-        groupName,
-        matchPercent,
-        buttonText: buttonText || "View Details",
-        hasInterestBlock: !!(fname || campusName || description) && !groupName,
-        fname,
-        campusName,
-        description: normalizedDesc,
-      };
-    }
     return {
-      hasMatchButtons: false,
+      type: "CampusRequest",
+      props: attrs,
+      textBefore,
+      textAfter,
+      textContent: (textBefore + " " + textAfter).trim(),
+    };
+  }
+
+  if (campusGroupMatch) {
+    const attrs = extractAttributes(campusGroupMatch[0]);
+    const index = campusGroupMatch.index ?? 0;
+    const textBefore = content.substring(0, index).trim();
+    const textAfter = content
+      .substring(index + campusGroupMatch[0].length)
+      .trim();
+
+    return {
+      type: "CampusGroup",
+      props: attrs,
+      textBefore,
+      textAfter,
+      textContent: (textBefore + " " + textAfter).trim(),
+    };
+  }
+
+  // Fallback to existing logic for legacy support
+  const extractAttr = (src: string | null, name: string) => {
+    if (!src) return undefined;
+    const m = src.match(new RegExp(`${name}="([^"]*)"`, "i"));
+    return m ? m[1] : undefined;
+  };
+
+  const fname = extractAttr(userProfileTag ? userProfileTag[0] : null, "fname");
+  const campusName = extractAttr(
+    userProfileTag ? userProfileTag[0] : null,
+    "campusName"
+  );
+  const description = extractAttr(
+    requestDetailsTag ? requestDetailsTag[0] : null,
+    "description"
+  );
+  const groupName = extractAttr(
+    requestDetailsTag ? requestDetailsTag[0] : null,
+    "groupName"
+  );
+  const matchPercent = extractAttr(
+    requestDetailsTag ? requestDetailsTag[0] : null,
+    "matchPercent"
+  );
+  const buttonText = extractAttr(
+    requestDetailsTag ? requestDetailsTag[0] : null,
+    "buttonText"
+  );
+
+  const normalizedDesc = (() => {
+    if (!description) return "";
+    let d = description;
+    d = d.replace(
+      /requesting connection with the group organizer/gi,
+      "connecting with the group organizers"
+    );
+    return d;
+  })();
+
+  const descriptiveText = (() => {
+    if (fname || campusName || normalizedDesc) {
+      const who = fname ? fname : "Someone";
+      const from = campusName ? ` from ${campusName}` : "";
+      const action = normalizedDesc ? `: ${normalizedDesc}` : "";
+      return `${who}${from} is interested in your activity${action}`.trim();
+    }
+    const cleaned = content
+      .replace(matchButtonPattern, "")
+      .replace(/<[^>]+>/g, "")
+      .trim();
+    return cleaned;
+  })();
+
+  if (match) {
+    const matchId = match[1];
+    return {
+      hasMatchButtons: true,
+      matchId,
       textContent: descriptiveText,
+      groupName,
+      matchPercent,
+      buttonText: buttonText || "View Details",
       hasInterestBlock: !!(fname || campusName || description) && !groupName,
       fname,
       campusName,
       description: normalizedDesc,
     };
+  }
+
+  return {
+    hasMatchButtons: false,
+    textContent: descriptiveText,
+    hasInterestBlock: !!(fname || campusName || description) && !groupName,
+    fname,
+    campusName,
+    description: normalizedDesc,
   };
+};
 
   const renderMessage = (msg: any, index: number) => {
     const isUser = msg.sender === "user";

@@ -1,8 +1,9 @@
 import { api } from '@/api/client';
 import { UrlConstants } from '@/constants/apiUrls';
+import { useAuthStore } from '@/state/authStore';
 import { Group } from '@/types/groups';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export interface CampusGroupProps {
@@ -22,6 +23,19 @@ export const CampusGroup = ({
     const [isJoining, setIsJoining] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const router = useRouter();
+    const { user } = useAuthStore();
+
+    // Check if current user is a member of the group
+    const isUserJoined = useMemo(() => {
+        if (!groupDetails || !user?.id) return false;
+        
+        // Check if user is in members array
+        const isMember = groupDetails.members?.some(member => member.id === user.id);
+        console.log("🔍 CampusGroup: Checking membership. User ID:", user.id, "Is member:", isMember);
+        console.log("🔍 CampusGroup: Members:", groupDetails.members?.map(m => m.id));
+        
+        return isMember || groupDetails.isJoined === true;
+    }, [groupDetails, user?.id]);
 
     useEffect(() => {
         if (showModal) {
@@ -32,11 +46,43 @@ export const CampusGroup = ({
     const fetchGroupDetails = async () => {
         try {
             setIsLoading(true);
-            const response = await api.get(UrlConstants.fetchGroupDetails(id));
-            setGroupDetails(response.data.data);
-        } catch (err) {
-            console.error("Failed to fetch group details:", err);
-            // Don't set null here immediately if we want to show basic info, but usually details are richer
+            console.log("🔍 CampusGroup: Fetching details for group ID:", id);
+            
+            try {
+                // Try the main details endpoint first
+                const response = await api.get(UrlConstants.fetchGroupDetails(id));
+                console.log("📦 CampusGroup: Main endpoint response:", JSON.stringify(response.data, null, 2));
+                
+                if (response.data?.data) {
+                    console.log("✅ CampusGroup: Group details fetched successfully");
+                    console.log("📦 CampusGroup: isJoined status:", response.data.data?.isJoined);
+                    setGroupDetails(response.data.data);
+                    return;
+                }
+            } catch (mainError: any) {
+                console.warn("⚠️ CampusGroup: Main endpoint failed, trying fallback:", mainError.response?.status);
+                
+                // Fallback to invite details endpoint
+                try {
+                    const fallbackResponse = await api.get(UrlConstants.fetchInviteGroupDetails(id));
+                    console.log("📦 CampusGroup: Fallback endpoint response:", JSON.stringify(fallbackResponse.data, null, 2));
+                    
+                    if (fallbackResponse.data?.data) {
+                        console.log("✅ CampusGroup: Group details fetched from fallback");
+                        console.log("📦 CampusGroup: isJoined status:", fallbackResponse.data.data?.isJoined);
+                        setGroupDetails(fallbackResponse.data.data);
+                        return;
+                    }
+                } catch (fallbackError: any) {
+                    console.error("❌ CampusGroup: Fallback also failed:", fallbackError.response?.status);
+                    throw mainError;
+                }
+            }
+        } catch (err: any) {
+            console.error("❌ CampusGroup: Failed to fetch group details:", err);
+            console.error("❌ CampusGroup: Error response:", err.response?.data);
+            console.error("❌ CampusGroup: Error status:", err.response?.status);
+            setGroupDetails(null);
         } finally {
             setIsLoading(false);
         }
@@ -45,12 +91,12 @@ export const CampusGroup = ({
     const joinGroupRequest = async () => {
         try {
             setIsJoining(true);
-            // The prompt says POST to fetchGroupDetails url for joining, which seems odd but adhering to prompt:
-            // UrlConstants.fetchGroupDetails(id) returns `/activities/groups/details/${id}`
-            // Prompt says: POST /activities/groups/details/{groupID}
+            console.log("🔄 CampusGroup: Joining group:", id);
             await api.post(UrlConstants.fetchGroupDetails(id), {});
+            console.log("✅ CampusGroup: Successfully joined group");
             await fetchGroupDetails();  // Refresh to get updated state (isJoined)
         } catch (err) {
+            console.error("❌ CampusGroup: Failed to join group:", err);
             Alert.alert("Error", "Failed to join group");
         } finally {
             setIsJoining(false);
@@ -58,10 +104,9 @@ export const CampusGroup = ({
     };
 
     const handleOpenChat = () => {
+        console.log("🔄 CampusGroup: Opening chat for group:", id);
         setShowModal(false);
-        if (groupDetails?.id) {
-            router.replace(`/group-chat/${groupDetails.id}`);
-        }
+        router.replace(`/group-chat/${id}`);
     };
 
     // Parse score to percentage
@@ -116,7 +161,11 @@ export const CampusGroup = ({
                         {/* Actions */}
                         {!isLoading && (
                             <>
-                                {groupDetails?.isJoined ? (
+                                {(() => {
+                                    console.log("🎯 CampusGroup: Rendering button. isUserJoined:", isUserJoined, "groupDetails:", groupDetails);
+                                    return null;
+                                })()}
+                                {isUserJoined ? (
                                     // State 2: Already Joined
                                     <TouchableOpacity
                                         style={styles.actionButton}
