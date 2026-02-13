@@ -13,9 +13,8 @@ import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import * as Updates from "expo-updates";
-import React, { useEffect, useRef } from "react";
-import { ActivityIndicator, AppState, View } from "react-native";
+import React, { useEffect } from "react";
+import { ActivityIndicator, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Toaster } from "sonner-native";
@@ -52,46 +51,6 @@ function RootLayoutContent() {
     hydrate,
   } = useAuthStore();
   const { isSyncing, statusMessage } = useSyncStore();
-
-  const appState = useRef(AppState.currentState);
-  const backgroundTime = useRef<number | null>(null);
-
-  /* -------------------------- INACTIVITY RELOAD --------------------------- */
-  useEffect(() => {
-    const subscription = AppState.addEventListener("change", async (nextAppState) => {
-      if (
-        appState.current.match(/inactive|background/) &&
-        nextAppState === "active"
-      ) {
-        // App has come to the foreground
-        if (backgroundTime.current) {
-          const timeInBackground = Date.now() - backgroundTime.current;
-          console.log(`📱 App foregrounded after ${timeInBackground}ms`);
-
-          // If backgrounded for more than 40 seconds (40000ms), reload the app
-          if (timeInBackground > 30000) {
-            console.log("🔄 App was in background for >40s. Reloading...");
-            try {
-              await Updates.reloadAsync();
-            } catch (error) {
-              console.error("❌ Failed to reload app:", error);
-            }
-          }
-        }
-        backgroundTime.current = null;
-      } else if (nextAppState.match(/inactive|background/)) {
-        // App has gone to the background
-        console.log("📱 App backgrounded");
-        backgroundTime.current = Date.now();
-      }
-
-      appState.current = nextAppState;
-    });
-
-    return () => {
-      subscription.remove();
-    };
-  }, []);
 
   const segments = useSegments();
   const router = useRouter();
