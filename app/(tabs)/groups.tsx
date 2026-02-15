@@ -19,6 +19,9 @@ import * as Updates from "expo-updates";
 import moment from "moment";
 import React, { useCallback, useState } from "react";
 import {
+  Animated,
+  AppState,
+  Easing,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -147,6 +150,37 @@ const Groups = () => {
   const [showNewGroupModal, setShowNewGroupModal] = useState(false);
   const [showCacheStatus, setShowCacheStatus] = useState(false);
   const { selectedUniversity } = useCampus();
+  const [showResumeNotice, setShowResumeNotice] = useState(false);
+  const arrowAnim = React.useRef(new Animated.Value(0)).current;
+  const arrowLoopRef = React.useRef<Animated.CompositeAnimation | null>(null);
+
+  React.useEffect(() => {
+    const sub = AppState.addEventListener("change", (next) => {
+      if (next === "active") {
+        setShowResumeNotice(true);
+      }
+    });
+    return () => sub.remove();
+  }, []);
+
+  React.useEffect(() => {
+    if (showResumeNotice) {
+      arrowLoopRef.current = Animated.loop(
+        Animated.timing(arrowAnim, {
+          toValue: 1,
+          duration: 900,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        })
+      );
+      arrowLoopRef.current.start();
+    } else {
+      arrowLoopRef.current?.stop();
+      arrowAnim.stopAnimation(() => {
+        arrowAnim.setValue(0);
+      });
+    }
+  }, [showResumeNotice, arrowAnim]);
 
   // Preload profile pictures for better performance
   useImagePreloader(groups || []);
@@ -163,6 +197,14 @@ const Groups = () => {
         Updates.reloadAsync().catch((e) => console.warn("Failed to reload app:", e));
       }
     }, [isAuthenticated])
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        setShowResumeNotice(false);
+      };
+    }, [])
   );
 
   const handleManualRefresh = async () => {
@@ -859,6 +901,37 @@ const Groups = () => {
               Prompt-matched groups and direct messages
 
             </Text>
+            {showResumeNotice && (
+              <View style={styles.resumeNotice}>
+                <Animated.View
+                  style={{
+                    transform: [
+                      {
+                        rotate: arrowAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['0deg', '360deg'],
+                        }),
+                      },
+                      { scale: 0.85 },
+                    ],
+                  }}
+                >
+                  <Ionicons
+                    name="arrow-forward-outline"
+                    size={16}
+                    color={dynamicStyles.subtitle.color}
+                  />
+                </Animated.View>
+                <Text
+                  style={[
+                    styles.resumeNoticeText,
+                    { color: dynamicStyles.subtitle.color }
+                  ]}
+                >
+                  Enter your most active Chats or groups to view last messages if any
+                </Text>
+              </View>
+            )}
           </View>
 
           <View style={styles.groupsList}>
@@ -1404,6 +1477,16 @@ const styles = StyleSheet.create({
   cacheNoticeText: {
     fontSize: 12,
     flex: 1,
+  },
+  resumeNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 4,
+    marginTop: 8,
+  },
+  resumeNoticeText: {
+    fontSize: 10,
   },
   retrySmallButton: {
     paddingHorizontal: 12,
