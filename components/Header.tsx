@@ -182,8 +182,88 @@ const NotificationItem = ({ notification, isDark, onFriendRequest, onNotificatio
 
         <Text style={[styles.notificationMessage, { color: isDark ? "#CCCCCC" : "#666666" }]}>
           {notification.type?.toLowerCase() === 'friend_request' || notification.type?.toLowerCase() === 'new_friend_request'
-            ? `You have a friend request from ${userInfo.name}`
-            : (notification.message || notification.content || 'No message').replace(/\s+/g, ' ').trim()}
+            ? (() => {
+                const message = `You have a friend request from ${userInfo.name}`;
+                const fromIndex = message.indexOf(' from ');
+                if (fromIndex !== -1) {
+                  const beforeFrom = message.substring(0, fromIndex + 6); // Include " from "
+                  const name = message.substring(fromIndex + 6);
+                  return (
+                    <>
+                      {beforeFrom}
+                      <Text style={{ fontWeight: '700', color: isDark ? "#FFFFFF" : "#0a0a0a" }}>
+                        {name}
+                      </Text>
+                    </>
+                  );
+                }
+                return message;
+              })()
+            : (() => {
+                const message = (notification.message || notification.content || 'No message').replace(/\s+/g, ' ').trim();
+                
+                // Pattern 1: "by [Name]" - e.g., "Your friend request was accepted! 🎉 by Aransiola Favour"
+                const byMatch = message.match(/^(.+ by )(.+)$/);
+                if (byMatch) {
+                  return (
+                    <>
+                      {byMatch[1]}
+                      <Text style={{ fontWeight: '700', color: isDark ? "#FFFFFF" : "#0a0a0a" }}>
+                        {byMatch[2]}
+                      </Text>
+                    </>
+                  );
+                }
+                
+                // Pattern 2: "[Name] commented/liked/etc" anywhere in the message
+                // e.g., "You have a new comment. Henry commented on your post."
+                // e.g., "Your post got a new like. Henry liked your post."
+                const actionMatch = message.match(/^(.*?\.\s*)([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+(commented|liked|followed|posted|shared|replied|mentioned|sent)/i);
+                if (actionMatch) {
+                  const before = actionMatch[1];
+                  const name = actionMatch[2];
+                  const rest = message.substring(before.length + name.length);
+                  return (
+                    <>
+                      {before}
+                      <Text style={{ fontWeight: '700', color: isDark ? "#FFFFFF" : "#0a0a0a" }}>
+                        {name}
+                      </Text>
+                      {rest}
+                    </>
+                  );
+                }
+                
+                // Pattern 3: "[Name] at the start" - e.g., "Aransiola commented on your post."
+                const startMatch = message.match(/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+(commented|liked|followed|posted|shared|replied|mentioned|sent)/i);
+                if (startMatch) {
+                  const name = startMatch[1];
+                  const rest = message.substring(name.length);
+                  return (
+                    <>
+                      <Text style={{ fontWeight: '700', color: isDark ? "#FFFFFF" : "#0a0a0a" }}>
+                        {name}
+                      </Text>
+                      {rest}
+                    </>
+                  );
+                }
+                
+                // Pattern 4: "from [Name]" - e.g., "You have a new friend request from Aransiola"
+                const fromMatch = message.match(/^(.+ from )(.+)$/);
+                if (fromMatch) {
+                  return (
+                    <>
+                      {fromMatch[1]}
+                      <Text style={{ fontWeight: '700', color: isDark ? "#FFFFFF" : "#0a0a0a" }}>
+                        {fromMatch[2]}
+                      </Text>
+                    </>
+                  );
+                }
+                
+                return message;
+              })()}
         </Text>
 
         <Text style={[styles.notificationTime, { color: isDark ? "#999999" : "#999999" }]}>
