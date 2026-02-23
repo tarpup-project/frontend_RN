@@ -1,6 +1,6 @@
 class UrlConstants {
   static readonly baseUrl = "https://server.tarpup.com";
-
+//http://172.20.10.3:4500"
   static createUser = `/user/create`;
   static loginUser = `/user/login`;
   static verifyOTP = `/user/verify`;
@@ -37,7 +37,7 @@ class UrlConstants {
     `/groups/all${campusID ? `?campusID=${campusID}` : ""}`;
   static createGroupChat = `/groups/chat/create`;
   static uploadImageToMessage = (id: string) => `/user/messages/upload/${id}`
-  static fetchGroupMessages = (groupID: string) => `/groups/messages/${groupID}`;
+  static fetchGroupMessages = (groupID: string) => `/groups/${groupID}/messages`;
   static fetchAllCategories = (campusID?: string, stateID?: string) =>
     `/groups/categories${campusID !== undefined ? `?campusID=${campusID}` : ""
     }${stateID !== undefined ? `?stateID=${stateID}` : ""}`;

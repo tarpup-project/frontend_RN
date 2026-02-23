@@ -9,7 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import moment from "moment";
 import React, { useEffect, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { toast } from "sonner-native";
 
 interface ChatSettingsModalProps {
@@ -644,6 +644,11 @@ const ConfirmationModal = ({
     },
   };
 
+  // Determine button text based on title
+  const isClearing = title.toLowerCase().includes("clear");
+  const confirmText = isClearing ? "Clear" : "Remove";
+  const loadingText = isClearing ? "Clearing..." : "Removing...";
+
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.confirmOverlay}>
@@ -681,15 +686,11 @@ const ConfirmationModal = ({
                 <View
                   style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
                 >
-                  <Ionicons
-                    name="hourglass-outline"
-                    size={12}
-                    color="#FFFFFF"
-                  />
-                  <Text style={styles.confirmButtonText}>Removing...</Text>
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <Text style={styles.confirmButtonText}>{loadingText}</Text>
                 </View>
               ) : (
-                <Text style={styles.confirmButtonText}>Remove</Text>
+                <Text style={styles.confirmButtonText}>{confirmText}</Text>
               )}
             </Pressable>
           </View>

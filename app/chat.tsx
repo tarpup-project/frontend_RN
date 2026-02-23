@@ -44,6 +44,7 @@ const Chat = () => {
   const { user } = useAuthStore();
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showClearChatConfirm, setShowClearChatConfirm] = useState(false);
+  const [isClearingChat, setIsClearingChat] = useState(false);
   const { selectAndProcessImage, isLoading: isImageLoading } = useImageUpload();
   const [showImageUploadModal, setShowImageUploadModal] = useState(false);
   const [selectedImageData, setSelectedImageData] = useState<{
@@ -1050,11 +1051,17 @@ const parseMessageForActions = (content: string) => {
         visible={showClearChatConfirm}
         title="Clear chat?"
         message="This will permanently delete your messages. Are you sure?"
-        onConfirm={() => {
-          setShowClearChatConfirm(false);
-          clearMessages();
+        onConfirm={async () => {
+          setIsClearingChat(true);
+          try {
+            await clearMessages();
+          } finally {
+            setIsClearingChat(false);
+            setShowClearChatConfirm(false);
+          }
         }}
         onCancel={() => setShowClearChatConfirm(false)}
+        isLoading={isClearingChat}
       />
       <ImageUploadModal
         visible={showImageUploadModal}
