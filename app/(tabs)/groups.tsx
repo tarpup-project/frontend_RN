@@ -26,6 +26,7 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
+  TextInput,
   View
 } from "react-native";
 
@@ -153,6 +154,7 @@ const Groups = () => {
   const [showResumeNotice, setShowResumeNotice] = useState(false);
   const arrowAnim = React.useRef(new Animated.Value(0)).current;
   const arrowLoopRef = React.useRef<Animated.CompositeAnimation | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   React.useEffect(() => {
     const sub = AppState.addEventListener("change", (next) => {
@@ -394,7 +396,27 @@ const Groups = () => {
       return base;
     };
 
-    return uiGroups
+    // Filter groups based on search query
+    const filteredGroups = uiGroups.filter((group: any) => {
+      if (!searchQuery.trim()) return true;
+      
+      const query = searchQuery.toLowerCase();
+      const title = (group.title || "").toLowerCase();
+      const description = (group.description || "").toLowerCase();
+      const category = (group.category || "").toLowerCase();
+      
+      // Search in member names for personal chats
+      const memberNames = (group.rawGroup?.members || [])
+        .map((m: any) => `${m.fname || ""} ${m.lname || ""}`.toLowerCase())
+        .join(" ");
+      
+      return title.includes(query) || 
+             description.includes(query) || 
+             category.includes(query) ||
+             memberNames.includes(query);
+    });
+
+    return filteredGroups
       .slice()
       .sort((a: any, b: any) => {
         try {
@@ -846,6 +868,38 @@ const Groups = () => {
           }
         >
           <View style={styles.headerSection}>
+            {/* Search Bar */}
+            <View style={[styles.searchContainer, {
+              backgroundColor: isDark ? "#1a1a1a" : "#F5F5F5",
+              borderColor: isDark ? "#333333" : "#E0E0E0",
+            }]}>
+              <Ionicons 
+                name="search-outline" 
+                size={20} 
+                color={isDark ? "#888888" : "#666666"} 
+              />
+              <TextInput
+                style={[styles.searchInput, {
+                  color: isDark ? "#FFFFFF" : "#000000",
+                }]}
+                placeholder="Search chats and groups..."
+                placeholderTextColor={isDark ? "#666666" : "#999999"}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              {searchQuery.length > 0 && (
+                <Pressable onPress={() => setSearchQuery("")}>
+                  <Ionicons 
+                    name="close-circle" 
+                    size={20} 
+                    color={isDark ? "#888888" : "#666666"} 
+                  />
+                </Pressable>
+              )}
+            </View>
+
             <View style={styles.headerRow}>
               <Text style={[styles.pageTitle, dynamicStyles.text]}>
                 Chats
@@ -1029,6 +1083,33 @@ const Groups = () => {
               </View>
             ) : null}
 
+            {/* No Search Results */}
+            {!isLoading && searchQuery.trim() && uiGroups && Array.isArray(uiGroups) && uiGroups.length > 0 && 
+             uiGroups.filter((group: any) => {
+               const query = searchQuery.toLowerCase();
+               const title = (group.title || "").toLowerCase();
+               const description = (group.description || "").toLowerCase();
+               const category = (group.category || "").toLowerCase();
+               const memberNames = (group.rawGroup?.members || [])
+                 .map((m: any) => `${m.fname || ""} ${m.lname || ""}`.toLowerCase())
+                 .join(" ");
+               return title.includes(query) || description.includes(query) || category.includes(query) || memberNames.includes(query);
+             }).length === 0 ? (
+              <View style={styles.centerContainer}>
+                <Ionicons
+                  name="search-outline"
+                  size={48}
+                  color={dynamicStyles.subtitle.color}
+                />
+                <Text style={[styles.emptyText, dynamicStyles.text]}>
+                  No results found
+                </Text>
+                <Text style={[styles.emptySubtext, dynamicStyles.subtitle]}>
+                  Try searching with different keywords
+                </Text>
+              </View>
+            ) : null}
+
             {/* Groups List */}
             {!isLoading && (groups && Array.isArray(groups) && groups.length > 0) || hasData ? (
               <>{renderGroupsList()}</>
@@ -1090,6 +1171,21 @@ const styles = StyleSheet.create({
   headerSection: {
     marginTop: 16,
     marginBottom: 24,
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 8,
+    marginBottom: 16,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    paddingVertical: 0,
   },
   headerRow: {
     flexDirection: "row",

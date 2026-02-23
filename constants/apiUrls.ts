@@ -1,6 +1,6 @@
 class UrlConstants {
-  static readonly baseUrl = "https://server.tarpup.com";
-
+  static readonly baseUrl = "http://172.20.10.3:4500";
+//http://server.tarpup.com"
   static createUser = `/user/create`;
   static loginUser = `/user/login`;
   static verifyOTP = `/user/verify`;
