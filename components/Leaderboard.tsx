@@ -4,9 +4,9 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useLeaderboard } from "@/hooks/useLeaderboard";
 import { UserLeaderboardInterface } from "@/types/leaderboard";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
-import LeaderBoardBreakDown from "./Leaderboardbreakdown";
+import React, { useEffect, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
+import LeaderBoardBreakDown from "./Leaderboardbreakdown";
 
 const numberToSocial = (num: number): string => {
   if (num >= 1000000) {
@@ -26,6 +26,13 @@ const LeaderBoard = () => {
   const { isDark } = useTheme();
   const { data, isLoading, error } = useLeaderboard();
   const [showBreakdown, setShowBreakdown] = useState(false);
+  const [lastGoodData, setLastGoodData] = useState<UserLeaderboardInterface | null>(null);
+
+  useEffect(() => {
+    if (data) {
+      setLastGoodData(data as UserLeaderboardInterface);
+    }
+  }, [data]);
 
   const dynamicStyles = {
     container: {
@@ -44,7 +51,9 @@ const LeaderBoard = () => {
   };
 
   const handlePress = () => {
-    setShowBreakdown(true);
+    if (lastGoodData) {
+      setShowBreakdown(true);
+    }
   };
 
   if (isLoading) {
@@ -75,11 +84,117 @@ const LeaderBoard = () => {
     );
   }
 
-  if (error || !data) {
-    return null;
+  if ((error || !data) && lastGoodData) {
+    const leaderboardData = lastGoodData;
+    return (
+      <>
+      <Pressable
+        style={[styles.container, dynamicStyles.container]}
+        onPress={handlePress}
+      >
+        <View style={styles.content}>
+          <View style={styles.leftSection}>
+          <View style={[styles.trophyIcon, { backgroundColor: "#FF7B00" }]}>
+  <Ionicons name="trophy" size={20} color="#FFFFFF" />
+</View>
+            <View style={styles.rankingInfo}>
+              <View style={styles.rankRow}>
+                <Text style={[styles.rankText, dynamicStyles.text]}>
+                  #{numberToStandard(leaderboardData.position.rank)}
+                  <Text style={[styles.rankTotal, dynamicStyles.subtitle]}>
+                    {" "}
+                    / {numberToStandard(leaderboardData.position.totalUsers)}
+                  </Text>
+                </Text>
+                <View style={[styles.risingStarBadge, dynamicStyles.badge]}>
+              <Ionicons name="sparkles" size={12} color={dynamicStyles.text.color} />
+                  <Text style={[styles.badgeText, dynamicStyles.text]}>
+                    Rising Star
+                  </Text>
+                </View>
+              </View>
+              <Text style={[styles.rankingSubtitle, dynamicStyles.subtitle]}>
+                Your TarpAI ranking
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.rightSection}>
+            <View style={styles.pointsContainer}>
+              <View style={styles.pointsRow}>
+            <Ionicons name="trending-up" size={18} color={dynamicStyles.text.color} />
+                <Text style={[styles.pointsText, dynamicStyles.text]}>
+                  {numberToSocial(leaderboardData.totalPoints)}
+                </Text>
+              </View>
+              <Text style={[styles.pointsLabel, dynamicStyles.subtitle]}>
+                Points
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={dynamicStyles.subtitle.color} />
+          </View>
+        </View>
+      </Pressable>
+      <LeaderBoardBreakDown
+      data={leaderboardData}
+      visible={showBreakdown}
+      onClose={() => setShowBreakdown(false)}
+      />
+
+      </>
+    );
   }
 
-  const leaderboardData = data as UserLeaderboardInterface;
+  if (error || !data) {
+    return (
+      <View style={[styles.container, dynamicStyles.container]}>
+        <View style={styles.content}>
+          <View style={styles.leftSection}>
+            <View style={[styles.trophyIcon, { backgroundColor: "#FF7B00" }]}>
+              <Ionicons name="trophy" size={20} color="#FFFFFF" />
+            </View>
+            <View style={styles.rankingInfo}>
+              <View style={styles.rankRow}>
+                <Text style={[styles.rankText, dynamicStyles.text]}>
+                  #—
+                  <Text style={[styles.rankTotal, dynamicStyles.subtitle]}>
+                    {" "}
+                    / —
+                  </Text>
+                </Text>
+                <View style={[styles.risingStarBadge, dynamicStyles.badge]}>
+                  <Ionicons name="sparkles" size={12} color={dynamicStyles.text.color} />
+                  <Text style={[styles.badgeText, dynamicStyles.text]}>
+                    Leaderboard
+                  </Text>
+                </View>
+              </View>
+              <Text style={[styles.rankingSubtitle, dynamicStyles.subtitle]}>
+                Your TarpAI ranking
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.rightSection}>
+            <View style={styles.pointsContainer}>
+              <View style={styles.pointsRow}>
+                <Ionicons name="trending-up" size={18} color={dynamicStyles.text.color} />
+                <Text style={[styles.pointsText, dynamicStyles.text]}>
+                  —
+                </Text>
+              </View>
+              <Text style={[styles.pointsLabel, dynamicStyles.subtitle]}>
+                Points
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={dynamicStyles.subtitle.color} />
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  const leaderboardData = (data as UserLeaderboardInterface);
 
   return (
     <>
