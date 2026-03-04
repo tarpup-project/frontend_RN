@@ -92,6 +92,11 @@ const NotificationItem = ({ notification, isDark, onFriendRequest, onNotificatio
     switch (type?.toLowerCase()) {
       case 'friend_request':
       case 'new_friend_request':
+      case 'friend_request_accepted':
+      case 'friend_accept':
+      case 'friend_accepted':
+      case 'request_accepted':
+      case 'accept_friend_request':
         return 'person-add';
       case 'match':
       case 'new_match':
@@ -115,6 +120,12 @@ const NotificationItem = ({ notification, isDark, onFriendRequest, onNotificatio
     switch (type?.toLowerCase()) {
       case 'friend_request':
         return 'New Friend Request';
+      case 'friend_request_accepted':
+      case 'friend_accept':
+      case 'friend_accepted':
+      case 'request_accepted':
+      case 'accept_friend_request':
+        return 'Friend Request Accepted';
       case 'new_match':
       case 'match':
         return 'New Match Found!';
@@ -317,7 +328,8 @@ const NotificationItem = ({ notification, isDark, onFriendRequest, onNotificatio
 
       {/* Navigation Arrow - only show for navigable notifications */}
       {(notification.data?.postID ||
-        ['new_comment', 'comment', 'new_like', 'like', 'new_match', 'match', 'new_follower', 'follower', 'new_following', 'friend_request', 'new_friend_request'].includes(notification.type?.toLowerCase())) && (
+        ['new_comment', 'comment', 'new_like', 'like', 'new_match', 'match', 'new_follower', 'follower', 'new_following', 'friend_request', 'new_friend_request', 'friend_request_accepted', 'friend_accept', 'friend_accepted', 'request_accepted', 'accept_friend_request'].includes(notification.type?.toLowerCase()) ||
+        ((notification.actors?.[0]?.actor?.id) && /follow|friend/.test((notification.type || '').toLowerCase()))) && (
           <View style={styles.navigationArrow}>
             <Ionicons name="chevron-forward" size={16} color={isDark ? "#666666" : "#CCCCCC"} />
           </View>
@@ -569,6 +581,11 @@ const Header = () => {
 
           case 'friend_request':
           case 'new_friend_request':
+          case 'friend_request_accepted':
+          case 'friend_accept':
+          case 'friend_accepted':
+          case 'request_accepted':
+          case 'accept_friend_request':
             // Navigate to friend requester's profile using their ID from actors
             const requesterActor = notification.actors?.[0]?.actor;
             if (requesterActor?.id) {
@@ -588,6 +605,12 @@ const Header = () => {
               // Also show loading if we didn't before
               setIsLoadingPost(true);
               await navigateToPost(data.postID);
+            } else {
+              const actor = notification.actors?.[0]?.actor;
+              const msg = (notification.message || notification.content || '').toLowerCase();
+              if (actor?.id && (msg.includes('follow') || msg.includes('friend request'))) {
+                router.push(`/profile/${actor.id}`);
+              }
             }
             break;
         }

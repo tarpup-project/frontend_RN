@@ -17,7 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import * as Updates from "expo-updates";
 import moment from "moment";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import {
   Animated,
   AppState,
@@ -113,10 +113,14 @@ const Groups = () => {
     markAsRead,
     isCached,
     hasData,
+    isRefreshing,
   } = useUnifiedGroups();
 
   const { isReconnecting } = useSocketConnection();
   const router = useRouter();
+  
+  // Prevent double-tap navigation
+  const isNavigatingRef = useRef(false);
 
   // Aggressive refresh function to clear caches and fetch fresh data
   const handleAggressiveRefresh = useCallback(async () => {
@@ -270,6 +274,36 @@ const Groups = () => {
       console.error('No group ID found in created group data');
     }
   };
+
+  // Handle navigation with debounce to prevent double-tap issues
+  const handleGroupNavigation = useCallback((group: any) => {
+    // Prevent double navigation
+    if (isNavigatingRef.current) {
+      console.log('⚠️ Navigation already in progress, ignoring duplicate tap');
+      return;
+    }
+
+    isNavigatingRef.current = true;
+    
+    try {
+      const essentialData = getEssentialGroupData(group.rawGroup);
+      router.push({
+        pathname: `/group-chat/${group.id}` as any,
+        params: {
+          groupData: JSON.stringify(essentialData),
+        },
+      });
+    } catch (error) {
+      console.error('Navigation error:', error);
+      // Fallback navigation without params
+      router.push(`/group-chat/${group.id}` as any);
+    }
+
+    // Reset navigation lock after a short delay
+    setTimeout(() => {
+      isNavigatingRef.current = false;
+    }, 1000);
+  }, [router]);
 
   const dynamicStyles = {
     container: {
@@ -506,21 +540,7 @@ const Groups = () => {
               <Pressable
                 key={group.id}
                 style={[styles.dmCard, dynamicStyles.card]}
-                onPress={() => {
-                  try {
-                    const essentialData = getEssentialGroupData(group.rawGroup);
-                    router.push({
-                      pathname: `/group-chat/${group.id}` as any,
-                      params: {
-                        groupData: JSON.stringify(essentialData),
-                      },
-                    });
-                  } catch (error) {
-                    console.error('Navigation error:', error);
-                    // Fallback navigation without params
-                    router.push(`/group-chat/${group.id}` as any);
-                  }
-                }}
+                onPress={() => handleGroupNavigation(group)}
               >
                 <View style={styles.dmHeader}>
                   <View style={styles.dmAvatarContainer}>
@@ -640,21 +660,7 @@ const Groups = () => {
             <Pressable
               key={group.id}
               style={[styles.groupCard, dynamicStyles.card]}
-              onPress={() => {
-                try {
-                  const essentialData = getEssentialGroupData(group.rawGroup);
-                  router.push({
-                    pathname: `/group-chat/${group.id}` as any,
-                    params: {
-                      groupData: JSON.stringify(essentialData),
-                    },
-                  });
-                } catch (error) {
-                  console.error('Navigation error:', error);
-                  // Fallback navigation without params
-                  router.push(`/group-chat/${group.id}` as any);
-                }
-              }}
+              onPress={() => handleGroupNavigation(group)}
             >
               <View style={styles.topRow}>
                 <View style={styles.badgesRow}>
